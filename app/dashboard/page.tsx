@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { mockData } from '@/data/mockData'
 import { detectLang, createT, LangContext } from '@/data/i18n'
 import { PlanProvider } from '@/data/plans'
-import { apiMe, apiGetTeam, getBusinessId, setBusinessId } from '@/lib/api'
+import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId } from '@/lib/api'
 import { SettingsTab }       from '@/components/dashboard/SettingsTab'
 import { CustomersTab }      from '@/components/dashboard/CustomersTab'
 import { AnalyticsTab }      from '@/components/dashboard/AnalyticsTab'
@@ -593,6 +593,7 @@ export default function DashboardPage() {
   const [business, setBusiness]     = useState<any>(null)
   const [businessId, setBusinessIdState] = useState<string | null>(null)
   const [team, setTeam]             = useState<any[]>([])
+  const [cards, setCards]           = useState<any[]>([])
   const [loading, setLoading]       = useState(true)
 
   async function loadBusiness() {
@@ -617,6 +618,22 @@ export default function DashboardPage() {
             lastActivity: u.lastActivityAt ? new Date(u.lastActivityAt).toLocaleDateString('es-AR') : '—',
           })))
         } catch (e) { console.error('team load error:', e) }
+
+        // Load cards
+        try {
+          const cardsData = await apiGetCards(bid)
+          setCards((cardsData as any[]).map(c => ({
+            id:             c._id,
+            name:           c.name,
+            type:           c.type,
+            isActive:       c.isActive,
+            color:          c.color || '#1E3329',
+            secondColor:    c.secondColor || '#16271F',
+            stampsRequired: c.stampsRequired || 8,
+            rewardMode:     c.rewardMode || null,
+            rewardField:    c.rewardFixedValue || null,
+          })))
+        } catch (e) { console.error('cards load error:', e) }
       }
     } catch (err) {
       console.error(err)
@@ -644,7 +661,7 @@ export default function DashboardPage() {
       case 'analytics':     return <AnalyticsTab data={mockData} />
       case 'rewards':       return <RewardsTab data={mockData} />
       case 'notifications': return <NotificationsTab data={mockData} />
-      case 'form':          return <FormTab businessName={business?.name || mockData.business.name} businessSlug={business?.slug || 'mi-negocio'} cardDesigns={mockData.cardDesigns} />
+      case 'form':          return <FormTab businessName={business?.name || mockData.business.name} businessSlug={business?.slug || 'mi-negocio'} cardDesigns={cards.length > 0 ? cards : mockData.cardDesigns} />
       case 'design':        return businessId
         ? <DesignTab key={businessId} data={mockData} businessId={businessId} />
         : <DesignTab data={mockData} />
