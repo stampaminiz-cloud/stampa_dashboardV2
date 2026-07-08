@@ -237,9 +237,25 @@ function Header({ title, t, setMobileOpen }: { title: string; t: (k: any) => str
 }
 
 // ─── Overview ─────────────────────────────────────────────────────────────────
-function OverviewTab({ t }: { t: (k: any) => string }) {
+function OverviewTab({ t, analyticsData, rewardsData, cards }: { 
+  t: (k: any) => string
+  analyticsData?: any
+  rewardsData?: any
+  cards?: any[]
+}) {
   const m = mockData.metrics
-  const activeCards = mockData.cardDesigns.filter((c: any) => c.isActive)
+  const activeCards = (cards && cards.length > 0)
+    ? cards.filter((c: any) => c.isActive)
+    : mockData.cardDesigns.filter((c: any) => c.isActive)
+
+  // Use real data when available
+  const totalUsers    = analyticsData?.total          ?? m.totalUsers
+  const activeUsers   = analyticsData?.active         ?? m.activeUsers
+  const newSignUps    = analyticsData?.newThisMonth   ?? m.newSignUps
+  const inactiveUsers = analyticsData?.inactive       ?? m.inactiveUsers
+  const nearPrize     = rewardsData?.nearPrize        ?? m.nearPrize
+  const newDelta      = analyticsData?.newDelta       ?? m.newSignUpsDelta
+  const weeklyVisits  = analyticsData?.weeklyVisits   ?? null
   const hasStamp      = activeCards.some((c: any) => c.type === 'stamp')
   const hasMembership = activeCards.some((c: any) => c.type === 'membership')
   const hasPoints     = activeCards.some((c: any) => c.type === 'points')
@@ -260,10 +276,10 @@ function OverviewTab({ t }: { t: (k: any) => string }) {
       <div className="ov-section-label">{t('section_growth' as any)}</div>
       <div className="ov-metric-grid">
         {[
-          { label: t('total_customers' as any), value: m.totalUsers,    delta: m.totalUsersDelta,    color: '#C75D3A' },
-          { label: t('active' as any),          value: m.activeUsers,   delta: m.activeUsersDelta,   color: '#5B8C5A' },
-          { label: t('new_signups' as any),     value: m.newSignUps,    delta: m.newSignUpsDelta,    color: '#185FA5' },
-          { label: t('inactive' as any),        value: m.inactiveUsers, delta: m.inactiveUsersDelta, color: '#B23B3B' },
+          { label: t('total_customers' as any), value: totalUsers,    delta: m.totalUsersDelta,    color: '#C75D3A' },
+          { label: t('active' as any),          value: activeUsers,   delta: m.activeUsersDelta,   color: '#5B8C5A' },
+          { label: t('new_signups' as any),     value: newSignUps,    delta: newDelta,              color: '#185FA5' },
+          { label: t('inactive' as any),        value: inactiveUsers, delta: m.inactiveUsersDelta, color: '#B23B3B' },
         ].map(({ label, value, delta, color }) => (
           <div key={label} className="ov-metric-card">
             <div className="ov-metric-top">
@@ -286,18 +302,21 @@ function OverviewTab({ t }: { t: (k: any) => string }) {
           <div className="ov-card-title">{t('customer_growth' as any)}</div>
           <div className="ov-card-sub">{t('last_6_months' as any)}</div>
           <div className="ov-bars">
-            {mockData.customerGrowth.map(({ month, users }: any) => (
-              <div key={month} className="ov-bar-col">
-                <div className="ov-bar-fill" style={{ height: `${(users / 5000) * 100}%` }} />
-                <div className="ov-bar-label">{month}</div>
-              </div>
-            ))}
+            {(weeklyVisits || mockData.customerGrowth.map(({ month, users }: any) => ({ label: month, visits: users }))).map(({ label, visits }: any) => {
+              const maxVal = weeklyVisits ? Math.max(...weeklyVisits.map((w: any) => w.visits), 1) : 5000
+              return (
+                <div key={label} className="ov-bar-col">
+                  <div className="ov-bar-fill" style={{ height: `${(visits / maxVal) * 100}%` }} />
+                  <div className="ov-bar-label">{label}</div>
+                </div>
+              )
+            })}
           </div>
         </div>
         <div className="db-card ov-near-card">
           <div className="ov-card-title">{t('near_prize' as any)}</div>
           <div className="ov-card-sub">{t('near_prize_sub' as any)}</div>
-          <div className="ov-near-num">{m.nearPrize}</div>
+          <div className="ov-near-num">{nearPrize}</div>
           <div className="ov-near-label">{t('customers_label' as any)}</div>
         </div>
       </div>
@@ -709,14 +728,9 @@ export default function DashboardPage() {
 
   function renderTab() {
     switch (active) {
-      case 'overview':      return <OverviewTab t={t} />
+      case 'overview':      return <OverviewTab t={t} analyticsData={analyticsData} rewardsData={rewardsData} cards={cards} />
       case 'customers':     return <CustomersTab customers={customers.length > 0 ? customers : mockData.customers} dynamicFieldLabel="Bebida favorita" />
-      case 'analytics': return <AnalyticsTab 
-      key={cards.length > 0 ? cards[0].id : 'loading'} 
-      data={mockData} 
-      analyticsData={analyticsData} 
-      cards={cards} />
-    
+      case 'analytics':     return <AnalyticsTab data={mockData} analyticsData={analyticsData} />
       case 'rewards':       return <RewardsTab data={mockData} rewardsData={rewardsData} cards={cards} businessId={businessId} />
       case 'notifications': return <NotificationsTab
         businessId={businessId}
