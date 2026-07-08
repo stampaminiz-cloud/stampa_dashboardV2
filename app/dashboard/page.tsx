@@ -582,10 +582,12 @@ function injectStyles() {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const [active, setActive]         = useState<TabId>(() => {
-    if (typeof window === 'undefined') return 'overview'
-    return (localStorage.getItem('stampa_active_tab') as TabId) || 'overview'
-  })
+  const [active, setActive] = useState<TabId>('overview')
+
+useEffect(() => {
+  const saved = localStorage.getItem('stampa_active_tab') as TabId
+  if (saved) setActive(saved)
+}, [])
   const [collapsed, setCollapsed]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [t, setT]                   = useState(() => createT('es'))
@@ -596,6 +598,7 @@ export default function DashboardPage() {
   const [cards, setCards]           = useState<any[]>([])
   const [notifHistory, setNotifHistory]             = useState<any[]>([])
   const [notifSentThisMonth, setNotifSentThisMonth] = useState(0)
+  const [customers, setCustomers]                   = useState<any[]>([])
   const [loading, setLoading]       = useState(true)
 
   async function loadBusiness() {
@@ -637,6 +640,18 @@ export default function DashboardPage() {
           })))
         } catch (e) { console.error('cards load error:', e) }
 
+        // Load customers
+        try {
+          const custRes = await fetch(`http://localhost:5002/api/businesses/${bid}/customers`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + localStorage.getItem('stampa_token')
+            }
+          })
+          const custData = await custRes.json()
+          setCustomers(custData.customers || [])
+        } catch (e) { console.error('customers load error:', e) }
+
         // Load notification history
         try {
           const notifRes = await fetch(`http://localhost:5002/api/businesses/${bid}/notifications`, {
@@ -672,7 +687,7 @@ export default function DashboardPage() {
   function renderTab() {
     switch (active) {
       case 'overview':      return <OverviewTab t={t} />
-      case 'customers':     return <CustomersTab customers={mockData.customers} dynamicFieldLabel="Bebida favorita" />
+      case 'customers':     return <CustomersTab customers={customers.length > 0 ? customers : mockData.customers} dynamicFieldLabel="Bebida favorita" />
       case 'analytics':     return <AnalyticsTab data={mockData} />
       case 'rewards':       return <RewardsTab data={mockData} />
       case 'notifications': return <NotificationsTab
@@ -689,14 +704,8 @@ export default function DashboardPage() {
           scheduledNotifications: [],
         }}
       />
-      case 'form': return <FormTab
-      key={cards.length > 0 ? cards[0].id : 'loading'}
-      businessName={business?.name || mockData.business.name}
-      businessSlug={business?.slug || 'mi-negocio'}
-      cardDesigns={cards.length > 0 ? cards : mockData.cardDesigns}
-      businessId={businessId}
-    />
-       case 'design':        return businessId
+      case 'form':          return <FormTab businessName={business?.name || mockData.business.name} businessSlug={business?.slug || 'mi-negocio'} cardDesigns={cards.length > 0 ? cards : mockData.cardDesigns} />
+      case 'design':        return businessId
         ? <DesignTab key={businessId} data={mockData} businessId={businessId} />
         : <DesignTab data={mockData} />
       case 'users':         return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} onRefresh={loadBusiness} owner={owner} />
@@ -719,12 +728,6 @@ export default function DashboardPage() {
     }
   }
 
-  if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#FBF6EE' }}>
-      <div style={{ fontSize: 14, color: 'rgba(43,38,32,.4)' }}>Cargando...</div>
-    </div>
-  )
-
   return (
     <PlanProvider plan={(owner?.plan || mockData.business.plan) as any}>
     <LangContext.Provider value={t}>
@@ -740,7 +743,15 @@ export default function DashboardPage() {
       />
       <div className="db-main">
         <Header title={t(TITLES[active] as any)} t={t} setMobileOpen={setMobileOpen} />
-        {renderTab()}
+        {loading
+          ? <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 32, height: 32, border: '3px solid rgba(43,38,32,.1)', borderTopColor: '#C75D3A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <div style={{ fontSize: 12, color: 'rgba(43,38,32,.35)' }}>Cargando...</div>
+              </div>
+            </div>
+          : renderTab()
+        }
       </div>
     </div>
     </LangContext.Provider>

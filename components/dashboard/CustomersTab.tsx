@@ -132,7 +132,16 @@ export function CustomersTab({ customers: initCustomers, dynamicFieldLabel = 'Pr
   const [customers, setCustomers] = useState(initCustomers)
   const [selected, setSelected]   = useState<Customer | null>(null)
 
-  function deleteCustomer(id: string) {
+  async function deleteCustomer(id: string) {
+    const businessId = localStorage.getItem('stampa_business_id')
+    if (businessId) {
+      try {
+        await fetch(`http://localhost:5002/api/businesses/${businessId}/customers/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
+        })
+      } catch (err) { console.error('Error deleting customer:', err) }
+    }
     setCustomers(customers.filter((c: Customer) => c.id !== id))
     setSelected(null)
   }
