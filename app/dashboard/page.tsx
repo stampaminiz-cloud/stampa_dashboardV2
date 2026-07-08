@@ -582,12 +582,10 @@ function injectStyles() {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const [active, setActive] = useState<TabId>('overview')
-
-useEffect(() => {
-  const saved = localStorage.getItem('stampa_active_tab') as TabId
-  if (saved) setActive(saved)
-}, [])
+  const [active, setActive]         = useState<TabId>(() => {
+    if (typeof window === 'undefined') return 'overview'
+    return (localStorage.getItem('stampa_active_tab') as TabId) || 'overview'
+  })
   const [collapsed, setCollapsed]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [t, setT]                   = useState(() => createT('es'))
@@ -599,6 +597,8 @@ useEffect(() => {
   const [notifHistory, setNotifHistory]             = useState<any[]>([])
   const [notifSentThisMonth, setNotifSentThisMonth] = useState(0)
   const [customers, setCustomers]                   = useState<any[]>([])
+  const [analyticsData, setAnalyticsData]           = useState<any>(null)
+  const [rewardsData, setRewardsData]               = useState<any>(null)
   const [loading, setLoading]       = useState(true)
 
   async function loadBusiness() {
@@ -639,6 +639,29 @@ useEffect(() => {
             rewardField:    c.rewardFixedValue || null,
           })))
         } catch (e) { console.error('cards load error:', e) }
+
+        // Load analytics
+        try {
+          const anRes = await fetch(`http://localhost:5002/api/businesses/${bid}/analytics`, {
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('stampa_token') }
+          })
+          const anData = await anRes.json()
+          setAnalyticsData(anData)
+        } catch (e) { console.error('analytics load error:', e) }
+
+        // Load rewards stats (use first active card's type)
+        try {
+          const firstCard = (await (await fetch(`http://localhost:5002/api/businesses/${bid}/cards`, {
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('stampa_token') }
+          })).json())[0]
+          if (firstCard) {
+            const rwRes = await fetch(
+              `http://localhost:5002/api/businesses/${bid}/rewards-stats?cardType=${firstCard.type}&stampsRequired=${firstCard.stampsRequired || 8}`,
+              { headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('stampa_token') } }
+            )
+            setRewardsData(await rwRes.json())
+          }
+        } catch (e) { console.error('rewards load error:', e) }
 
         // Load customers
         try {
@@ -688,8 +711,13 @@ useEffect(() => {
     switch (active) {
       case 'overview':      return <OverviewTab t={t} />
       case 'customers':     return <CustomersTab customers={customers.length > 0 ? customers : mockData.customers} dynamicFieldLabel="Bebida favorita" />
-      case 'analytics':     return <AnalyticsTab data={mockData} />
-      case 'rewards':       return <RewardsTab data={mockData} />
+      case 'analytics': return <AnalyticsTab 
+      key={cards.length > 0 ? cards[0].id : 'loading'} 
+      data={mockData} 
+      analyticsData={analyticsData} 
+      cards={cards} />
+    
+      case 'rewards':       return <RewardsTab data={mockData} rewardsData={rewardsData} cards={cards} businessId={businessId} />
       case 'notifications': return <NotificationsTab
         businessId={businessId}
         data={{

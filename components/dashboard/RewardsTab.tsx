@@ -196,9 +196,11 @@ function MembershipRewards({ tiers: initTiers, history }: { tiers: MemberTier[];
   )
 }
 
-export function RewardsTab({ data }: { data: RewardsData }) {
+export function RewardsTab({ data, rewardsData, cards, businessId }: { data: RewardsData; rewardsData?: any; cards?: any[]; businessId?: string | null }) {
   const t = useLang()
-  const activeCards = data.cardDesigns.filter((c: CardDesign) => c.isActive)
+  const activeCards = (cards && cards.length > 0)
+    ? cards.filter((c: any) => c.isActive)
+    : data.cardDesigns.filter((c: CardDesign) => c.isActive)
   const [selectedId, setSelectedId] = useState<string>(activeCards[0]?.id || '')
   const selected = activeCards.find((c: CardDesign) => c.id === selectedId) || activeCards[0]
   const cardType = selected?.type || 'stamp'

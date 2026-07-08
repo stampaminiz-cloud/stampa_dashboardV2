@@ -223,12 +223,13 @@ function TierDistribution() {
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function AnalyticsTab({ data }: { data: AnalyticsData }) {
-  const { can } = usePlan()
+export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsData; analyticsData?: any; cards?: any[] }) {  const { can } = usePlan()
   const fullAnalytics = can('analyticsLevel')
   const t = useLang()
   const [range, setRange] = useState<Range>('30d')
-  const activeCards = data.cardDesigns.filter((c: CardDesign) => c.isActive)
+  const activeCards = (cards && cards.length > 0)
+  ? cards.filter((c: any) => c.isActive)
+  : data.cardDesigns.filter((c: CardDesign) => c.isActive)  
   const [selectedCardId, setSelectedCardId] = useState<string>(activeCards[0]?.id || '')
 
   const selectedCard = activeCards.find((c: CardDesign) => c.id === selectedCardId) || activeCards[0]
@@ -239,15 +240,17 @@ export function AnalyticsTab({ data }: { data: AnalyticsData }) {
     { key: '7d', label: '7 días' }, { key: '30d', label: '30 días' }, { key: '90d', label: '90 días' },
   ]
 
+  // Use real analytics data when available, fall back to mockData
+  const realMetrics = analyticsData || null
   const segTotal = data.segments.champions + data.segments.atRisk + data.segments.newCustomers + data.segments.dormant
   const prizeMax = Math.max(...data.prizeTimeDistribution.map((p: PrizeTime) => p.count))
   const freqMax  = Math.max(...data.frequency.distribution.map((b: FreqBucket) => b.count))
 
   const SEGMENTS = [
-    { label: 'Champions',  desc: `Frecuentes y avanzados`,       color: '#5B8C5A', bg: 'rgba(91,140,90,.1)',   val: data.segments.champions    },
-    { label: 'En riesgo',  desc: `Antes activos, ahora quietos`, color: '#D4A24C', bg: 'rgba(212,162,76,.1)',  val: data.segments.atRisk       },
-    { label: 'Nuevos',     desc: `Registrados en 30 días`,       color: '#185FA5', bg: 'rgba(24,95,165,.1)',   val: data.segments.newCustomers },
-    { label: 'Dormidos',   desc: `Sin actividad 60+ días`,       color: '#B23B3B', bg: 'rgba(178,59,59,.08)',  val: data.segments.dormant      },
+    { label: 'Activos',    desc: 'Visitaron recientemente', color: '#5B8C5A', bg: 'rgba(91,140,90,.1)',   val: realMetrics?.active ?? data.segments.champions    },
+    { label: 'Inactivos',  desc: `Sin actividad reciente`,       color: '#B23B3B', bg: 'rgba(178,59,59,.08)',  val: realMetrics?.inactive ?? data.segments.dormant      },
+    { label: 'Nuevos',     desc: `Registrados este mes`,         color: '#185FA5', bg: 'rgba(24,95,165,.1)',   val: realMetrics?.newThisMonth ?? data.segments.newCustomers },
+    { label: 'Con wallet', desc: `Tienen la tarjeta instalada`,  color: '#533FB7', bg: 'rgba(83,63,183,.08)',  val: realMetrics?.withDevice ?? data.segments.atRisk },
   ]
 
   const TYPE_ICONS: Record<CardType, string> = {
