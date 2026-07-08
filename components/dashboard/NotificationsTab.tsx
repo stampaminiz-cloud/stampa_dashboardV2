@@ -10,7 +10,7 @@ interface ScheduledNotif { id: string; message: string; audience: Audience; sche
 interface SentNotif      { id: string; message: string; audience: Audience; sentCount: number; sentAt: string }
 interface NotificationsData { scheduledNotifications: ScheduledNotif[]; sentNotifications: SentNotif[] }
 
-export function NotificationsTab({ data }: { data: NotificationsData }) {
+export function NotificationsTab({ data, businessId }: { data: NotificationsData; businessId?: string | null }) {
   const t = useLang()
   const { limit } = usePlan()
   const notifLimit = limit('monthlyNotifs')
@@ -42,13 +42,50 @@ export function NotificationsTab({ data }: { data: NotificationsData }) {
     if (val.length <= MAX_CHARS) { setMessage(val); setCharCount(val.length) }
   }
 
-  function handleSend() {
+  async function handleSend() {
     if (!message.trim()) return
     if (sendType === 'scheduled') {
       if (!schedDate || !schedTime) return
+      if (businessId) {
+        try {
+          await fetch(`http://localhost:5002/api/businesses/${businessId}/notifications/scheduled`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + localStorage.getItem('stampa_token')
+            },
+            body: JSON.stringify({
+              message,
+              audience: audience.toLowerCase().replace(' ', '_'),
+              scheduledAt: new Date(`${schedDate}T${schedTime}`).toISOString()
+            })
+          })
+        } catch (err) { console.error('Error scheduling:', err) }
+      }
       setScheduled([{ id: Date.now().toString(), message, audience, scheduledAt: `${schedDate}, ${schedTime}` }, ...scheduled])
     } else {
-      setSent([{ id: Date.now().toString(), message, audience, sentCount: selectedAudience.count, sentAt: t('now') }, ...sent])
+      if (businessId) {
+        try {
+          const res = await fetch(`http://localhost:5002/api/businesses/${businessId}/notifications/broadcast`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + localStorage.getItem('stampa_token')
+            },
+            body: JSON.stringify({
+              message,
+              audience: audience.toLowerCase().replace(' ', '_'),
+            })
+          })
+          const result = await res.json()
+          setSent([{ id: Date.now().toString(), message, audience, sentCount: result.sent || 0, sentAt: t('now') }, ...sent])
+        } catch (err) {
+          console.error('Error broadcasting:', err)
+          setSent([{ id: Date.now().toString(), message, audience, sentCount: 0, sentAt: t('now') }, ...sent])
+        }
+      } else {
+        setSent([{ id: Date.now().toString(), message, audience, sentCount: selectedAudience.count, sentAt: t('now') }, ...sent])
+      }
       setSentSuccess(true)
       setTimeout(() => setSentSuccess(false), 3000)
     }

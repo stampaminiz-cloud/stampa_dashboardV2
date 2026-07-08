@@ -660,7 +660,7 @@ export default function DashboardPage() {
       case 'customers':     return <CustomersTab customers={mockData.customers} dynamicFieldLabel="Bebida favorita" />
       case 'analytics':     return <AnalyticsTab data={mockData} />
       case 'rewards':       return <RewardsTab data={mockData} />
-      case 'notifications': return <NotificationsTab data={mockData} />
+      case 'notifications': return <NotificationsTab data={mockData} businessId={businessId} />
       case 'form':          return <FormTab businessName={business?.name || mockData.business.name} businessSlug={business?.slug || 'mi-negocio'} cardDesigns={cards.length > 0 ? cards : mockData.cardDesigns} />
       case 'design':        return businessId
         ? <DesignTab key={businessId} data={mockData} businessId={businessId} />
