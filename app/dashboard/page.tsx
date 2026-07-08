@@ -665,7 +665,7 @@ export default function DashboardPage() {
       case 'design':        return businessId
         ? <DesignTab key={businessId} data={mockData} businessId={businessId} />
         : <DesignTab data={mockData} />
-      case 'users':         return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} onRefresh={loadBusiness} />
+      case 'users':         return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} onRefresh={loadBusiness} owner={owner} />
       case 'settings':      return (
         <SettingsTab
           key={businessId ?? 'loading'}

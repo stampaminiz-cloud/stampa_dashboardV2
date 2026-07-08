@@ -74,7 +74,7 @@ function InviteModal({ onClose, onAdd, onRefresh }: { onClose: () => void; onAdd
   )
 }
 
-export function UsersTab({ users: initUsers, businessId, onRefresh }: { users: StaffUser[]; businessId?: string | null; onRefresh?: () => void }) {
+export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { users: StaffUser[]; businessId?: string | null; onRefresh?: () => void; owner?: { fullName: string; email: string; plan: string } | null }) {
   const t = useLang()
   const { limit } = usePlan()
   const teamLimit   = limit('maxTeamMembers')
@@ -195,7 +195,7 @@ export function UsersTab({ users: initUsers, businessId, onRefresh }: { users: S
         <div className="us-card">
           <div className="us-toolbar">
             <div className="us-filter-pills">
-              {(['all','owner','manager','scanner'] as const).map(key => (
+              {(['all','manager','scanner'] as const).map(key => (
                 <button key={key} className={`us-pill${roleFilter === key ? ' us-pill--on' : ''}`} onClick={() => setFilter(key)}>
                   {key === 'all' ? `${t('us_all')} (${counts.all})` : `${ROLE_CONFIG[key as Role]?.label} (${counts[key]})`}
                 </button>
@@ -258,14 +258,35 @@ export function UsersTab({ users: initUsers, businessId, onRefresh }: { users: S
 
         <div className="us-lbl">{t('us_roles_title')}</div>
         <div className="us-3col">
-          {(['owner','manager','scanner'] as Role[]).map(r => {
+          {/* Owner card — muestra info del owner logueado */}
+          <div className="us-role-card">
+            <div className="us-role-card-head">
+              <div className="us-role-icon" style={{ background: 'rgba(199,93,58,.1)' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C75D3A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div>
+                <div className="us-role-name">Owner</div>
+                <div style={{ fontSize: 11, color: '#C75D3A', fontWeight: 600 }}>{owner?.fullName || '—'}</div>
+              </div>
+            </div>
+            <div className="us-role-desc">{owner?.email || ''}</div>
+            <div style={{ marginTop: 8, fontSize: 11, color: 'rgba(43,38,32,.4)' }}>Plan {owner?.plan || 'Starter'}</div>
+            {ROLE_CONFIG.owner.perms.map((p: string) => (
+              <div key={p} className="us-role-perm">
+                <div className="us-perm-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#5B8C5A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                {p}
+              </div>
+            ))}
+          </div>
+
+          {/* Manager and Scanner cards */}
+          {(['manager','scanner'] as Role[]).map(r => {
             const cfg = ROLE_CONFIG[r]
             return (
               <div key={r} className="us-role-card">
                 <div className="us-role-card-head">
                   <div className="us-role-icon" style={{ background: cfg.bg }}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={cfg.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      {r === 'owner'   && <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>}
                       {r === 'manager' && <><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></>}
                       {r === 'scanner' && <><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></>}
                     </svg>
