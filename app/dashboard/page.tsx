@@ -829,20 +829,22 @@ export default function DashboardPage() {
             title="Los premios aparecen cuando hay canjes"
             body="Acá vas a ver qué premios eligen tus clientes y cuántos canjearon este mes."
           /></div>
-      case 'notifications': return <NotificationsTab
-        businessId={businessId}
-        data={{
-          ...mockData,
-          sentNotifications: notifHistory.map((n: any) => ({
-            id: n._id || n.sentAt,
-            message: n.message,
-            audience: n.audience,
-            sentCount: n.sentCount,
-            sentAt: new Date(n.sentAt).toLocaleDateString('es-AR'),
-          })),
-          scheduledNotifications: [],
-        }}
-      />
+          case 'notifications': return <NotificationsTab
+          businessId={businessId}
+          analyticsData={analyticsData}
+          rewardsData={rewardsData}
+          data={{
+            ...mockData,
+            sentNotifications: notifHistory.map((n: any) => ({
+              id: n._id || n.sentAt,
+              message: n.message,
+              audience: n.audience,
+              sentCount: n.sentCount,
+              sentAt: new Date(n.sentAt).toLocaleDateString('es-AR'),
+            })),
+            scheduledNotifications: [],
+          }}
+        />
       case 'form':          return <FormTab businessName={business?.name || mockData.business.name} businessSlug={business?.slug || 'mi-negocio'} cardDesigns={cards.length > 0 ? cards : mockData.cardDesigns} />
       case 'design':        return businessId
         ? <DesignTab key={businessId} data={mockData} businessId={businessId} />

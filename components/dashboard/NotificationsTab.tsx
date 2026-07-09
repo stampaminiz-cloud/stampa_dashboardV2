@@ -10,7 +10,13 @@ interface ScheduledNotif { id: string; message: string; audience: Audience; sche
 interface SentNotif      { id: string; message: string; audience: Audience; sentCount: number; sentAt: string }
 interface NotificationsData { scheduledNotifications: ScheduledNotif[]; sentNotifications: SentNotif[] }
 
-export function NotificationsTab({ data, businessId }: { data: NotificationsData; businessId?: string | null }) {
+export function NotificationsTab({ data, businessId, analyticsData, rewardsData }: { 
+  data: NotificationsData
+  businessId?: string | null
+  analyticsData?: any
+  rewardsData?: any
+}) 
+{  
   const t = useLang()
   const { limit } = usePlan()
   const notifLimit = limit('monthlyNotifs')
@@ -27,9 +33,9 @@ export function NotificationsTab({ data, businessId }: { data: NotificationsData
   const MAX_CHARS = 160
 
   const AUDIENCES = [
-    { key: 'All'        as Audience, label: t('nt_all'),      desc: t('nt_all_desc'),      count: 4821,  color: '#2B2620',  bg: 'rgba(43,38,32,.06)'   },
-    { key: 'Near prize' as Audience, label: t('nt_near'),     desc: t('nt_near_desc'),     count: 23,    color: '#C75D3A',  bg: 'rgba(199,93,58,.08)'  },
-    { key: 'Inactive'   as Audience, label: t('nt_inactive'), desc: t('nt_inactive_desc'), count: 1432,  color: '#B23B3B',  bg: 'rgba(178,59,59,.07)'  },
+    { key: 'All' as Audience, label: t('nt_all'), desc: t('nt_all_desc'), count: analyticsData?.total ?? 4821, color: '#2B2620', bg: 'rgba(43,38,32,.06)' },
+    { key: 'Near prize' as Audience, label: t('nt_near'), desc: t('nt_near_desc'), count: rewardsData?.nearPrize ?? 23, color: '#C75D3A', bg: 'rgba(199,93,58,.08)' },
+    { key: 'Inactive' as Audience, label: t('nt_inactive'), desc: t('nt_inactive_desc'), count: analyticsData?.inactive ?? 1432, color: '#B23B3B', bg: 'rgba(178,59,59,.07)' },
   ]
 
   const AUDIENCE_LABELS: Record<Audience, string> = {
