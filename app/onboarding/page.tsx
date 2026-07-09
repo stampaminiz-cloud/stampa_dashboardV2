@@ -723,9 +723,7 @@ export default function OnboardingPage() {
       }).then((res) => {
         console.log('Onboarding response:', res)
         console.log('businessId guardado:', localStorage.getItem('stampa_business_id'))
-        window.location.href = '/dashboard'
-      }).catch(err => {
-        console.error('Error en onboarding:', err)
+        localStorage.removeItem('stampa_active_tab')
         window.location.href = '/dashboard'
       })
   }} />,

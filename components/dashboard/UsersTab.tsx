@@ -195,7 +195,7 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
         <div className="us-card">
           <div className="us-toolbar">
             <div className="us-filter-pills">
-              {(['all','manager','scanner'] as const).map(key => (
+              {(['all','owner','manager','scanner'] as const).map(key => (
                 <button key={key} className={`us-pill${roleFilter === key ? ' us-pill--on' : ''}`} onClick={() => setFilter(key)}>
                   {key === 'all' ? `${t('us_all')} (${counts.all})` : `${ROLE_CONFIG[key as Role]?.label} (${counts[key]})`}
                 </button>
@@ -327,7 +327,7 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
                 ¿Eliminar a <strong>{user.name}</strong>? Perderá acceso al dashboard o a la app de scanner inmediatamente.
               </p>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button style={{ flex: 1, background: 'none', border: '1px solid rgba(43,38,32,.15)', borderRadius: 9, padding: '10px', fontSize: 13, cursor: 'pointer', color: 'rgba(43,38,32,.55)' }} onClick={() => setConfirmDelete(null)}>Cancelar</button>
+                <button style={{ flex: 1, background: 'none', border: '1px solid rgba(43,38,32,.15)', borderRadius: 9, padding: '10px', fontSize: 13, cursor: 'pointer', color: 'rgba(43,38,32,.55)' }} onClick={() => setConfirmDelete(null)}>{t('cancel')}</button>
                 <button style={{ flex: 1, background: '#B23B3B', color: '#fff', border: 'none', borderRadius: 9, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }} onClick={() => deleteUser(user.id)}>Sí, eliminar</button>
               </div>
             </div>
