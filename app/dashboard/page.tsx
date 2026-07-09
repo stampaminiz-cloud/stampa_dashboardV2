@@ -277,7 +277,7 @@ function OverviewTab({ t, analyticsData, rewardsData, cards }: {
   const activeUsers   = analyticsData?.active         ?? m.activeUsers
   const newSignUps    = analyticsData?.newThisMonth   ?? m.newSignUps
   const inactiveUsers = analyticsData?.inactive       ?? m.inactiveUsers
-  const nearPrize     = rewardsData?.nearPrize        ?? m.nearPrize
+  const nearPrize = rewardsData !== null ? (rewardsData?.nearPrize ?? 0) : m.nearPrize  
   const newDelta      = analyticsData?.newDelta       ?? m.newSignUpsDelta
   const weeklyVisits  = analyticsData?.weeklyVisits   ?? null
   const hasStamp      = activeCards.some((c: any) => c.type === 'stamp')
