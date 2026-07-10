@@ -91,23 +91,31 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
 
       <aside className={`db-sb${collapsed ? ' db-sb--collapsed' : ''}${mobileOpen ? ' db-sb--mobile-open' : ''}`}>
         {/* Logo */}
-        <div className="sb-logo" onClick={() => setCollapsed(!collapsed)} style={{cursor:'pointer'}}>
-          <div className="sb-logo-mark">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.4-.3-.4-.5-.8-.5-1.4 0-1.1.9-2 2-2h2.4c2.3 0 4.1-1.8 4.1-4.1C21.5 6 17.2 2 12 2z"/><circle cx="6.5" cy="11.5" r="1.5" fill="#fff"/><circle cx="9.5" cy="7.5" r="1.5" fill="#fff"/></svg>
-          </div>
-          {!collapsed && <span className="sb-wordmark">Stampa</span>}
+        <div className="sb-logo" onClick={() => setCollapsed(!collapsed)} style={{cursor:'pointer', justifyContent: collapsed ? 'center' : 'flex-start'}}>
+          <img 
+            src="/stampa-mascot.png" 
+            alt="Stampa" 
+            style={{ width: collapsed ? 44 : 72, height: collapsed ? 44 : 72, objectFit: 'contain', flexShrink: 0 }}
+          />
+          {!collapsed && (
+            <img 
+              src="/stampa-wordmark.png" 
+              alt="Stampa" 
+              style={{ height: 100, objectFit: 'contain', marginLeft: -18, filter: 'brightness(0) invert(1)' }}
+            />
+          )}
         </div>
 
         {/* Business block */}
-        {!collapsed && (
-          <div className="sb-business">
-            <div className="sb-business-av">{businessInitials}</div>
+        <div className="sb-business" style={{justifyContent: collapsed ? 'center' : 'flex-start'}}>
+          <div className="sb-business-av">{businessInitials}</div>
+          {!collapsed && (
             <div className="sb-business-info" style={{minWidth:0,flex:1,overflow:'hidden'}}>
               <div className="sb-business-name">{businessName}</div>
               <div className="sb-business-plan">Plan {plan}</div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Nav */}
         <nav className="sb-nav">
@@ -125,35 +133,33 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
           ))}
         </nav>
 
-        {/* Footer: owner + collapse */}
+        {/* Footer: owner */}
         <div className="sb-footer">
-          {!collapsed && (
-            <div className="sb-user-wrap" ref={userMenuRef}>
-              {/* User popover */}
-              {showUserMenu && (
-                <div className="sb-user-popover">
-                  <div className="sb-popover-label">CUENTA</div>
-                  <button className="sb-popover-item" onClick={() => { setActive('settings'); setShowUserMenu(false) }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    Mi perfil
-                  </button>
-                  <div className="sb-popover-divider" />
-                  <button className="sb-popover-item sb-popover-item--danger" onClick={handleLogout}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                    Cerrar sesión
-                  </button>
-                </div>
-              )}
-              <div className="sb-user" onClick={() => setShowUserMenu(!showUserMenu)}>
-                <div className="sb-user-av">{ownerInitials}</div>
+          <div className="sb-user-wrap" ref={userMenuRef}>
+            {showUserMenu && !collapsed && (
+              <div className="sb-user-popover">
+                <div className="sb-popover-label">CUENTA</div>
+                <button className="sb-popover-item" onClick={() => { setActive('settings'); setShowUserMenu(false) }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  Mi perfil
+                </button>
+                <div className="sb-popover-divider" />
+                <button className="sb-popover-item sb-popover-item--danger" onClick={handleLogout}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+            <div className="sb-user" onClick={() => setShowUserMenu(!showUserMenu)} style={{justifyContent: collapsed ? 'center' : 'flex-start'}}>
+              <div className="sb-user-av">{ownerInitials}</div>
+              {!collapsed && (
                 <div style={{minWidth:0,flex:1,overflow:'hidden'}}>
                   <div className="sb-user-name">{ownerName}</div>
                   <div className="sb-user-role">{ownerEmail}</div>
                 </div>
-
-              </div>
+              )}
             </div>
-          )}
+          </div>
 
         </div>
       </aside>
@@ -475,10 +481,10 @@ const CSS = `
   .db-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
 
   /* ── Sidebar ── */
-  .db-sb{width:230px;flex-shrink:0;background:#1E3329;display:flex;flex-direction:column;padding:18px 12px;transition:width .25s ease;}
+  .db-sb{width:230px;flex-shrink:0;background:#1E3329;display:flex;flex-direction:column;padding:6px 12px;transition:width .25s ease;}
   .db-sb--collapsed{width:68px;}
   .sb-overlay{display:none;}
-  .sb-logo{display:flex;align-items:center;gap:10px;padding:4px 8px 24px;}
+  .sb-logo{display:flex;align-items:center;gap:10px;padding:0px 8px 16px;}
   .sb-logo-mark{width:36px;height:36px;border-radius:10px;background:#C75D3A;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .sb-wordmark{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:20px;color:#F7F0E4;letter-spacing:-.01em;white-space:nowrap;}
   .sb-nav{display:flex;flex-direction:column;gap:2px;flex:1;}
