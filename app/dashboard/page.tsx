@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { mockData } from '@/data/mockData'
 import { detectLang, createT, LangContext } from '@/data/i18n'
 import { PlanProvider } from '@/data/plans'
@@ -35,7 +35,7 @@ function NavIcon({ id }: { id: TabId }) {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 const NAV_IDS: TabId[] = ['overview','customers','analytics','rewards','notifications','form','design','users','settings']
 
-function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, setMobileOpen, owner, business }: {
+function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, setMobileOpen, owner, business, loading }: {
   active: TabId
   setActive: (t: TabId) => void
   collapsed: boolean
@@ -45,6 +45,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
   setMobileOpen: (o: boolean) => void
   owner?: any
   business?: any
+  loading?: boolean
 }) {
   const [showUserMenu, setShowUserMenu] = React.useState(false)
   const userMenuRef = React.useRef<HTMLDivElement>(null)
@@ -108,11 +109,16 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
 
         {/* Business block */}
         <div className="sb-business" style={{justifyContent: collapsed ? 'center' : 'flex-start'}}>
-          <div className="sb-business-av">{businessInitials}</div>
+          {loading
+            ? <div className="sb-skel-av" />
+            : <div className="sb-business-av">{businessInitials}</div>
+          }
           {!collapsed && (
             <div className="sb-business-info" style={{minWidth:0,flex:1,overflow:'hidden'}}>
-              <div className="sb-business-name">{businessName}</div>
-              <div className="sb-business-plan">Plan {plan}</div>
+              {loading
+                ? <><div className="sb-skel-line" style={{ width: '70%' }} /><div className="sb-skel-line" style={{ width: '40%', marginTop: 6 }} /></>
+                : <><div className="sb-business-name">{businessName}</div><div className="sb-business-plan">Plan {plan}</div></>
+              }
             </div>
           )}
         </div>
@@ -506,6 +512,8 @@ const CSS = `
   .sb-business-info{min-width:0;}
   .sb-business-name{font-size:13px;color:#F7F0E4;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .sb-business-plan{font-size:10px;color:rgba(247,240,228,.4);}
+  .sb-skel-av{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.1);flex-shrink:0;animation:pulse 1.5s infinite;}
+  .sb-skel-line{height:9px;border-radius:4px;background:rgba(255,255,255,.1);animation:pulse 1.5s infinite;}
   .sb-user-wrap{position:relative;width:100%;}
   .sb-user{display:flex;align-items:center;gap:9px;cursor:pointer;padding:6px 8px;border-radius:9px;transition:background .15s;width:100%;}
   .sb-user:hover{background:rgba(199,93,58,.2);}
@@ -671,21 +679,10 @@ const CSS = `
   }
 `
 
-function injectStyles() {
-  if (typeof document === 'undefined') return
-  if (document.getElementById('db-css')) return
-  const s = document.createElement('style')
-  s.id = 'db-css'
-  s.textContent = CSS
-  document.head.appendChild(s)
-}
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const [active, setActive]         = useState<TabId>(() => {
-    if (typeof window === 'undefined') return 'overview'
-    return (localStorage.getItem('stampa_active_tab') as TabId) || 'overview'
-  })
+  const [active, setActive]         = useState<TabId>('overview')
   const [collapsed, setCollapsed]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [t, setT]                   = useState(() => createT('es'))
@@ -710,10 +707,34 @@ export default function DashboardPage() {
         setBusinessId(bid)
         setBusinessIdState(bid)
         setBusiness(businesses[0])
-        // Load team
-        try {
-          const teamData = await apiGetTeam(bid)
-          setTeam((teamData as any[]).map(u => ({
+
+        const authHeaders = {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('stampa_token'),
+        }
+
+        const cardsPromise      = apiGetCards(bid)
+        const teamPromise       = apiGetTeam(bid)
+        const analyticsPromise  = fetch(`http://localhost:5002/api/businesses/${bid}/analytics`, { headers: authHeaders }).then(r => r.json())
+        const customersPromise  = fetch(`http://localhost:5002/api/businesses/${bid}/customers`, { headers: authHeaders }).then(r => r.json())
+        const notifPromise      = fetch(`http://localhost:5002/api/businesses/${bid}/notifications`, { headers: authHeaders }).then(r => r.json())
+        // rewards-stats needs the first card's type, so it chains off cardsPromise instead of
+        // blocking behind team/analytics/customers/notifications like it used to
+        const rewardsPromise    = cardsPromise.then(cardsData => {
+          const firstCard = (cardsData as any[])[0]
+          if (!firstCard) return null
+          return fetch(
+            `http://localhost:5002/api/businesses/${bid}/rewards-stats?cardType=${firstCard.type}&stampsRequired=${firstCard.stampsRequired || 8}`,
+            { headers: authHeaders }
+          ).then(r => r.json())
+        })
+
+        const [teamRes, cardsRes, analyticsRes, customersRes, notifRes, rewardsRes] = await Promise.allSettled([
+          teamPromise, cardsPromise, analyticsPromise, customersPromise, notifPromise, rewardsPromise,
+        ])
+
+        if (teamRes.status === 'fulfilled') {
+          setTeam((teamRes.value as any[]).map(u => ({
             id:           u._id,
             name:         u.fullName,
             email:        u.email || '',
@@ -722,12 +743,10 @@ export default function DashboardPage() {
             status:       u.status,
             lastActivity: u.lastActivityAt ? new Date(u.lastActivityAt).toLocaleDateString('es-AR') : '—',
           })))
-        } catch (e) { console.error('team load error:', e) }
+        } else console.error('team load error:', teamRes.reason)
 
-        // Load cards
-        try {
-          const cardsData = await apiGetCards(bid)
-          setCards((cardsData as any[]).map(c => ({
+        if (cardsRes.status === 'fulfilled') {
+          setCards((cardsRes.value as any[]).map(c => ({
             id:             c._id,
             name:           c.name,
             type:           c.type,
@@ -738,55 +757,21 @@ export default function DashboardPage() {
             rewardMode:     c.rewardMode || null,
             rewardField:    c.rewardFixedValue || null,
           })))
-        } catch (e) { console.error('cards load error:', e) }
+        } else console.error('cards load error:', cardsRes.reason)
 
-        // Load analytics
-        try {
-          const anRes = await fetch(`http://localhost:5002/api/businesses/${bid}/analytics`, {
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('stampa_token') }
-          })
-          const anData = await anRes.json()
-          setAnalyticsData(anData)
-        } catch (e) { console.error('analytics load error:', e) }
+        if (analyticsRes.status === 'fulfilled') setAnalyticsData(analyticsRes.value)
+        else console.error('analytics load error:', analyticsRes.reason)
 
-        // Load rewards stats (use first active card's type)
-        try {
-          const firstCard = (await (await fetch(`http://localhost:5002/api/businesses/${bid}/cards`, {
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('stampa_token') }
-          })).json())[0]
-          if (firstCard) {
-            const rwRes = await fetch(
-              `http://localhost:5002/api/businesses/${bid}/rewards-stats?cardType=${firstCard.type}&stampsRequired=${firstCard.stampsRequired || 8}`,
-              { headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('stampa_token') } }
-            )
-            setRewardsData(await rwRes.json())
-          }
-        } catch (e) { console.error('rewards load error:', e) }
+        if (customersRes.status === 'fulfilled') setCustomers(customersRes.value.customers || [])
+        else console.error('customers load error:', customersRes.reason)
 
-        // Load customers
-        try {
-          const custRes = await fetch(`http://localhost:5002/api/businesses/${bid}/customers`, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + localStorage.getItem('stampa_token')
-            }
-          })
-          const custData = await custRes.json()
-          setCustomers(custData.customers || [])
-        } catch (e) { console.error('customers load error:', e) }
+        if (notifRes.status === 'fulfilled') {
+          setNotifHistory(notifRes.value.history || [])
+          setNotifSentThisMonth(notifRes.value.sentThisMonth || 0)
+        } else console.error('notif load error:', notifRes.reason)
 
-        // Load notification history
-        try {
-          const notifRes = await fetch(`http://localhost:5002/api/businesses/${bid}/notifications`, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + localStorage.getItem('stampa_token')
-            }
-          })
-          const notifData = await notifRes.json()
-          setNotifHistory(notifData.history || [])
-          setNotifSentThisMonth(notifData.sentThisMonth || 0)
-        } catch (e) { console.error('notif load error:', e) }
+        if (rewardsRes.status === 'fulfilled' && rewardsRes.value) setRewardsData(rewardsRes.value)
+        else if (rewardsRes.status === 'rejected') console.error('rewards load error:', rewardsRes.reason)
       }
     } catch (err) {
       console.error(err)
@@ -795,8 +780,15 @@ export default function DashboardPage() {
     }
   }
 
+  useLayoutEffect(() => {
+    const saved = localStorage.getItem('stampa_active_tab') as TabId | null
+    if (saved) setActive(saved)
+  }, [])
+
+  const loadedRef = useRef(false)
   useEffect(() => {
-    injectStyles()
+    if (loadedRef.current) return
+    loadedRef.current = true
     setT(() => createT(detectLang()))
     loadBusiness()
   }, [])
@@ -878,6 +870,7 @@ export default function DashboardPage() {
   return (
     <PlanProvider plan={(owner?.plan || mockData.business.plan) as any}>
     <LangContext.Provider value={t}>
+    <style dangerouslySetInnerHTML={{ __html: CSS }} />
     <div className="db-shell">
       <Sidebar
         active={active}
@@ -889,6 +882,7 @@ export default function DashboardPage() {
         setMobileOpen={setMobileOpen}
         owner={owner}
         business={business}
+        loading={loading}
       />
       <div className="db-main">
         <Header title={t(TITLES[active] as any)} t={t} setMobileOpen={setMobileOpen} setActive={setActive} />

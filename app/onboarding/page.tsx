@@ -106,6 +106,16 @@ function StampaFrog({ size = 28 }: { size?: number }) {
   )
 }
 
+// ─── Stampy icon (exact vector from Logo.ai, reused for tips/hints) ──────────
+const STAMPY_PATH = "M 611.515625 390.210938 C 631.171875 390.210938 631.203125 359.664062 611.515625 359.664062 C 591.859375 359.664062 591.828125 390.210938 611.515625 390.210938 M 518.382812 390.210938 C 538.035156 390.210938 538.070312 359.664062 518.382812 359.664062 C 498.726562 359.664062 498.695312 390.210938 518.382812 390.210938 M 662.726562 731.242188 L 662.902344 731.578125 C 667.019531 737.570312 674.152344 735.371094 680.445312 733.425781 C 682.566406 732.773438 684.730469 732.101562 686.734375 731.75 C 686.59375 731.800781 686.445312 731.847656 686.296875 731.898438 C 685.734375 732.085938 685.226562 732.257812 684.824219 732.421875 C 676.351562 735.894531 651.445312 743.265625 646.980469 742.019531 C 634.851562 710.550781 623.75 678.085938 613.011719 646.683594 C 604.890625 622.929688 596.492188 598.367188 587.703125 574.398438 L 587.625 574.191406 C 589.777344 574.199219 591.957031 574.289062 594.195312 574.554688 C 598.144531 575.023438 602.003906 575.820312 605.785156 576.878906 Z M 558.652344 741.957031 C 560.871094 742.039062 563.128906 742.117188 565.140625 742.445312 C 564.992188 742.445312 564.839844 742.441406 564.683594 742.441406 C 564.089844 742.433594 563.550781 742.425781 563.117188 742.449219 C 553.972656 742.941406 528.035156 741.703125 524.222656 739.054688 C 523.128906 705.347656 523.335938 671.039062 523.535156 637.855469 C 523.585938 629.144531 523.632812 620.316406 523.660156 611.453125 C 528.988281 605.730469 534.453125 600.175781 540.152344 595.175781 L 542.640625 734.058594 L 542.691406 734.433594 C 544.605469 741.453125 552.066406 741.71875 558.652344 741.957031 M 497.492188 343.71875 C 515.738281 342.460938 531.421875 349.605469 539.082031 366.675781 C 542.117188 373.445312 544.234375 380.605469 545.585938 387.929688 C 545.652344 392.914062 545.945312 397.925781 546.234375 402.929688 L 444.660156 402.929688 C 443.628906 373.03125 466.117188 345.878906 497.492188 343.71875 M 562.652344 368.59375 C 566.378906 354.457031 578.511719 342.34375 593.199219 340.039062 C 608.832031 337.582031 621.507812 348.765625 628.234375 361.847656 C 634.691406 374.390625 635.71875 388.820312 635.691406 402.929688 L 562.636719 402.929688 C 562.378906 396.796875 561.730469 390.628906 560.601562 384.570312 C 560.726562 379.171875 561.277344 373.828125 562.652344 368.59375 M 677.597656 616.0625 C 720.660156 637.035156 770.347656 603.078125 767.992188 555.238281 C 767.667969 548.640625 766.929688 543.941406 765.464844 542.988281 C 762.320312 540.949219 717.355469 534.675781 705.980469 530.402344 C 660.046875 513.140625 636.742188 476.59375 578.011719 470.703125 C 536.339844 466.523438 495.132812 487.578125 453.09375 486.78125 L 453.097656 486.792969 C 440.523438 487.160156 420.957031 481.453125 418.160156 477.183594 C 414.453125 471.523438 417.480469 469.023438 420.300781 467.464844 C 424.753906 465.007812 425.320312 470.195312 433.53125 474.738281 C 440.597656 478.644531 447.78125 479.105469 449.652344 479.15625 C 449.8125 479.160156 449.96875 479.160156 450.128906 479.164062 L 450.136719 479.164062 C 455.34375 479.289062 460.761719 479.691406 465.335938 479.003906 C 502.023438 473.5 540.414062 455.378906 578.699219 455.453125 C 609.699219 455.515625 643.351562 469.207031 673.074219 475.605469 C 691.507812 479.574219 709.628906 481.300781 727.964844 481.933594 C 749.882812 482.6875 767.820312 465.265625 767.820312 443.332031 C 767.820312 421.019531 749.734375 402.929688 727.421875 402.929688 L 650.886719 402.929688 C 650.777344 385.023438 649.019531 366.851562 639.804688 351.171875 C 630.171875 334.773438 612.832031 322.574219 593.191406 324.71875 C 575.253906 326.679688 558.976562 338.914062 551.359375 355.195312 C 551.210938 355.519531 551.074219 355.84375 550.929688 356.167969 C 550.460938 355.296875 550 354.417969 549.5 353.5625 C 538.289062 334.421875 516.644531 326.582031 495.171875 328.632812 C 456.214844 332.355469 428.496094 365.664062 429.425781 402.929688 L 376.089844 402.929688 C 340.652344 402.929688 311.925781 431.660156 311.925781 467.09375 C 311.925781 497.828125 333.699219 524.222656 363.855469 530.144531 C 386.542969 534.597656 409.207031 539.703125 431.207031 541.632812 C 470.019531 545.039062 491.863281 519.863281 524.886719 507.222656 C 554.234375 495.992188 585.917969 494.460938 612.328125 508.113281 C 616.191406 510.113281 614.082031 515.9375 609.816406 515.078125 C 579.984375 509.046875 553.902344 520.203125 526.445312 541.355469 C 484.707031 573.503906 476.902344 599.941406 417.648438 613.125 C 408.089844 615.253906 398.414062 616.972656 388.679688 618.511719 C 369.550781 618.671875 339.527344 620.273438 337.332031 643.148438 C 335.066406 666.742188 356.675781 676.75 376.058594 681.066406 C 399.160156 686.210938 423.71875 685.359375 446.300781 678.179688 C 460.238281 673.746094 470.859375 666.742188 479.578125 656.96875 C 482.753906 653.410156 486.25 650.15625 489.835938 647.003906 C 497.109375 640.613281 504.195312 632.921875 511.375 624.96875 C 511.3125 629 511.25 633.042969 511.183594 637.039062 C 510.6875 667.0625 510.179688 698.113281 511.296875 728.550781 C 511.332031 729.5625 511.339844 730.664062 511.347656 731.816406 C 511.386719 738.871094 511.4375 748.527344 519.035156 751.53125 C 526.300781 754.402344 544.078125 755.328125 557.171875 755.328125 C 561.96875 755.328125 566.136719 755.203125 568.933594 755.003906 C 577.652344 754.390625 598.292969 752.195312 601.625 745.15625 C 602.238281 743.863281 602.589844 741.789062 600.792969 739.25 C 598.71875 736.320312 590.195312 733.773438 572.289062 730.726562 L 571.132812 730.53125 C 569.894531 730.316406 568.167969 730.25 566.167969 730.171875 C 562.636719 730.03125 556.160156 729.777344 555.144531 728.09375 L 552.851562 585.398438 C 559.894531 580.773438 567.371094 577.292969 575.421875 575.503906 C 575.863281 576.738281 576.289062 577.910156 576.6875 578.988281 C 585.363281 602.402344 593.355469 626.589844 601.082031 649.984375 C 610.5 678.5 620.238281 707.984375 631.316406 736.359375 C 631.6875 737.300781 632.054688 738.339844 632.4375 739.425781 C 634.800781 746.074219 638.03125 755.175781 646.191406 755.511719 C 646.429688 755.519531 646.675781 755.523438 646.933594 755.523438 C 658.105469 755.523438 685.070312 746.402344 694.453125 742.367188 C 702.480469 738.90625 721.253906 730.03125 722.078125 722.296875 C 722.230469 720.875 721.878906 718.800781 719.34375 716.992188 C 716.421875 714.914062 707.53125 715.308594 689.609375 718.335938 L 688.46875 718.527344 C 687.230469 718.734375 685.578125 719.238281 683.664062 719.820312 C 680.523438 720.78125 674.097656 722.746094 672.570312 721.488281 L 621.75 582.933594 C 640.808594 591.925781 658.105469 605.78125 675.289062 614.886719 C 676.058594 615.296875 676.832031 615.6875 677.597656 616.0625"
+function StampyIcon({ size = 32, color = '#E46C31' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="300 310 480 455" style={{ flexShrink: 0 }}>
+      <path d={STAMPY_PATH} fill={color} />
+    </svg>
+  )
+}
+
 // ─── QR code ──────────────────────────────────────────────────────────────────
 function QRCode({ size = 80 }: { size?: number }) {
   return (
@@ -128,7 +138,7 @@ function WalletPass({ state }: { state: OBState }) {
   const rewardLabel = state.rewardMode === 'customer' ? 'Lo que el cliente elija' : (state.rewardValue || 'Premio')
 
   return (
-    <div style={{ width: 300, borderRadius: 20, overflow: 'hidden', boxShadow: '0 20px 60px rgba(43,38,32,.25)', background: `linear-gradient(170deg, ${state.brandColor}, ${darken(state.brandColor)})` }}>
+    <div style={{ width: '100%', maxWidth: 300, margin: '0 auto', borderRadius: 20, overflow: 'hidden', boxShadow: '0 20px 60px rgba(43,38,32,.25)', background: `linear-gradient(170deg, ${state.brandColor}, ${darken(state.brandColor)})` }}>
       {/* Top */}
       <div style={{ padding: '22px 22px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
@@ -206,7 +216,7 @@ function WalletPass({ state }: { state: OBState }) {
 function GooglePass({ state }: { state: OBState }) {
   const stamps = Array.from({ length: state.stampsRequired }, (_: unknown, i: number) => i < 3)
   return (
-    <div style={{ width: 300, borderRadius: 18, overflow: 'hidden', boxShadow: '0 20px 60px rgba(43,38,32,.25)', background: '#fff' }}>
+    <div style={{ width: '100%', maxWidth: 300, margin: '0 auto', borderRadius: 18, overflow: 'hidden', boxShadow: '0 20px 60px rgba(43,38,32,.25)', background: '#fff' }}>
       <div style={{ height: 100, background: `linear-gradient(135deg, ${state.brandColor}, ${darken(state.brandColor)})`, padding: '14px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,.3)' }} />
@@ -366,7 +376,7 @@ function Step3({ state, onChange, onNext, onBack }: { state: OBState; onChange: 
               </button>
             ))}
           </div>
-          <div className="ob-hint">La mayoría elige entre 6 y 8 visitas.</div>
+          <div className="ob-hint"><StampyIcon size={24} />La mayoría elige entre 6 y 8 visitas.</div>
         </>
       )}
 
@@ -377,7 +387,7 @@ function Step3({ state, onChange, onNext, onBack }: { state: OBState; onChange: 
               value={state.pointsPerVisit} onChange={e => onChange({ pointsPerVisit: Number(e.target.value) })} />
             <span className="ob-pts-lbl">puntos por visita</span>
           </div>
-          <div className="ob-hint" style={{ marginTop: 12 }}>Los premios y sus umbrales los configurás desde la sección Premios del dashboard.</div>
+          <div className="ob-hint"><StampyIcon size={24} />Los premios y sus umbrales los configurás desde la sección Premios del dashboard.</div>
         </>
       )}
 
@@ -397,7 +407,7 @@ function Step3({ state, onChange, onNext, onBack }: { state: OBState; onChange: 
               </div>
             </div>
           ))}
-          <div className="ob-hint">Editá nombres y beneficios desde la sección Premios.</div>
+          <div className="ob-hint"><StampyIcon size={24} />Editá nombres y beneficios desde la sección Premios.</div>
         </div>
       )}
 
@@ -414,7 +424,7 @@ function Step4({ state, onChange, onNext, onBack }: { state: OBState; onChange: 
       <div className="ob-step">
         <div className="ob-action-label">Los beneficios van con cada nivel</div>
         <div className="ob-info-box">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#185FA5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <StampyIcon size={40} />
           <span>Bronze: bienvenida · Silver: 5% dto · Gold: regalo de cumpleaños · Black: beneficios exclusivos</span>
         </div>
         <Nav onBack={onBack} onNext={onNext} nextLabel="Entendido, seguir" />
@@ -427,7 +437,7 @@ function Step4({ state, onChange, onNext, onBack }: { state: OBState; onChange: 
       <div className="ob-step">
         <div className="ob-action-label">Los premios se configuran desde el dashboard</div>
         <div className="ob-info-box">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#185FA5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <StampyIcon size={40} />
           <span>Ej: Clase gratis (500 pts) · Mes de descuento (1200 pts) · Producto gratis (800 pts)</span>
         </div>
         <Nav onBack={onBack} onNext={onNext} nextLabel="Entendido, seguir" />
@@ -508,10 +518,8 @@ function Step5({ state, onChange, onNext, onBack }: { state: OBState; onChange: 
               <button key={c} className={`ob-color-dot${state.brandColor === c ? ' ob-color-dot--on' : ''}`}
                 style={{ background: c }} onClick={() => onChange({ brandColor: c })} />
             ))}
-            <label className="ob-color-custom" style={{ background: state.brandColor }}>
-              <input type="color" value={state.brandColor} onChange={e => onChange({ brandColor: e.target.value })} style={{ opacity: 0, width: 1, height: 1 }} />
-            </label>
           </div>
+          <div className="ob-hint" style={{ marginTop: 16 }}><StampyIcon size={26} />8 colores incluidos en tu plan. Colores personalizados están disponibles en Pro y Enterprise.</div>
         </div>
       </div>
 
@@ -529,7 +537,7 @@ function Step6({ state, onBack, onFinish }: { state: OBState; onBack: () => void
       <div className="ob-action-label">Esto es exactamente lo que van a ver tus clientes en su wallet</div>
       <div className="ob-final-layout">
         {/* Pass preview */}
-        <div>
+        <div className="ob-final-pass">
           <div className="ob-platform-switch">
             <button className={`ob-platform-btn${platform === 'apple' ? ' ob-platform-btn--on' : ''}`} onClick={() => setPlatform('apple')}>Apple Wallet</button>
             <button className={`ob-platform-btn${platform === 'google' ? ' ob-platform-btn--on' : ''}`} onClick={() => setPlatform('google')}>Google Wallet</button>
@@ -568,9 +576,13 @@ function Step6({ state, onBack, onFinish }: { state: OBState; onBack: () => void
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
   :root { --font-d: 'Plus Jakarta Sans', sans-serif; --font-b: 'Inter', sans-serif; }
-  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html, body { max-width:100vw; overflow-x:hidden; }
   body { font-family:var(--font-b); background:#FBF6EE; color:#2B2620; }
-  .ob-shell { min-height:100vh; display:flex; flex-direction:row; }
+  button, a { -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+  button:focus { outline:none; }
+  button:focus-visible { outline:2px solid rgba(199,93,58,.35); outline-offset:2px; }
+  .ob-shell { min-height:100vh; min-height:100dvh; display:flex; flex-direction:row; max-width:100vw; overflow-x:hidden; }
   /* Left panel */
   .ob-left { width:380px; flex-shrink:0; background:#01231A; display:flex; flex-direction:column; padding:36px 32px; gap:32px; min-height:100vh; position:sticky; top:0; height:100vh; overflow:hidden; }
   .ob-left-logo { display:flex; align-items:center; }
@@ -586,8 +598,9 @@ const CSS = `
   .ob-stampy-name { font-size:12px; font-weight:700; color:rgba(247,239,232,.7); letter-spacing:.04em; }
   .ob-stampy-text { font-size:13px; color:rgba(247,239,232,.55); line-height:1.65; }
   /* Right panel */
-  .ob-right { flex:1; display:flex; align-items:center; justify-content:center; padding:52px 40px 40px; min-height:100vh; overflow-y:auto; position:relative; }
+  .ob-right { flex:1; display:flex; align-items:center; justify-content:center; padding:52px 40px 40px; min-height:100vh; overflow-y:auto; overflow-x:hidden; position:relative; max-width:100%; }
   .ob-right-inner { width:100%; max-width:540px; display:flex; flex-direction:column; position:relative; z-index:1; }
+  .ob-right-inner--wide { max-width:640px; }
   .ob-right::before { content:''; position:absolute; width:500px; height:500px; border-radius:50%; background:rgba(199,93,58,.05); top:-150px; right:-150px; pointer-events:none; }
   .ob-right::after { content:''; position:absolute; width:350px; height:350px; border-radius:50%; background:rgba(1,35,26,.04); bottom:-100px; left:-80px; pointer-events:none; }
   /* Mobile header — hidden on desktop */
@@ -595,7 +608,8 @@ const CSS = `
   /* Content */
   .ob-content { flex:1; display:flex; align-items:flex-start; justify-content:center; padding:48px 24px 32px; }
   .ob-step { width:100%; display:flex; flex-direction:column; }
-  .ob-action-label { font-size:13px; font-weight:600; color:rgba(43,38,32,.45); margin-bottom:20px; line-height:1.5; }
+  .ob-action-label { font-family:var(--font-d); font-size:17px; font-weight:800; color:#2B2620; margin-bottom:24px; line-height:1.35; letter-spacing:-.01em; position:relative; padding-bottom:13px; }
+  .ob-action-label::after { content:''; position:absolute; left:0; bottom:0; width:34px; height:3px; background:#C75D3A; border-radius:2px; }
   .ob-mobile-step-title { display:none; }
   .ob-mobile-step-title h2 { font-family:var(--font-d); font-weight:800; font-size:24px; color:#2B2620; line-height:1.2; margin-bottom:6px; }
   .ob-mobile-step-title p { font-size:13px; color:rgba(43,38,32,.5); line-height:1.6; margin-bottom:16px; }
@@ -620,13 +634,13 @@ const CSS = `
   .ob-input:focus { border-color:#C75D3A; }
   /* Sector */
   .ob-sector-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-  .ob-sector-btn { display:flex; align-items:center; gap:10px; padding:13px 14px; background:#fff; border:2px solid rgba(43,38,32,.1); border-radius:13px; cursor:pointer; transition:all .15s; text-align:left; position:relative; }
+  .ob-sector-btn { display:flex; align-items:center; gap:14px; padding:16px 18px; background:#fff; border:2px solid rgba(43,38,32,.1); border-radius:13px; cursor:pointer; transition:all .15s; text-align:left; position:relative; box-shadow:none; }
   .ob-sector-btn:hover { border-color:rgba(43,38,32,.25); background:#FBF6EE; }
-  .ob-sector-btn--on { border-color:#C75D3A; background:rgba(199,93,58,.06); }
+  .ob-sector-btn--on { border-color:#C75D3A; background:rgba(199,93,58,.07); }
   .ob-sector-icon { color:rgba(43,38,32,.5); flex-shrink:0; }
   .ob-sector-btn--on .ob-sector-icon { color:#C75D3A; }
   .ob-sector-label { font-size:12.5px; font-weight:600; color:#2B2620; line-height:1.3; }
-  .ob-sector-check { position:absolute; top:8px; right:8px; width:18px; height:18px; border-radius:50%; background:#C75D3A; display:flex; align-items:center; justify-content:center; color:#fff; }
+  .ob-sector-check { position:absolute; top:-9px; right:-9px; width:22px; height:22px; border-radius:50%; background:#C75D3A; display:flex; align-items:center; justify-content:center; color:#fff; border:2.5px solid #FBF6EE; }
   /* Card types */
   .ob-card-types { display:flex; flex-direction:column; gap:10px; }
   .ob-type-card { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:16px 18px; background:#fff; border:2px solid rgba(43,38,32,.1); border-radius:14px; cursor:pointer; transition:all .15s; text-align:left; }
@@ -648,7 +662,7 @@ const CSS = `
   .ob-stamp-btn--on { border-color:#C75D3A; background:#C75D3A; color:#fff; }
   .ob-stamp-num { font-size:26px; font-weight:800; }
   .ob-stamp-sub { font-size:9px; opacity:.7; }
-  .ob-hint { font-size:12px; color:rgba(43,38,32,.4); margin-top:10px; background:rgba(43,38,32,.04); padding:9px 14px; border-radius:9px; line-height:1.5; }
+  .ob-hint { display:flex; align-items:center; gap:10px; font-size:12.5px; color:rgba(43,38,32,.55); margin-top:12px; background:rgba(43,38,32,.045); padding:11px 16px; border-radius:11px; line-height:1.5; }
   /* Points */
   .ob-pts-input { width:88px; padding:10px; font-size:24px; font-weight:800; text-align:center; border:2px solid rgba(43,38,32,.12); border-radius:12px; background:#fff; color:#2B2620; font-family:var(--font-d); outline:none; }
   .ob-pts-input:focus { border-color:#C75D3A; }
@@ -661,7 +675,7 @@ const CSS = `
   .ob-tier-name { font-size:13px; font-weight:600; color:#2B2620; }
   .ob-tier-threshold { font-size:11px; color:rgba(43,38,32,.45); }
   /* Info box */
-  .ob-info-box { display:flex; align-items:flex-start; gap:10px; padding:14px 16px; background:rgba(24,95,165,.07); border:1px solid rgba(24,95,165,.2); border-radius:12px; font-size:13px; color:rgba(43,38,32,.7); line-height:1.5; }
+  .ob-info-box { display:flex; align-items:center; gap:14px; padding:16px 18px; background:rgba(199,93,58,.07); border:1px solid rgba(199,93,58,.2); border-radius:14px; font-size:13px; color:rgba(43,38,32,.75); line-height:1.6; }
   /* Reward */
   .ob-reward-opts { display:flex; flex-direction:column; gap:10px; }
   .ob-reward-opt { display:flex; align-items:flex-start; gap:14px; padding:16px 18px; background:#fff; border:2px solid rgba(43,38,32,.1); border-radius:14px; cursor:pointer; transition:all .15s; }
@@ -679,9 +693,10 @@ const CSS = `
   .ob-color-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
   .ob-color-dot { width:32px; height:32px; border-radius:50%; border:2.5px solid transparent; cursor:pointer; transition:all .15s; }
   .ob-color-dot--on { border-color:#2B2620; transform:scale(1.1); }
-  .ob-color-custom { width:32px; height:32px; border-radius:50%; border:2px solid rgba(43,38,32,.2); cursor:pointer; overflow:hidden; display:block; }
   /* Final */
-  .ob-final-layout { display:flex; gap:32px; align-items:flex-start; flex-wrap:wrap; }
+  .ob-final-layout { display:flex; gap:32px; align-items:flex-start; flex-wrap:wrap; width:100%; }
+  .ob-final-pass { width:300px; max-width:100%; flex-shrink:0; order:2; }
+  .ob-summary { order:1; }
   .ob-platform-switch { display:flex; gap:20px; margin-bottom:18px; }
   .ob-platform-btn { font-size:13px; color:rgba(43,38,32,.4); background:none; border:none; cursor:pointer; padding-bottom:6px; border-bottom:2.5px solid transparent; font-family:var(--font-b); transition:all .15s; }
   .ob-platform-btn--on { color:#2B2620; border-bottom-color:#C75D3A; font-weight:600; }
@@ -699,11 +714,14 @@ const CSS = `
     .ob-shell { flex-direction:column; }
     .ob-left { display:none; }
     .ob-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; background:#01231A; }
-    .ob-right { align-items:flex-start; padding:0; min-height:calc(100vh - 64px); }
-    .ob-right-inner { max-width:100%; padding:24px 20px; }
+    .ob-right { align-items:flex-start; padding:0; min-height:calc(100dvh - 64px); overflow-x:hidden; }
+    .ob-right-inner { max-width:100%; padding:24px 20px calc(40px + env(safe-area-inset-bottom)); }
     .ob-step-title { font-size:22px; }
     .ob-sector-grid { grid-template-columns:repeat(2,1fr); }
-    .ob-final-layout { flex-direction:column; }
+    .ob-final-layout { flex-direction:column; width:100%; }
+    .ob-final-pass { width:100%; max-width:300px; margin:0 auto; order:1; }
+    .ob-summary { order:2; }
+    .ob-summary { width:100%; }
     .ob-brand-row { flex-direction:column; }
   }
 `
@@ -816,7 +834,7 @@ export default function OnboardingPage() {
 
         {/* Right panel — form */}
         <div className="ob-right">
-          <div className="ob-right-inner">
+          <div className={`ob-right-inner${step === 6 ? ' ob-right-inner--wide' : ''}`}>
             {/* Mobile step title + dots — hidden on desktop */}
             <div className="ob-mobile-step-title">
               <div className="ob-mobile-dots">
