@@ -175,6 +175,13 @@ export async function apiMe() {
   return request<{ owner: Owner; businesses: Business[] }>('/api/auth/me')
 }
 
+export async function apiChangePassword(currentPassword: string, newPassword: string) {
+  return request<{ success: boolean; message: string }>('/api/auth/change-password', {
+    method: 'PATCH',
+    body: { currentPassword, newPassword },
+  })
+}
+
 export async function apiLogout() {
   clearToken()
   window.location.href = '/login'

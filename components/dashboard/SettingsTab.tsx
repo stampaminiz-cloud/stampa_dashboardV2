@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { apiUpdateBusiness } from '@/lib/api'
+import { apiUpdateBusiness, apiChangePassword } from '@/lib/api'
 import { useLang } from '@/data/i18n'
 
 interface BusinessAlerts { newCustomer: boolean; nearPrize: boolean; weeklyDigest: boolean }
@@ -110,6 +110,57 @@ function SectorField({ value, saving, saved, t, onSave }: { value: string; savin
   )
 }
 
+function PasswordSection() {
+  const [current, setCurrent] = useState('')
+  const [next, setNext] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    setSuccess(false)
+
+    if (!current || !next || !confirm) { setError('Completá los tres campos.'); return }
+    if (next.length < 8) { setError('La nueva contraseña debe tener al menos 8 caracteres.'); return }
+    if (next !== confirm) { setError('La confirmación no coincide con la nueva contraseña.'); return }
+    if (next === current) { setError('La nueva contraseña tiene que ser distinta a la actual.'); return }
+
+    setSaving(true)
+    try {
+      await apiChangePassword(current, next)
+      setSuccess(true)
+      setCurrent(''); setNext(''); setConfirm('')
+      setTimeout(() => setSuccess(false), 3000)
+    } catch (err: any) {
+      setError(err.error || 'No se pudo cambiar la contraseña.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <FieldRow label="Contraseña actual">
+        <input type="password" className="st-pw-input" value={current} onChange={e => setCurrent(e.target.value)} autoComplete="current-password" />
+      </FieldRow>
+      <FieldRow label="Nueva contraseña">
+        <input type="password" className="st-pw-input" value={next} onChange={e => setNext(e.target.value)} autoComplete="new-password" placeholder="Mínimo 8 caracteres" />
+      </FieldRow>
+      <FieldRow label="Confirmar nueva contraseña">
+        <input type="password" className="st-pw-input" value={confirm} onChange={e => setConfirm(e.target.value)} autoComplete="new-password" />
+      </FieldRow>
+      {error && <div className="st-pw-error">{error}</div>}
+      {success && <div className="st-pw-success">Contraseña actualizada correctamente.</div>}
+      <button type="submit" className="st-btn-sm" style={{ marginTop: 10 }} disabled={saving}>
+        {saving ? 'Guardando...' : 'Cambiar contraseña'}
+      </button>
+    </form>
+  )
+}
+
 function CheckboxRow({ label, checked: init, description, onToggle }: { label: string; checked: boolean; description?: string; onToggle?: (v: boolean) => void }) {
   const [checked, setChecked] = useState(init)
   return (
@@ -167,6 +218,10 @@ export function SettingsTab({ business: mockBusiness, businessId, onSave }: { bu
         .st-field-value{display:flex;align-items:center;gap:8px;}
         .st-field-val{font-size:12.5px;font-weight:600;color:#2B2620;}
         .st-inline-input{padding:5px 9px;font-size:12.5px;border:1.5px solid #C75D3A;border-radius:7px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;width:180px;outline:none;}
+        .st-pw-input{padding:6px 10px;font-size:12.5px;border:1px solid rgba(43,38,32,.15);border-radius:7px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;width:200px;outline:none;}
+        .st-pw-input:focus{border-color:#C75D3A;}
+        .st-pw-error{font-size:11.5px;color:#B23B3B;background:rgba(178,59,59,.07);border:1px solid rgba(178,59,59,.2);border-radius:8px;padding:8px 12px;margin-top:10px;}
+        .st-pw-success{font-size:11.5px;color:#2C5A2C;background:rgba(91,140,90,.1);border:1px solid rgba(91,140,90,.25);border-radius:8px;padding:8px 12px;margin-top:10px;}
         .st-edit-link{font-size:11px;color:#C75D3A;font-weight:600;background:none;border:none;cursor:pointer;padding:0;}
         .st-btn-sm{font-size:11px;background:#C75D3A;color:#fff;border:none;border-radius:7px;padding:5px 12px;cursor:pointer;font-weight:600;}
         .st-number-input{width:60px;padding:5px 9px;font-size:12.5px;border:1px solid rgba(43,38,32,.15);border-radius:7px;text-align:center;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
@@ -209,6 +264,7 @@ export function SettingsTab({ business: mockBusiness, businessId, onSave }: { bu
           .st-plan-card{flex-direction:column;align-items:flex-start;gap:12px;}
           .st-field-row{flex-wrap:wrap;gap:8px;min-height:auto;}
           .st-inline-input{width:100%;}
+          .st-pw-input{width:100%;}
           .st-sector-confirm{position:static;min-width:0;margin-top:10px;box-shadow:none;}
         }
       `}</style>
@@ -219,6 +275,10 @@ export function SettingsTab({ business: mockBusiness, businessId, onSave }: { bu
           <FieldRow label={t('st_sector')}><SectorField value={business.sector} saving={saving} saved={saved} t={t} onSave={v => handleSave('sector', v)} /></FieldRow>
           <FieldRow label={t('st_timezone')}><span className="st-field-val">{business.timezone}</span></FieldRow>
           <div className="st-timezone-note">{t('st_timezone_note')}</div>
+        </Section>
+
+        <Section title="Seguridad" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}>
+          <PasswordSection />
         </Section>
 
         <Section title={t('st_rules')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}>
