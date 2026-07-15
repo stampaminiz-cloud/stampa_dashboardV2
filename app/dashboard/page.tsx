@@ -848,6 +848,9 @@ export default function DashboardPage() {
             stampsRequired: c.stampsRequired || 8,
             rewardMode:     c.rewardMode || null,
             rewardField:    c.rewardFixedValue || null,
+            logoUrl:        c.logoUrl || null,
+            earnedIcon:     c.earnedIcon || null,
+            emptyIcon:      c.emptyIcon || null,
           })))
         } else console.error('cards load error:', cardsRes.reason)
 
@@ -876,6 +879,29 @@ export default function DashboardPage() {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function refreshCards() {
+    if (!businessId) return
+    try {
+      const cardsData = await apiGetCards(businessId)
+      setCards((cardsData as any[]).map(c => ({
+        id:             c._id,
+        name:           c.name,
+        type:           c.type,
+        isActive:       c.isActive,
+        color:          c.color || '#1E3329',
+        secondColor:    c.secondColor || '#16271F',
+        stampsRequired: c.stampsRequired || 8,
+        rewardMode:     c.rewardMode || null,
+        rewardField:    c.rewardFixedValue || null,
+        logoUrl:        c.logoUrl || null,
+        earnedIcon:     c.earnedIcon || null,
+        emptyIcon:      c.emptyIcon || null,
+      })))
+    } catch (err) {
+      console.error('Error refreshing cards:', err)
     }
   }
 
@@ -1012,9 +1038,7 @@ export default function DashboardPage() {
           }}
         />
       case 'form':          return <FormTab businessName={business?.name || mockData.business.name} businessSlug={business?.slug || 'mi-negocio'} cardDesigns={cards.length > 0 ? cards : mockData.cardDesigns} />
-      case 'design':        return businessId
-        ? <DesignTab key={businessId} data={mockData} businessId={businessId} />
-        : <DesignTab data={mockData} />
+      case 'design':        return <DesignTab key={businessId ?? 'loading'} data={mockData} cards={cards} businessId={businessId} onSaved={refreshCards} />
       case 'users':         return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} onRefresh={loadBusiness} owner={owner} />
       case 'settings':      return (
         <SettingsTab

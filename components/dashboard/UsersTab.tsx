@@ -195,7 +195,7 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
         <div className="us-card">
           <div className="us-toolbar">
             <div className="us-filter-pills">
-              {(['all','owner','manager','scanner'] as const).map(key => (
+              {(['all','manager','scanner'] as const).map(key => (
                 <button key={key} className={`us-pill${roleFilter === key ? ' us-pill--on' : ''}`} onClick={() => setFilter(key)}>
                   {key === 'all' ? `${t('us_all')} (${counts.all})` : `${ROLE_CONFIG[key as Role]?.label} (${counts[key]})`}
                 </button>

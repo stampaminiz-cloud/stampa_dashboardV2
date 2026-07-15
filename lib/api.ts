@@ -103,6 +103,8 @@ export interface Card {
   color: string
   secondColor: string
   logoUrl: string | null
+  earnedIcon?: string | null
+  emptyIcon?: string | null
   stampsRequired: number
   rewardMode: 'dynamic' | 'fixed' | null
   rewardFixedValue: string | null

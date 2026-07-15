@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
-import { apiGetCards, getBusinessId } from '@/lib/api'
+import { apiUpdateCard, apiUpdateField } from '@/lib/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CardType = "stamp" | "points" | "membership"
@@ -16,6 +16,9 @@ interface CardDesign {
   stampsRequired: number
   rewardMode: string | null
   rewardField: string | null
+  logoUrl?: string | null
+  earnedIcon?: string | null
+  emptyIcon?: string | null
 }
 
 interface FormField {
@@ -371,19 +374,25 @@ function DraggableFields({ fields, onReorder, onToggle }: {
 }
 
 // ─── Card Editor ──────────────────────────────────────────────────────────────
-function CardEditor({ card: init, formFields, plan, onBack }: {
-  card: CardDesign; formFields: FormField[]; plan: string; onBack: () => void
+function CardEditor({ card: init, formFields, plan, businessId, onSaved, onBack }: {
+  card: CardDesign; formFields: FormField[]; plan: string; businessId?: string | null; onSaved?: () => void; onBack: () => void
 }) {
   const { can } = usePlan()
   const t = useLang()
   const [card, setCard] = useState<CardDesign>(init)
   const [fields, setFields] = useState<FormField[]>([...formFields].sort((a, b) => a.order - b.order))
   const [tiers] = useState<MembershipTier[]>(DEFAULT_TIERS)
-  const [logos, setLogos] = useState<LogoState>({ businessLogo: null, earnedIcon: null, emptyIcon: null })
+  const [logos, setLogos] = useState<LogoState>({
+    businessLogo: init.logoUrl || null,
+    earnedIcon: init.earnedIcon || null,
+    emptyIcon: init.emptyIcon || null,
+  })
   const [platform, setPlatform] = useState<'real' | 'google'>('real')
   const [previewTierIndex, setPreviewTierIndex] = useState(0)
   const [mobileView, setMobileView] = useState<'config' | 'preview'>('config')
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [pointsPerVisit, setPointsPerVisit] = useState(10)
   // Flip card state
   const [previewSide, setPreviewSide]       = useState<'front' | 'prize'>('front')
@@ -405,7 +414,47 @@ function CardEditor({ card: init, formFields, plan, onBack }: {
   function setLogo(key: keyof LogoState) { return (url: string | null) => setLogos({ ...logos, [key]: url }) }
   function setRewardSource(id: string) { setFields(fields.map((f: FormField) => ({ ...f, isRewardSource: f.id === id }))) }
   function toggleField(id: string) { setFields(fields.map((f: FormField) => f.id === id && !f.isLocked ? { ...f, isActive: !f.isActive } : f)) }
-  function handleSave() { setSaved(true); setTimeout(() => setSaved(false), 2000) }
+  async function handleSave() {
+    if (!businessId) {
+      setSaveError('No se encontró el negocio — recargá la página e intentá de nuevo.')
+      return
+    }
+    setSaving(true)
+    setSaveError('')
+    try {
+      await apiUpdateCard(businessId, card.id, {
+        name: card.name,
+        color: card.color,
+        secondColor: card.secondColor,
+        isActive: card.isActive,
+        stampsRequired: card.stampsRequired,
+        rewardMode: (card.rewardMode as any) || undefined,
+        rewardFixedValue: card.rewardField || undefined,
+        flipMessage,
+        flipSubMessage,
+        logoUrl: logos.businessLogo || undefined,
+        earnedIcon: logos.earnedIcon || undefined,
+        emptyIcon: logos.emptyIcon || undefined,
+      })
+
+      // Los campos del formulario (activo/inactivo, cuál es el reward source)
+      // se guardan aparte, uno por uno — mismo patrón que ya usa el FormTab.
+      await Promise.all(
+        fields.map((f: FormField) =>
+          apiUpdateField(businessId, card.id, f.id, { isActive: f.isActive, isRewardSource: f.isRewardSource })
+        )
+      )
+
+      setSaved(true)
+      onSaved?.()
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err: any) {
+      console.error('Error saving card:', err)
+      setSaveError(err?.error || 'No se pudo guardar. Intentá de nuevo.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   // Prize card (back face) — matches reference photo
   const PrizeCard = (
@@ -491,8 +540,11 @@ function CardEditor({ card: init, formFields, plan, onBack }: {
           <button className={`dt-mobile-tab${mobileView === 'preview' ? ' dt-mobile-tab--on' : ''}`} onClick={() => setMobileView('preview')}>Preview</button>
         </div>
 
-        <button className="dt-save-btn" onClick={handleSave}>{saved ? t('saved' as any) : t('save' as any)}</button>
+        <button className="dt-save-btn" onClick={handleSave} disabled={saving}>
+          {saving ? 'Guardando...' : saved ? t('saved' as any) : t('save' as any)}
+        </button>
       </div>
+      {saveError && <div className="dt-save-error">{saveError}</div>}
 
       <div className="dt-editor-body">
         {/* ── Left panel (config) ── */}
@@ -944,32 +996,13 @@ function CardManager({ cards: init, planMaxCards, planActiveCards, plan, onEdit 
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function DesignTab({ data, businessId: propBusinessId }: { data: DesignData; businessId?: string }) {
+export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignData; cards?: CardDesign[]; businessId?: string | null; onSaved?: () => void }) {
   const [editingCard, setEditingCard] = useState<CardDesign | null>(null)
-  const [realCards, setRealCards]     = useState<CardDesign[] | null>(null)
-  const businessId = propBusinessId || getBusinessId()
 
-  useEffect(() => {
-    if (!businessId) return
-    apiGetCards(businessId).then(rawCards => {
-      if (rawCards.length > 0) {
-        const mapped = (rawCards as any[]).map(c => ({
-          id:             c._id,
-          name:           c.name,
-          type:           c.type,
-          isActive:       c.isActive,
-          color:          c.color || '#1E3329',
-          secondColor:    c.secondColor || '#16271F',
-          stampsRequired: c.stampsRequired || 8,
-          rewardMode:     c.rewardMode || null,
-          rewardField:    c.rewardFixedValue || null,
-        }))
-        setRealCards(mapped)
-      }
-    }).catch(console.error)
-  }, [businessId])
-
-  const effectiveData = realCards ? { ...data, cardDesigns: realCards } : data
+  // Las cards reales ya vienen cargadas del dashboard (fetch único al
+  // montar, sin este segundo round-trip) — así no hay ventana de 1-2s
+  // mostrando el color del mock antes de que llegue el real.
+  const effectiveData = (cards && cards.length > 0) ? { ...data, cardDesigns: cards } : data
 
   return (
     <>
@@ -981,6 +1014,8 @@ export function DesignTab({ data, businessId: propBusinessId }: { data: DesignDa
         .dt-editor-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;color:#2B2620;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .dt-save-btn{background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;white-space:nowrap;}
         .dt-save-btn:hover{background:#B14F2F;}
+        .dt-save-btn:disabled{opacity:.6;cursor:not-allowed;}
+        .dt-save-error{font-size:12px;color:#B23B3B;background:rgba(178,59,59,.07);border-bottom:1px solid rgba(178,59,59,.15);padding:8px 20px;}
         .dt-editor-body{flex:1;display:grid;grid-template-columns:300px 1fr;overflow:hidden;}
         .dt-editor-panel{background:#FFFFFF;border-right:1px solid rgba(43,38,32,.08);padding:20px 18px;overflow-y:auto;}
         .dt-panel-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:rgba(43,38,32,.45);font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
@@ -1238,8 +1273,8 @@ export function DesignTab({ data, businessId: propBusinessId }: { data: DesignDa
       `}</style>
 
       {editingCard
-        ? <CardEditor card={editingCard} formFields={data.formFields} plan={effectiveData.business.plan} onBack={() => setEditingCard(null)} />
-        : <CardManager key={realCards ? 'api' : 'mock'} cards={effectiveData.cardDesigns} planMaxCards={effectiveData.business.planMaxCards} planActiveCards={effectiveData.business.planActiveCards} plan={effectiveData.business.plan} onEdit={setEditingCard} />
+        ? <CardEditor card={editingCard} formFields={data.formFields} plan={effectiveData.business.plan} businessId={businessId} onSaved={onSaved} onBack={() => setEditingCard(null)} />
+        : <CardManager cards={effectiveData.cardDesigns} planMaxCards={effectiveData.business.planMaxCards} planActiveCards={effectiveData.business.planActiveCards} plan={effectiveData.business.plan} onEdit={setEditingCard} />
       }
     </>
   )
