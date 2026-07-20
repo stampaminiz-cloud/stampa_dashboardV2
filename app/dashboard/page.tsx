@@ -286,12 +286,12 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
     : mockData.cardDesigns.filter((c: any) => c.isActive)
 
   // Use real data when available
-  const totalUsers    = analyticsData?.total          ?? m.totalUsers
-  const activeUsers   = analyticsData?.active         ?? m.activeUsers
-  const newSignUps    = analyticsData?.newThisMonth   ?? m.newSignUps
-  const inactiveUsers = analyticsData?.inactive       ?? m.inactiveUsers
-  const nearPrize     = rewardsData !== null ? (rewardsData?.nearPrize ?? 0) : m.nearPrize  
-  const newDelta      = analyticsData?.newDelta       ?? m.newSignUpsDelta
+  const totalUsers    = analyticsData?.total          ?? 0
+  const activeUsers   = analyticsData?.active         ?? 0
+  const newSignUps    = analyticsData?.newThisMonth   ?? 0
+  const inactiveUsers = analyticsData?.inactive       ?? 0
+  const nearPrize     = rewardsData?.nearPrize ?? 0
+  const newDelta      = analyticsData?.newDelta       ?? 0
   const hasStamp      = activeCards.some((c: any) => c.type === 'stamp')
   const hasMembership = activeCards.some((c: any) => c.type === 'membership')
   const hasPoints     = activeCards.some((c: any) => c.type === 'points')
@@ -351,10 +351,10 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
       <div className="ov-section-label">{t('section_growth' as any)}</div>
       <div className="ov-metric-grid">
         {[
-          { label: t('total_customers' as any), value: totalUsers,    delta: m.totalUsersDelta,    color: '#C75D3A' },
-          { label: t('active' as any),          value: activeUsers,   delta: m.activeUsersDelta,   color: '#5B8C5A' },
+          { label: t('total_customers' as any), value: totalUsers,    delta: 0,    color: '#C75D3A' },
+          { label: t('active' as any),          value: activeUsers,   delta: 0,   color: '#5B8C5A' },
           { label: t('new_signups' as any),     value: newSignUps,    delta: newDelta,              color: '#185FA5' },
-          { label: t('inactive' as any),        value: inactiveUsers, delta: m.inactiveUsersDelta, color: '#B23B3B' },
+          { label: t('inactive' as any),        value: inactiveUsers, delta: 0, color: '#B23B3B' },
         ].map(({ label, value, delta, color }) => (
           <div key={label} className="ov-metric-card">
             <div className="ov-metric-top">
@@ -386,6 +386,8 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
           </div>
           {chartLoading
             ? <div className="ov-chart-loading">Cargando...</div>
+            : !weeklyVisits || weeklyVisits.length === 0
+            ? <div className="ov-chart-loading">Todavía no hay suficientes datos.</div>
             : <div className="ov-chart-wrap">
                 <div className="ov-chart-axis">
                   {axisSteps.map((v, i) => <span key={i}>{v}</span>)}
@@ -395,7 +397,7 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
                     {axisSteps.map((_, i) => <div key={i} className="ov-chart-gridline" />)}
                   </div>
                   <div className="ov-bars">
-                    {(weeklyVisits || mockData.customerGrowth.map(({ month, users }: any) => ({ label: month, visits: users }))).map(({ label, visits }: any) => (
+                    {(weeklyVisits || []).map(({ label, visits }: any) => (
                       <div
                         key={label}
                         className="ov-bar-col"
@@ -626,10 +628,11 @@ function mapCustomersForTab(rawCustomers: any[], activeCard: any) {
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html, body { overflow-x: hidden; }
   body{font-family:'Inter',sans-serif;background:#FBF6EE;color:#2B2620;}
 
   /* ── Shell ── */
-  .db-shell{display:flex;height:100vh;overflow:hidden;}
+  .db-shell{display:flex;height:100vh;height:100dvh;overflow:hidden;}
   .db-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
 
   /* ── Sidebar ── */
@@ -820,9 +823,9 @@ const CSS = `
 
   /* ── RESPONSIVE ── */
   @media (max-width: 768px) {
-    .db-sb{position:fixed;left:-100%;top:0;bottom:0;z-index:50;width:260px !important;transition:left .25s ease;box-shadow:4px 0 24px rgba(43,38,32,.2);}
-    .db-sb--mobile-open{left:0 !important;}
-    .db-sb--collapsed{left:-100% !important;}
+    .db-sb{position:fixed;left:0;transform:translateX(-100%);top:0;bottom:0;z-index:50;width:260px !important;transition:transform .25s ease;box-shadow:4px 0 24px rgba(43,38,32,.2);}
+    .db-sb--mobile-open{transform:translateX(0) !important;}
+    .db-sb--collapsed{transform:translateX(-100%) !important;}
     .sb-overlay{display:block;position:fixed;inset:0;background:rgba(43,38,32,.4);z-index:49;backdrop-filter:blur(2px);}
     .hd-hamburger{display:flex;}
     .hd-search{width:160px;}
