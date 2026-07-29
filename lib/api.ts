@@ -153,6 +153,7 @@ export async function apiRegister(data: {
   fullName: string
   termsAccepted: string
   region?: string
+  plan?: string
 }) {
   const res = await request<{ token: string; owner: Owner }>('/api/auth/register', {
     method: 'POST',
