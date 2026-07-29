@@ -1,125 +1,148 @@
-'use client'
-import React, { useEffect } from 'react'
+import Link from 'next/link';
 
-const CSS = `
-  .lg-doc { max-width: 760px; margin: 0 auto; padding: 56px 24px 80px; font-family: 'Inter', sans-serif; color: #2B2620; background: #FBF6EE; }
-  .lg-doc h1 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 30px; margin-bottom: 6px; }
-  .lg-doc .lg-doc-updated { font-size: 12.5px; color: rgba(43,38,32,.45); margin-bottom: 32px; }
-  .lg-doc h2 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 17px; margin-top: 32px; margin-bottom: 10px; color: #2B2620; }
-  .lg-doc p, .lg-doc li { font-size: 14px; line-height: 1.7; color: rgba(43,38,32,.8); margin-bottom: 10px; }
-  .lg-doc ul { padding-left: 20px; margin-bottom: 12px; }
-  .lg-doc .lg-doc-placeholder { background: rgba(228,108,49,.12); padding: 1px 5px; border-radius: 4px; font-weight: 600; }
-  .lg-doc a { color: #E46C31; }
-`
-
-function injectStyles() {
-  if (typeof document === 'undefined') return
-  if (document.getElementById('lg-doc-css')) return
-  const s = document.createElement('style')
-  s.id = 'lg-doc-css'
-  s.textContent = CSS
-  document.head.appendChild(s)
-}
+export const metadata = {
+  title: 'Términos y Condiciones — Stampa',
+};
 
 export default function TermsPage() {
-  useEffect(() => { injectStyles() }, [])
-
   return (
-    <div className="lg-doc">
-      <h1>Términos y condiciones</h1>
-      <div className="lg-doc-updated">Última actualización: <span className="lg-doc-placeholder">[FECHA]</span> — Borrador pendiente de revisión legal</div>
+    <div data-theme="cream" style={{ background: 'var(--stampa-cream)', minHeight: '100vh' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '64px 32px 96px' }}>
+        <Link href="/" style={{ color: 'var(--stampa-ember)', fontSize: 'var(--text-sm)', fontWeight: 700 }}>
+          ← Volver a Stampa
+        </Link>
 
-      <p>
-        Estos Términos y Condiciones ("Términos") regulan el uso de la plataforma Stampa
-        (el "Servicio"), operada por <span className="lg-doc-placeholder">[NOMBRE LEGAL DE LA EMPRESA]</span>,
-        con domicilio en <span className="lg-doc-placeholder">[DOMICILIO FISCAL]</span> ("Stampa", "nosotros").
-        Al crear una cuenta aceptás estos Términos en su totalidad.
-      </p>
+        <div
+          style={{
+            marginTop: 24,
+            marginBottom: 40,
+            background: 'var(--ember-soft)',
+            border: '1px solid var(--ember-glow)',
+            borderRadius: 'var(--radius-xl)',
+            padding: '18px 22px',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--stampa-ink)',
+            lineHeight: 'var(--leading-body)',
+          }}
+        >
+          <strong>Borrador pendiente de revisión legal.</strong> Este texto es un punto de partida razonable
+          para una plataforma que opera en España y Argentina, pero no reemplaza el asesoramiento de un
+          abogado matriculado en cada jurisdicción antes de publicarlo.
+        </div>
 
-      <h2>1. Descripción del servicio</h2>
-      <p>
-        Stampa es una plataforma que permite a comercios ("Comercio", "vos") crear y administrar
-        programas de fidelización digital (tarjetas de sellos, puntos o membresía) para sus
-        propios clientes finales ("Clientes Finales"), incluyendo la emisión de tarjetas para
-        Apple Wallet y Google Wallet, el envío de notificaciones push, y herramientas de
-        analítica y gestión de equipo.
-      </p>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, color: 'var(--stampa-ink)', marginBottom: 8 }}>
+          Términos y Condiciones
+        </h1>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 40 }}>Última actualización: [completar fecha]</p>
 
-      <h2>2. Cuenta y responsabilidades del Comercio</h2>
-      <ul>
-        <li>Sos responsable de mantener la confidencialidad de tus credenciales de acceso.</li>
-        <li>Sos responsable de la veracidad de los datos que cargás sobre tu negocio.</li>
-        <li>
-          Como Comercio, actuás como <strong>responsable del tratamiento</strong> de los datos
-          personales de tus Clientes Finales que recolectás a través de Stampa (nombre, email,
-          preferencias, historial de visitas). Stampa actúa como <strong>encargado del
-          tratamiento</strong> de esos datos, procesándolos únicamente para prestarte el
-          Servicio. Ver nuestra <a href="/privacy">Política de Privacidad</a> para más detalle
-          sobre esta relación.
-        </li>
-        <li>Sos responsable de obtener el consentimiento válido de tus Clientes Finales para recolectar y usar sus datos, y de informarles sus derechos conforme a la normativa aplicable en tu país.</li>
-      </ul>
+        <Section title="1. Aceptación de los términos">
+          <p>
+            Al crear una cuenta o usar Stampa, aceptás estos Términos y Condiciones y nuestra{' '}
+            <Link href="/privacidad" style={{ color: 'var(--stampa-ember)', fontWeight: 700 }}>
+              Política de Privacidad
+            </Link>
+            . Si no estás de acuerdo, no debés usar la Plataforma.
+          </p>
+        </Section>
 
-      <h2>3. Planes y facturación</h2>
-      <p>
-        Stampa ofrece distintos planes (Starter, Growth, Pro, Enterprise) con límites de
-        funcionalidades detallados en <span className="lg-doc-placeholder">[LINK A PRICING / TABLA DE PLANES]</span>.
-        Los precios están expresados en <span className="lg-doc-placeholder">[MONEDA]</span> y
-        pueden modificarse con <span className="lg-doc-placeholder">[X días]</span> de aviso previo.
-        <span className="lg-doc-placeholder"> [POLÍTICA DE REEMBOLSOS / CANCELACIÓN — completar]</span>.
-      </p>
+        <Section title="2. Qué es Stampa">
+          <p>
+            Stampa es una plataforma de fidelización digital que permite a negocios (cafeterías, panaderías, salones,
+            gimnasios, etc.) crear y gestionar tarjetas de fidelización — de sellos, puntos o membresía — entregadas
+            a través de Apple Wallet y Google Wallet.
+          </p>
+        </Section>
 
-      <h2>4. Propiedad intelectual</h2>
-      <p>
-        El software, diseño, marca y contenidos de Stampa son propiedad de{' '}
-        <span className="lg-doc-placeholder">[NOMBRE LEGAL DE LA EMPRESA]</span> o sus
-        licenciantes. El Comercio conserva la propiedad de su propia marca, logo y contenido
-        cargado en la plataforma, y otorga a Stampa una licencia limitada para usarlos
-        únicamente con el fin de prestar el Servicio (por ejemplo, mostrarlos en la tarjeta
-        digital del Cliente Final).
-      </p>
+        <Section title="3. Cuenta y responsabilidades del negocio">
+          <p>Como titular de una cuenta de negocio en Stampa, sos responsable de:</p>
+          <ul>
+            <li>Mantener la confidencialidad de tus credenciales de acceso.</li>
+            <li>La veracidad de los datos que cargás sobre tu negocio.</li>
+            <li>
+              Contar con base legal suficiente para recolectar y tratar los datos de tus clientes finales
+              (por ejemplo, el consentimiento que obtenés al momento del alta), y cumplir con la normativa de
+              protección de datos aplicable en tu jurisdicción.
+            </li>
+            <li>El uso que le des a las notificaciones push (no usarlas para spam o contenido no autorizado).</li>
+          </ul>
+        </Section>
 
-      <h2>5. Limitación de responsabilidad</h2>
-      <p>
-        El Servicio se provee "tal cual". En la medida permitida por la ley aplicable, Stampa
-        no será responsable por daños indirectos, lucro cesante, o pérdida de datos derivados
-        del uso del Servicio. <span className="lg-doc-placeholder">[Ajustar según asesoría legal — los límites de responsabilidad frente a consumidores tienen restricciones distintas en Argentina (Ley 24.240) y España/UE.]</span>
-      </p>
+        <Section title="4. Planes, precios y período de prueba">
+          <p>
+            Los planes disponibles (Starter, Growth, Pro, Enterprise) y sus precios se detallan en{' '}
+            <Link href="/#precios" style={{ color: 'var(--stampa-ember)', fontWeight: 700 }}>
+              nuestra página de precios
+            </Link>
+            . Ofrecemos 14 días de prueba gratuita sin necesidad de tarjeta de crédito. Al finalizar el período de
+            prueba, se te pedirá elegir un plan pago para continuar usando la Plataforma.
+          </p>
+        </Section>
 
-      <h2>6. Suspensión y terminación</h2>
-      <p>
-        Podemos suspender o cancelar tu cuenta si incumplís estos Términos, incluyendo el uso
-        del Servicio para fines ilegales o el envío de comunicaciones no solicitadas (spam) a
-        Clientes Finales. Podés cancelar tu cuenta en cualquier momento desde la sección de
-        Configuración.
-      </p>
+        <Section title="5. Cancelación">
+          <p>
+            Podés cancelar tu suscripción en cualquier momento desde el dashboard, sin permanencia mínima. La
+            cancelación surte efecto al final del período de facturación vigente; no se realizan reembolsos
+            proporcionales por el tiempo no utilizado, salvo que la ley aplicable indique lo contrario.
+          </p>
+        </Section>
 
-      <h2>7. Ley aplicable y jurisdicción</h2>
-      <p>
-        Para comercios domiciliados en Argentina, estos Términos se rigen por las leyes de la
-        República Argentina, sometiéndose a los tribunales ordinarios de{' '}
-        <span className="lg-doc-placeholder">[CIUDAD, ARGENTINA]</span>.
-      </p>
-      <p>
-        Para comercios domiciliados en España o la Unión Europea, estos Términos se rigen por
-        la legislación española, sometiéndose a los juzgados y tribunales de{' '}
-        <span className="lg-doc-placeholder">[CIUDAD, ESPAÑA]</span>, sin perjuicio de los
-        derechos que la normativa de protección al consumidor pudiera reconocerte en tu país de
-        residencia.
-      </p>
+        <Section title="6. Propiedad intelectual">
+          <p>
+            El software, diseño, marca e isologo de Stampa son propiedad de Stampa. El contenido que cargás
+            (nombre de tu negocio, logo, datos de tus tarjetas) sigue siendo tuyo; nos otorgás una licencia
+            limitada para almacenarlo y mostrarlo únicamente con el fin de prestarte el servicio.
+          </p>
+        </Section>
 
-      <h2>8. Modificaciones</h2>
-      <p>
-        Podemos actualizar estos Términos ocasionalmente. Te notificaremos cambios materiales
-        con al menos <span className="lg-doc-placeholder">[X días]</span> de anticipación por
-        email o dentro del dashboard.
-      </p>
+        <Section title="7. Disponibilidad del servicio">
+          <p>
+            Hacemos nuestro mejor esfuerzo para mantener la Plataforma disponible de forma continua, pero no
+            garantizamos un funcionamiento ininterrumpido o libre de errores. Podemos realizar mantenimientos
+            programados, notificándolo con antelación razonable cuando sea posible.
+          </p>
+        </Section>
 
-      <h2>9. Contacto</h2>
-      <p>
-        Para consultas sobre estos Términos, escribinos a{' '}
-        <span className="lg-doc-placeholder">[EMAIL DE CONTACTO LEGAL]</span>.
-      </p>
+        <Section title="8. Limitación de responsabilidad">
+          <p>
+            En la medida permitida por la ley aplicable, Stampa no será responsable por daños indirectos,
+            incidentales o consecuentes derivados del uso de la Plataforma, incluyendo pérdida de datos, de
+            ingresos o de clientes.
+          </p>
+        </Section>
+
+        <Section title="9. Legislación aplicable">
+          <p>
+            Si tu negocio está radicado en España, estos términos se rigen por la legislación española, con
+            sometimiento a los juzgados y tribunales que correspondan según la normativa de protección al
+            consumidor aplicable. Si tu negocio está radicado en Argentina, se rigen por la legislación argentina,
+            con sometimiento a los tribunales ordinarios competentes. [Completar con jurisdicción específica una
+            vez definida la estructura societaria.]
+          </p>
+        </Section>
+
+        <Section title="10. Contacto">
+          <p>
+            Para cualquier consulta sobre estos términos, escribinos a{' '}
+            <a href="mailto:stampa.miniz@gmail.com" style={{ color: 'var(--stampa-ember)', fontWeight: 700 }}>
+              stampa.miniz@gmail.com
+            </a>
+            .
+          </p>
+        </Section>
+      </div>
     </div>
-  )
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section style={{ marginBottom: 32 }}>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--text-h2)', color: 'var(--stampa-ink)', marginBottom: 12 }}>
+        {title}
+      </h2>
+      <div className="legalContent" style={{ fontSize: 'var(--text-base)', color: 'var(--text-body)', lineHeight: 'var(--leading-body)' }}>
+        {children}
+      </div>
+    </section>
+  );
 }

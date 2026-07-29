@@ -1,0 +1,69 @@
+.page {
+    min-height: 100vh;
+  }
+  
+  .page :global(html) {
+    scroll-behavior: smooth;
+  }
+  
+  .page a {
+    color: var(--stampa-ember);
+    text-decoration: none;
+  }
+  .page a:hover {
+    color: var(--ember-400);
+  }
+  
+  /* Header nav links keep ink color even on hover (per design) */
+  .navLink {
+    color: var(--stampa-ink) !important;
+  }
+  .navLink:hover {
+    color: var(--stampa-ink) !important;
+  }
+  
+  .ctaEmber {
+    background: var(--stampa-ember);
+    color: #fff !important;
+    transition: background var(--dur-base) var(--ease-soft), transform var(--dur-base) var(--ease-soft);
+  }
+  .ctaEmber:hover {
+    background: var(--ember-600);
+  }
+  
+  .ctaEmberLift:hover {
+    background: var(--ember-600);
+    transform: translateY(-1px);
+  }
+  
+  .underlineCta {
+    color: var(--text-strong) !important;
+    transition: border-color var(--dur-base) var(--ease-soft), color var(--dur-base) var(--ease-soft);
+  }
+  .underlineCta:hover {
+    border-color: var(--stampa-ember) !important;
+    color: var(--ember-300) !important;
+  }
+  
+  .proofCta {
+    transition: background var(--dur-base) var(--ease-soft);
+  }
+  .proofCta:hover {
+    background: var(--green-700) !important;
+  }
+  
+  .hamburgerBtn {
+    border: 1px solid var(--border-strong);
+    background: transparent;
+    color: var(--stampa-ink);
+    cursor: pointer;
+  }
+  
+  .pillBtn {
+    border: none;
+    cursor: pointer;
+  }
+  
+  .faqRow {
+    cursor: pointer;
+  }
