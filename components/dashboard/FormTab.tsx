@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useRef, useEffect } from 'react'
-import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields } from '@/lib/api'
+import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields, BASE_URL } from '@/lib/api'
 import { usePlan } from '@/data/plans'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -391,7 +391,7 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
       await Promise.all(allCustomFields
         .filter((f: FormField) => !f.id.startsWith('c-') && !['name','email'].includes(f.id))
         .map((f: FormField) =>
-          fetch(`http://localhost:5002/api/businesses/${businessId}/cards/${selectedCardId}/fields/${f.id}`, {
+          fetch(`${BASE_URL}/api/businesses/${businessId}/cards/${selectedCardId}/fields/${f.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
             body: JSON.stringify({
@@ -408,7 +408,7 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
       await Promise.all(custom
         .filter((f: FormField) => f.id.startsWith('c-') && f.label.trim())
         .map((f: FormField) =>
-          fetch(`http://localhost:5002/api/businesses/${businessId}/cards/${selectedCardId}/fields`, {
+          fetch(`${BASE_URL}/api/businesses/${businessId}/cards/${selectedCardId}/fields`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
             body: JSON.stringify({

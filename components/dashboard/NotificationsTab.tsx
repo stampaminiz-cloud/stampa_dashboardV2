@@ -2,6 +2,7 @@
 import React, { useState } from 'react'
 import { useLang } from '@/data/i18n'
 import { usePlan } from '@/data/plans'
+import { BASE_URL } from '@/lib/api'
 
 type Audience = 'All' | 'Near prize' | 'Inactive'
 type SendType = 'instant' | 'scheduled'
@@ -54,7 +55,7 @@ export function NotificationsTab({ data, businessId, analyticsData, rewardsData 
       if (!schedDate || !schedTime) return
       if (businessId) {
         try {
-          await fetch(`http://localhost:5002/api/businesses/${businessId}/notifications/scheduled`, {
+          await fetch(`${BASE_URL}/api/businesses/${businessId}/notifications/scheduled`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -72,7 +73,7 @@ export function NotificationsTab({ data, businessId, analyticsData, rewardsData 
     } else {
       if (businessId) {
         try {
-          const res = await fetch(`http://localhost:5002/api/businesses/${businessId}/notifications/broadcast`, {
+          const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/notifications/broadcast`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

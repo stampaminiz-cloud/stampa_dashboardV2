@@ -5,7 +5,7 @@
 // desde los componentes. Esto centraliza el manejo de tokens, errores
 // y la URL base.
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 export function getToken(): string | null {

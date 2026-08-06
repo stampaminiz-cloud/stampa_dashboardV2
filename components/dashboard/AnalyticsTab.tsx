@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { usePlan } from '@/data/plans'
 import { useLang } from '@/data/i18n'
+import { BASE_URL } from '@/lib/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VisitDay    { day: string; stamps: number }
@@ -221,7 +222,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
     const businessId = localStorage.getItem('stampa_business_id')
     if (!businessId) return
     setDetailedLoading(true)
-    fetch(`http://localhost:5002/api/businesses/${businessId}/analytics/detailed?range=${range}`, {
+    fetch(`${BASE_URL}/api/businesses/${businessId}/analytics/detailed?range=${range}`, {
       headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
     })
       .then(r => r.json())

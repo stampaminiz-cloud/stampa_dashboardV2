@@ -1,6 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
+import { BASE_URL } from '@/lib/api'
 
 interface Customer {
   id: string; name: string; email: string; progress: number; total: number
@@ -169,7 +170,7 @@ export function CustomersTab({
     setDeleting(true)
     try {
       if (businessId) {
-        await fetch(`http://localhost:5002/api/businesses/${businessId}/customers/${id}`, {
+        await fetch(`${BASE_URL}/api/businesses/${businessId}/customers/${id}`, {
           method: 'DELETE',
           headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
         })

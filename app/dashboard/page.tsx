@@ -3,7 +3,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { mockData } from '@/data/mockData'
 import { detectLang, createT, LangContext } from '@/data/i18n'
 import { PlanProvider } from '@/data/plans'
-import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId } from '@/lib/api'
+import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL } from '@/lib/api'
 import { SettingsTab }       from '@/components/dashboard/SettingsTab'
 import { CustomersTab }      from '@/components/dashboard/CustomersTab'
 import { AnalyticsTab }      from '@/components/dashboard/AnalyticsTab'
@@ -319,7 +319,7 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
     if (!businessId) return
     setChartLoading(true)
     try {
-      const res = await fetch(`http://localhost:5002/api/businesses/${businessId}/analytics?granularity=monthly`, {
+      const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/analytics?granularity=monthly`, {
         headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
       })
       const data = await res.json()
@@ -890,17 +890,17 @@ export default function DashboardPage() {
 
         const cardsPromise      = apiGetCards(bid)
         const teamPromise       = apiGetTeam(bid)
-        const analyticsPromise  = fetch(`http://localhost:5002/api/businesses/${bid}/analytics`, { headers: authHeaders }).then(r => r.json())
-        const detailedPromise   = fetch(`http://localhost:5002/api/businesses/${bid}/analytics/detailed?range=30d`, { headers: authHeaders }).then(r => r.json())
-        const customersPromise  = fetch(`http://localhost:5002/api/businesses/${bid}/customers?page=1&limit=50&sortBy=progress&sortDir=desc`, { headers: authHeaders }).then(r => r.json())
-        const notifPromise      = fetch(`http://localhost:5002/api/businesses/${bid}/notifications`, { headers: authHeaders }).then(r => r.json())
+        const analyticsPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/analytics`, { headers: authHeaders }).then(r => r.json())
+        const detailedPromise   = fetch(`${BASE_URL}/api/businesses/${bid}/analytics/detailed?range=30d`, { headers: authHeaders }).then(r => r.json())
+        const customersPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/customers?page=1&limit=50&sortBy=progress&sortDir=desc`, { headers: authHeaders }).then(r => r.json())
+        const notifPromise      = fetch(`${BASE_URL}/api/businesses/${bid}/notifications`, { headers: authHeaders }).then(r => r.json())
         // rewards-stats needs the first card's type, so it chains off cardsPromise instead of
         // blocking behind team/analytics/customers/notifications like it used to
         const rewardsPromise    = cardsPromise.then(cardsData => {
           const firstCard = (cardsData as any[])[0]
           if (!firstCard) return null
           return fetch(
-            `http://localhost:5002/api/businesses/${bid}/rewards-stats?cardType=${firstCard.type}&stampsRequired=${firstCard.stampsRequired || 8}`,
+            `${BASE_URL}/api/businesses/${bid}/rewards-stats?cardType=${firstCard.type}&stampsRequired=${firstCard.stampsRequired || 8}`,
             { headers: authHeaders }
           ).then(r => r.json())
         })
@@ -1018,7 +1018,7 @@ export default function DashboardPage() {
       const params = new URLSearchParams({ page: String(page), limit: '50', sortBy: sortKey, sortDir })
       if (search) params.set('search', search)
       if (status !== 'all') params.set('status', status)
-      const res = await fetch(`http://localhost:5002/api/businesses/${businessId}/customers?${params.toString()}`, {
+      const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/customers?${params.toString()}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + localStorage.getItem('stampa_token'),
