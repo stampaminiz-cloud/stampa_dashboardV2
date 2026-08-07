@@ -374,10 +374,10 @@ function DraggableFields({ fields, onReorder, onToggle }: {
 }
 
 // ─── Card Editor ──────────────────────────────────────────────────────────────
-function CardEditor({ card: init, formFields, plan, businessId, onSaved, onBack }: {
-  card: CardDesign; formFields: FormField[]; plan: string; businessId?: string | null; onSaved?: () => void; onBack: () => void
+function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
+  card: CardDesign; formFields: FormField[]; businessId?: string | null; onSaved?: () => void; onBack: () => void
 }) {
-  const { can } = usePlan()
+  const { can, plan } = usePlan()
   const t = useLang()
   const [card, setCard] = useState<CardDesign>(init)
   const [fields, setFields] = useState<FormField[]>([...formFields].sort((a, b) => a.order - b.order))
@@ -848,14 +848,14 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
 }
 
 // ─── Card manager ─────────────────────────────────────────────────────────────
-function CardManager({ cards: init, planMaxCards, planActiveCards, plan, onEdit }: {
-  cards: CardDesign[]; planMaxCards: number; planActiveCards: number; plan: string; onEdit: (card: CardDesign) => void
+function CardManager({ cards: init, onEdit }: {
+  cards: CardDesign[]; onEdit: (card: CardDesign) => void
 }) {
   const [cards, setCards]         = useState<CardDesign[]>(init)
-  const [logos]                   = useState<Record<string, LogoState>>({})
   const [showModal, setModal]     = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
-  const { can }               = usePlan()
+  const { can, plan, limit }  = usePlan()
+  const planMaxCards          = limit('maxActiveCards')
   const t                     = useLang()
 
   // Sync when parent passes new real cards
@@ -902,7 +902,7 @@ function CardManager({ cards: init, planMaxCards, planActiveCards, plan, onEdit 
       <div className="dt-cards-grid">
         {cards.map((card: CardDesign) => (
           <div key={card.id} className="dt-card-tile">
-            <MiniPass design={card} logos={logos[card.id] || { businessLogo: null, earnedIcon: null, emptyIcon: null }} />
+            <MiniPass design={card} logos={{ businessLogo: card.logoUrl || null, earnedIcon: card.earnedIcon || null, emptyIcon: card.emptyIcon || null }} />
             <div className="dt-tile-info">
               <div className="dt-tile-name-row">
                 <span className="dt-tile-name">{card.name}</span>
@@ -1273,8 +1273,8 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
       `}</style>
 
       {editingCard
-        ? <CardEditor card={editingCard} formFields={data.formFields} plan={effectiveData.business.plan} businessId={businessId} onSaved={onSaved} onBack={() => setEditingCard(null)} />
-        : <CardManager cards={effectiveData.cardDesigns} planMaxCards={effectiveData.business.planMaxCards} planActiveCards={effectiveData.business.planActiveCards} plan={effectiveData.business.plan} onEdit={setEditingCard} />
+        ? <CardEditor card={editingCard} formFields={data.formFields} businessId={businessId} onSaved={onSaved} onBack={() => setEditingCard(null)} />
+        : <CardManager cards={effectiveData.cardDesigns} onEdit={setEditingCard} />
       }
     </>
   )
