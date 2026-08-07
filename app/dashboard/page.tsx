@@ -601,26 +601,41 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 function mapCustomersForTab(rawCustomers: any[], activeCard: any) {
-  const total = activeCard?.stampsRequired || 8
-  return rawCustomers.map(c => ({
-    id: c.id,
-    name: c.name,
-    email: c.email,
-    progress: c.stamps ?? 0,
-    total,
-    dynamicField: c.favoriteDrink || (c.formResponses?.[0]?.value ?? '—'),
-    status: c.status,
-    joined: c.joinedAt,
-    dob: c.birthdate || '—',
-    preference: c.favoriteFood
-      ? `${c.favoriteFood === 'sweet' ? 'Dulce' : 'Salado'}${c.timeVisit ? ' · ' + (c.timeVisit === 'morning' ? 'Mañana' : 'Tarde') : ''}`
-      : '—',
-    lastActivity: formatRelativeTime(c.lastUpdate),
-    // No tenemos todavía un historial de canjes por cliente en el modelo de
-    // datos (solo el conteo agregado del negocio en rewards-stats) — queda
-    // en 0 hasta que se agregue esa colección/campo.
-    totalRedeemed: 0,
-  }))
+  const fallbackTotal = activeCard?.stampsRequired || 8
+  return rawCustomers.map(c => {
+    const cardType = c.cardType || activeCard?.type || 'stamp'
+    // Progreso por tipo de tarjeta — cada cliente se calcula con SU propia
+    // tarjeta (c.cardStampsRequired viene poblado desde el backend), no con
+    // una sola tarjeta elegida arbitrariamente para toda la tabla.
+    const progress = cardType === 'points' ? (c.pointsBalance ?? 0)
+      : cardType === 'membership' ? 0
+      : (c.stamps ?? 0)
+    const total = cardType === 'points' ? 0
+      : cardType === 'membership' ? 0
+      : (c.cardStampsRequired || fallbackTotal)
+    return {
+      id: c.id,
+      name: c.name,
+      email: c.email,
+      cardType,
+      cardName: c.cardName || activeCard?.name || null,
+      membershipTier: c.membershipTier || null,
+      progress,
+      total,
+      dynamicField: c.favoriteDrink || (c.formResponses?.[0]?.value ?? '—'),
+      status: c.status,
+      joined: c.joinedAt,
+      dob: c.birthdate || '—',
+      preference: c.favoriteFood
+        ? `${c.favoriteFood === 'sweet' ? 'Dulce' : 'Salado'}${c.timeVisit ? ' · ' + (c.timeVisit === 'morning' ? 'Mañana' : 'Tarde') : ''}`
+        : '—',
+      lastActivity: formatRelativeTime(c.lastUpdate),
+      // No tenemos todavía un historial de canjes por cliente en el modelo de
+      // datos (solo el conteo agregado del negocio en rewards-stats) — queda
+      // en 0 hasta que se agregue esa colección/campo.
+      totalRedeemed: 0,
+    }
+  })
 }
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
@@ -862,6 +877,7 @@ export default function DashboardPage() {
   const [customersTotal, setCustomersTotal]         = useState(0)
   const [customersSearch, setCustomersSearch]       = useState('')
   const [customersStatus, setCustomersStatus]       = useState<'all' | 'active' | 'inactive'>('all')
+  const [customersCardFilter, setCustomersCardFilter] = useState<string>('all')
   const [customersSortKey, setCustomersSortKey]     = useState<'name' | 'progress' | 'status' | 'lastActivity'>('progress')
   const [customersSortDir, setCustomersSortDir]     = useState<'asc' | 'desc'>('desc')
   const [customersLoading, setCustomersLoading]     = useState(false)
@@ -894,15 +910,30 @@ export default function DashboardPage() {
         const detailedPromise   = fetch(`${BASE_URL}/api/businesses/${bid}/analytics/detailed?range=30d`, { headers: authHeaders }).then(r => r.json())
         const customersPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/customers?page=1&limit=50&sortBy=progress&sortDir=desc`, { headers: authHeaders }).then(r => r.json())
         const notifPromise      = fetch(`${BASE_URL}/api/businesses/${bid}/notifications`, { headers: authHeaders }).then(r => r.json())
-        // rewards-stats needs the first card's type, so it chains off cardsPromise instead of
-        // blocking behind team/analytics/customers/notifications like it used to
-        const rewardsPromise    = cardsPromise.then(cardsData => {
-          const firstCard = (cardsData as any[])[0]
-          if (!firstCard) return null
-          return fetch(
-            `${BASE_URL}/api/businesses/${bid}/rewards-stats?cardType=${firstCard.type}&stampsRequired=${firstCard.stampsRequired || 8}`,
-            { headers: authHeaders }
-          ).then(r => r.json())
+        // "Near prize" (para Notifications) tiene sentido sumado entre TODAS
+        // las tarjetas activas de tipo sello — un negocio puede tener más de
+        // una, y antes solo se miraba la primera tarjeta del negocio (que ni
+        // siquiera tenía por qué ser de sellos). Points/membership no tienen
+        // un concepto lineal de "cerca de completar", así que quedan afuera.
+        const rewardsPromise    = cardsPromise.then(async (cardsData) => {
+          const cards = cardsData as any[]
+          const activeStampCards = cards.filter(c => c.isActive && c.type === 'stamp')
+          if (activeStampCards.length === 0) return null
+
+          const results = await Promise.all(activeStampCards.map(c =>
+            fetch(
+              `${BASE_URL}/api/businesses/${bid}/rewards-stats?cardType=stamp&stampsRequired=${c.stampsRequired || 8}&cardId=${c._id}`,
+              { headers: authHeaders }
+            ).then(r => r.json())
+          ))
+
+          // La primera tarjeta aporta el resto de las métricas de Rewards
+          // (topPrize, distribution, etc.); nearPrize se pisa con la suma
+          // de todas las tarjetas de sellos activas.
+          return {
+            ...results[0],
+            nearPrize: results.reduce((sum, r) => sum + (r?.nearPrize || 0), 0),
+          }
         })
 
         const [teamRes, cardsRes, analyticsRes, customersRes, notifRes, rewardsRes, detailedRes] = await Promise.allSettled([
@@ -995,11 +1026,12 @@ export default function DashboardPage() {
     status: 'all' | 'active' | 'inactive',
     sortKey: 'name' | 'progress' | 'status' | 'lastActivity' = customersSortKey,
     sortDir: 'asc' | 'desc' = customersSortDir,
+    cardFilter: string = customersCardFilter,
     opts: { bypassCache?: boolean } = {}
   ) {
     if (!businessId) return
 
-    const cacheKey = `${page}|${search}|${status}|${sortKey}|${sortDir}`
+    const cacheKey = `${page}|${search}|${status}|${sortKey}|${sortDir}|${cardFilter}`
     const cached = customersCacheRef.current.get(cacheKey)
     if (cached && !opts.bypassCache) {
       // Ya lo pedimos antes con estos mismos filtros — mostralo al toque,
@@ -1018,6 +1050,7 @@ export default function DashboardPage() {
       const params = new URLSearchParams({ page: String(page), limit: '50', sortBy: sortKey, sortDir })
       if (search) params.set('search', search)
       if (status !== 'all') params.set('status', status)
+      if (cardFilter !== 'all') params.set('cardId', cardFilter)
       const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/customers?${params.toString()}`, {
         headers: {
           'Content-Type': 'application/json',
@@ -1065,6 +1098,8 @@ export default function DashboardPage() {
         ? <CustomersTab
             customers={mapCustomersForTab(customers, cards.find((c: any) => c.isActive) || cards[0])}
             dynamicFieldLabel="Bebida favorita"
+            cards={cards.filter((c: any) => c.isActive)}
+            cardFilter={customersCardFilter}
             page={customersPage}
             totalPages={customersTotalPages}
             total={customersTotal}
@@ -1080,7 +1115,8 @@ export default function DashboardPage() {
             onStatusFilterChange={(s: any) => { setCustomersStatus(s); loadCustomers(1, customersSearch, s) }}
             onSortChange={(key: any, dir: any) => loadCustomers(1, customersSearch, customersStatus, key, dir)}
             onPageChange={(p: number) => loadCustomers(p, customersSearch, customersStatus)}
-            onRefresh={() => { customersCacheRef.current.clear(); loadCustomers(customersPage, customersSearch, customersStatus, customersSortKey, customersSortDir, { bypassCache: true }) }}
+            onCardFilterChange={(cid: string) => { setCustomersCardFilter(cid); loadCustomers(1, customersSearch, customersStatus, customersSortKey, customersSortDir, cid) }}
+            onRefresh={() => { customersCacheRef.current.clear(); loadCustomers(customersPage, customersSearch, customersStatus, customersSortKey, customersSortDir, customersCardFilter, { bypassCache: true }) }}
           />
         : <div className="db-content"><EmptyState
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>}
@@ -1099,7 +1135,7 @@ export default function DashboardPage() {
             onCta={() => { setActive('form'); localStorage.setItem('stampa_active_tab', 'form') }}
           /></div>
       case 'rewards': return analyticsData?.total > 0
-        ? <RewardsTab data={mockData} rewardsData={rewardsData} cards={cards} businessId={businessId} />
+        ? <RewardsTab data={mockData} cards={cards} businessId={businessId} />
         : <div className="db-content"><EmptyState
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/></svg>}
             title="Los premios aparecen cuando hay canjes"

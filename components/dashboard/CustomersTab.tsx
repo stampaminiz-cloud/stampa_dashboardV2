@@ -5,6 +5,7 @@ import { BASE_URL } from '@/lib/api'
 
 interface Customer {
   id: string; name: string; email: string; progress: number; total: number
+  cardType: 'stamp' | 'points' | 'membership'; cardName: string | null; membershipTier: string | null
   dynamicField: string; status: 'active' | 'inactive'; joined: string
   dob: string; preference: string; lastActivity: string; totalRedeemed: number
 }
@@ -12,6 +13,11 @@ interface Customer {
 interface CustomersTabProps {
   customers: Customer[]
   dynamicFieldLabel?: string
+  // Tarjetas activas del negocio — para el filtro opcional por tarjeta
+  // cuando hay más de una (ver auditoría multi-tarjeta).
+  cards?: Array<{ id: string; name: string; type: string }>
+  cardFilter?: string
+  onCardFilterChange?: (cardId: string) => void
   // Server-side pagination + filtering — el backend ya soporta page/limit/
   // search/status, así que en vez de traer todo y filtrar en memoria (que
   // rompía apenas había más de una página de resultados), el padre maneja
@@ -48,6 +54,7 @@ function avatarColor(name: string) {
 }
 
 function isNearPrize(c: Customer) {
+  if (c.cardType !== 'stamp') return false
   return c.total - c.progress <= 2 && c.progress < c.total
 }
 
@@ -148,6 +155,7 @@ function CustomerPanel({ customer, dynamicFieldLabel, onClose, onDelete }: {
 
 export function CustomersTab({
   customers, dynamicFieldLabel = 'Premio',
+  cards = [], cardFilter = 'all', onCardFilterChange,
   page, totalPages, total, activeCount, inactiveCount, nearCount,
   search, statusFilter, sortKey, sortDir, loading,
   onSearchChange, onStatusFilterChange, onSortChange, onPageChange, onRefresh,
@@ -236,6 +244,10 @@ export function CustomersTab({
         .ct-status-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600;display:inline-block;}
         .ct-status-badge--active{background:rgba(91,140,90,.12);color:#5B8C5A;}
         .ct-status-badge--inactive{background:rgba(43,38,32,.07);color:rgba(43,38,32,.5);}
+        .ct-card-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600;display:inline-block;}
+        .ct-card-badge--stamp{background:rgba(199,93,58,.1);color:#C75D3A;}
+        .ct-card-badge--points{background:rgba(15,110,86,.1);color:#0F6E56;}
+        .ct-card-badge--membership{background:rgba(83,74,183,.1);color:#534AB7;}
         .ct-near-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600;background:rgba(212,162,76,.15);color:#9C7530;}
         .ct-activity{font-size:11.5px;color:rgba(43,38,32,.55);}
         .ct-activity--recent{color:#5B8C5A;font-weight:600;}
@@ -304,6 +316,15 @@ export function CustomersTab({
               <button className={`ct-pill${statusFilter === 'active' ? ' ct-pill--on' : ''}`} onClick={() => onStatusFilterChange('active')}>{t('ct_active')} ({activeCount})</button>
               <button className={`ct-pill${statusFilter === 'inactive' ? ' ct-pill--on' : ''}`} onClick={() => onStatusFilterChange('inactive')}>{t('ct_inactive')} ({inactiveCount})</button>
               {nearCount > 0 && <button className="ct-pill" onClick={() => { onStatusFilterChange('all'); onSortChange('progress', 'desc') }}>{t('ct_near_prize')} ({nearCount})</button>}
+              {cards.length > 1 && (
+                <>
+                  <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(43,38,32,.1)', margin: '0 2px' }} />
+                  <button className={`ct-pill${cardFilter === 'all' ? ' ct-pill--on' : ''}`} onClick={() => onCardFilterChange?.('all')}>Todas las tarjetas</button>
+                  {cards.map(c => (
+                    <button key={c.id} className={`ct-pill${cardFilter === c.id ? ' ct-pill--on' : ''}`} onClick={() => onCardFilterChange?.(c.id)}>{c.name}</button>
+                  ))}
+                </>
+              )}
             </div>
           </div>
 
@@ -316,6 +337,7 @@ export function CustomersTab({
                   <thead>
                     <tr>
                       <th className={sortKey === 'name' ? 'th-active' : ''} onClick={() => handleSort('name')}>{t('ct_col_customer')}<SortIcon active={sortKey === 'name'} dir={sortDir} /></th>
+                      <th>{t('ct_col_card')}</th>
                       <th className={sortKey === 'progress' ? 'th-active' : ''} onClick={() => handleSort('progress')}>{t('ct_col_progress')}<SortIcon active={sortKey === 'progress'} dir={sortDir} /></th>
                       <th className="th-dynamic">{dynamicFieldLabel}</th>
                       <th className={sortKey === 'status' ? 'th-active' : ''} onClick={() => handleSort('status')}>{t('ct_col_status')}<SortIcon active={sortKey === 'status'} dir={sortDir} /></th>
@@ -340,10 +362,21 @@ export function CustomersTab({
                             </div>
                           </td>
                           <td>
-                            <div className="ct-prog-cell">
-                              <span className="ct-prog-txt">{c.progress}/{c.total}</span>
-                              <div className="ct-prog-mini">{dots.map((filled: boolean, i: number) => <div key={i} className={`ct-prog-dot${filled ? ' ct-prog-dot--filled' : ''}`} />)}</div>
-                            </div>
+                            <span className={`ct-card-badge ct-card-badge--${c.cardType}`}>
+                              {c.cardType === 'stamp' ? 'Sellos' : c.cardType === 'points' ? 'Puntos' : 'Membresía'}
+                            </span>
+                          </td>
+                          <td>
+                            {c.cardType === 'stamp' ? (
+                              <div className="ct-prog-cell">
+                                <span className="ct-prog-txt">{c.progress}/{c.total}</span>
+                                <div className="ct-prog-mini">{dots.map((filled: boolean, i: number) => <div key={i} className={`ct-prog-dot${filled ? ' ct-prog-dot--filled' : ''}`} />)}</div>
+                              </div>
+                            ) : c.cardType === 'points' ? (
+                              <span className="ct-prog-txt">{c.progress} pts</span>
+                            ) : (
+                              <span className="ct-prog-txt">Nivel {c.membershipTier || '—'}</span>
+                            )}
                           </td>
                           <td><span className="ct-dynamic">{c.dynamicField}</span></td>
                           <td>
