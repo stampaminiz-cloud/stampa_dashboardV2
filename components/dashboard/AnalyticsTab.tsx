@@ -7,7 +7,9 @@ import { BASE_URL } from '@/lib/api'
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VisitDay    { day: string; stamps: number }
 interface HeatRow     { block: string; L: number; M: number; Mi: number; J: number; V: number; S: number; D: number }
-interface TopCustomer { name: string; visits: number }
+interface TopCustomer { name: string; visits: number; lastVisit: string; memberSince: string; cardName: string; progress: string }
+interface LoyalCustomer { name: string; totalVisits: number; lastVisit: string }
+interface Redeemer { name: string; redemptions: number }
 interface FunnelStage { stage: string; value: number }
 interface CompItem    { label: string; current: number; previous: number; unit: string }
 interface FreqBucket  { label: string; count: number }
@@ -114,7 +116,7 @@ function Heatmap({ data }: { data: HeatRow[] }) {
           <div key={row.block} className="an-hgrid">
             <div className="an-hbl">{row.block}</div>
             {vals.map((v: number, i: number) => (
-              <div key={i} className="an-hcell" style={{ background: `rgba(199,93,58,${op(v)})` }} />
+              <div key={i} className="an-hcell" title={`${row.block === 'Morning' ? 'Mañana' : row.block === 'Afternoon' ? 'Tarde' : 'Noche'}, ${days[i]}: ${v} visita${v === 1 ? '' : 's'}`} style={{ background: `rgba(199,93,58,${op(v)})` }} />
             ))}
           </div>
         )
@@ -211,6 +213,8 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
     visitsOverTime: VisitDay[]
     heatmap: HeatRow[]
     topCustomers: TopCustomer[]
+    mostLoyal: LoyalCustomer[]
+    topRedeemers: Redeemer[]
     funnel: FunnelStage[]
     comparison: CompItem[]
     frequency: { avgDays: number; trend: number; distribution: FreqBucket[] }
@@ -238,6 +242,8 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
   const visitsOverTime         = detailed?.visitsOverTime ?? []
   const heatmapData            = detailed?.heatmap ?? []
   const topCustomers           = detailed?.topCustomers ?? []
+  const mostLoyal              = detailed?.mostLoyal ?? []
+  const topRedeemers           = detailed?.topRedeemers ?? []
   const funnelData             = detailed?.funnel ?? []
   const comparisonData         = detailed?.comparison ?? []
   const frequency              = detailed?.frequency ?? { avgDays: 0, trend: 0, distribution: [] }
@@ -496,7 +502,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
         <div className="an-2col">
           <div className="an-card">
             <div className="an-ctitle">Horarios pico</div>
-            <div className="an-csub">Visitas por día y bloque horario</div>
+            <div className="an-csub">Cada celda es un bloque de 4-8hs en un día de la semana — más oscuro = más visitas. Pasá el mouse por una celda para ver el número exacto.</div>
             {heatmapData.length > 0
               ? <Heatmap data={heatmapData} />
               : <div className="an-empty-note">Todavía no hay suficientes visitas registradas en este rango.</div>
@@ -510,8 +516,8 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
                   <TierDistribution />
                 </>
               : <>
-                  <div className="an-ctitle">Top clientes</div>
-                  <div className="an-csub">Por cantidad de {cfg.progressUnit}</div>
+                  <div className="an-ctitle">Top clientes por actividad</div>
+                  <div className="an-csub">Por cantidad de visitas en este período — cruza todas tus tarjetas</div>
                   {topCustomers.length > 0
                     ? topCustomers.map((c: TopCustomer, i: number) => {
                         const max = topCustomers[0]?.visits || 1
@@ -521,9 +527,12 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
                             <div style={{ flex: 1 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span className="an-tn">{c.name}</span>
-                                <span className="an-tv">{c.visits}</span>
+                                <span className="an-tv">{c.visits} visitas</span>
                               </div>
                               <div className="an-tbar"><div className="an-tfill" style={{ width: `${(c.visits / max) * 100}%` }} /></div>
+                              <div style={{ fontSize: 10.5, color: 'rgba(43,38,32,.45)', marginTop: 3 }}>
+                                {c.cardName} · {c.progress} · última visita {c.lastVisit} · cliente desde {c.memberSince}
+                              </div>
                             </div>
                           </div>
                         )
@@ -531,6 +540,55 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
                     : <div className="an-empty-note">Todavía no hay suficientes visitas registradas.</div>
                   }
                 </>
+            }
+          </div>
+        </div>
+
+        {/* ── 4b. Fidelidad cross-tarjeta ── */}
+        <div className="an-2col" style={{ marginTop: 14 }}>
+          <div className="an-card">
+            <div className="an-ctitle">Clientes más fieles</div>
+            <div className="an-csub">Por visitas totales históricas — todos los tipos de tarjeta juntos, no solo este período</div>
+            {mostLoyal.length > 0
+              ? mostLoyal.map((c, i: number) => {
+                  const max = mostLoyal[0]?.totalVisits || 1
+                  return (
+                    <div key={c.name} className="an-tr">
+                      <div className={`an-trk${i === 0 ? ' an-trk--1' : ''}`}>{i + 1}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span className="an-tn">{c.name}</span>
+                          <span className="an-tv">{c.totalVisits} visitas</span>
+                        </div>
+                        <div className="an-tbar"><div className="an-tfill" style={{ width: `${(c.totalVisits / max) * 100}%` }} /></div>
+                        <div style={{ fontSize: 10.5, color: 'rgba(43,38,32,.45)', marginTop: 3 }}>última visita {c.lastVisit}</div>
+                      </div>
+                    </div>
+                  )
+                })
+              : <div className="an-empty-note">Todavía no hay suficiente historial.</div>
+            }
+          </div>
+          <div className="an-card">
+            <div className="an-ctitle">Top clientes por canjes</div>
+            <div className="an-csub">Cuántas veces canjearon un premio — todas las tarjetas</div>
+            {topRedeemers.length > 0
+              ? topRedeemers.map((c, i: number) => {
+                  const max = topRedeemers[0]?.redemptions || 1
+                  return (
+                    <div key={c.name} className="an-tr">
+                      <div className={`an-trk${i === 0 ? ' an-trk--1' : ''}`}>{i + 1}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span className="an-tn">{c.name}</span>
+                          <span className="an-tv">{c.redemptions} canjes</span>
+                        </div>
+                        <div className="an-tbar"><div className="an-tfill" style={{ width: `${(c.redemptions / max) * 100}%` }} /></div>
+                      </div>
+                    </div>
+                  )
+                })
+              : <div className="an-empty-note">Todavía no hay canjes registrados.</div>
             }
           </div>
         </div>

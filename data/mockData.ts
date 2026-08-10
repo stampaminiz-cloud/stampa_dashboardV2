@@ -58,10 +58,10 @@ export const mockData = {
     { block: 'Night',     L:1, M:2, Mi:2, J:4, V:8,  S:9,  D:2 },
   ],
   topCustomers: [
-    { name: 'Maria Gomez',   visits: 42 },
-    { name: 'Carlos Rivera', visits: 38 },
-    { name: 'Ana Torres',    visits: 31 },
-    { name: 'Miguel Santos', visits: 27 },
+    { name: 'Maria Gomez',   visits: 42, lastVisit: '—', memberSince: '—', cardName: '—', progress: '—' },
+    { name: 'Carlos Rivera', visits: 38, lastVisit: '—', memberSince: '—', cardName: '—', progress: '—' },
+    { name: 'Ana Torres',    visits: 31, lastVisit: '—', memberSince: '—', cardName: '—', progress: '—' },
+    { name: 'Miguel Santos', visits: 27, lastVisit: '—', memberSince: '—', cardName: '—', progress: '—' },
   ],
   funnel: [
     { stage: 'Register',       value: 320 },
