@@ -306,32 +306,38 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
   }
   const chartCfg = CHART_LABELS[primaryCardType] || CHART_LABELS.stamp
 
-  const [granularity, setGranularity] = useState<'weekly' | 'monthly'>('weekly')
+  const [granularity, setGranularity] = useState<'7d' | '30d' | '90d'>('7d')
   const [hoveredBar, setHoveredBar] = useState<string | null>(null)
-  const [monthlyVisits, setMonthlyVisits] = useState<any[] | null>(null)
+  const [rangeVisits, setRangeVisits] = useState<any[] | null>(null)
   const [chartLoading, setChartLoading] = useState(false)
 
-  async function switchGranularity(g: 'weekly' | 'monthly') {
-    if (g === granularity) return
+  async function loadRange(g: '7d' | '30d' | '90d') {
     setGranularity(g)
-    if (g === 'weekly') return // ya lo tenemos en analyticsData, no hace falta refetch
     const businessId = localStorage.getItem('stampa_business_id')
     if (!businessId) return
     setChartLoading(true)
     try {
-      const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/analytics?granularity=monthly`, {
+      // Reusa /analytics/detailed, que ya tiene el bucketing diario/semanal
+      // armado para Analytics — acá Overview solo pide el corto plazo (7/30/90
+      // días); si alguien quiere mirar más atrás en el tiempo, ese es
+      // justamente el trabajo del tab Analytics, no de Overview.
+      const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/analytics/detailed?range=${g}`, {
         headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
       })
       const data = await res.json()
-      setMonthlyVisits(data.visitsOverTime || [])
+      setRangeVisits((data.visitsOverTime || []).map((v: any) => ({ label: v.day, visits: v.stamps })))
     } catch (err) {
-      console.error('Error loading monthly chart:', err)
+      console.error('Error loading chart:', err)
     } finally {
       setChartLoading(false)
     }
   }
+  useEffect(() => { loadRange('7d') }, [])
 
-  const weeklyVisits = granularity === 'monthly' ? monthlyVisits : (analyticsData?.weeklyVisits ?? null)
+  const RANGE_SUBTITLES: Record<string, string> = {
+    '7d': 'Últimos 7 días', '30d': 'Últimos 30 días', '90d': 'Últimos 90 días',
+  }
+  const weeklyVisits = rangeVisits
   const chartMax = weeklyVisits ? Math.max(...weeklyVisits.map((w: any) => w.visits), 1) : 5000
   // 4 líneas de referencia del eje Y, redondeadas a algo legible
   const axisSteps = [1, 0.75, 0.5, 0.25, 0].map(f => Math.round(chartMax * f))
@@ -376,11 +382,12 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
           <div className="ov-card-title-row">
             <div>
               <div className="ov-card-title">{chartCfg.title}</div>
-              <div className="ov-card-sub">{granularity === 'weekly' ? 'Últimas 8 semanas' : 'Últimos 8 meses'}</div>
+              <div className="ov-card-sub">{RANGE_SUBTITLES[granularity]}</div>
             </div>
             <div className="ov-granularity-toggle">
-              <button className={`ov-gran-btn${granularity === 'weekly' ? ' ov-gran-btn--on' : ''}`} onClick={() => switchGranularity('weekly')}>8 semanas</button>
-              <button className={`ov-gran-btn${granularity === 'monthly' ? ' ov-gran-btn--on' : ''}`} onClick={() => switchGranularity('monthly')}>8 meses</button>
+              <button className={`ov-gran-btn${granularity === '7d' ? ' ov-gran-btn--on' : ''}`} onClick={() => loadRange('7d')}>7 días</button>
+              <button className={`ov-gran-btn${granularity === '30d' ? ' ov-gran-btn--on' : ''}`} onClick={() => loadRange('30d')}>30 días</button>
+              <button className={`ov-gran-btn${granularity === '90d' ? ' ov-gran-btn--on' : ''}`} onClick={() => loadRange('90d')}>90 días</button>
             </div>
           </div>
           {chartLoading
@@ -447,24 +454,26 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
       <div className="ov-three-col">
         {/* Top rewards (stamp/points) */}
         {(hasStamp || hasPoints) && (
-          <div className="db-card">
+          <div className="db-card ov-card--fill">
             <div className="ov-card-title-row">
               <span className="ov-card-title">{t('top_rewards' as any)}</span>
             </div>
             {rewardsData?.topPrizes?.length > 0
-              ? rewardsData.topPrizes.map((r: any, i: number) => {
-                  const max = rewardsData.topPrizes[0]?.count || 1
-                  return (
-                    <div key={r.prize} className="ov-reward-row">
-                      <span className={`ov-reward-rank${i === 0 ? ' ov-reward-rank--first' : ''}`}>{i + 1}</span>
-                      <div className="ov-reward-info">
-                        <div className="ov-reward-name">{r.prize}</div>
-                        <div className="ov-reward-bar"><div className="ov-reward-fill" style={{ width: `${(r.count / max) * 100}%` }} /></div>
+              ? <div className="ov-reward-list">
+                  {rewardsData.topPrizes.map((r: any, i: number) => {
+                    const max = rewardsData.topPrizes[0]?.count || 1
+                    return (
+                      <div key={r.prize} className="ov-reward-row">
+                        <span className={`ov-reward-rank${i === 0 ? ' ov-reward-rank--first' : ''}`}>{i + 1}</span>
+                        <div className="ov-reward-info">
+                          <div className="ov-reward-name">{r.prize}</div>
+                          <div className="ov-reward-bar"><div className="ov-reward-fill" style={{ width: `${(r.count / max) * 100}%` }} /></div>
+                        </div>
+                        <span className="ov-reward-count">{r.count}</span>
                       </div>
-                      <span className="ov-reward-count">{r.count}</span>
-                    </div>
-                  )
-                })
+                    )
+                  })}
+                </div>
               : <div className="ov-empty-note">Todavía no hay premios canjeados.</div>
             }
           </div>
@@ -510,13 +519,26 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
         </div>
 
         {/* Insights */}
-        <div className="db-card">
+        <div className="db-card ov-card--fill">
           <div className="ov-card-title">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C75D3A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: 'middle' }}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
             {t('smart_insights' as any)}
           </div>
           {(() => {
             const insights: { type: string; text: string }[] = []
+            // El insight más accionable primero: cuántos clientes están a
+            // 1-2 sellos de completar su premio, algo que el dueño puede
+            // resolver hoy mismo mandando una notificación. Chequeamos
+            // hasStamp explícitamente — si el negocio no tiene ninguna
+            // tarjeta de sellos activa (por ejemplo, solo membresía o
+            // puntos), este insight no aplica y no debería aparecer, sin
+            // importar qué traiga rewardsData.
+            if (hasStamp && nearPrize > 0) {
+              insights.push({
+                type: 'positive',
+                text: `${nearPrize} cliente${nearPrize === 1 ? ' está' : 's están'} a 1-2 sellos de completar su premio — es un buen momento para mandarles una notificación.`,
+              })
+            }
             if (newDelta !== 0) {
               insights.push({
                 type: newDelta >= 0 ? 'positive' : 'warning',
@@ -525,7 +547,7 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
                   : `Los nuevos registros bajaron ${Math.abs(newDelta)}% este mes.`,
               })
             }
-            if (rewardsData?.topPrize && rewardsData.topPrize !== '—') {
+            if (hasStamp && rewardsData?.topPrize && rewardsData.topPrize !== '—') {
               insights.push({ type: 'info', text: `${rewardsData.topPrize} es tu premio más popular — considerá tenerlo bien abastecido.` })
             }
             const vot = detailedAnalytics?.visitsOverTime || []
@@ -545,7 +567,7 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
               }
             }
             return insights.length > 0
-              ? insights.map((ins, i) => <div key={i} className={`ov-insight ov-insight--${ins.type}`}>{ins.text}</div>)
+              ? <div className="ov-insight-list">{insights.map((ins, i) => <div key={i} className={`ov-insight ov-insight--${ins.type}`}>{ins.text}</div>)}</div>
               : <div className="ov-empty-note">Todavía no hay suficientes datos para generar insights.</div>
           })()}
         </div>
@@ -768,7 +790,7 @@ const CSS = `
   .ov-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;color:#2B2620;margin-bottom:2px;}
   .ov-card-sub{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:12px;}
   .ov-card-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-  .ov-granularity-toggle{display:flex;gap:6px;}
+  .ov-granularity-toggle{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:200px;}
   .ov-gran-btn{font-size:11px;padding:5px 11px;border-radius:20px;border:1.5px solid rgba(43,38,32,.15);background:none;color:rgba(43,38,32,.5);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap;}
   .ov-gran-btn--on{border-color:#C75D3A;background:rgba(199,93,58,.08);color:#C75D3A;font-weight:600;}
   .ov-chart-loading{font-size:12px;color:rgba(43,38,32,.4);padding:32px 0;text-align:center;}
@@ -793,6 +815,9 @@ const CSS = `
   .ov-adv-val{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;margin-bottom:4px;}
   .ov-adv-label{font-size:12px;color:rgba(43,38,32,.5);}
   .ov-three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .ov-card--fill{display:flex;flex-direction:column;}
+  .ov-reward-list{flex:1;display:flex;flex-direction:column;justify-content:center;gap:6px;}
+  .ov-insight-list{flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px;}
   .ov-reward-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
   .ov-reward-row:last-child{margin-bottom:0;}
   .ov-reward-rank{width:22px;height:22px;border-radius:6px;background:rgba(43,38,32,.06);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(43,38,32,.4);flex-shrink:0;}
@@ -822,8 +847,7 @@ const CSS = `
   .ov-activity-time{font-size:10px;color:rgba(43,38,32,.35);flex-shrink:0;}
   .ov-live{display:flex;align-items:center;gap:5px;font-size:11px;color:#5B8C5A;}
   .ov-live-dot{width:7px;height:7px;border-radius:50%;background:#5B8C5A;animation:pulse 1.5s infinite;}
-  .ov-insight{font-size:12px;color:rgba(43,38,32,.7);line-height:1.5;padding:10px 12px;border-radius:9px;background:rgba(43,38,32,.03);margin-bottom:8px;}
-  .ov-insight:last-child{margin-bottom:0;}
+  .ov-insight{font-size:12px;color:rgba(43,38,32,.7);line-height:1.5;padding:12px 14px;border-radius:9px;background:rgba(43,38,32,.03);}
   .ov-insight--positive{border-left:2.5px solid #5B8C5A;}
   .ov-insight--warning{border-left:2.5px solid #C75D3A;}
   .ov-insight--info{border-left:2.5px solid #185FA5;}
