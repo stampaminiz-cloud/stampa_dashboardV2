@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
-import { apiUpdateCard, apiUpdateField } from '@/lib/api'
+import { apiCreateCard, apiUpdateCard, apiUpdateField } from '@/lib/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CardType = "stamp" | "points" | "membership"
@@ -711,7 +711,7 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
 // ─── New card modal ───────────────────────────────────────────────────────────
 function NewCardModal({ onClose, onAdd, existingCount }: {
   onClose: () => void
-  onAdd:   (card: CardDesign) => void
+  onAdd:   (card: Omit<CardDesign, 'id'>) => Promise<string | null>
   existingCount: number
 }) {
   const [step, setStep]         = useState<1 | 2>(1)
@@ -720,6 +720,8 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
   const [stamps, setStamps]     = useState(8)
   const [points, setPoints]     = useState(10)
   const [rewardMode, setRewardMode] = useState<'dynamic' | 'fixed'>('dynamic')
+  const [saving, setSaving]     = useState(false)
+  const [error, setError]       = useState<string | null>(null)
 
   const TYPES: Array<{ id: CardType; label: string; desc: string }> = [
     { id: 'stamp',      label: 'Tarjeta de sellos',   desc: 'Visitas → premio al completar' },
@@ -727,9 +729,8 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
     { id: 'membership', label: 'Membresía por niveles', desc: 'Bronze → Silver → Gold → Black' },
   ]
 
-  function handleCreate() {
-    const newCard: CardDesign = {
-      id:             Date.now().toString(),
+  async function handleCreate() {
+    const draft: Omit<CardDesign, 'id'> = {
       name:           name.trim() || `Tarjeta ${existingCount + 1}`,
       type,
       isActive:       false,
@@ -739,7 +740,11 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
       rewardMode:     type === 'stamp' ? rewardMode : null,
       rewardField:    null,
     }
-    onAdd(newCard)
+    setSaving(true)
+    setError(null)
+    const errMsg = await onAdd(draft)
+    setSaving(false)
+    if (errMsg) { setError(errMsg); return }
     onClose()
   }
 
@@ -836,9 +841,14 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
               </>
             )}
 
+            {error && (
+              <div className="dt-modal-hint" style={{ color: '#B23B3B', marginBottom: 0 }}>{error}</div>
+            )}
             <div className="dt-modal-footer" style={{ marginTop: 24 }}>
-              <button className="dt-modal-cancel" onClick={() => setStep(1)}>← Atrás</button>
-              <button className="dt-modal-next" onClick={handleCreate}>Crear tarjeta</button>
+              <button className="dt-modal-cancel" onClick={() => setStep(1)} disabled={saving}>← Atrás</button>
+              <button className="dt-modal-next" onClick={handleCreate} disabled={saving}>
+                {saving ? 'Creando…' : 'Crear tarjeta'}
+              </button>
             </div>
           </>
         )}
@@ -848,8 +858,8 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
 }
 
 // ─── Card manager ─────────────────────────────────────────────────────────────
-function CardManager({ cards: init, onEdit }: {
-  cards: CardDesign[]; onEdit: (card: CardDesign) => void
+function CardManager({ cards: init, businessId, onSaved, onEdit }: {
+  cards: CardDesign[]; businessId?: string | null; onSaved?: () => void; onEdit: (card: CardDesign) => void
 }) {
   const [cards, setCards]         = useState<CardDesign[]>(init)
   const [showModal, setModal]     = useState(false)
@@ -875,8 +885,37 @@ function CardManager({ cards: init, onEdit }: {
     setModal(true)
   }
 
-  function handleCardAdded(newCard: CardDesign) {
-    setCards([...cards, newCard])
+  async function handleCardAdded(draft: Omit<CardDesign, 'id'>): Promise<string | null> {
+    if (!businessId) return 'Falta el negocio activo.'
+    try {
+      const created: any = await apiCreateCard(businessId, {
+        name:           draft.name,
+        type:           draft.type,
+        color:          draft.color,
+        secondColor:    draft.secondColor,
+        stampsRequired: draft.stampsRequired,
+        rewardMode:     draft.rewardMode,
+      } as any)
+      const newCard: CardDesign = {
+        id:             created._id,
+        name:           created.name,
+        type:           created.type,
+        isActive:       created.isActive,
+        color:          created.color || draft.color,
+        secondColor:    created.secondColor || draft.secondColor,
+        stampsRequired: created.stampsRequired || draft.stampsRequired,
+        rewardMode:     created.rewardMode ?? draft.rewardMode,
+        rewardField:    created.rewardFixedValue || null,
+        logoUrl:        created.logoUrl || null,
+        earnedIcon:     created.earnedIcon || null,
+        emptyIcon:      created.emptyIcon || null,
+      }
+      setCards([...cards, newCard])
+      onSaved?.()  // re-sincroniza el estado del padre para que sobreviva un cambio de tab
+      return null
+    } catch (err: any) {
+      return err?.message || 'No se pudo crear la tarjeta. Intentá de nuevo.'
+    }
   }
 
   function deleteCard(id: string) {
@@ -1274,7 +1313,7 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
 
       {editingCard
         ? <CardEditor card={editingCard} formFields={data.formFields} businessId={businessId} onSaved={onSaved} onBack={() => setEditingCard(null)} />
-        : <CardManager cards={effectiveData.cardDesigns} onEdit={setEditingCard} />
+        : <CardManager cards={effectiveData.cardDesigns} businessId={businessId} onSaved={onSaved} onEdit={setEditingCard} />
       }
     </>
   )

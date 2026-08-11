@@ -226,19 +226,38 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
     const businessId = localStorage.getItem('stampa_business_id')
     if (!businessId) return
     setDetailedLoading(true)
-    fetch(`${BASE_URL}/api/businesses/${businessId}/analytics/detailed?range=${range}`, {
+    const params = new URLSearchParams({ range })
+    if (selectedCardId) params.set('cardId', selectedCardId)
+    fetch(`${BASE_URL}/api/businesses/${businessId}/analytics/detailed?${params.toString()}`, {
       headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
     })
       .then(r => r.json())
       .then(d => setDetailed(d))
       .catch(err => console.error('Error loading detailed analytics:', err))
       .finally(() => setDetailedLoading(false))
-  }, [range])
+  }, [range, selectedCardId])
+
+  // Segmentos/retención — igual que arriba, se refetchean por tarjeta. El
+  // prop `analyticsData` (business-wide) queda solo como valor inicial para
+  // no mostrar la sección vacía mientras carga el primer fetch acá.
+  const [liveMetrics, setLiveMetrics] = useState<any>(null)
+  useEffect(() => {
+    const businessId = localStorage.getItem('stampa_business_id')
+    if (!businessId || !selectedCardId) return
+    const params = new URLSearchParams()
+    params.set('cardId', selectedCardId)
+    fetch(`${BASE_URL}/api/businesses/${businessId}/analytics?${params.toString()}`, {
+      headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
+    })
+      .then(r => r.json())
+      .then(d => setLiveMetrics(d))
+      .catch(err => console.error('Error loading analytics segments:', err))
+  }, [selectedCardId])
 
   // Use real analytics data when available, fall back to 0 (no mock) — la
   // colección Visit es nueva, así que hasta que se acumulen visitas reales
   // estas secciones van a mostrarse vacías/en 0, no con números inventados.
-  const realMetrics = analyticsData || null
+  const realMetrics = liveMetrics || analyticsData || null
   const visitsOverTime         = detailed?.visitsOverTime ?? []
   const heatmapData            = detailed?.heatmap ?? []
   const topCustomers           = detailed?.topCustomers ?? []
