@@ -775,7 +775,7 @@ const CSS = `
   .ov-reward-bar{height:5px;background:rgba(43,38,32,.07);border-radius:3px;overflow:hidden;}
   .ov-reward-fill{height:100%;background:linear-gradient(90deg,#C75D3A,#D4A24C);border-radius:3px;}
   .ov-reward-count{font-size:11px;font-weight:600;color:rgba(43,38,32,.5);flex-shrink:0;}
-  .ov-tier-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(43,38,32,.05);}
+  .ov-tier-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid rgba(43,38,32,.05);}
   .ov-tier-row:last-child{border-bottom:none;}
   .ov-tier-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
   .ov-tier-name{font-size:12px;color:#2B2620;width:52px;flex-shrink:0;}

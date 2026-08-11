@@ -730,9 +730,9 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
   ]
 
   async function handleCreate() {
-    const typeLabel = TYPES.find(tp => tp.id === type)?.label || 'Tarjeta'
+    const DEFAULT_NAMES: Record<CardType, string> = { stamp: 'Sellos', points: 'Puntos', membership: 'Membresía' }
     const draft: Omit<CardDesign, 'id'> = {
-      name:           name.trim() || typeLabel,
+      name:           name.trim() || DEFAULT_NAMES[type],
       type,
       isActive:       false,
       color:          '#1E3329',

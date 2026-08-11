@@ -192,6 +192,22 @@ export async function apiUpdateProfile(fullName: string) {
   })
 }
 
+export async function apiForgotPassword(email: string) {
+  return request<{ success: boolean; message: string; devResetUrl?: string }>('/api/auth/forgot-password', {
+    method: 'POST',
+    body: { email },
+    noAuth: true,
+  })
+}
+
+export async function apiResetPassword(token: string, newPassword: string) {
+  return request<{ success: boolean; message: string }>('/api/auth/reset-password', {
+    method: 'POST',
+    body: { token, newPassword },
+    noAuth: true,
+  })
+}
+
 export async function apiLogout() {
   clearToken()
   window.location.href = '/login'

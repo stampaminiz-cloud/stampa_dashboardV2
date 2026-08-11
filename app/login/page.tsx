@@ -154,7 +154,7 @@ export default function LoginPage() {
                 <label className="lg-label">Contraseña</label>
                 <input className="lg-input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" />
               </div>
-              <div className="lg-forgot"><a href="#">¿Olvidaste tu contraseña?</a></div>
+              <div className="lg-forgot"><a href="/forgot-password">¿Olvidaste tu contraseña?</a></div>
               <button className="lg-btn" type="submit" disabled={loading}>
                 {loading ? 'Ingresando...' : 'Ingresar al dashboard →'}
               </button>
