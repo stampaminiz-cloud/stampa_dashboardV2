@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
-import { apiCreateCard, apiUpdateCard, apiUpdateField } from '@/lib/api'
+import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiUpdateField } from '@/lib/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CardType = "stamp" | "points" | "membership"
@@ -873,11 +873,28 @@ function CardManager({ cards: init, businessId, onSaved, onEdit }: {
   const activeCount           = cards.filter((c: CardDesign) => c.isActive).length
   const atLimit               = activeCount >= planMaxCards
 
-  function toggleCard(id: string) {
+  const [toggleError, setToggleError] = useState<string | null>(null)
+
+  async function toggleCard(id: string) {
     const card = cards.find((c: CardDesign) => c.id === id)
     if (!card) return
     if (!card.isActive && atLimit) return
-    setCards(cards.map((c: CardDesign) => c.id === id ? { ...c, isActive: !c.isActive } : c))
+    setToggleError(null)
+
+    const newActive = !card.isActive
+    // Optimista: reflejamos el cambio al toque para que se sienta instantáneo...
+    setCards(cards.map((c: CardDesign) => c.id === id ? { ...c, isActive: newActive } : c))
+
+    if (!businessId) return
+    try {
+      await apiUpdateCard(businessId, id, { isActive: newActive } as any)
+      onSaved?.()  // re-sincroniza el padre para que Analytics/Rewards/Notifications vean la tarjeta activa de verdad
+    } catch (err: any) {
+      // ...pero si el backend lo rechaza (ej. límite de plan cambiado en otra pestaña),
+      // revertimos en vez de dejar la UI mintiendo sobre el estado real.
+      setCards(cards.map((c: CardDesign) => c.id === id ? { ...c, isActive: !newActive } : c))
+      setToggleError(err?.message || 'No se pudo actualizar la tarjeta. Intentá de nuevo.')
+    }
   }
 
   function handleAddClick() {
@@ -918,9 +935,18 @@ function CardManager({ cards: init, businessId, onSaved, onEdit }: {
     }
   }
 
-  function deleteCard(id: string) {
+  async function deleteCard(id: string) {
+    const prevCards = cards
     setCards(cards.filter((c: CardDesign) => c.id !== id))
     setConfirmDelete(null)
+    if (!businessId) return
+    try {
+      await apiDeleteCard(businessId, id)
+      onSaved?.()
+    } catch (err: any) {
+      setCards(prevCards)  // revert si el backend lo rechaza
+      setToggleError(err?.message || 'No se pudo eliminar la tarjeta. Intentá de nuevo.')
+    }
   }
 
   return (
@@ -937,6 +963,10 @@ function CardManager({ cards: init, businessId, onSaved, onEdit }: {
         </div>
         <button className="dt-upgrade-link">Mejorar plan →</button>
       </div>
+
+      {toggleError && (
+        <div className="dt-toggle-error">{toggleError}</div>
+      )}
 
       <div className="dt-cards-grid">
         {cards.map((card: CardDesign) => (
@@ -1192,6 +1222,7 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
         .dt-gpass-qr-label{font-size:9px;color:#5f6368;}
         /* Card manager */
         .dt-plan-bar{display:flex;align-items:center;gap:14px;background:rgba(199,93,58,.07);border:1px solid rgba(199,93,58,.2);border-radius:12px;padding:12px 18px;}
+        .dt-toggle-error{background:rgba(178,59,59,.08);border:1px solid rgba(178,59,59,.25);color:#B23B3B;border-radius:10px;padding:10px 14px;font-size:12.5px;margin-top:12px;}
         .dt-plan-text{font-size:12.5px;color:#2B2620;flex:1;}
         .dt-plan-text strong{color:#C75D3A;}
         .dt-plan-dots{display:flex;gap:6px;}
