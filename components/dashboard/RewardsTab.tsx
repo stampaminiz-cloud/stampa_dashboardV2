@@ -167,7 +167,7 @@ function MembershipRewards({ tiers: initTiers, rewardsData }: { tiers: MemberTie
   const [tiers, setTiers] = useState<MemberTier[]>(initTiers)
   const [editing, setEditing] = useState<string | null>(null)
   const dist: Array<{ tier: string; count: number }> = rewardsData?.distribution || []
-  const memberCount = (tierName: string) => dist.find(d => d.tier.toLowerCase() === tierName.toLowerCase())?.count || 0
+  const memberCount = (tierName: string) => dist.find(d => d.tier && d.tier.toLowerCase() === tierName.toLowerCase())?.count || 0
   const total = rewardsData?.total ?? dist.reduce((s, d) => s + d.count, 0)
 
   function updateTier(id: string, field: keyof MemberTier, val: string | number) {
@@ -306,9 +306,19 @@ export function RewardsTab({ data, cards, businessId }: { data: RewardsData; car
             </button>
           ))}
         </div>
-        {cardType === 'stamp'      && (loading ? <RewardsLoading /> : <StampRewards      rewardsData={rewardsData} />)}
-        {cardType === 'points'     && (loading ? <RewardsLoading /> : <PointsRewards     catalog={data.pointsCatalog} rewardsData={rewardsData} />)}
-        {cardType === 'membership' && (loading ? <RewardsLoading /> : <MembershipRewards tiers={data.membershipTiers} rewardsData={rewardsData} />)}
+        {(() => {
+          // rewardsData puede quedar un instante desactualizado (de la
+          // tarjeta anterior) entre que cambia `cardType` (síncrono) y
+          // termina el fetch nuevo (async) — sin este chequeo, un cambio de
+          // sellos a membresía podía intentar leer `.tier` de datos con
+          // forma de `{prize, count}` y explotar.
+          const dataReady = !loading && rewardsData?.cardType === cardType
+          if (!dataReady) return <RewardsLoading />
+          if (cardType === 'stamp')      return <StampRewards      rewardsData={rewardsData} />
+          if (cardType === 'points')     return <PointsRewards     catalog={data.pointsCatalog} rewardsData={rewardsData} />
+          if (cardType === 'membership') return <MembershipRewards tiers={data.membershipTiers} rewardsData={rewardsData} />
+          return null
+        })()}
       </div>
     </>
   )

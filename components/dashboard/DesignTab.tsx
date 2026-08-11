@@ -730,8 +730,9 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
   ]
 
   async function handleCreate() {
+    const typeLabel = TYPES.find(tp => tp.id === type)?.label || 'Tarjeta'
     const draft: Omit<CardDesign, 'id'> = {
-      name:           name.trim() || `Tarjeta ${existingCount + 1}`,
+      name:           name.trim() || typeLabel,
       type,
       isActive:       false,
       color:          '#1E3329',
