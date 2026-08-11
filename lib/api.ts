@@ -185,6 +185,13 @@ export async function apiChangePassword(currentPassword: string, newPassword: st
   })
 }
 
+export async function apiUpdateProfile(fullName: string) {
+  return request<{ id: string; email: string; fullName: string }>('/api/auth/me', {
+    method: 'PATCH',
+    body: { fullName },
+  })
+}
+
 export async function apiLogout() {
   clearToken()
   window.location.href = '/login'

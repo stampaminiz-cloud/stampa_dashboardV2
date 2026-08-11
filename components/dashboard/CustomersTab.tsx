@@ -40,7 +40,7 @@ interface CustomersTabProps {
   onRefresh: () => void
 }
 
-type SortKey = 'name' | 'progress' | 'status' | 'lastActivity'
+type SortKey = 'name' | 'progress' | 'status' | 'lastActivity' | 'card'
 type SortDir = 'asc' | 'desc'
 
 function initials(name: string) {
@@ -337,7 +337,7 @@ export function CustomersTab({
                   <thead>
                     <tr>
                       <th className={sortKey === 'name' ? 'th-active' : ''} onClick={() => handleSort('name')}>{t('ct_col_customer')}<SortIcon active={sortKey === 'name'} dir={sortDir} /></th>
-                      <th>{t('ct_col_card')}</th>
+                      <th className={sortKey === 'card' ? 'th-active' : ''} onClick={() => handleSort('card')}>{t('ct_col_card')}<SortIcon active={sortKey === 'card'} dir={sortDir} /></th>
                       <th className={sortKey === 'progress' ? 'th-active' : ''} onClick={() => handleSort('progress')}>{t('ct_col_progress')}<SortIcon active={sortKey === 'progress'} dir={sortDir} /></th>
                       <th className="th-dynamic">{dynamicFieldLabel}</th>
                       <th className={sortKey === 'status' ? 'th-active' : ''} onClick={() => handleSort('status')}>{t('ct_col_status')}<SortIcon active={sortKey === 'status'} dir={sortDir} /></th>

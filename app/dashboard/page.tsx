@@ -353,7 +353,7 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
   return (
     <div className="db-content">
       {/* Core metrics */}
-      <div className="ov-section-label">{t('section_growth' as any)}</div>
+      <div className="ov-section-label">{t('section_summary' as any)}</div>
       <div className="ov-metric-grid">
         {[
           { label: t('total_customers' as any), value: totalUsers,    delta: 0,    color: '#C75D3A' },
@@ -816,10 +816,10 @@ const CSS = `
   .ov-adv-label{font-size:12px;color:rgba(43,38,32,.5);}
   .ov-three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
   .ov-card--fill{display:flex;flex-direction:column;}
-  .ov-reward-list{flex:1;display:flex;flex-direction:column;justify-content:center;gap:6px;}
-  .ov-insight-list{flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px;}
-  .ov-reward-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-  .ov-reward-row:last-child{margin-bottom:0;}
+  .ov-reward-list{flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:2px;}
+  .ov-insight-list{flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:10px;}
+  .ov-reward-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(43,38,32,.06);}
+  .ov-reward-row:last-child{border-bottom:none;}
   .ov-reward-rank{width:22px;height:22px;border-radius:6px;background:rgba(43,38,32,.06);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(43,38,32,.4);flex-shrink:0;}
   .ov-reward-rank--first{background:rgba(199,93,58,.12);color:#C75D3A;}
   .ov-reward-info{flex:1;}
@@ -902,7 +902,7 @@ export default function DashboardPage() {
   const [customersSearch, setCustomersSearch]       = useState('')
   const [customersStatus, setCustomersStatus]       = useState<'all' | 'active' | 'inactive'>('all')
   const [customersCardFilter, setCustomersCardFilter] = useState<string>('all')
-  const [customersSortKey, setCustomersSortKey]     = useState<'name' | 'progress' | 'status' | 'lastActivity'>('progress')
+  const [customersSortKey, setCustomersSortKey]     = useState<'name' | 'progress' | 'status' | 'lastActivity' | 'card'>('progress')
   const [customersSortDir, setCustomersSortDir]     = useState<'asc' | 'desc'>('desc')
   const [customersLoading, setCustomersLoading]     = useState(false)
   // Cache en memoria: mismo filtro/orden/página ya pedido antes → instantáneo,
@@ -1048,7 +1048,7 @@ export default function DashboardPage() {
     page: number,
     search: string,
     status: 'all' | 'active' | 'inactive',
-    sortKey: 'name' | 'progress' | 'status' | 'lastActivity' = customersSortKey,
+    sortKey: 'name' | 'progress' | 'status' | 'lastActivity' | 'card' = customersSortKey,
     sortDir: 'asc' | 'desc' = customersSortDir,
     cardFilter: string = customersCardFilter,
     opts: { bypassCache?: boolean } = {}
@@ -1189,6 +1189,8 @@ export default function DashboardPage() {
           key={businessId ?? 'loading'}
           businessId={businessId ?? undefined}
           onSave={loadBusiness}
+          ownerName={owner?.fullName || ''}
+          ownerEmail={owner?.email || ''}
           business={business ? {
             ...mockData.business,
             name: business.name,

@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { apiUpdateBusiness, apiChangePassword } from '@/lib/api'
+import { apiUpdateBusiness, apiChangePassword, apiUpdateProfile } from '@/lib/api'
 import { useLang } from '@/data/i18n'
 
 interface BusinessAlerts { newCustomer: boolean; nearPrize: boolean; weeklyDigest: boolean }
@@ -110,6 +110,36 @@ function SectorField({ value, saving, saved, t, onSave }: { value: string; savin
   )
 }
 
+function MyAccountSection({ ownerName, ownerEmail }: { ownerName: string; ownerEmail: string }) {
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  async function handleSaveName(v: string) {
+    setSaving(true)
+    try {
+      await apiUpdateProfile(v)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      console.error('Error updating profile:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <>
+      <FieldRow label="Tu nombre">
+        <EditableText value={ownerName} saveLabel={saving ? '...' : saved ? '✓' : 'Guardar'} onSave={handleSaveName} />
+      </FieldRow>
+      <FieldRow label="Tu email">
+        <span className="st-field-val" style={{ opacity: .6 }}>{ownerEmail}</span>
+      </FieldRow>
+      <div className="st-timezone-note">Cambiar el email de acceso todavía no está disponible — escribinos si lo necesitás.</div>
+    </>
+  )
+}
+
 function PasswordSection() {
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
@@ -176,7 +206,7 @@ function CheckboxRow({ label, checked: init, description, onToggle }: { label: s
   )
 }
 
-export function SettingsTab({ business: mockBusiness, businessId, onSave }: { business: BusinessSettings; businessId?: string; onSave?: () => void }) {
+export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', onSave }: { business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; onSave?: () => void }) {
   const t = useLang()
   const [business, setBusiness]       = useState(mockBusiness)
   const [inactiveDays, setInactiveDays] = useState(mockBusiness.inactiveDays)
@@ -270,6 +300,10 @@ export function SettingsTab({ business: mockBusiness, businessId, onSave }: { bu
       `}</style>
 
       <div className="st-content">
+        <Section title="Mi cuenta" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}>
+          <MyAccountSection ownerName={ownerName} ownerEmail={ownerEmail} />
+        </Section>
+
         <Section title={t('st_profile')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V8L3 4h18l-2 4v13"/><path d="M9 21v-6h6v6"/></svg>}>
           <FieldRow label={t('st_name')}><EditableText value={business.name} saveLabel={saving ? '...' : saved ? '✓' : t('save')} onSave={v => handleSave('name', v)} /></FieldRow>
           <FieldRow label={t('st_sector')}><SectorField value={business.sector} saving={saving} saved={saved} t={t} onSave={v => handleSave('sector', v)} /></FieldRow>

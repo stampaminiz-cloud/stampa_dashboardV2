@@ -12,6 +12,13 @@ interface StaffUser { id: string; name: string; email: string; role: Role; acces
 function initials(name: string) { return name.split(' ').map((w: string) => w[0]).join('').slice(0,2).toUpperCase() }
 const AVATAR_COLORS: Record<Role, string> = { owner: '#C75D3A', manager: '#185FA5', scanner: '#9C7530' }
 
+function AppleIcon() {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.415 2.06-1.246 2.76-.997.83-2.145 1.15-3.44 1.05-.11-1.24.36-2.16 1.18-2.86.86-.72 2.13-1.11 3.5-.95zm4.24 16.79c-.36.83-.79 1.6-1.29 2.31-.68.98-1.24 1.66-1.68 2.03-.68.62-1.41.94-2.19.96-.56.02-1.24-.16-2.03-.5-.79-.34-1.51-.5-2.17-.5-.69 0-1.43.16-2.22.5-.79.34-1.43.53-1.9.5-.75-.03-1.5-.37-2.24-1.02-.48-.42-1.07-1.13-1.78-2.15C1.68 18.7.86 17 .3 15.11c-.6-2.05-.9-4.04-.9-5.96 0-2.19.47-4.08 1.42-5.66.75-1.27 1.75-2.27 3-3 1.25-.73 2.6-1.11 4.06-1.14.6-.01 1.44.19 2.53.6.99.37 1.63.56 1.9.56.2 0 .89-.22 2.06-.66 1.11-.41 2.05-.58 2.83-.51 2.09.17 3.66.99 4.71 2.47-1.87 1.13-2.79 2.72-2.77 4.76.02 1.6.58 2.94 1.68 4.02.5.48 1.06.85 1.68 1.12-.14.4-.29.79-.45 1.15z"/></svg>
+}
+function AndroidIcon() {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85a.6.6 0 0 0-.77.22l-1.86 3.22a11.5 11.5 0 0 0-9.02 0L5.67 5.67a.6.6 0 0 0-.78-.22c-.3.16-.42.54-.26.85L6.47 9.48A10.8 10.8 0 0 0 1.5 18h21a10.8 10.8 0 0 0-4.9-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
+}
+
 function InviteModal({ onClose, onAdd, onRefresh }: { onClose: () => void; onAdd: (u: StaffUser) => void; onRefresh?: () => void }) {
   const t = useLang()
   const [role, setRole] = useState<'manager' | 'scanner'>('manager')
@@ -134,6 +141,12 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
     <>
       <style>{`
         .us-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
+        .us-scanner-app-card{display:flex;align-items:center;gap:14px;background:#1E3329;border-radius:14px;padding:16px 18px;flex-wrap:wrap;}
+        .us-scanner-app-icon{width:38px;height:38px;border-radius:10px;background:rgba(247,240,228,.1);color:#F7F0E4;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .us-scanner-app-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;color:#F7F0E4;}
+        .us-scanner-app-sub{font-size:11.5px;color:rgba(247,240,228,.6);margin-top:2px;}
+        .us-scanner-app-btn{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:9px 14px;border-radius:9px;background:#C75D3A;color:#fff;border:none;cursor:pointer;text-decoration:none;font-family:'Inter',sans-serif;white-space:nowrap;}
+        .us-scanner-app-btn--disabled{background:rgba(247,240,228,.08);color:rgba(247,240,228,.4);cursor:not-allowed;}
         .us-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(43,38,32,.38);font-weight:600;display:flex;align-items:center;gap:10px;}
         .us-lbl::after{content:'';flex:1;height:1px;background:rgba(43,38,32,.1);}
         .us-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;box-shadow:0 1px 8px rgba(43,38,32,.04);}
@@ -191,6 +204,26 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
       `}</style>
 
       <div className="us-content">
+        <div className="us-scanner-app-card">
+          <div className="us-scanner-app-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3z"/><path d="M18 14v.01"/><path d="M14 18h.01"/><path d="M18 18h3v3h-3z"/><path d="M21 14v.01"/></svg>
+          </div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div className="us-scanner-app-title">App de escaneo para tu equipo</div>
+            <div className="us-scanner-app-sub">Tus managers y scanners la necesitan para sumar sellos/puntos a los clientes.</div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {/* TODO: reemplazar por el link real de invitación a TestFlight
+                (testflight.apple.com/join/XXXXXXXX) apenas Matias lo tenga */}
+            <a className="us-scanner-app-btn" href="#" onClick={e => e.preventDefault()} title="Pendiente: pegar el link de invitación a TestFlight">
+              <AppleIcon /> Descargar para iOS (TestFlight)
+            </a>
+            <button className="us-scanner-app-btn us-scanner-app-btn--disabled" disabled title="Todavía no disponible">
+              <AndroidIcon /> Próximamente en Android
+            </button>
+          </div>
+        </div>
+
         <div className="us-lbl">{t('us_team')}</div>
         <div className="us-card">
           <div className="us-toolbar">

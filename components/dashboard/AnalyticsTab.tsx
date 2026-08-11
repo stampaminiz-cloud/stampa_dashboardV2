@@ -272,6 +272,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
         .an-lbl::after{content:'';flex:1;height:1px;background:rgba(43,38,32,.1);}
         .an-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(43,38,32,.04);}
         .an-ctitle{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
+        .an-live-tag{font-family:'Inter',sans-serif;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:rgba(43,38,32,.4);background:rgba(43,38,32,.06);padding:2px 7px;border-radius:20px;margin-left:6px;vertical-align:middle;}
         .an-csub{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:12px;}
         .an-empty-note{font-size:12px;color:rgba(43,38,32,.4);padding:20px 0;text-align:center;}
 
@@ -425,8 +426,8 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
             }
           </div>
           <div className="an-card">
-            <div className="an-ctitle">Tasa de retención</div>
-            <div className="an-csub">Clientes que vuelven</div>
+            <div className="an-ctitle">Tasa de retención <span className="an-live-tag">Estado actual</span></div>
+            <div className="an-csub">Clientes que vuelven — no cambia con el filtro de fecha de arriba</div>
             <div className="an-ret">
               <div className="an-ret-num">{realMetrics?.retentionRate ?? 0}%</div>
               <div>
@@ -451,7 +452,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
         )}
         {fullAnalytics && <>
         {/* ── 2. Segmentos ── */}
-        <div className="an-lbl">Segmentos de clientes <span style={{ fontSize: 10, fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'rgba(43,38,32,.35)' }}>{cfg.segmentBasis}</span></div>
+        <div className="an-lbl">Segmentos de clientes <span className="an-live-tag" style={{ textTransform: 'none' }}>Estado actual</span> <span style={{ fontSize: 10, fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'rgba(43,38,32,.35)' }}>{cfg.segmentBasis} — no cambia con el filtro de fecha</span></div>
         <div className="an-4col">
           {SEGMENTS.map(({ label, desc, color, bg, val }) => (
             <div key={label} className="an-card an-seg-card" style={{ background: bg, border: `1px solid ${color}22` }}>
