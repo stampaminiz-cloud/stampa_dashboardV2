@@ -6,13 +6,12 @@ import { BASE_URL } from '@/lib/api'
 interface Customer {
   id: string; name: string; email: string; progress: number; total: number
   cardType: 'stamp' | 'points' | 'membership'; cardName: string | null; membershipTier: string | null
-  dynamicField: string; status: 'active' | 'inactive'; joined: string
+  dynamicField: string; dynamicFieldLabel: string; status: 'active' | 'inactive'; joined: string
   dob: string; preference: string; lastActivity: string; totalRedeemed: number
 }
 
 interface CustomersTabProps {
   customers: Customer[]
-  dynamicFieldLabel?: string
   // Tarjetas activas del negocio — para el filtro opcional por tarjeta
   // cuando hay más de una (ver auditoría multi-tarjeta).
   cards?: Array<{ id: string; name: string; type: string }>
@@ -79,14 +78,17 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   )
 }
 
-function CustomerPanel({ customer, dynamicFieldLabel, onClose, onDelete }: {
-  customer: Customer; dynamicFieldLabel: string; onClose: () => void; onDelete: (id: string) => void
+function CustomerPanel({ customer, onClose, onDelete }: {
+  customer: Customer; onClose: () => void; onDelete: (id: string) => void
 }) {
   const t = useLang()
   const [confirmDel, setConfirmDel] = useState(false)
-  const stamps = Array.from({ length: customer.total }, (_: unknown, i: number) => i < customer.progress)
+  const stamps = customer.cardType === 'stamp'
+    ? Array.from({ length: customer.total }, (_: unknown, i: number) => i < customer.progress)
+    : []
   const color = avatarColor(customer.name)
   const nearPrize = isNearPrize(customer)
+  const cardTypeLabel = customer.cardType === 'stamp' ? 'Sellos' : customer.cardType === 'points' ? 'Puntos' : 'Membresía'
 
   return (
     <div className="ct-panel">
@@ -114,22 +116,31 @@ function CustomerPanel({ customer, dynamicFieldLabel, onClose, onDelete }: {
         <span className={`ct-status-badge ct-status-badge--${customer.status}`}>
           {customer.status === 'active' ? t('status_active') : t('status_inactive')}
         </span>
+        <span className={`ct-card-badge ct-card-badge--${customer.cardType}`}>{customer.cardName || cardTypeLabel}</span>
         {nearPrize && <span className="ct-near-badge">{t('ct_near_badge')}</span>}
       </div>
 
       <div className="ct-panel-section">
         <div className="ct-panel-section-title">{t('ct_panel_progress')}</div>
-        <div className="ct-panel-progress-num">{customer.progress}<span className="ct-panel-progress-den"> / {customer.total}</span></div>
-        <div className="ct-panel-stamps">
-          {stamps.map((filled: boolean, i: number) => <div key={i} className={`ct-panel-stamp${filled ? ' ct-panel-stamp--filled' : ''}`} />)}
-        </div>
-        <div className="ct-panel-progress-bar"><div className="ct-panel-progress-fill" style={{ width: `${(customer.progress / customer.total) * 100}%` }} /></div>
-        {nearPrize && (
-          <div className="ct-near-note">
-            {customer.total - customer.progress === 0
-              ? t('ct_prize_ready')
-              : `${customer.total - customer.progress} ${t('ct_stamps_away')}`}
-          </div>
+        {customer.cardType === 'stamp' ? (
+          <>
+            <div className="ct-panel-progress-num">{customer.progress}<span className="ct-panel-progress-den"> / {customer.total}</span></div>
+            <div className="ct-panel-stamps">
+              {stamps.map((filled: boolean, i: number) => <div key={i} className={`ct-panel-stamp${filled ? ' ct-panel-stamp--filled' : ''}`} />)}
+            </div>
+            <div className="ct-panel-progress-bar"><div className="ct-panel-progress-fill" style={{ width: `${(customer.progress / customer.total) * 100}%` }} /></div>
+            {nearPrize && (
+              <div className="ct-near-note">
+                {customer.total - customer.progress === 0
+                  ? t('ct_prize_ready')
+                  : `${customer.total - customer.progress} ${t('ct_stamps_away')}`}
+              </div>
+            )}
+          </>
+        ) : customer.cardType === 'points' ? (
+          <div className="ct-panel-progress-num">{customer.progress}<span className="ct-panel-progress-den"> pts</span></div>
+        ) : (
+          <div className="ct-panel-progress-num" style={{ fontSize: 22 }}>Nivel {customer.membershipTier || 'Bronze'}</div>
         )}
       </div>
 
@@ -144,7 +155,7 @@ function CustomerPanel({ customer, dynamicFieldLabel, onClose, onDelete }: {
         <div className="ct-panel-section-title">{t('ct_form_responses')}</div>
         <div className="ct-panel-field-row"><span className="ct-panel-field-label">{t('ct_dob')}</span><span className="ct-panel-field-val">{customer.dob}</span></div>
         <div className="ct-panel-field-row ct-panel-field-row--highlight">
-          <span className="ct-panel-field-label">{dynamicFieldLabel}</span>
+          <span className="ct-panel-field-label">{customer.dynamicFieldLabel}</span>
           <span className="ct-panel-field-val ct-panel-field-val--highlight">{customer.dynamicField}</span>
         </div>
         <div className="ct-panel-field-row"><span className="ct-panel-field-label">{t('ct_preference')}</span><span className="ct-panel-field-val">{customer.preference}</span></div>
@@ -154,7 +165,7 @@ function CustomerPanel({ customer, dynamicFieldLabel, onClose, onDelete }: {
 }
 
 export function CustomersTab({
-  customers, dynamicFieldLabel = 'Premio',
+  customers,
   cards = [], cardFilter = 'all', onCardFilterChange,
   page, totalPages, total, activeCount, inactiveCount, nearCount,
   search, statusFilter, sortKey, sortDir, loading,
@@ -339,7 +350,7 @@ export function CustomersTab({
                       <th className={sortKey === 'name' ? 'th-active' : ''} onClick={() => handleSort('name')}>{t('ct_col_customer')}<SortIcon active={sortKey === 'name'} dir={sortDir} /></th>
                       <th className={sortKey === 'card' ? 'th-active' : ''} onClick={() => handleSort('card')}>{t('ct_col_card')}<SortIcon active={sortKey === 'card'} dir={sortDir} /></th>
                       <th className={sortKey === 'progress' ? 'th-active' : ''} onClick={() => handleSort('progress')}>{t('ct_col_progress')}<SortIcon active={sortKey === 'progress'} dir={sortDir} /></th>
-                      <th className="th-dynamic">{dynamicFieldLabel}</th>
+                      <th className="th-dynamic">Premio</th>
                       <th className={sortKey === 'status' ? 'th-active' : ''} onClick={() => handleSort('status')}>{t('ct_col_status')}<SortIcon active={sortKey === 'status'} dir={sortDir} /></th>
                       <th className={sortKey === 'lastActivity' ? 'th-active' : ''} onClick={() => handleSort('lastActivity')}>{t('ct_col_last')}<SortIcon active={sortKey === 'lastActivity'} dir={sortDir} /></th>
                     </tr>
@@ -362,8 +373,8 @@ export function CustomersTab({
                             </div>
                           </td>
                           <td>
-                            <span className={`ct-card-badge ct-card-badge--${c.cardType}`}>
-                              {c.cardType === 'stamp' ? 'Sellos' : c.cardType === 'points' ? 'Puntos' : 'Membresía'}
+                            <span className={`ct-card-badge ct-card-badge--${c.cardType}`} title={c.cardType === 'stamp' ? 'Sellos' : c.cardType === 'points' ? 'Puntos' : 'Membresía'}>
+                              {c.cardName || (c.cardType === 'stamp' ? 'Sellos' : c.cardType === 'points' ? 'Puntos' : 'Membresía')}
                             </span>
                           </td>
                           <td>
@@ -403,7 +414,7 @@ export function CustomersTab({
           )}
         </div>
 
-        {selected && <CustomerPanel customer={selected} dynamicFieldLabel={dynamicFieldLabel} onClose={() => setSelected(null)} onDelete={deleteCustomer} />}
+        {selected && <CustomerPanel customer={selected} onClose={() => setSelected(null)} onDelete={deleteCustomer} />}
       </div>
     </>
   )

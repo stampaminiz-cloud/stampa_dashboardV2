@@ -175,22 +175,11 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 function Header({ title, t, setMobileOpen, setActive }: { title: string; t: (k: any) => string; setMobileOpen: (o: boolean) => void; setActive?: (t: any) => void }) {
-  const [search, setSearch] = useState('')
-  const [showSearch, setShowSearch] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
-  const searchRef = useRef<HTMLDivElement>(null)
   const notifRef  = useRef<HTMLDivElement>(null)
-
-  const customers = mockData.customers.filter(c =>
-    search.length > 1 && (
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.email.toLowerCase().includes(search.toLowerCase())
-    )
-  )
 
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowSearch(false)
       if (notifRef.current  && !notifRef.current.contains(e.target as Node))  setShowNotif(false)
     }
     document.addEventListener('mousedown', handler)
@@ -209,36 +198,6 @@ function Header({ title, t, setMobileOpen, setActive }: { title: string; t: (k: 
       <h1 className="hd-title">{title}</h1>
 
       <div className="hd-right">
-        {/* Search */}
-        <div className="hd-search-wrap" ref={searchRef}>
-          <div className="hd-search">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input
-              placeholder={t('search_placeholder' as any)}
-              value={search}
-              onChange={e => { setSearch(e.target.value); setShowSearch(true) }}
-              onFocus={() => setShowSearch(true)}
-            />
-          </div>
-          {showSearch && search.length > 1 && (
-            <div className="hd-dropdown hd-search-dropdown">
-              {customers.length === 0
-                ? <div className="hd-empty">{t('no_results' as any)}</div>
-                : customers.slice(0, 5).map((c: any) => (
-                    <div key={c.id} className="hd-search-row" onClick={() => { setSearch(''); setShowSearch(false) }}>
-                      <div className="hd-srch-av">{c.name.split(' ').map((w: string) => w[0]).join('').slice(0,2)}</div>
-                      <div>
-                        <div className="hd-srch-name">{c.name}</div>
-                        <div className="hd-srch-email">{c.email}</div>
-                      </div>
-                      <div className="hd-srch-prog">{c.progress}/{c.total}</div>
-                    </div>
-                  ))
-              }
-            </div>
-          )}
-        </div>
-
         {/* Notifications */}
         <div className="hd-icon-wrap" ref={notifRef}>
           <button className="hd-icon-btn" onClick={() => { setShowNotif(!showNotif) }}>
@@ -644,7 +603,8 @@ function mapCustomersForTab(rawCustomers: any[], activeCard: any) {
       membershipTier: c.membershipTier || null,
       progress,
       total,
-      dynamicField: c.favoriteDrink || (c.formResponses?.[0]?.value ?? '—'),
+      dynamicField: c.rewardFieldValue || '—',
+      dynamicFieldLabel: c.rewardFieldLabel || 'Premio',
       status: c.status,
       joined: c.joinedAt,
       dob: c.birthdate || '—',
@@ -719,10 +679,6 @@ const CSS = `
   .hd-hamburger{display:none;background:none;border:none;cursor:pointer;color:rgba(43,38,32,.6);padding:6px;border-radius:8px;}
   .hd-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:20px;color:#2B2620;flex:1;}
   .hd-right{display:flex;align-items:center;gap:10px;}
-  .hd-search-wrap{position:relative;}
-  .hd-search{display:flex;align-items:center;gap:8px;background:#FBF6EE;border:1px solid rgba(43,38,32,.1);border-radius:10px;padding:8px 13px;width:220px;}
-  .hd-search input{background:none;border:none;outline:none;font-family:'Inter',sans-serif;font-size:13px;color:#2B2620;width:100%;}
-  .hd-search input::placeholder{color:rgba(43,38,32,.38);}
   .hd-icon-wrap{position:relative;}
   .hd-icon-btn{width:38px;height:38px;border-radius:10px;background:#FBF6EE;border:1px solid rgba(43,38,32,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(43,38,32,.55);position:relative;transition:all .15s;}
   .hd-icon-btn:hover{background:#F0EBE3;}
@@ -731,17 +687,9 @@ const CSS = `
 
   /* ── Dropdowns ── */
   .hd-dropdown{position:absolute;top:calc(100% + 8px);right:0;background:#FFFFFF;border:1px solid rgba(43,38,32,.1);border-radius:14px;box-shadow:0 8px 32px rgba(43,38,32,.12);z-index:50;min-width:280px;}
-  .hd-search-dropdown{left:0;right:auto;}
   .hd-drop-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(43,38,32,.07);}
   .hd-drop-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:#2B2620;}
   .hd-mark-read{font-size:11px;color:#C75D3A;font-weight:600;background:none;border:none;cursor:pointer;}
-  .hd-empty{padding:20px;text-align:center;font-size:12px;color:rgba(43,38,32,.4);}
-  .hd-search-row{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:background .1s;}
-  .hd-search-row:hover{background:#FBF6EE;}
-  .hd-srch-av{width:28px;height:28px;border-radius:50%;background:#C75D3A;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;flex-shrink:0;}
-  .hd-srch-name{font-size:12.5px;font-weight:600;color:#2B2620;}
-  .hd-srch-email{font-size:10.5px;color:rgba(43,38,32,.45);}
-  .hd-srch-prog{font-size:11px;font-weight:700;color:#C75D3A;margin-left:auto;}
   .hd-notif-dropdown{width:320px;}
   .hd-notif-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(43,38,32,.06);}
   .hd-notif-row:last-child{border-bottom:none;}
@@ -866,7 +814,6 @@ const CSS = `
     .db-sb--collapsed{transform:translateX(-100%) !important;}
     .sb-overlay{display:block;position:fixed;inset:0;background:rgba(43,38,32,.4);z-index:49;backdrop-filter:blur(2px);}
     .hd-hamburger{display:flex;}
-    .hd-search{width:160px;}
     .ov-metric-grid{grid-template-columns:repeat(2,1fr);}
     .ov-adv-grid{grid-template-columns:repeat(2,1fr);}
     .ov-three-col{grid-template-columns:1fr;}
@@ -876,7 +823,6 @@ const CSS = `
   }
   @media (max-width: 480px) {
     .ov-metric-grid{grid-template-columns:1fr 1fr;}
-    .hd-search{display:none;}
     .hd-title{font-size:17px;}
   }
 `
@@ -1121,7 +1067,6 @@ export default function DashboardPage() {
       case 'customers': return customersTotal > 0
         ? <CustomersTab
             customers={mapCustomersForTab(customers, cards.find((c: any) => c.isActive) || cards[0])}
-            dynamicFieldLabel="Bebida favorita"
             cards={cards.filter((c: any) => c.isActive)}
             cardFilter={customersCardFilter}
             page={customersPage}

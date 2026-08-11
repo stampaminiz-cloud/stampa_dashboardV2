@@ -12,8 +12,8 @@ function StampaFrog({ size = 64 }: { size?: number }) {
 function StampaLogo({ dark = false }: { dark?: boolean }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-      <StampaFrog size={170} />
-      <img src="/stampa-wordmark.png" alt="Stampa" style={{ height: 300, objectFit: 'contain', marginLeft: -65, filter: dark ? 'brightness(0) saturate(100%) invert(8%) sepia(50%) saturate(1000%) hue-rotate(120deg)' : 'none' }} />
+      <StampaFrog size={92} />
+      <img src="/stampa-wordmark.png" alt="Stampa" style={{ height: 160, objectFit: 'contain', marginLeft: -35, filter: dark ? 'brightness(0) saturate(100%) invert(8%) sepia(50%) saturate(1000%) hue-rotate(120deg)' : 'none' }} />
     </div>
   )
 }
@@ -30,11 +30,11 @@ const CSS = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: var(--font-body); background: #FBF6EE; color: #2B2620; }
   .rg-shell { min-height: 100vh; display: flex; }
-  .rg-left { width: 450px; flex-shrink: 0; background: #01231A; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 40px; gap: 36px; }
-  .rg-left-title { font-family: var(--font-display); font-weight: 700; font-size: 28px; color: #F7EFE8; line-height: 1.25; text-align: center; }
+  .rg-left { width: 450px; flex-shrink: 0; background: #01231A; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 40px; gap: 20px; }
+  .rg-left-title { font-family: var(--font-display); font-weight: 700; font-size: 24px; color: #F7EFE8; line-height: 1.25; text-align: center; }
   .rg-left-title em { color: #E46C31; font-style: normal; }
-  .rg-steps { display: flex; flex-direction: column; gap: 14px; width: 100%; }
-  .rg-step { display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(247,239,232,.06); border-radius: 12px; }
+  .rg-steps { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+  .rg-step { display: flex; align-items: center; gap: 14px; padding: 10px 14px; background: rgba(247,239,232,.06); border-radius: 12px; }
   .rg-step-num { width: 28px; height: 28px; border-radius: 50%; background: #E46C31; color: #fff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: var(--font-display); }
   .rg-step-title { font-size: 13px; font-weight: 600; color: #F7EFE8; display: block; }
   .rg-step-sub { font-size: 11.5px; color: rgba(247,239,232,.45); margin-top: 1px; }
