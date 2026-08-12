@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
-import { BASE_URL } from '@/lib/api'
+import { BASE_URL, apiResyncPass } from '@/lib/api'
 
 interface Customer {
   id: string; name: string; email: string; progress: number; total: number
@@ -83,12 +83,33 @@ function CustomerPanel({ customer, onClose, onDelete }: {
 }) {
   const t = useLang()
   const [confirmDel, setConfirmDel] = useState(false)
+  const [resyncing, setResyncing] = useState(false)
+  const [resyncMsg, setResyncMsg] = useState<string | null>(null)
   const stamps = customer.cardType === 'stamp'
     ? Array.from({ length: customer.total }, (_: unknown, i: number) => i < customer.progress)
     : []
   const color = avatarColor(customer.name)
   const nearPrize = isNearPrize(customer)
   const cardTypeLabel = customer.cardType === 'stamp' ? 'Sellos' : customer.cardType === 'points' ? 'Puntos' : 'Membresía'
+
+  async function handleResync() {
+    const businessId = localStorage.getItem('stampa_business_id')
+    if (!businessId) return
+    setResyncing(true)
+    setResyncMsg(null)
+    try {
+      const res = await apiResyncPass(businessId, customer.id)
+      const { apple, google } = res.results
+      const parts: string[] = []
+      if (apple)  parts.push(apple.sent ? 'Apple ✓' : `Apple falló (${apple.error})`)
+      if (google) parts.push(google.sent ? 'Google ✓' : `Google falló (${google.error})`)
+      setResyncMsg(parts.length > 0 ? parts.join(' · ') : 'No hay pase de wallet asociado a este cliente todavía.')
+    } catch (err: any) {
+      setResyncMsg(err?.error || 'No se pudo resincronizar. Intentá de nuevo.')
+    } finally {
+      setResyncing(false)
+    }
+  }
 
   return (
     <div className="ct-panel">
@@ -142,6 +163,15 @@ function CustomerPanel({ customer, onClose, onDelete }: {
         ) : (
           <div className="ct-panel-progress-num" style={{ fontSize: 22 }}>Nivel {customer.membershipTier || 'Bronze'}</div>
         )}
+      </div>
+
+      <div className="ct-panel-section">
+        <button className="ct-resync-btn" onClick={handleResync} disabled={resyncing}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+          {resyncing ? 'Sincronizando...' : 'Re-sincronizar wallet'}
+        </button>
+        <div className="ct-resync-hint">Empuja el progreso real de la base al pase del celular del cliente, sin tocar sellos/puntos/nivel. Útil si el pase quedó desactualizado tras un error de escaneo o una corrección manual.</div>
+        {resyncMsg && <div className="ct-resync-msg">{resyncMsg}</div>}
       </div>
 
       <div className="ct-panel-section">
@@ -282,6 +312,10 @@ export function CustomersTab({
         .ct-panel-email{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:10px;text-align:center;}
         .ct-panel-badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;}
         .ct-panel-section{width:100%;margin-top:14px;padding-top:13px;border-top:1px solid rgba(43,38,32,.07);}
+        .ct-resync-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;font-size:12.5px;font-weight:600;padding:10px 14px;border-radius:9px;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.12);color:#2B2620;cursor:pointer;font-family:'Inter',sans-serif;}
+        .ct-resync-btn:disabled{opacity:.6;cursor:not-allowed;}
+        .ct-resync-hint{font-size:10.5px;color:rgba(43,38,32,.4);line-height:1.5;margin-top:7px;}
+        .ct-resync-msg{font-size:11.5px;color:#2B2620;background:rgba(43,38,32,.04);border-radius:8px;padding:8px 10px;margin-top:8px;}
         .ct-panel-section-title{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:rgba(43,38,32,.38);font-weight:700;margin-bottom:10px;}
         .ct-panel-progress-num{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;color:#C75D3A;margin-bottom:8px;}
         .ct-panel-progress-den{font-size:14px;color:rgba(43,38,32,.4);font-weight:500;}

@@ -185,6 +185,12 @@ export async function apiChangePassword(currentPassword: string, newPassword: st
   })
 }
 
+export async function apiResyncPass(businessId: string, customerId: string) {
+  return request<{ message: string; results: { apple: any; google: any } }>(`/api/businesses/${businessId}/customers/${customerId}/resync-pass`, {
+    method: 'POST',
+  })
+}
+
 export async function apiUpdateProfile(fullName: string) {
   return request<{ id: string; email: string; fullName: string }>('/api/auth/me', {
     method: 'PATCH',
