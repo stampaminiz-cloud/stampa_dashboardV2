@@ -120,6 +120,7 @@ const translations = {
     ct_inactive:      'Inactivos',
     ct_near_prize:    '★ Cerca del premio',
     ct_col_customer:  'Cliente',
+    ct_col_card:      'Tarjeta',
     ct_col_progress:  'Progreso',
     ct_col_status:    'Estado',
     ct_col_last:      'Última visita',

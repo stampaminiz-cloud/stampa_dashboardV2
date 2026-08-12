@@ -5,7 +5,7 @@
 // desde los componentes. Esto centraliza el manejo de tokens, errores
 // y la URL base.
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 export function getToken(): string | null {
@@ -153,6 +153,7 @@ export async function apiRegister(data: {
   fullName: string
   termsAccepted: string
   region?: string
+  plan?: string
 }) {
   const res = await request<{ token: string; owner: Owner }>('/api/auth/register', {
     method: 'POST',
@@ -181,6 +182,35 @@ export async function apiChangePassword(currentPassword: string, newPassword: st
   return request<{ success: boolean; message: string }>('/api/auth/change-password', {
     method: 'PATCH',
     body: { currentPassword, newPassword },
+  })
+}
+
+export async function apiResyncPass(businessId: string, customerId: string) {
+  return request<{ message: string; results: { apple: any; google: any } }>(`/api/businesses/${businessId}/customers/${customerId}/resync-pass`, {
+    method: 'POST',
+  })
+}
+
+export async function apiUpdateProfile(fullName: string) {
+  return request<{ id: string; email: string; fullName: string }>('/api/auth/me', {
+    method: 'PATCH',
+    body: { fullName },
+  })
+}
+
+export async function apiForgotPassword(email: string) {
+  return request<{ success: boolean; message: string; devResetUrl?: string }>('/api/auth/forgot-password', {
+    method: 'POST',
+    body: { email },
+    noAuth: true,
+  })
+}
+
+export async function apiResetPassword(token: string, newPassword: string) {
+  return request<{ success: boolean; message: string }>('/api/auth/reset-password', {
+    method: 'POST',
+    body: { token, newPassword },
+    noAuth: true,
   })
 }
 
