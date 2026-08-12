@@ -337,7 +337,7 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
   const axisSteps = [1, 0.75, 0.5, 0.25, 0].map(f => Math.round(chartMax * f))
 
   const ADVANCED = [
-    { v: `${analyticsData?.recurringRate ?? m.metrics?.recurringRate ?? 0}%`, l: t('recurring' as any), color: '#5B8C5A', bg: 'rgba(91,140,90,.1)' },
+    { v: `${analyticsData?.recurringRate ?? 0}%`, l: t('recurring' as any), color: '#5B8C5A', bg: 'rgba(91,140,90,.1)' },
     { v: analyticsData?.total > 0 ? `${Math.round((analyticsData?.active / analyticsData?.total) * 100)}%` : '0%', l: t('avg_progress' as any), color: '#185FA5', bg: 'rgba(24,95,165,.1)' },
     { v: `${analyticsData?.redemptionRate ?? 0}%`, l: t('redemption_rate' as any), color: '#C75D3A', bg: 'rgba(199,93,58,.1)' },
     { v: `${stampCard?.stampsRequired ?? 9}`, l: t('visits_to_prize' as any), color: '#9C7530', bg: 'rgba(212,162,76,.15)' },
@@ -602,26 +602,42 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 function mapCustomersForTab(rawCustomers: any[], activeCard: any) {
-  const total = activeCard?.stampsRequired || 8
-  return rawCustomers.map(c => ({
-    id: c.id,
-    name: c.name,
-    email: c.email,
-    progress: c.stamps ?? 0,
-    total,
-    dynamicField: c.favoriteDrink || (c.formResponses?.[0]?.value ?? '—'),
-    status: c.status,
-    joined: c.joinedAt,
-    dob: c.birthdate || '—',
-    preference: c.favoriteFood
-      ? `${c.favoriteFood === 'sweet' ? 'Dulce' : 'Salado'}${c.timeVisit ? ' · ' + (c.timeVisit === 'morning' ? 'Mañana' : 'Tarde') : ''}`
-      : '—',
-    lastActivity: formatRelativeTime(c.lastUpdate),
-    // No tenemos todavía un historial de canjes por cliente en el modelo de
-    // datos (solo el conteo agregado del negocio en rewards-stats) — queda
-    // en 0 hasta que se agregue esa colección/campo.
-    totalRedeemed: 0,
-  }))
+  const fallbackTotal = activeCard?.stampsRequired || 8
+  return rawCustomers.map(c => {
+    const cardType = c.cardType || activeCard?.type || 'stamp'
+    // Progreso por tipo de tarjeta — cada cliente se calcula con SU propia
+    // tarjeta (c.cardStampsRequired viene poblado desde el backend), no con
+    // una sola tarjeta elegida arbitrariamente para toda la tabla.
+    const progress = cardType === 'points' ? (c.pointsBalance ?? 0)
+      : cardType === 'membership' ? 0
+      : (c.stamps ?? 0)
+    const total = cardType === 'points' ? 0
+      : cardType === 'membership' ? 0
+      : (c.cardStampsRequired || fallbackTotal)
+    return {
+      id: c.id,
+      name: c.name,
+      email: c.email,
+      cardType,
+      cardName: c.cardName || activeCard?.name || null,
+      membershipTier: c.membershipTier || null,
+      progress,
+      total,
+      dynamicField: c.rewardFieldValue || '—',
+      dynamicFieldLabel: c.rewardFieldLabel || 'Premio',
+      status: c.status,
+      joined: c.joinedAt,
+      dob: c.birthdate || '—',
+      preference: c.favoriteFood
+        ? `${c.favoriteFood === 'sweet' ? 'Dulce' : 'Salado'}${c.timeVisit ? ' · ' + (c.timeVisit === 'morning' ? 'Mañana' : 'Tarde') : ''}`
+        : '—',
+      lastActivity: formatRelativeTime(c.lastUpdate),
+      // No tenemos todavía un historial de canjes por cliente en el modelo de
+      // datos (solo el conteo agregado del negocio en rewards-stats) — queda
+      // en 0 hasta que se agregue esa colección/campo.
+      totalRedeemed: 0,
+    }
+  })
 }
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
@@ -1065,7 +1081,6 @@ export default function DashboardPage() {
       case 'customers': return customersTotal > 0
         ? <CustomersTab
             customers={mapCustomersForTab(customers, cards.find((c: any) => c.isActive) || cards[0])}
-            dynamicFieldLabel="Bebida favorita"
             page={customersPage}
             totalPages={customersTotalPages}
             total={customersTotal}
