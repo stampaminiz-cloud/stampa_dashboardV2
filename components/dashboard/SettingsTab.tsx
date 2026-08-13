@@ -24,6 +24,27 @@ const SECTOR_LABELS: Record<string, string> = {
   other: 'Otro rubro',
 }
 
+// Lista completa de timezones IANA — usa el método nativo del navegador
+// (soportado en Chrome/Edge/Firefox y Safari 17+) para no tener que
+// mantener a mano una lista de ~400 zonas. Fallback chico para navegadores
+// viejos que todavía no lo soportan, priorizando España y Argentina ya que
+// son los mercados actuales de Stampa.
+const FALLBACK_TIMEZONES = [
+  'Europe/Madrid', 'Atlantic/Canary',
+  'America/Argentina/Buenos_Aires', 'America/Argentina/Cordoba', 'America/Argentina/Mendoza',
+  'UTC',
+]
+const ALL_TIMEZONES: string[] = (() => {
+  try {
+    // @ts-ignore — supportedValuesOf es bastante nuevo, puede no estar en el lib.d.ts del proyecto todavía
+    if (typeof Intl.supportedValuesOf === 'function') {
+      // @ts-ignore
+      return (Intl.supportedValuesOf('timeZone') as string[]).sort()
+    }
+  } catch { /* cae al fallback de abajo */ }
+  return FALLBACK_TIMEZONES
+})()
+
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="st-card">
@@ -292,6 +313,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         .st-field-label{font-size:12.5px;color:rgba(43,38,32,.6);}
         .st-field-value{display:flex;align-items:center;gap:8px;}
         .st-field-val{font-size:12.5px;font-weight:600;color:#2B2620;}
+        .st-timezone-select{font-size:12.5px;font-weight:600;color:#2B2620;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.12);border-radius:8px;padding:6px 10px;font-family:'Inter',sans-serif;cursor:pointer;}
         .st-inline-input{padding:5px 9px;font-size:12.5px;border:1.5px solid #C75D3A;border-radius:7px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;width:180px;outline:none;}
         .st-pw-input{padding:6px 10px;font-size:12.5px;border:1px solid rgba(43,38,32,.15);border-radius:7px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;width:200px;outline:none;}
         .st-pw-input:focus{border-color:#C75D3A;}
@@ -352,8 +374,16 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         <Section title={t('st_profile')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V8L3 4h18l-2 4v13"/><path d="M9 21v-6h6v6"/></svg>}>
           <FieldRow label={t('st_name')}><EditableText value={business.name} saveLabel={saving ? '...' : saved ? '✓' : t('save')} onSave={v => handleSave('name', v)} /></FieldRow>
           <FieldRow label={t('st_sector')}><SectorField value={business.sector} saving={saving} saved={saved} t={t} onSave={v => handleSave('sector', v)} /></FieldRow>
-          <FieldRow label={t('st_timezone')}><span className="st-field-val">{business.timezone}</span></FieldRow>
-          <div className="st-timezone-note">{t('st_timezone_note')}</div>
+          <FieldRow label={t('st_timezone')}>
+            <select
+              className="st-timezone-select"
+              value={business.timezone}
+              onChange={e => { setBusiness((prev: any) => ({ ...prev, timezone: e.target.value })); handleSave('timezone', e.target.value) }}
+            >
+              {ALL_TIMEZONES.map(tz => <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>)}
+            </select>
+          </FieldRow>
+          <div className="st-timezone-note">{t('st_timezone_note')} Afecta directamente el heatmap de "horas pico" en Analytics — sin esto bien seteado, esa sección mide en UTC, no en la hora real del local.</div>
         </Section>
 
         <Section title="Seguridad" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}>
