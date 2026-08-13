@@ -300,7 +300,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
         .an-card-selector{display:flex;gap:6px;flex:1;}
         .an-card-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
         .an-card-pill:hover{border-color:rgba(43,38,32,.25);}
-        .an-card-pill--on{background:#1E3329;border-color:#1E3329;color:#F7F0E4;font-weight:600;}
+        .an-card-pill--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;font-weight:600;}
         .an-range-group{display:flex;gap:5px;margin-left:auto;}
         .an-rpill{font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.5);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
         .an-rpill:hover{border-color:rgba(43,38,32,.25);}

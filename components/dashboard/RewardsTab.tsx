@@ -243,7 +243,7 @@ export function RewardsTab({ data, cards, businessId }: { data: RewardsData; car
         .rw-shell{flex:1;display:flex;flex-direction:column;overflow:hidden;}
         .rw-toolbar{display:flex;align-items:center;gap:8px;padding:12px 24px;background:#FFFFFF;border-bottom:1px solid rgba(43,38,32,.08);flex-shrink:0;}
         .rw-card-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
-        .rw-card-pill--on{background:#1E3329;border-color:#1E3329;color:#F7F0E4;font-weight:600;}
+        .rw-card-pill--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;font-weight:600;}
         .rw-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
         .rw-empty-note{font-size:12px;color:rgba(43,38,32,.45);padding:8px 0;}
         .rw-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(43,38,32,.04);}

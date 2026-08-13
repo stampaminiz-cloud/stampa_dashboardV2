@@ -220,7 +220,9 @@ function CustomFieldBuilder({ fields, onChange, maxCustom }: { fields: FormField
           </button>
         </div>
       ))}
-      {fields.length < maxCustom
+      {maxCustom === 0
+        ? <div className="fm-max-note">Los campos personalizados están disponibles desde el plan Growth.</div>
+        : fields.length < maxCustom
         ? <button className="fm-add-field-btn" onClick={add}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Agregar campo personalizado ({fields.length}/{maxCustom})
@@ -283,7 +285,7 @@ function ShareSection({ businessName, slug }: { businessName: string; slug: stri
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function FormTab({ businessName, businessSlug, cardDesigns, businessId }: FormTabProps) {
   const { can, limit } = usePlan()
-  const MAX_CUSTOM = limit('maxCustomFields') || 3
+  const MAX_CUSTOM = limit('maxCustomFields')
   const activeCards = cardDesigns.filter((c: CardDesign) => c.isActive)
   const [selectedCardId, setSelectedCardId] = useState<string>(activeCards[0]?.id || '')
   const [loadingFields, setLoadingFields] = useState(false)
@@ -320,7 +322,7 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
 
 
   // Branding state
-  const [brandColor, setBrandColor] = useState(selectedCard?.color || '#1E3329')
+  const [brandColor, setBrandColor] = useState(selectedCard?.color || '#1B412F')
   const [brandLogo, setBrandLogo]   = useState<string | null>(null)
   const logoRef = useRef<HTMLInputElement>(null)
 
@@ -449,7 +451,7 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
         /* ── Card selector ── */
         .fm-card-selector{display:flex;gap:6px;}
         .fm-card-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
-        .fm-card-pill--on{background:#1E3329;border-color:#1E3329;color:#F7F0E4;font-weight:600;}
+        .fm-card-pill--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;font-weight:600;}
 
         /* ── Branding ── */
         .fm-brand-grid{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;}
@@ -628,7 +630,7 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
                   <div>
                     <div className="fm-brand-field-label">Color principal</div>
                     <div className="fm-color-row">
-                      {['#1E3329','#C75D3A','#185FA5','#533FB7','#2C2C2A','#854F0B'].map(col => (
+                      {['#1B412F','#C75D3A','#185FA5','#533FB7','#2C2C2A','#854F0B'].map(col => (
                         <button key={col} className={`fm-color-swatch${brandColor === col ? ' fm-color-swatch--on' : ''}`}
                           style={{ background: col }} onClick={() => setBrandColor(col)} />
                       ))}
@@ -637,7 +639,7 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
                       </label>
                       <input type="text" className="fm-hex-input" value={brandColor}
                         onChange={e => /^#[0-9A-Fa-f]{0,6}$/.test(e.target.value) && setBrandColor(e.target.value)}
-                        placeholder="#1E3329" maxLength={7} />
+                        placeholder="#1B412F" maxLength={7} />
                     </div>
                   </div>
                 </div>
@@ -698,7 +700,7 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
             {/* Custom */}
             <div className="fm-card">
               <div className="fm-card-title">Campos personalizados</div>
-              <div className="fm-card-sub">Hasta {MAX_CUSTOM} campos propios de tu negocio</div>
+              <div className="fm-card-sub">{MAX_CUSTOM > 0 ? `Hasta ${MAX_CUSTOM} campos propios de tu negocio` : 'Función exclusiva de planes pagos'}</div>
               <CustomFieldBuilder fields={custom} onChange={setCustom} maxCustom={MAX_CUSTOM} />
             </div>
 

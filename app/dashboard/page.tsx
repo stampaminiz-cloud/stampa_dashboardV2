@@ -632,7 +632,7 @@ const CSS = `
   .db-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
 
   /* ── Sidebar ── */
-  .db-sb{width:230px;flex-shrink:0;background:#1E3329;display:flex;flex-direction:column;padding:6px 12px;transition:width .25s ease;}
+  .db-sb{width:230px;flex-shrink:0;background:#1B412F;display:flex;flex-direction:column;padding:6px 12px;transition:width .25s ease;}
   .db-sb--collapsed{width:68px;}
   .sb-overlay{display:none;}
   .sb-logo{display:flex;align-items:center;gap:10px;padding:0px 8px 16px;}
@@ -928,8 +928,8 @@ export default function DashboardPage() {
             name:           c.name,
             type:           c.type,
             isActive:       c.isActive,
-            color:          c.color || '#1E3329',
-            secondColor:    c.secondColor || '#16271F',
+            color:          c.color || '#1B412F',
+            secondColor:    c.secondColor || '#132F22',
             stampsRequired: c.stampsRequired || 8,
             rewardMode:     c.rewardMode || null,
             rewardField:    c.rewardFixedValue || null,
@@ -976,8 +976,8 @@ export default function DashboardPage() {
         name:           c.name,
         type:           c.type,
         isActive:       c.isActive,
-        color:          c.color || '#1E3329',
-        secondColor:    c.secondColor || '#16271F',
+        color:          c.color || '#1B412F',
+        secondColor:    c.secondColor || '#132F22',
         stampsRequired: c.stampsRequired || 8,
         rewardMode:     c.rewardMode || null,
         rewardField:    c.rewardFixedValue || null,

@@ -141,7 +141,7 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
     <>
       <style>{`
         .us-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
-        .us-scanner-app-card{display:flex;align-items:center;gap:14px;background:#1E3329;border-radius:14px;padding:16px 18px;flex-wrap:wrap;}
+        .us-scanner-app-card{display:flex;align-items:center;gap:14px;background:#1B412F;border-radius:14px;padding:16px 18px;flex-wrap:wrap;}
         .us-scanner-app-icon{width:38px;height:38px;border-radius:10px;background:rgba(247,240,228,.1);color:#F7F0E4;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
         .us-scanner-app-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;color:#F7F0E4;}
         .us-scanner-app-sub{font-size:11.5px;color:rgba(247,240,228,.6);margin-top:2px;}
