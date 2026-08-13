@@ -24,26 +24,43 @@ const SECTOR_LABELS: Record<string, string> = {
   other: 'Otro rubro',
 }
 
-// Lista completa de timezones IANA — usa el método nativo del navegador
-// (soportado en Chrome/Edge/Firefox y Safari 17+) para no tener que
-// mantener a mano una lista de ~400 zonas. Fallback chico para navegadores
-// viejos que todavía no lo soportan, priorizando España y Argentina ya que
-// son los mercados actuales de Stampa.
-const FALLBACK_TIMEZONES = [
-  'Europe/Madrid', 'Atlantic/Canary',
-  'America/Argentina/Buenos_Aires', 'America/Argentina/Cordoba', 'America/Argentina/Mendoza',
-  'UTC',
+// Timezone por país — 30 países comunes, priorizando España/Argentina y el
+// resto de Latam (mercados actuales de Stampa) más los países más
+// frecuentes en general. Un país = un timezone representativo (el de su
+// capital/ciudad principal), no todos los países tienen uno solo pero
+// alcanza para este selector.
+const COUNTRY_TIMEZONES: Array<{ country: string; tz: string }> = [
+  { country: 'España', tz: 'Europe/Madrid' },
+  { country: 'Argentina', tz: 'America/Argentina/Buenos_Aires' },
+  { country: 'México', tz: 'America/Mexico_City' },
+  { country: 'Colombia', tz: 'America/Bogota' },
+  { country: 'Chile', tz: 'America/Santiago' },
+  { country: 'Perú', tz: 'America/Lima' },
+  { country: 'Uruguay', tz: 'America/Montevideo' },
+  { country: 'Paraguay', tz: 'America/Asuncion' },
+  { country: 'Bolivia', tz: 'America/La_Paz' },
+  { country: 'Ecuador', tz: 'America/Guayaquil' },
+  { country: 'Venezuela', tz: 'America/Caracas' },
+  { country: 'Brasil', tz: 'America/Sao_Paulo' },
+  { country: 'Estados Unidos (Este)', tz: 'America/New_York' },
+  { country: 'Estados Unidos (Centro)', tz: 'America/Chicago' },
+  { country: 'Estados Unidos (Montaña)', tz: 'America/Denver' },
+  { country: 'Estados Unidos (Pacífico)', tz: 'America/Los_Angeles' },
+  { country: 'Canadá', tz: 'America/Toronto' },
+  { country: 'Reino Unido', tz: 'Europe/London' },
+  { country: 'Francia', tz: 'Europe/Paris' },
+  { country: 'Alemania', tz: 'Europe/Berlin' },
+  { country: 'Italia', tz: 'Europe/Rome' },
+  { country: 'Portugal', tz: 'Europe/Lisbon' },
+  { country: 'Países Bajos', tz: 'Europe/Amsterdam' },
+  { country: 'Suiza', tz: 'Europe/Zurich' },
+  { country: 'Irlanda', tz: 'Europe/Dublin' },
+  { country: 'Andorra', tz: 'Europe/Andorra' },
+  { country: 'Marruecos', tz: 'Africa/Casablanca' },
+  { country: 'Japón', tz: 'Asia/Tokyo' },
+  { country: 'China', tz: 'Asia/Shanghai' },
+  { country: 'Australia', tz: 'Australia/Sydney' },
 ]
-const ALL_TIMEZONES: string[] = (() => {
-  try {
-    // @ts-ignore — supportedValuesOf es bastante nuevo, puede no estar en el lib.d.ts del proyecto todavía
-    if (typeof Intl.supportedValuesOf === 'function') {
-      // @ts-ignore
-      return (Intl.supportedValuesOf('timeZone') as string[]).sort()
-    }
-  } catch { /* cae al fallback de abajo */ }
-  return FALLBACK_TIMEZONES
-})()
 
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -380,7 +397,10 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
               value={business.timezone}
               onChange={e => { setBusiness((prev: any) => ({ ...prev, timezone: e.target.value })); handleSave('timezone', e.target.value) }}
             >
-              {ALL_TIMEZONES.map(tz => <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>)}
+              {COUNTRY_TIMEZONES.map(({ country, tz }) => <option key={tz} value={tz}>{country}</option>)}
+              {!COUNTRY_TIMEZONES.some(c => c.tz === business.timezone) && (
+                <option value={business.timezone}>{business.timezone} (actual)</option>
+              )}
             </select>
           </FieldRow>
           <div className="st-timezone-note">{t('st_timezone_note')} Afecta directamente el heatmap de "horas pico" en Analytics — sin esto bien seteado, esa sección mide en UTC, no en la hora real del local.</div>
