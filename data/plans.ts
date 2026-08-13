@@ -9,7 +9,8 @@ export type Plan = 'Starter' | 'Growth' | 'Pro' | 'Enterprise'
 
 export interface PlanLimits {
   maxActiveCards:   number        // active card types allowed
-  customColors:     boolean       // hex + color picker
+  customColors:     boolean       // hex + color picker (color 100% libre)
+  extraColorPresets:boolean       // los 3 presets extra (8 en vez de 5) — escalón intermedio antes del hex libre
   maxCustomFields:  number        // form builder custom fields
   maxTeamMembers:   number        // managers + scanners
   monthlyNotifs:    number        // push notifications per month
@@ -23,6 +24,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   Starter: {
     maxActiveCards:  1,
     customColors:    false,
+    extraColorPresets:false,
     maxCustomFields: 0,
     maxTeamMembers:  1,
     monthlyNotifs:   100,
@@ -33,7 +35,8 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   },
   Growth: {
     maxActiveCards:  3,
-    customColors:    true,
+    customColors:    false,       // color libre queda reservado para Pro+ — acá se sube a 8 presets curados
+    extraColorPresets:true,
     maxCustomFields: 3,
     maxTeamMembers:  5,
     monthlyNotifs:   1000,
@@ -45,6 +48,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   Pro: {
     maxActiveCards:  999,
     customColors:    true,
+    extraColorPresets:true,
     maxCustomFields: 3,
     maxTeamMembers:  999,
     monthlyNotifs:   999999,
@@ -56,6 +60,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   Enterprise: {
     maxActiveCards:  999,
     customColors:    true,
+    extraColorPresets:true,
     maxCustomFields: 10,
     maxTeamMembers:  999,
     monthlyNotifs:   999999,
@@ -77,7 +82,8 @@ export const PLAN_PRICE: Record<Plan, string> = {
 // ─── Feature descriptions (for upgrade prompts) ───────────────────────────────
 export const FEATURE_LABELS: Record<keyof PlanLimits, string> = {
   maxActiveCards:  'Tipos de tarjeta activos',
-  customColors:    'Color personalizado',
+  customColors:    'Color 100% libre',
+  extraColorPresets:'Paleta ampliada (8 colores)',
   maxCustomFields: 'Campos personalizados en el formulario',
   maxTeamMembers:  'Miembros del equipo',
   monthlyNotifs:   'Notificaciones push por mes',

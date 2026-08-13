@@ -61,6 +61,14 @@ const COLOR_PRESETS = [
   { label: 'Carbón',     start: '#2C2C2A', end: '#141414' },
 ]
 
+// Desbloqueados desde Growth (extraColorPresets) — antes de llegar al color
+// 100% libre que es exclusivo de Pro+.
+const EXTRA_COLOR_PRESETS = [
+  { label: 'Coral',          start: '#D4537E', end: '#993556' },
+  { label: 'Mostaza',        start: '#EF9F27', end: '#854F0B' },
+  { label: 'Verde azulado',  start: '#1D9E75', end: '#0F6E56' },
+]
+
 const DEFAULT_TIERS: MembershipTier[] = [
   { id: '1', name: 'Bronze', threshold: 0,  perk: 'Bienvenido',           color: '#854F0B', bg: '#FAEEDA' },
   { id: '2', name: 'Silver', threshold: 10, perk: '5% de descuento',      color: '#444441', bg: '#EAEAEA' },
@@ -75,10 +83,6 @@ function darkenHex(hex: string, factor = 0.72): string {
   const g = Math.round(parseInt(c.slice(2,4), 16) * factor)
   const b = Math.round(parseInt(c.slice(4,6), 16) * factor)
   return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`
-}
-
-function planAllowsCustomColor(plan: string) {
-  return ['Growth', 'Pro', 'Enterprise'].includes(plan)
 }
 
 // ─── QR Code placeholder ──────────────────────────────────────────────────────
@@ -125,9 +129,11 @@ function LogoUpload({ label, hint, value, onChange }: {
 }
 
 // ─── Color Picker ─────────────────────────────────────────────────────────────
-function ColorPicker({ color, plan, onChange }: { color: string; plan: string; onChange: (s: string, e: string) => void }) {
+function ColorPicker({ color, onChange }: { color: string; onChange: (s: string, e: string) => void }) {
   const [hex, setHex] = useState(color)
-  const allowsCustom = planAllowsCustomColor(plan)
+  const { can } = usePlan()
+  const allowsExtraPresets = can('extraColorPresets')
+  const allowsCustom = can('customColors')
   function applyHex(val: string) {
     setHex(val)
     if (/^#[0-9A-Fa-f]{6}$/.test(val)) onChange(val, darkenHex(val))
@@ -140,7 +146,18 @@ function ColorPicker({ color, plan, onChange }: { color: string; plan: string; o
             style={{ background: start }} title={label}
             onClick={() => { setHex(start); onChange(start, end) }} />
         ))}
+        {allowsExtraPresets && EXTRA_COLOR_PRESETS.map(({ label, start, end }) => (
+          <button key={label} className={`dt-color-dot${color === start ? ' dt-color-dot--on' : ''}`}
+            style={{ background: start }} title={label}
+            onClick={() => { setHex(start); onChange(start, end) }} />
+        ))}
       </div>
+      {!allowsExtraPresets && (
+        <div className="dt-upgrade-color-note">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          +3 colores más · Plan Growth o superior
+        </div>
+      )}
       {allowsCustom ? (
         <div className="dt-custom-color-row">
           <label className="dt-custom-swatch" style={{ background: hex }}>
@@ -152,7 +169,7 @@ function ColorPicker({ color, plan, onChange }: { color: string; plan: string; o
       ) : (
         <div className="dt-upgrade-color-note">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          Color personalizado · Plan Growth o superior
+          Color 100% libre · Plan Pro o superior
         </div>
       )}
     </div>
@@ -412,7 +429,6 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
   const rewardSourceLabel = rewardSource?.label || 'Sin configurar'
 
   function setLogo(key: keyof LogoState) { return (url: string | null) => setLogos({ ...logos, [key]: url }) }
-  function setRewardSource(id: string) { setFields(fields.map((f: FormField) => ({ ...f, isRewardSource: f.id === id }))) }
   function toggleField(id: string) { setFields(fields.map((f: FormField) => f.id === id && !f.isLocked ? { ...f, isActive: !f.isActive } : f)) }
   async function handleSave() {
     if (!businessId) {
@@ -576,15 +592,13 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
                 </div>
                 {card.rewardMode === 'dynamic' && (
                   <div className="dt-field-picker">
-                    <div className="dt-field-picker-label">Campo a usar como premio</div>
-                    {fields.filter((f: FormField) => !f.isLocked && f.isActive).map((f: FormField) => (
-                      <div key={f.id} className={`dt-field-row${f.isRewardSource ? ' dt-field-row--selected' : ''}`} onClick={() => setRewardSource(f.id)} style={{ cursor: 'pointer' }}>
-                        <span className="dt-field-label-text">{f.label}</span>
-                        <div className={`dt-radio-dot-outer${f.isRewardSource ? ' dt-radio-dot-outer--on' : ''}`}>
-                          {f.isRewardSource && <div className="dt-radio-dot-inner" />}
-                        </div>
-                      </div>
-                    ))}
+                    {(() => {
+                      const selected = fields.find((f: FormField) => f.isRewardSource)
+                      return selected
+                        ? <div className="dt-reward-current">Hoy usa <strong>"{selected.label}"</strong> como premio.</div>
+                        : <div className="dt-reward-current dt-reward-current--empty">Todavía no elegiste qué campo usar como premio.</div>
+                    })()}
+                    <div className="dt-reward-goto-forms">Se configura desde la tab <strong>Forms</strong> (tocá la ★ en el campo que quieras usar) — así no queda el mismo dato editable en dos lugares distintos.</div>
                   </div>
                 )}
                 <div className={`dt-reward-opt${card.rewardMode === 'fixed' ? ' dt-reward-opt--on' : ''}`} onClick={() => setCard({ ...card, rewardMode: 'fixed' })}>
@@ -642,7 +656,7 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
           {/* Appearance */}
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Apariencia de la tarjeta</div>
           <div className="dt-appearance-label">Color de fondo</div>
-          <ColorPicker color={card.color} plan={plan} onChange={(s, e) => setCard({ ...card, color: s, secondColor: e })} />
+          <ColorPicker color={card.color} onChange={(s, e) => setCard({ ...card, color: s, secondColor: e })} />
 
           {card.type === 'stamp' && (
             <>
@@ -1129,6 +1143,9 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
         .dt-reward-opt-desc{font-size:10px;color:rgba(43,38,32,.5);margin-top:2px;}
         .dt-field-picker{padding:10px;background:#FBF6EE;border-radius:9px;display:flex;flex-direction:column;gap:4px;}
         .dt-field-picker-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.4);font-weight:700;margin-bottom:4px;}
+        .dt-reward-current{font-size:12px;color:#2B2620;}
+        .dt-reward-current--empty{color:rgba(43,38,32,.5);font-style:italic;}
+        .dt-reward-goto-forms{font-size:10.5px;color:rgba(43,38,32,.5);margin-top:4px;line-height:1.5;}
         .dt-prize-input{width:100%;padding:9px 12px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:9px;background:#FFFFFF;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
         .dt-prize-input:focus{border-color:#C75D3A;}
         /* Points config */
