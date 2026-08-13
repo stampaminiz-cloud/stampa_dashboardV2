@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { apiUpdateBusiness, apiChangePassword, apiUpdateProfile } from '@/lib/api'
+import { apiUpdateBusiness, apiChangePassword, apiUpdateProfile, apiExportCustomers, apiRequestDeletion, apiCancelDeletion } from '@/lib/api'
 import { useLang } from '@/data/i18n'
 
 interface BusinessAlerts { newCustomer: boolean; nearPrize: boolean; weeklyDigest: boolean }
@@ -206,14 +206,59 @@ function CheckboxRow({ label, checked: init, description, onToggle }: { label: s
   )
 }
 
-export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', onSave }: { business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; onSave?: () => void }) {
+export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', deletionRequestedAt = null, onSave }: { business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; deletionRequestedAt?: string | null; onSave?: () => void }) {
   const t = useLang()
   const [business, setBusiness]       = useState(mockBusiness)
   const [inactiveDays, setInactiveDays] = useState(mockBusiness.inactiveDays)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [saving, setSaving]           = useState(false)
   const [saved, setSaved]             = useState(false)
+  const [exporting, setExporting]     = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const [deletionState, setDeletionState] = useState<string | null>(deletionRequestedAt)
+  const [deletionMsg, setDeletionMsg] = useState<string | null>(null)
+  const [deletionLoading, setDeletionLoading] = useState(false)
   // businessId and real business data come from dashboard-page.tsx as props
+
+  async function handleExport() {
+    if (!businessId) return
+    setExporting(true)
+    setExportError(null)
+    try {
+      await apiExportCustomers(businessId)
+    } catch (err: any) {
+      setExportError(err?.message || 'No se pudo exportar. Intentá de nuevo.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  async function handleConfirmDeletion() {
+    setDeletionLoading(true)
+    try {
+      const res = await apiRequestDeletion()
+      setDeletionState(new Date().toISOString())
+      setDeletionMsg(res.message)
+      setShowDeleteConfirm(false)
+    } catch (err: any) {
+      setDeletionMsg(err?.error || 'No se pudo procesar la solicitud. Intentá de nuevo.')
+    } finally {
+      setDeletionLoading(false)
+    }
+  }
+
+  async function handleCancelDeletion() {
+    setDeletionLoading(true)
+    try {
+      await apiCancelDeletion()
+      setDeletionState(null)
+      setDeletionMsg('Eliminación cancelada. Tu cuenta sigue activa.')
+    } catch (err: any) {
+      setDeletionMsg(err?.error || 'No se pudo cancelar. Intentá de nuevo.')
+    } finally {
+      setDeletionLoading(false)
+    }
+  }
 
   async function handleSave(field: string, value: any) {
     console.log('handleSave:', { field, value, businessId })
@@ -353,18 +398,42 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           </div>
           <div className="st-danger-row">
             <span className="st-danger-label">{t('st_export')}</span>
-            <button className="st-danger-link">{t('st_export_btn')}</button>
+            <button className="st-danger-link" onClick={handleExport} disabled={exporting}>
+              {exporting ? 'Exportando...' : t('st_export_btn')}
+            </button>
           </div>
-          <div className="st-danger-row">
-            <span className="st-danger-label">{t('st_delete')}</span>
-            <button className="st-danger-link" onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}>{t('st_delete_btn')}</button>
-          </div>
-          {showDeleteConfirm && (
+          {exportError && <div className="st-delete-confirm" style={{ borderColor: 'rgba(178,59,59,.3)' }}><p style={{ color: '#B23B3B' }}>{exportError}</p></div>}
+
+          {deletionState ? (
             <div className="st-delete-confirm">
-              <p>{t('st_delete_confirm')}</p>
+              <p>
+                Tu cuenta está programada para eliminarse el{' '}
+                <strong>{new Date(new Date(deletionState).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('es-AR')}</strong>.
+                Hasta ese momento podés cancelarlo cuando quieras.
+              </p>
               <div className="st-delete-actions">
-                <button className="st-delete-btn-cancel" onClick={() => setShowDeleteConfirm(false)}>{t('cancel')}</button>
-                <button className="st-delete-btn-confirm">{t('st_delete_yes')}</button>
+                <button className="st-delete-btn-cancel" onClick={handleCancelDeletion} disabled={deletionLoading}>
+                  {deletionLoading ? '...' : 'Cancelar eliminación'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="st-danger-row">
+              <span className="st-danger-label">{t('st_delete')}</span>
+              <button className="st-danger-link" onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}>{t('st_delete_btn')}</button>
+            </div>
+          )}
+
+          {deletionMsg && !deletionState && <div className="st-delete-confirm"><p>{deletionMsg}</p></div>}
+
+          {showDeleteConfirm && !deletionState && (
+            <div className="st-delete-confirm">
+              <p>Tu cuenta va a quedar marcada para eliminar. Vas a tener <strong>30 días</strong> para cancelarlo volviendo a loguearte y tocando "Cancelar eliminación" acá mismo — después de eso, se borra todo de forma definitiva (negocio, tarjetas, clientes, todo).</p>
+              <div className="st-delete-actions">
+                <button className="st-delete-btn-cancel" onClick={() => setShowDeleteConfirm(false)} disabled={deletionLoading}>{t('cancel')}</button>
+                <button className="st-delete-btn-confirm" onClick={handleConfirmDeletion} disabled={deletionLoading}>
+                  {deletionLoading ? '...' : t('st_delete_yes')}
+                </button>
               </div>
             </div>
           )}

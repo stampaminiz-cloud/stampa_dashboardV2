@@ -1136,6 +1136,7 @@ export default function DashboardPage() {
           onSave={loadBusiness}
           ownerName={owner?.fullName || ''}
           ownerEmail={owner?.email || ''}
+          deletionRequestedAt={owner?.deletionRequestedAt || null}
           business={business ? {
             ...mockData.business,
             name: business.name,

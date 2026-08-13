@@ -191,6 +191,34 @@ export async function apiResyncPass(businessId: string, customerId: string) {
   })
 }
 
+export async function apiExportCustomers(businessId: string) {
+  const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/customers/export`, {
+    headers: { Authorization: 'Bearer ' + getToken() },
+  })
+  if (!res.ok) throw new Error('No se pudo exportar los clientes.')
+  const blob = await res.blob()
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = res.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'clientes.csv'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  window.URL.revokeObjectURL(url)
+}
+
+export async function apiRequestDeletion() {
+  return request<{ success: boolean; message: string; purgeDate: string }>('/api/auth/request-deletion', {
+    method: 'POST',
+  })
+}
+
+export async function apiCancelDeletion() {
+  return request<{ success: boolean; message: string }>('/api/auth/cancel-deletion', {
+    method: 'POST',
+  })
+}
+
 export async function apiUpdateProfile(fullName: string) {
   return request<{ id: string; email: string; fullName: string }>('/api/auth/me', {
     method: 'PATCH',
