@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
-import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiUpdateField } from '@/lib/api'
+import { apiCreateCard, apiUpdateCard, apiDeleteCard } from '@/lib/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CardType = "stamp" | "points" | "membership"
@@ -19,6 +19,10 @@ interface CardDesign {
   logoUrl?: string | null
   earnedIcon?: string | null
   emptyIcon?: string | null
+  flipImageUrl?: string | null
+  flipMessage?: string | null
+  flipSubMessage?: string | null
+  pointsPerVisit?: number | null
 }
 
 interface FormField {
@@ -54,7 +58,7 @@ interface DesignData {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const COLOR_PRESETS = [
-  { label: 'Bosque',     start: '#1E3329', end: '#16271F' },
+  { label: 'Bosque',     start: '#1B412F', end: '#132F22' },
   { label: 'Océano',     start: '#185FA5', end: '#0C447C' },
   { label: 'Terracota',  start: '#993C1D', end: '#712B13' },
   { label: 'Violeta',    start: '#533FB7', end: '#3C3489' },
@@ -161,9 +165,9 @@ function ColorPicker({ color, onChange }: { color: string; onChange: (s: string,
       {allowsCustom ? (
         <div className="dt-custom-color-row">
           <label className="dt-custom-swatch" style={{ background: hex }}>
-            <input type="color" value={hex.length === 7 ? hex : '#1E3329'} onChange={e => applyHex(e.target.value)} className="dt-color-native" />
+            <input type="color" value={hex.length === 7 ? hex : '#1B412F'} onChange={e => applyHex(e.target.value)} className="dt-color-native" />
           </label>
-          <input type="text" className="dt-hex-input" value={hex} onChange={e => applyHex(e.target.value)} placeholder="#1E3329" maxLength={7} />
+          <input type="text" className="dt-hex-input" value={hex} onChange={e => applyHex(e.target.value)} placeholder="#1B412F" maxLength={7} />
           <span className="dt-hex-label">Personalizado</span>
         </div>
       ) : (
@@ -242,7 +246,7 @@ function RealPassPreview({ design, logos, rewardSourceLabel, tiers, previewTierI
             {design.type === 'stamp' ? 'PREMIO' : design.type === 'membership' ? 'NIVEL' : 'PUNTOS'}
           </div>
           <div className="dt-real-pass-info-val">
-            {design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : 'Café gratis')
+            {design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : (design.rewardField || 'Premio'))
             : design.type === 'membership' ? activeTier.name
             : '120 pts'}
           </div>
@@ -300,7 +304,7 @@ function GooglePreview({ design, logos, rewardSourceLabel, tiers, previewTierInd
         <div className="dt-gpass-info-row"><span className="dt-gpass-field-label">Titular</span><span className="dt-gpass-info-val">Matias Marini</span></div>
         <div className="dt-gpass-info-row">
           <span className="dt-gpass-field-label">{design.type === 'stamp' ? 'Premio' : design.type === 'membership' ? 'Nivel' : 'Puntos'}</span>
-          <span className="dt-gpass-info-val">{design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : 'Café gratis') : design.type === 'membership' ? activeTier?.name : '120'}</span>
+          <span className="dt-gpass-info-val">{design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : (design.rewardField || 'Premio')) : design.type === 'membership' ? activeTier?.name : '120'}</span>
         </div>
       </div>
       <div className="dt-gpass-qr-wrap"><QRCode size={60} /><div className="dt-gpass-qr-label">Powered by Stampa</div></div>
@@ -342,54 +346,6 @@ function MiniPass({ design, logos }: { design: CardDesign; logos: LogoState }) {
   )
 }
 
-// ─── Draggable fields ─────────────────────────────────────────────────────────
-function DraggableFields({ fields, onReorder, onToggle }: {
-  fields: FormField[]; onReorder: (f: FormField[]) => void; onToggle: (id: string) => void
-}) {
-  const dragIndex = useRef<number | null>(null)
-  function handleDragStart(i: number) { dragIndex.current = i }
-  function handleDragEnter(i: number) {
-    if (dragIndex.current === null || dragIndex.current === i) return
-    const arr = [...fields]
-    const dragged = arr.splice(dragIndex.current, 1)[0]
-    arr.splice(i, 0, dragged)
-    dragIndex.current = i
-    onReorder(arr)
-  }
-  function handleDragEnd() { dragIndex.current = null }
-  return (
-    <div className="dt-fields-list">
-      {fields.map((f: FormField, i: number) => (
-        <div key={f.id} className={`dt-field-row${!f.isActive ? ' dt-field-row--inactive' : ''}`}
-          draggable={!f.isLocked}
-          onDragStart={() => !f.isLocked && handleDragStart(i)}
-          onDragEnter={() => !f.isLocked && handleDragEnter(i)}
-          onDragEnd={handleDragEnd}
-          onDragOver={e => e.preventDefault()}>
-          <div className={`dt-grip-wrap${f.isLocked ? ' dt-grip-wrap--locked' : ''}`}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-              <circle cx="9" cy="5" r="1.5" fill="currentColor"/><circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="9" cy="19" r="1.5" fill="currentColor"/>
-              <circle cx="15" cy="5" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="19" r="1.5" fill="currentColor"/>
-            </svg>
-          </div>
-          <span className="dt-field-label-text">{f.label}</span>
-          <div className="dt-field-actions">
-            {f.isLocked
-              ? <span className="dt-locked-badge">Requerido</span>
-              : <button className="dt-toggle-field" onClick={() => onToggle(f.id)} title={f.isActive ? 'Ocultar' : 'Mostrar'}>
-                  {f.isActive
-                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                  }
-                </button>
-            }
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 // ─── Card Editor ──────────────────────────────────────────────────────────────
 function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
   card: CardDesign; formFields: FormField[]; businessId?: string | null; onSaved?: () => void; onBack: () => void
@@ -398,7 +354,7 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
   const t = useLang()
   const [card, setCard] = useState<CardDesign>(init)
   const [fields, setFields] = useState<FormField[]>([...formFields].sort((a, b) => a.order - b.order))
-  const [tiers] = useState<MembershipTier[]>(DEFAULT_TIERS)
+  const [tiers, setTiers] = useState<MembershipTier[]>(DEFAULT_TIERS)
   const [logos, setLogos] = useState<LogoState>({
     businessLogo: init.logoUrl || null,
     earnedIcon: init.earnedIcon || null,
@@ -410,13 +366,13 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
-  const [pointsPerVisit, setPointsPerVisit] = useState(10)
+  const [pointsPerVisit, setPointsPerVisit] = useState(init.pointsPerVisit || 10)
   // Flip card state
   const [previewSide, setPreviewSide]       = useState<'front' | 'prize'>('front')
-  const [flipMessage, setFlipMessage]       = useState('¡Lo lograste!')
-  const [flipSubMessage, setFlipSubMessage] = useState('Presentá esta tarjeta para canjear tu premio')
+  const [flipMessage, setFlipMessage]       = useState(init.flipMessage || '¡Lo lograste!')
+  const [flipSubMessage, setFlipSubMessage] = useState(init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio')
   const [isFlipping, setIsFlipping]         = useState(false)
-  const [prizeImage, setPrizeImage]           = useState<string | null>(null)
+  const [prizeImage, setPrizeImage]           = useState<string | null>(card.flipImageUrl || null)
   const prizeImageRef                         = useRef<HTMLInputElement>(null)
 
   function switchSide(side: 'front' | 'prize') {
@@ -429,7 +385,6 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
   const rewardSourceLabel = rewardSource?.label || 'Sin configurar'
 
   function setLogo(key: keyof LogoState) { return (url: string | null) => setLogos({ ...logos, [key]: url }) }
-  function toggleField(id: string) { setFields(fields.map((f: FormField) => f.id === id && !f.isLocked ? { ...f, isActive: !f.isActive } : f)) }
   async function handleSave() {
     if (!businessId) {
       setSaveError('No se encontró el negocio — recargá la página e intentá de nuevo.')
@@ -440,26 +395,21 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
     try {
       await apiUpdateCard(businessId, card.id, {
         name: card.name,
+        type: card.type,
         color: card.color,
         secondColor: card.secondColor,
         isActive: card.isActive,
         stampsRequired: card.stampsRequired,
+        pointsPerVisit,
         rewardMode: (card.rewardMode as any) || undefined,
         rewardFixedValue: card.rewardField || undefined,
         flipMessage,
         flipSubMessage,
+        flipImageUrl: prizeImage || undefined,
         logoUrl: logos.businessLogo || undefined,
         earnedIcon: logos.earnedIcon || undefined,
         emptyIcon: logos.emptyIcon || undefined,
       })
-
-      // Los campos del formulario (activo/inactivo, cuál es el reward source)
-      // se guardan aparte, uno por uno — mismo patrón que ya usa el FormTab.
-      await Promise.all(
-        fields.map((f: FormField) =>
-          apiUpdateField(businessId, card.id, f.id, { isActive: f.isActive, isRewardSource: f.isRewardSource })
-        )
-      )
 
       setSaved(true)
       onSaved?.()
@@ -566,8 +516,35 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
         {/* ── Left panel (config) ── */}
         <div className={`dt-editor-panel${mobileView === 'preview' ? ' dt-panel--mobile-hidden' : ''}`}>
 
+          {/* Tipo de tarjeta — corregible sin borrar y crear de nuevo */}
+          <div className="dt-panel-section-title">Tipo de tarjeta</div>
+          <div className="dt-type-switch">
+            {([
+              { id: 'stamp', label: 'Sellos' },
+              { id: 'points', label: 'Puntos' },
+              { id: 'membership', label: 'Membresía' },
+            ] as const).map(({ id, label }) => (
+              <button
+                key={id}
+                className={`dt-type-btn${card.type === id ? ' dt-type-btn--on' : ''}`}
+                onClick={() => {
+                  if (card.type === id) return
+                  if (!window.confirm(`¿Cambiar a "${label}"? Esto resetea la configuración específica del tipo anterior (sellos requeridos, niveles, etc.) — no se puede deshacer una vez que guardes.`)) return
+                  setCard((prev: CardDesign) => ({
+                    ...prev,
+                    type: id,
+                    stampsRequired: id === 'stamp' ? 8 : prev.stampsRequired,
+                    rewardMode: id === 'stamp' ? 'dynamic' : null,
+                  }))
+                  if (id === 'membership') setTiers([...DEFAULT_TIERS])
+                }}
+              >{label}</button>
+            ))}
+          </div>
+          <div className="dt-type-switch-note">Cambiar el tipo resetea la configuración específica (sellos requeridos, niveles de membresía, etc.) — el progreso de clientes existentes en esta tarjeta puede quedar inconsistente.</div>
+
           {/* Logos */}
-          <div className="dt-panel-section-title">Logos e íconos</div>
+          <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Logos e íconos</div>
           <div className="dt-logo-row">
             <LogoUpload label="Logo del negocio" hint="Subir logo" value={logos.businessLogo} onChange={setLogo('businessLogo')} />
             {card.type === 'stamp' && <>
@@ -576,10 +553,12 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
             </>}
           </div>
 
-          {/* Form fields */}
+          {/* Form fields — la gestión real (agregar, ocultar, reordenar) vive
+              en Forms. Acá solo un puntero, para no tener el mismo campo
+              editable desde dos tabs distintas (mismo criterio que ya
+              aplicamos con el selector de premio). */}
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Campos del formulario</div>
-          <div style={{ fontSize: 10, color: 'rgba(43,38,32,.4)', marginBottom: 8 }}>Arrastrá para reordenar · ojo para mostrar/ocultar</div>
-          <DraggableFields fields={fields} onReorder={setFields} onToggle={toggleField} />
+          <div className="dt-reward-goto-forms">Se gestionan desde la tab <strong>Forms</strong> — agregar, ocultar y reordenar campos vive ahí, no acá.</div>
 
           {/* STAMP: prize mode */}
           {card.type === 'stamp' && (
@@ -606,7 +585,7 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
                   <div><div className="dt-reward-opt-title">Yo lo defino</div><div className="dt-reward-opt-desc">El mismo premio para todos los clientes</div></div>
                 </div>
                 {card.rewardMode === 'fixed' && (
-                  <input className="dt-prize-input" placeholder="Ej: Café gratis" defaultValue="Café gratis" />
+                  <input className="dt-prize-input" placeholder="Ej: Café gratis" value={card.rewardField || ''} onChange={e => setCard({ ...card, rewardField: e.target.value })} />
                 )}
               </div>
             </>
@@ -749,8 +728,8 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
       name:           name.trim() || DEFAULT_NAMES[type],
       type,
       isActive:       false,
-      color:          '#1E3329',
-      secondColor:    '#16271F',
+      color:          '#1B412F',
+      secondColor:    '#132F22',
       stampsRequired: type === 'stamp' ? stamps : 0,
       rewardMode:     type === 'stamp' ? rewardMode : null,
       rewardField:    null,
@@ -1287,6 +1266,10 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
         .dt-face-switch{display:flex;gap:20px;margin-bottom:16px;}
         .dt-face-btn{font-size:13px;color:rgba(43,38,32,.4);background:none;border:none;cursor:pointer;padding-bottom:6px;border-bottom:2.5px solid transparent;font-family:'Inter',sans-serif;transition:all .15s;display:flex;align-items:center;gap:5px;}
         .dt-face-btn--on{color:#C75D3A;border-bottom-color:#C75D3A;font-weight:600;}
+        .dt-type-switch{display:flex;gap:6px;}
+        .dt-type-btn{flex:1;font-size:12.5px;font-weight:600;padding:9px 10px;border-radius:9px;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.1);color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+        .dt-type-btn--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;}
+        .dt-type-switch-note{font-size:10.5px;color:rgba(43,38,32,.4);line-height:1.5;margin-top:7px;}
         .dt-pass-flip-wrap{transition:opacity .3s ease, transform .3s ease;}
         .dt-pass-flip-wrap--flipping{opacity:0;transform:scale(.96);}
         /* Prize card body */
