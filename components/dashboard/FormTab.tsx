@@ -195,7 +195,7 @@ function OptionalFieldRow({ field, onUpdate, onToggle, onSetReward, onDragStart,
 }
 
 // ─── Custom field builder ─────────────────────────────────────────────────────
-function CustomFieldBuilder({ fields, onChange, maxCustom }: { fields: FormField[]; onChange: (f: FormField[]) => void; maxCustom: number }) {
+function CustomFieldBuilder({ fields, onChange, maxCustom, businessId, cardId }: { fields: FormField[]; onChange: (f: FormField[]) => void; maxCustom: number; businessId?: string | null; cardId?: string }) {
   function add() {
     if (fields.length >= maxCustom) return
     onChange([...fields, { id: `c-${Date.now()}`, label: '', type: 'text', isLocked: false, isActive: true, isRewardSource: false, order: 100 + fields.length, isCustom: true }])
@@ -203,7 +203,21 @@ function CustomFieldBuilder({ fields, onChange, maxCustom }: { fields: FormField
   function update(id: string, patch: Partial<FormField>) {
     onChange(fields.map((f: FormField) => f.id === id ? { ...f, ...patch } : f))
   }
-  function remove(id: string) { onChange(fields.filter((f: FormField) => f.id !== id)) }
+  async function remove(id: string) {
+    onChange(fields.filter((f: FormField) => f.id !== id))
+    // Los campos con id temporal (c-...) todavía no se guardaron en el
+    // backend — sacarlos del estado local alcanza. Los que ya tienen un
+    // _id real de Mongo hay que borrarlos de verdad, o si no reaparecen
+    // solos la próxima vez que se recargue la página (quedaban huérfanos
+    // en la base, la eliminación nunca llegaba a persistir).
+    if (!id.startsWith('c-') && businessId && cardId) {
+      try {
+        await apiDeleteField(businessId, cardId, id)
+      } catch (err) {
+        console.error('Error eliminando campo:', err)
+      }
+    }
+  }
 
   return (
     <div className="fm-custom-section">
@@ -701,7 +715,7 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
             <div className="fm-card">
               <div className="fm-card-title">Campos personalizados</div>
               <div className="fm-card-sub">{MAX_CUSTOM > 0 ? `Hasta ${MAX_CUSTOM} campos propios de tu negocio` : 'Función exclusiva de planes pagos'}</div>
-              <CustomFieldBuilder fields={custom} onChange={setCustom} maxCustom={MAX_CUSTOM} />
+              <CustomFieldBuilder fields={custom} onChange={setCustom} maxCustom={MAX_CUSTOM} businessId={businessId} cardId={selectedCardId} />
             </div>
 
             {/* Reward source */}

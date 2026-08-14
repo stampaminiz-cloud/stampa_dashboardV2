@@ -20,6 +20,9 @@ interface CardDesign {
   earnedIcon?: string | null
   emptyIcon?: string | null
   flipImageUrl?: string | null
+  flipMessage?: string | null
+  flipSubMessage?: string | null
+  pointsPerVisit?: number | null
 }
 
 interface FormField {
@@ -243,7 +246,7 @@ function RealPassPreview({ design, logos, rewardSourceLabel, tiers, previewTierI
             {design.type === 'stamp' ? 'PREMIO' : design.type === 'membership' ? 'NIVEL' : 'PUNTOS'}
           </div>
           <div className="dt-real-pass-info-val">
-            {design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : 'Café gratis')
+            {design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : (design.rewardField || 'Premio'))
             : design.type === 'membership' ? activeTier.name
             : '120 pts'}
           </div>
@@ -301,7 +304,7 @@ function GooglePreview({ design, logos, rewardSourceLabel, tiers, previewTierInd
         <div className="dt-gpass-info-row"><span className="dt-gpass-field-label">Titular</span><span className="dt-gpass-info-val">Matias Marini</span></div>
         <div className="dt-gpass-info-row">
           <span className="dt-gpass-field-label">{design.type === 'stamp' ? 'Premio' : design.type === 'membership' ? 'Nivel' : 'Puntos'}</span>
-          <span className="dt-gpass-info-val">{design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : 'Café gratis') : design.type === 'membership' ? activeTier?.name : '120'}</span>
+          <span className="dt-gpass-info-val">{design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : (design.rewardField || 'Premio')) : design.type === 'membership' ? activeTier?.name : '120'}</span>
         </div>
       </div>
       <div className="dt-gpass-qr-wrap"><QRCode size={60} /><div className="dt-gpass-qr-label">Powered by Stampa</div></div>
@@ -351,7 +354,7 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
   const t = useLang()
   const [card, setCard] = useState<CardDesign>(init)
   const [fields, setFields] = useState<FormField[]>([...formFields].sort((a, b) => a.order - b.order))
-  const [tiers] = useState<MembershipTier[]>(DEFAULT_TIERS)
+  const [tiers, setTiers] = useState<MembershipTier[]>(DEFAULT_TIERS)
   const [logos, setLogos] = useState<LogoState>({
     businessLogo: init.logoUrl || null,
     earnedIcon: init.earnedIcon || null,
@@ -363,11 +366,11 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
-  const [pointsPerVisit, setPointsPerVisit] = useState(10)
+  const [pointsPerVisit, setPointsPerVisit] = useState(init.pointsPerVisit || 10)
   // Flip card state
   const [previewSide, setPreviewSide]       = useState<'front' | 'prize'>('front')
-  const [flipMessage, setFlipMessage]       = useState('¡Lo lograste!')
-  const [flipSubMessage, setFlipSubMessage] = useState('Presentá esta tarjeta para canjear tu premio')
+  const [flipMessage, setFlipMessage]       = useState(init.flipMessage || '¡Lo lograste!')
+  const [flipSubMessage, setFlipSubMessage] = useState(init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio')
   const [isFlipping, setIsFlipping]         = useState(false)
   const [prizeImage, setPrizeImage]           = useState<string | null>(card.flipImageUrl || null)
   const prizeImageRef                         = useRef<HTMLInputElement>(null)
@@ -392,10 +395,12 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
     try {
       await apiUpdateCard(businessId, card.id, {
         name: card.name,
+        type: card.type,
         color: card.color,
         secondColor: card.secondColor,
         isActive: card.isActive,
         stampsRequired: card.stampsRequired,
+        pointsPerVisit,
         rewardMode: (card.rewardMode as any) || undefined,
         rewardFixedValue: card.rewardField || undefined,
         flipMessage,
@@ -511,8 +516,35 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
         {/* ── Left panel (config) ── */}
         <div className={`dt-editor-panel${mobileView === 'preview' ? ' dt-panel--mobile-hidden' : ''}`}>
 
+          {/* Tipo de tarjeta — corregible sin borrar y crear de nuevo */}
+          <div className="dt-panel-section-title">Tipo de tarjeta</div>
+          <div className="dt-type-switch">
+            {([
+              { id: 'stamp', label: 'Sellos' },
+              { id: 'points', label: 'Puntos' },
+              { id: 'membership', label: 'Membresía' },
+            ] as const).map(({ id, label }) => (
+              <button
+                key={id}
+                className={`dt-type-btn${card.type === id ? ' dt-type-btn--on' : ''}`}
+                onClick={() => {
+                  if (card.type === id) return
+                  if (!window.confirm(`¿Cambiar a "${label}"? Esto resetea la configuración específica del tipo anterior (sellos requeridos, niveles, etc.) — no se puede deshacer una vez que guardes.`)) return
+                  setCard((prev: CardDesign) => ({
+                    ...prev,
+                    type: id,
+                    stampsRequired: id === 'stamp' ? 8 : prev.stampsRequired,
+                    rewardMode: id === 'stamp' ? 'dynamic' : null,
+                  }))
+                  if (id === 'membership') setTiers([...DEFAULT_TIERS])
+                }}
+              >{label}</button>
+            ))}
+          </div>
+          <div className="dt-type-switch-note">Cambiar el tipo resetea la configuración específica (sellos requeridos, niveles de membresía, etc.) — el progreso de clientes existentes en esta tarjeta puede quedar inconsistente.</div>
+
           {/* Logos */}
-          <div className="dt-panel-section-title">Logos e íconos</div>
+          <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Logos e íconos</div>
           <div className="dt-logo-row">
             <LogoUpload label="Logo del negocio" hint="Subir logo" value={logos.businessLogo} onChange={setLogo('businessLogo')} />
             {card.type === 'stamp' && <>
@@ -553,7 +585,7 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
                   <div><div className="dt-reward-opt-title">Yo lo defino</div><div className="dt-reward-opt-desc">El mismo premio para todos los clientes</div></div>
                 </div>
                 {card.rewardMode === 'fixed' && (
-                  <input className="dt-prize-input" placeholder="Ej: Café gratis" defaultValue="Café gratis" />
+                  <input className="dt-prize-input" placeholder="Ej: Café gratis" value={card.rewardField || ''} onChange={e => setCard({ ...card, rewardField: e.target.value })} />
                 )}
               </div>
             </>
@@ -1234,6 +1266,10 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
         .dt-face-switch{display:flex;gap:20px;margin-bottom:16px;}
         .dt-face-btn{font-size:13px;color:rgba(43,38,32,.4);background:none;border:none;cursor:pointer;padding-bottom:6px;border-bottom:2.5px solid transparent;font-family:'Inter',sans-serif;transition:all .15s;display:flex;align-items:center;gap:5px;}
         .dt-face-btn--on{color:#C75D3A;border-bottom-color:#C75D3A;font-weight:600;}
+        .dt-type-switch{display:flex;gap:6px;}
+        .dt-type-btn{flex:1;font-size:12.5px;font-weight:600;padding:9px 10px;border-radius:9px;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.1);color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+        .dt-type-btn--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;}
+        .dt-type-switch-note{font-size:10.5px;color:rgba(43,38,32,.4);line-height:1.5;margin-top:7px;}
         .dt-pass-flip-wrap{transition:opacity .3s ease, transform .3s ease;}
         .dt-pass-flip-wrap--flipping{opacity:0;transform:scale(.96);}
         /* Prize card body */

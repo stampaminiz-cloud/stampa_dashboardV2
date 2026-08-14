@@ -936,6 +936,10 @@ export default function DashboardPage() {
             logoUrl:        c.logoUrl || null,
             earnedIcon:     c.earnedIcon || null,
             emptyIcon:      c.emptyIcon || null,
+            flipImageUrl:   c.flipImageUrl || null,
+            flipMessage:    c.flipMessage || null,
+            flipSubMessage: c.flipSubMessage || null,
+            pointsPerVisit: c.pointsPerVisit || null,
           })))
         } else console.error('cards load error:', cardsRes.reason)
 
@@ -984,6 +988,10 @@ export default function DashboardPage() {
         logoUrl:        c.logoUrl || null,
         earnedIcon:     c.earnedIcon || null,
         emptyIcon:      c.emptyIcon || null,
+        flipImageUrl:   c.flipImageUrl || null,
+        flipMessage:    c.flipMessage || null,
+        flipSubMessage: c.flipSubMessage || null,
+            pointsPerVisit: c.pointsPerVisit || null,
       })))
     } catch (err) {
       console.error('Error refreshing cards:', err)
