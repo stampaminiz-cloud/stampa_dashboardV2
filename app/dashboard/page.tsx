@@ -600,6 +600,7 @@ function mapCustomersForTab(rawCustomers: any[], activeCard: any) {
       email: c.email,
       cardType,
       cardName: c.cardName || activeCard?.name || null,
+      cardId: c.cardId || activeCard?.id || null,
       membershipTier: c.membershipTier || null,
       progress,
       total,
