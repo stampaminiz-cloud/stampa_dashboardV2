@@ -133,7 +133,7 @@ export function NotificationsTab({ data, businessId, analyticsData, rewardsData 
         .nt-sched-inputs{display:flex;gap:8px;margin-bottom:12px;}
         .nt-date-input{flex:1;padding:8px 11px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:9px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
         .nt-date-input:focus{border-color:#C75D3A;}
-        .nt-preview-card{background:#1E3329;border-radius:14px;padding:16px;margin-bottom:14px;}
+        .nt-preview-card{background:#1B412F;border-radius:14px;padding:16px;margin-bottom:14px;}
         .nt-preview-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
         .nt-preview-logo{width:24px;height:24px;border-radius:6px;background:#C75D3A;}
         .nt-preview-app{font-size:11px;color:rgba(247,240,228,.6);}

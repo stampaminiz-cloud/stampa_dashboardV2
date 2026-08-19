@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
-import { BASE_URL } from '@/lib/api'
+import { BASE_URL, apiGetPointsCatalog, apiCreatePointsCatalogItem, apiUpdatePointsCatalogItem, apiDeletePointsCatalogItem } from '@/lib/api'
 
 interface CardDesign  { id: string; name: string; type: 'stamp' | 'points' | 'membership'; isActive: boolean }
 interface PrizeDist   { name: string; count: number }
@@ -87,24 +87,67 @@ function StampRewards({ rewardsData }: { rewardsData?: any }) {
   )
 }
 
-function PointsRewards({ catalog: initCatalog, rewardsData }: { catalog: CatalogItem[]; rewardsData?: any }) {
+function PointsRewards({ businessId, cardId, rewardsData }: { businessId?: string | null; cardId?: string; rewardsData?: any }) {
   const t = useLang()
-  const [catalog, setCatalog] = useState<CatalogItem[]>(initCatalog)
+  const [catalog, setCatalog] = useState<Array<{ _id: string; name: string; pointsCost: number }>>([])
+  const [catalogLoading, setCatalogLoading] = useState(false)
+  const [catalogError, setCatalogError] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [newItem, setNewItem] = useState({ points: '', name: '' })
+  const [saving, setSaving] = useState(false)
 
-  function saveEdit(id: string, field: keyof CatalogItem, val: string | number) {
-    setCatalog(catalog.map((c: CatalogItem) => c.id === id ? { ...c, [field]: val } : c))
+  useEffect(() => {
+    if (!businessId || !cardId) return
+    setCatalogLoading(true)
+    apiGetPointsCatalog(businessId, cardId)
+      .then((items: any) => setCatalog(items))
+      .catch((err: any) => setCatalogError(err?.error || 'No se pudo cargar el catálogo.'))
+      .finally(() => setCatalogLoading(false))
+  }, [businessId, cardId])
+
+  async function saveEdit(id: string, field: 'name' | 'pointsCost', val: string | number) {
+    if (!businessId || !cardId) return
+    const prev = catalog
+    setCatalog(catalog.map(c => c._id === id ? { ...c, [field]: val } : c))
+    try {
+      await apiUpdatePointsCatalogItem(businessId, cardId, id, { [field]: val })
+    } catch (err: any) {
+      setCatalog(prev)
+      setCatalogError(err?.error || 'No se pudo guardar el cambio.')
+    }
   }
-  function deleteItem(id: string) { setCatalog(catalog.filter((c: CatalogItem) => c.id !== id)) }
-  function addItem() {
-    if (!newItem.name || !newItem.points) return
-    setCatalog([...catalog, { id: Date.now().toString(), points: Number(newItem.points), name: newItem.name, redeemed: 0 }])
-    setNewItem({ points: '', name: '' })
-    setShowAdd(false)
+
+  async function deleteItem(id: string) {
+    if (!businessId || !cardId) return
+    const prev = catalog
+    setCatalog(catalog.filter(c => c._id !== id))
+    try {
+      await apiDeletePointsCatalogItem(businessId, cardId, id)
+    } catch (err: any) {
+      setCatalog(prev)
+      setCatalogError(err?.error || 'No se pudo eliminar el premio.')
+    }
   }
+
+  async function addItem() {
+    if (!newItem.name || !newItem.points || !businessId || !cardId) return
+    setSaving(true)
+    setCatalogError(null)
+    try {
+      const created = await apiCreatePointsCatalogItem(businessId, cardId, { name: newItem.name, pointsCost: Number(newItem.points) })
+      setCatalog([...catalog, created as any])
+      setNewItem({ points: '', name: '' })
+      setShowAdd(false)
+    } catch (err: any) {
+      setCatalogError(err?.error || 'No se pudo crear el premio.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const topCustomers: Array<{ name: string; points: number }> = rewardsData?.topCustomers || []
+  const recentRedemptions: Array<{ name: string; prize: string; when: string }> = rewardsData?.recentRedemptions || []
 
   return (
     <div className="rw-content">
@@ -115,37 +158,55 @@ function PointsRewards({ catalog: initCatalog, rewardsData }: { catalog: Catalog
       </div>
       <div className="rw-card">
         <div className="rw-card-head-row">
-          <div><div className="rw-card-title">{t('rw_catalog')}</div><div className="rw-card-sub">{t('rw_catalog_sub')} — configuración local, todavía no se guarda en el servidor.</div></div>
+          <div><div className="rw-card-title">{t('rw_catalog')}</div><div className="rw-card-sub">{t('rw_catalog_sub')}</div></div>
           <button className="rw-add-btn" onClick={() => setShowAdd(!showAdd)}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             {t('rw_new_prize')}
           </button>
         </div>
+        {catalogError && <div className="rw-empty-note" style={{ color: '#B23B3B' }}>{catalogError}</div>}
         {showAdd && (
           <div className="rw-add-form">
             <input className="rw-input" placeholder={t('rw_prize_name')} value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} />
             <input className="rw-input rw-input--sm" type="number" placeholder={t('points')} value={newItem.points} onChange={e => setNewItem({ ...newItem, points: e.target.value })} />
-            <button className="rw-confirm-btn" onClick={addItem}>{t('add')}</button>
+            <button className="rw-confirm-btn" onClick={addItem} disabled={saving}>{saving ? '...' : t('add')}</button>
             <button className="rw-cancel-btn" onClick={() => setShowAdd(false)}>{t('cancel')}</button>
           </div>
         )}
-        <table className="rw-table">
-          <thead><tr><th>{t('rw_col_prize')}</th><th>{t('rw_col_pts')}</th><th></th></tr></thead>
-          <tbody>
-            {catalog.map((item: CatalogItem) => (
-              <tr key={item.id}>
-                <td>{editing === item.id ? <input className="rw-inline-input" defaultValue={item.name} onBlur={e => { saveEdit(item.id, 'name', e.target.value); setEditing(null) }} autoFocus /> : <span className="rw-item-name">{item.name}</span>}</td>
-                <td>{editing === item.id ? <input className="rw-inline-input rw-inline-input--sm" type="number" defaultValue={item.points} onBlur={e => { saveEdit(item.id, 'points', Number(e.target.value)); setEditing(null) }} /> : <span className="rw-pts-badge">{item.points} pts</span>}</td>
-                <td>
-                  <div className="rw-actions">
-                    <button className="rw-icon-btn" onClick={() => setEditing(editing === item.id ? null : item.id)} title={t('edit')}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
-                    <button className="rw-icon-btn rw-icon-btn--danger" onClick={() => deleteItem(item.id)} title={t('delete')}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {catalogLoading ? (
+          <div className="rw-empty-note">Cargando catálogo...</div>
+        ) : catalog.length === 0 ? (
+          <div className="rw-empty-note">Todavía no armaste ningún premio para canjear. Agregá el primero arriba.</div>
+        ) : (
+          <table className="rw-table">
+            <thead><tr><th>{t('rw_col_prize')}</th><th>{t('rw_col_pts')}</th><th></th></tr></thead>
+            <tbody>
+              {catalog.map((item) => (
+                <tr key={item._id}>
+                  <td>{editing === item._id ? <input className="rw-inline-input" defaultValue={item.name} onBlur={e => { saveEdit(item._id, 'name', e.target.value); setEditing(null) }} autoFocus /> : <span className="rw-item-name">{item.name}</span>}</td>
+                  <td>{editing === item._id ? <input className="rw-inline-input rw-inline-input--sm" type="number" defaultValue={item.pointsCost} onBlur={e => { saveEdit(item._id, 'pointsCost', Number(e.target.value)); setEditing(null) }} /> : <span className="rw-pts-badge">{item.pointsCost} pts</span>}</td>
+                  <td>
+                    <div className="rw-actions">
+                      <button className="rw-icon-btn" onClick={() => setEditing(editing === item._id ? null : item._id)} title={t('edit')}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+                      <button className="rw-icon-btn rw-icon-btn--danger" onClick={() => deleteItem(item._id)} title={t('delete')}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      <div className="rw-card">
+        <div className="rw-card-title">Canjes recientes</div>
+        {recentRedemptions.length === 0 ? (
+          <div className="rw-empty-note">Todavía no hubo ningún canje.</div>
+        ) : (
+          <table className="rw-table">
+            <thead><tr><th>{t('rw_col_customer')}</th><th>{t('rw_col_prize')}</th><th></th></tr></thead>
+            <tbody>{recentRedemptions.map((r, i: number) => (<tr key={i}><td><div className="rw-av-row"><div className="rw-av">{avatarInit(r.name)}</div>{r.name}</div></td><td>{r.prize}</td><td className="rw-time-col">{r.when}</td></tr>))}</tbody>
+          </table>
+        )}
       </div>
       <div className="rw-card">
         <div className="rw-card-title">Top clientes por puntos</div>
@@ -243,7 +304,7 @@ export function RewardsTab({ data, cards, businessId }: { data: RewardsData; car
         .rw-shell{flex:1;display:flex;flex-direction:column;overflow:hidden;}
         .rw-toolbar{display:flex;align-items:center;gap:8px;padding:12px 24px;background:#FFFFFF;border-bottom:1px solid rgba(43,38,32,.08);flex-shrink:0;}
         .rw-card-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
-        .rw-card-pill--on{background:#1E3329;border-color:#1E3329;color:#F7F0E4;font-weight:600;}
+        .rw-card-pill--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;font-weight:600;}
         .rw-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
         .rw-empty-note{font-size:12px;color:rgba(43,38,32,.45);padding:8px 0;}
         .rw-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(43,38,32,.04);}
@@ -266,6 +327,7 @@ export function RewardsTab({ data, cards, businessId }: { data: RewardsData; car
         .rw-table th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.38);font-weight:700;padding:8px 10px;}
         .rw-table td{padding:10px 10px;font-size:12px;color:rgba(43,38,32,.8);border-bottom:1px solid rgba(43,38,32,.05);}
         .rw-table tr:last-child td{border-bottom:none;}
+        .rw-time-col{color:rgba(43,38,32,.4);font-size:11px;text-align:right;}
         .rw-av-row{display:flex;align-items:center;gap:8px;}
         .rw-av{width:26px;height:26px;border-radius:50%;background:#C75D3A;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;}
         .rw-prize-tag{font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(199,93,58,.1);color:#C75D3A;font-weight:600;}
@@ -315,7 +377,7 @@ export function RewardsTab({ data, cards, businessId }: { data: RewardsData; car
           const dataReady = !loading && rewardsData?.cardType === cardType
           if (!dataReady) return <RewardsLoading />
           if (cardType === 'stamp')      return <StampRewards      rewardsData={rewardsData} />
-          if (cardType === 'points')     return <PointsRewards     catalog={data.pointsCatalog} rewardsData={rewardsData} />
+          if (cardType === 'points')     return <PointsRewards     businessId={businessId} cardId={selected.id} rewardsData={rewardsData} />
           if (cardType === 'membership') return <MembershipRewards tiers={data.membershipTiers} rewardsData={rewardsData} />
           return null
         })()}

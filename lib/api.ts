@@ -185,6 +185,37 @@ export async function apiChangePassword(currentPassword: string, newPassword: st
   })
 }
 
+export async function apiGetPointsCatalog(businessId: string, cardId: string) {
+  return request<Array<{ _id: string; name: string; pointsCost: number; isActive: boolean }>>(
+    `/api/businesses/${businessId}/cards/${cardId}/points-catalog`
+  )
+}
+
+export async function apiCreatePointsCatalogItem(businessId: string, cardId: string, data: { name: string; pointsCost: number }) {
+  return request<{ _id: string; name: string; pointsCost: number }>(
+    `/api/businesses/${businessId}/cards/${cardId}/points-catalog`,
+    { method: 'POST', body: data }
+  )
+}
+
+export async function apiUpdatePointsCatalogItem(businessId: string, cardId: string, itemId: string, data: Partial<{ name: string; pointsCost: number; isActive: boolean }>) {
+  return request<{ _id: string; name: string; pointsCost: number }>(
+    `/api/businesses/${businessId}/cards/${cardId}/points-catalog/${itemId}`,
+    { method: 'PATCH', body: data }
+  )
+}
+
+export async function apiDeletePointsCatalogItem(businessId: string, cardId: string, itemId: string) {
+  return request<void>(`/api/businesses/${businessId}/cards/${cardId}/points-catalog/${itemId}`, { method: 'DELETE' })
+}
+
+export async function apiRedeemPoints(businessId: string, customerId: string, catalogItemId: string) {
+  return request<{ message: string; pointsBalance: number; redeemedItem: string }>(
+    `/api/businesses/${businessId}/customers/${customerId}/redeem-points`,
+    { method: 'POST', body: { catalogItemId } }
+  )
+}
+
 export async function apiResyncPass(businessId: string, customerId: string) {
   return request<{ message: string; results: { apple: any; google: any } }>(`/api/businesses/${businessId}/customers/${customerId}/resync-pass`, {
     method: 'POST',
@@ -217,6 +248,31 @@ export async function apiCancelDeletion() {
   return request<{ success: boolean; message: string }>('/api/auth/cancel-deletion', {
     method: 'POST',
   })
+}
+
+export async function apiGetPublicBusiness(businessId: string) {
+  return request<{
+    business: { id: string; name: string; slug: string }
+    cards: Array<{ id: string; name: string; type: string }>
+    fields: Array<{ label: string; fieldType: string; isLocked: boolean; options?: string[] }>
+  }>(`/api/businesses/${businessId}/public`, { noAuth: true })
+}
+
+export async function apiGetPublicCardFields(businessId: string, cardId: string) {
+  return request<{ fields: Array<{ label: string; fieldType: string; isLocked: boolean; options?: string[] }> }>(
+    `/api/businesses/${businessId}/cards/${cardId}/public-fields`, { noAuth: true }
+  )
+}
+
+export async function apiRegisterCustomer(businessId: string, data: {
+  cardId?: string
+  fullName: string
+  email: string
+  formResponses?: Array<{ fieldId: string; value: string }>
+}) {
+  return request<{ customerId: string; qrValue: string; card: { id: string; name: string; type: string } }>(
+    `/api/businesses/${businessId}/register`, { method: 'POST', body: data, noAuth: true }
+  )
 }
 
 export async function apiUpdateProfile(fullName: string) {
