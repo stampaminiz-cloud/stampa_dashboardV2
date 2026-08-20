@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { apiUpdateBusiness, apiChangePassword, apiUpdateProfile, apiExportCustomers, apiRequestDeletion, apiCancelDeletion } from '@/lib/api'
 import { useLang } from '@/data/i18n'
+import { InfoTooltip } from './InfoTooltip'
 
 interface BusinessAlerts { newCustomer: boolean; nearPrize: boolean; weeklyDigest: boolean }
 interface BusinessSettings {
@@ -71,7 +72,7 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
   )
 }
 
-function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+function FieldRow({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="st-field-row">
       <span className="st-field-label">{label}</span>
@@ -391,7 +392,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         <Section title={t('st_profile')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V8L3 4h18l-2 4v13"/><path d="M9 21v-6h6v6"/></svg>}>
           <FieldRow label={t('st_name')}><EditableText value={business.name} saveLabel={saving ? '...' : saved ? '✓' : t('save')} onSave={v => handleSave('name', v)} /></FieldRow>
           <FieldRow label={t('st_sector')}><SectorField value={business.sector} saving={saving} saved={saved} t={t} onSave={v => handleSave('sector', v)} /></FieldRow>
-          <FieldRow label={t('st_timezone')}>
+          <FieldRow label={<>{t('st_timezone')}<InfoTooltip text="Afecta directamente el heatmap de horas pico en Analytics — sin esto bien seteado, esa sección mide en UTC, no en la hora real del local." /></>}>
             <select
               className="st-timezone-select"
               value={business.timezone}
@@ -403,7 +404,6 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
               )}
             </select>
           </FieldRow>
-          <div className="st-timezone-note">{t('st_timezone_note')} Afecta directamente el heatmap de "horas pico" en Analytics — sin esto bien seteado, esa sección mide en UTC, no en la hora real del local.</div>
         </Section>
 
         <Section title="Seguridad" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}>

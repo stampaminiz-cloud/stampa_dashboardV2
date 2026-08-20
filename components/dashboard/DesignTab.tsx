@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
 import { apiCreateCard, apiUpdateCard, apiDeleteCard } from '@/lib/api'
+import { InfoTooltip } from './InfoTooltip'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CardType = "stamp" | "points" | "membership"
@@ -565,7 +566,10 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
               >{label}</button>
             ))}
           </div>
-          <div className="dt-type-switch-note">Cambiar el tipo resetea la configuración específica (sellos requeridos, niveles de membresía, etc.) — el progreso de clientes existentes en esta tarjeta puede quedar inconsistente.</div>
+          <div className="dt-type-switch-note">
+            Al cambiar el tipo se resetea la configuración específica
+            <InfoTooltip text="Sellos requeridos, niveles de membresía, etc. se resetean al cambiar de tipo — el progreso de clientes existentes en esta tarjeta puede quedar inconsistente." />
+          </div>
 
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Descripción pública</div>
           <input
@@ -575,7 +579,10 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
             placeholder={card.type === 'stamp' ? `Ej: ${card.stampsRequired} sellos = 1 café gratis` : card.type === 'points' ? 'Ej: Acumulá puntos y canjealos por premios' : 'Ej: Subí de nivel con tus visitas'}
             maxLength={100}
           />
-          <div className="dt-public-desc-note">{(card.publicDescription || '').length}/100 — se muestra a tus clientes si tenés 2 o más tarjetas activas, para que sepan a cuál sumarse. Si lo dejás vacío, usamos un texto automático.</div>
+          <div className="dt-public-desc-note">
+            {(card.publicDescription || '').length}/100
+            <InfoTooltip text="Se muestra a tus clientes si tenés 2 o más tarjetas activas, para que sepan a cuál sumarse. Si lo dejás vacío, usamos un texto automático." />
+          </div>
 
           {/* Logos */}
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Logos e íconos</div>

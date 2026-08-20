@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
 import { BASE_URL, apiResyncPass, apiGetPointsCatalog, apiRedeemPoints } from '@/lib/api'
+import { InfoTooltip } from './InfoTooltip'
 
 interface Customer {
   id: string; name: string; email: string; progress: number; total: number
@@ -232,11 +233,13 @@ function CustomerPanel({ customer, onClose, onDelete }: {
       </div>
 
       <div className="ct-panel-section">
-        <button className="ct-resync-btn" onClick={handleResync} disabled={resyncing}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-          {resyncing ? 'Sincronizando...' : 'Re-sincronizar wallet'}
-        </button>
-        <div className="ct-resync-hint">Empuja el progreso real de la base al pase del celular del cliente, sin tocar sellos/puntos/nivel. Útil si el pase quedó desactualizado tras un error de escaneo o una corrección manual.</div>
+        <div className="ct-resync-row">
+          <button className="ct-resync-btn" onClick={handleResync} disabled={resyncing}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            {resyncing ? 'Sincronizando...' : 'Re-sincronizar wallet'}
+          </button>
+          <InfoTooltip text="Empuja el progreso real de la base al pase del celular del cliente, sin tocar sellos/puntos/nivel. Útil si el pase quedó desactualizado tras un error de escaneo o una corrección manual." />
+        </div>
         {resyncMsg && <div className="ct-resync-msg">{resyncMsg}</div>}
       </div>
 
@@ -378,7 +381,8 @@ export function CustomersTab({
         .ct-panel-email{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:10px;text-align:center;}
         .ct-panel-badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;}
         .ct-panel-section{width:100%;margin-top:14px;padding-top:13px;border-top:1px solid rgba(43,38,32,.07);}
-        .ct-resync-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;font-size:12.5px;font-weight:600;padding:10px 14px;border-radius:9px;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.12);color:#2B2620;cursor:pointer;font-family:'Inter',sans-serif;}
+        .ct-resync-row{display:flex;align-items:center;gap:6px;}
+        .ct-resync-btn{display:flex;align-items:center;justify-content:center;gap:7px;flex:1;font-size:12.5px;font-weight:600;padding:10px 14px;border-radius:9px;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.12);color:#2B2620;cursor:pointer;font-family:'Inter',sans-serif;}
         .ct-redeem-picker{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
         .ct-redeem-item{display:flex;align-items:center;justify-content:space-between;width:100%;font-size:12px;padding:9px 12px;border-radius:8px;background:#FBF6EE;border:1px solid rgba(43,38,32,.1);color:#2B2620;cursor:pointer;font-family:'Inter',sans-serif;}
         .ct-redeem-item:disabled{opacity:.4;cursor:not-allowed;}
