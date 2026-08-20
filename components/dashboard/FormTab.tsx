@@ -332,17 +332,18 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
     setLoadingFields(true)
     apiGetFields(businessId, selectedCardId).then(fields => {
       if (fields.length > 0) {
-        const fixed = fields.filter((f: any) => f.isLocked).map((f: any) => ({
-          id: f._id, label: f.label, type: f.fieldType, isLocked: true,
-          isActive: f.isActive, isRewardSource: f.isRewardSource, order: f.order,
-          placeholder: f.placeholder || '',
-        }))
+        // Los campos locked (Nombre completo, Email) que crea el onboarding
+        // ya están representados por FIXED_FIELDS acá arriba (hardcodeado,
+        // siempre visible) — guardarlos también en cardForms los duplicaba
+        // en la lista ("se vuelve repetitivo"), y como sí tienen un _id
+        // real de Mongo, intentar apagarlos disparaba un 400 genuino del
+        // backend (los campos locked no se pueden desactivar). Se
+        // descartan acá, no hace falta guardarlos en ningún lado.
         const custom = fields.filter((f: any) => !f.isLocked).map((f: any) => ({
           id: f._id, label: f.label, type: f.fieldType, isLocked: false,
           isActive: f.isActive, isRewardSource: f.isRewardSource, order: f.order,
           placeholder: f.placeholder || '', options: f.options,
         }))
-        setCardForms(prev => ({ ...prev, [selectedCardId]: fixed }))
         setCardCustom(prev => ({ ...prev, [selectedCardId]: custom }))
       }
     }).catch(console.error).finally(() => setLoadingFields(false))
@@ -355,6 +356,7 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
   const logoRef = useRef<HTMLInputElement>(null)
 
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
   const dragIndex = useRef<number | null>(null)
 
   const optional = cardForms[selectedCardId] || []
@@ -407,21 +409,27 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
     reader.readAsDataURL(file)
   }
 
+  const [saveError, setSaveError] = useState<string | null>(null)
+
   async function handleSave() {
     if (!businessId || !selectedCardId) {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
       return
     }
+    setSaveError(null)
     try {
       const token = localStorage.getItem('stampa_token')
       const allCustomFields = [...optional, ...custom]
 
-      // Update each field that has a real MongoDB _id
-      await Promise.all(allCustomFields
+      // Update each field that has a real MongoDB _id — chequeamos res.ok
+      // de cada uno: fetch() no tira excepción por un 400/500, así que sin
+      // esto un campo podía fallar en silencio y el usuario nunca se
+      // enteraba (ni error, ni confirmación real de que se guardó).
+      const patchResults = await Promise.all(allCustomFields
         .filter((f: FormField) => !f.id.startsWith('c-') && !['name','email'].includes(f.id))
-        .map((f: FormField) =>
-          fetch(`${BASE_URL}/api/businesses/${businessId}/cards/${selectedCardId}/fields/${f.id}`, {
+        .map(async (f: FormField) => {
+          const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/cards/${selectedCardId}/fields/${f.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
             body: JSON.stringify({
@@ -431,14 +439,19 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
               order: f.order,
             })
           })
-        )
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}))
+            return { ok: false, label: f.label, error: body?.error || `Error ${res.status}` }
+          }
+          return { ok: true }
+        })
       )
 
       // Create new custom fields (those with temp id starting with 'c-')
-      await Promise.all(custom
+      const createResults = await Promise.all(custom
         .filter((f: FormField) => f.id.startsWith('c-') && f.label.trim())
-        .map((f: FormField) =>
-          fetch(`${BASE_URL}/api/businesses/${businessId}/cards/${selectedCardId}/fields`, {
+        .map(async (f: FormField) => {
+          const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/cards/${selectedCardId}/fields`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
             body: JSON.stringify({
@@ -448,13 +461,25 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
               order: f.order,
             })
           })
-        )
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}))
+            return { ok: false, label: f.label, error: body?.error || `Error ${res.status}` }
+          }
+          return { ok: true }
+        })
       )
+
+      const failed = [...patchResults, ...createResults].filter(r => !r.ok)
+      if (failed.length > 0) {
+        setSaveError(failed.map((f: any) => `${f.label ? f.label + ': ' : ''}${f.error}`).join(' · '))
+        return
+      }
 
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
       console.error('Error saving form fields:', err)
+      setSaveError('No se pudo guardar. Revisá tu conexión e intentá de nuevo.')
     }
   }
 
@@ -469,6 +494,8 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
         .fm-top-sub{font-size:12px;color:rgba(43,38,32,.45);margin-top:2px;}
         .fm-save-btn{background:#C75D3A;color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;}
         .fm-save-btn:hover{background:#B14F2F;}
+        .fm-save-btn:disabled{opacity:.6;cursor:not-allowed;}
+        .fm-save-error{background:rgba(178,59,59,.08);border:1px solid rgba(178,59,59,.25);color:#B23B3B;border-radius:10px;padding:10px 14px;font-size:12.5px;}
         .fm-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(43,38,32,.38);font-weight:600;display:flex;align-items:center;gap:10px;}
         .fm-lbl::after{content:'';flex:1;height:1px;background:rgba(43,38,32,.1);}
         .fm-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(43,38,32,.04);}
@@ -610,8 +637,11 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
             <div className="fm-top-title">Formulario de registro</div>
             <div className="fm-top-sub">Configurá los campos que ve el cliente al registrarse</div>
           </div>
-          <button className="fm-save-btn" onClick={handleSave}>{saved ? '✓ Guardado' : 'Guardar cambios'}</button>
+          <button className="fm-save-btn" onClick={async () => { setSaving(true); await handleSave(); setSaving(false) }} disabled={saving}>
+            {saving ? 'Guardando...' : saved ? '✓ Guardado' : 'Guardar cambios'}
+          </button>
         </div>
+        {saveError && <div className="fm-save-error">{saveError}</div>}
 
         {/* Card selector */}
         {activeCards.length > 1 && (
