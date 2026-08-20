@@ -102,6 +102,7 @@ export interface Card {
   type: 'stamp' | 'points' | 'membership'
   color: string
   secondColor: string
+  textColor?: string | null
   logoUrl: string | null
   earnedIcon?: string | null
   emptyIcon?: string | null

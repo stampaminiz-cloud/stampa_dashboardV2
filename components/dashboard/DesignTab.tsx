@@ -23,6 +23,7 @@ interface CardDesign {
   flipMessage?: string | null
   flipSubMessage?: string | null
   pointsPerVisit?: number | null
+  textColor?: string | null
 }
 
 interface FormField {
@@ -89,6 +90,15 @@ function darkenHex(hex: string, factor = 0.72): string {
   return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+  const c = hex.replace('#', '')
+  if (c.length !== 6) return `rgba(255,255,255,${alpha})`
+  const r = parseInt(c.slice(0,2), 16)
+  const g = parseInt(c.slice(2,4), 16)
+  const b = parseInt(c.slice(4,6), 16)
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
 // ─── QR Code placeholder ──────────────────────────────────────────────────────
 function QRCode({ size = 80 }: { size?: number }) {
   return (
@@ -110,9 +120,19 @@ function LogoUpload({ label, hint, value, onChange }: {
   label: string; hint: string; value: string | null; onChange: (url: string | null) => void
 }) {
   const ref = useRef<HTMLInputElement>(null)
+  const [error, setError] = useState<string | null>(null)
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    // Apple/Google Wallet exigen PNG para los assets del pase — un JPG
+    // puede terminar con fondo blanco donde debería ser transparente, o
+    // directamente ser rechazado al generar el pase real (Etapa B).
+    if (file.type !== 'image/png') {
+      setError('Tiene que ser PNG (no JPG) — Apple y Google Wallet lo requieren para que el logo se vea bien.')
+      if (ref.current) ref.current.value = ''
+      return
+    }
+    setError(null)
     const reader = new FileReader()
     reader.onload = (ev) => onChange(ev.target?.result as string)
     reader.readAsDataURL(file)
@@ -125,8 +145,9 @@ function LogoUpload({ label, hint, value, onChange }: {
           ? <img src={value} className="dt-logo-preview" alt={label} />
           : <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>{hint}</span></>
         }
-        <input ref={ref} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+        <input ref={ref} type="file" accept="image/png" onChange={handleFile} style={{ display: 'none' }} />
       </div>
+      {error && <div className="dt-logo-error">{error}</div>}
       {value && <button className="dt-logo-remove" onClick={() => onChange(null)}>Quitar</button>}
     </div>
   )
@@ -230,22 +251,22 @@ function RealPassPreview({ design, logos, rewardSourceLabel, tiers, previewTierI
 
       {design.type === 'points' && (
         <div className="dt-real-pass-points-area">
-          <div className="dt-real-pass-points-num">120 pts</div>
+          <div className="dt-real-pass-points-num" style={{ color: design.textColor || '#FFFFFF' }}>120 pts</div>
           <div className="dt-real-pass-points-bar"><div className="dt-real-pass-points-fill" style={{ width: '24%' }} /></div>
-          <div className="dt-real-pass-points-sub">480 pts para el próximo premio</div>
+          <div className="dt-real-pass-points-sub" style={{ color: hexToRgba(design.textColor || '#FFFFFF', 0.6) }}>480 pts para el próximo premio</div>
         </div>
       )}
 
       <div className="dt-real-pass-info">
         <div className="dt-real-pass-info-field">
-          <div className="dt-real-pass-info-label">TITULAR</div>
-          <div className="dt-real-pass-info-val">Matias N. Marini</div>
+          <div className="dt-real-pass-info-label" style={{ color: hexToRgba(design.textColor || '#FFFFFF', 0.65) }}>TITULAR</div>
+          <div className="dt-real-pass-info-val" style={{ color: design.textColor || '#FFFFFF' }}>Matias N. Marini</div>
         </div>
         <div className="dt-real-pass-info-field">
-          <div className="dt-real-pass-info-label">
+          <div className="dt-real-pass-info-label" style={{ color: hexToRgba(design.textColor || '#FFFFFF', 0.65) }}>
             {design.type === 'stamp' ? 'PREMIO' : design.type === 'membership' ? 'NIVEL' : 'PUNTOS'}
           </div>
-          <div className="dt-real-pass-info-val">
+          <div className="dt-real-pass-info-val" style={{ color: design.textColor || '#FFFFFF' }}>
             {design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : (design.rewardField || 'Premio'))
             : design.type === 'membership' ? activeTier.name
             : '120 pts'}
@@ -398,6 +419,7 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
         type: card.type,
         color: card.color,
         secondColor: card.secondColor,
+        textColor: card.textColor,
         isActive: card.isActive,
         stampsRequired: card.stampsRequired,
         pointsPerVisit,
@@ -636,6 +658,22 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Apariencia de la tarjeta</div>
           <div className="dt-appearance-label">Color de fondo</div>
           <ColorPicker color={card.color} onChange={(s, e) => setCard({ ...card, color: s, secondColor: e })} />
+
+          <div className="dt-appearance-label" style={{ marginTop: 14 }}>Color de texto</div>
+          {can('customTextColor') ? (
+            <div className="dt-custom-color-row">
+              <label className="dt-custom-swatch" style={{ background: card.textColor || '#FFFFFF' }}>
+                <input type="color" value={card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, textColor: e.target.value })} className="dt-color-native" />
+              </label>
+              <input type="text" className="dt-hex-input" value={card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, textColor: e.target.value })} placeholder="#FFFFFF" maxLength={7} />
+              <span className="dt-hex-label">Se ve así en la Wallet real</span>
+            </div>
+          ) : (
+            <div className="dt-upgrade-color-note">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Color de texto personalizado · Plan Growth o superior
+            </div>
+          )}
 
           {card.type === 'stamp' && (
             <>
@@ -1096,6 +1134,7 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
         .dt-logo-zone--filled{border-style:solid;border-color:rgba(43,38,32,.12);}
         .dt-logo-preview{width:100%;height:100%;object-fit:contain;padding:6px;}
         .dt-logo-remove{font-size:9.5px;color:#B23B3B;background:none;border:none;cursor:pointer;text-align:center;}
+        .dt-logo-error{font-size:9.5px;color:#B23B3B;text-align:center;line-height:1.4;padding:0 4px;}
         .dt-fields-list{display:flex;flex-direction:column;gap:4px;}
         .dt-field-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#FBF6EE;border:1px solid rgba(43,38,32,.07);border-radius:9px;font-size:11.5px;color:#2B2620;transition:background .1s;}
         .dt-field-row:hover{background:#F5EFE6;}

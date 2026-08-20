@@ -941,6 +941,7 @@ export default function DashboardPage() {
             flipMessage:    c.flipMessage || null,
             flipSubMessage: c.flipSubMessage || null,
             pointsPerVisit: c.pointsPerVisit || null,
+            textColor: c.textColor || null,
           })))
         } else console.error('cards load error:', cardsRes.reason)
 
@@ -993,6 +994,7 @@ export default function DashboardPage() {
         flipMessage:    c.flipMessage || null,
         flipSubMessage: c.flipSubMessage || null,
             pointsPerVisit: c.pointsPerVisit || null,
+            textColor: c.textColor || null,
       })))
     } catch (err) {
       console.error('Error refreshing cards:', err)
