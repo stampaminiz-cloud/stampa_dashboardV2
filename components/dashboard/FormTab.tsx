@@ -41,15 +41,6 @@ const FIXED_FIELDS: FormField[] = [
   { id: 'email', label: 'Email',           type: 'email', isLocked: true, isActive: true, isRewardSource: false, order: 2, placeholder: 'tu@email.com' },
 ]
 
-// Generic optional fields — editable labels, applicable to any industry
-const makeDefaultOptional = (): FormField[] => [
-  { id: 'dob',    label: 'Fecha de nacimiento', type: 'date', isLocked: false, isActive: true,  isRewardSource: false, order: 3 },
-  { id: 'phone',  label: 'Teléfono',            type: 'tel',  isLocked: false, isActive: false, isRewardSource: false, order: 4, placeholder: '+54 11 0000-0000' },
-  { id: 'zone',   label: 'Barrio / Zona',        type: 'text', isLocked: false, isActive: false, isRewardSource: false, order: 5, placeholder: 'Ej: Palermo' },
-  { id: 'pref1',  label: 'Preferencia principal',type: 'text', isLocked: false, isActive: true,  isRewardSource: true,  order: 6, placeholder: 'Personalizable por rubro' },
-  { id: 'pref2',  label: 'Preferencia secundaria',type:'select',isLocked: false, isActive: true,  isRewardSource: false, order: 7, options: ['Opción 1','Opción 2','Opción 3'] },
-]
-
 const FIELD_TYPE_OPTIONS = [
   { value: 'text',   label: 'Texto libre' },
   { value: 'number', label: 'Número' },
@@ -319,33 +310,36 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
   const [loadingFields, setLoadingFields] = useState(false)
   const selectedCard = activeCards.find((c: CardDesign) => c.id === selectedCardId) || activeCards[0]
 
-  // Per-card form state
-  const [cardForms, setCardForms] = useState<Record<string, FormField[]>>(
-    Object.fromEntries(activeCards.map((c: CardDesign) => [c.id, makeDefaultOptional()]))
-  )
-  const [cardCustom, setCardCustom] = useState<Record<string, FormField[]>>(
-    Object.fromEntries(activeCards.map((c: CardDesign) => [c.id, []]))
-  )
+  // Per-card form state — arranca vacío, se llena con datos reales del
+  // backend en el useEffect de abajo (antes arrancaba con relleno local
+  // que nunca existió en la base, causando los 500 al intentar guardarlo).
+  const [cardForms, setCardForms] = useState<Record<string, FormField[]>>({})
+  const [cardCustom, setCardCustom] = useState<Record<string, FormField[]>>({})
   // Load real fields from backend when card or businessId changes
   useEffect(() => {
     if (!businessId || !selectedCardId) return
     setLoadingFields(true)
     apiGetFields(businessId, selectedCardId).then(fields => {
-      if (fields.length > 0) {
-        // Los campos locked (Nombre completo, Email) que crea el onboarding
-        // ya están representados por FIXED_FIELDS acá arriba (hardcodeado,
-        // siempre visible) — guardarlos también en cardForms los duplicaba
-        // en la lista ("se vuelve repetitivo"), y como sí tienen un _id
-        // real de Mongo, intentar apagarlos disparaba un 400 genuino del
-        // backend (los campos locked no se pueden desactivar). Se
-        // descartan acá, no hace falta guardarlos en ningún lado.
-        const custom = fields.filter((f: any) => !f.isLocked).map((f: any) => ({
-          id: f._id, label: f.label, type: f.fieldType, isLocked: false,
-          isActive: f.isActive, isRewardSource: f.isRewardSource, order: f.order,
-          placeholder: f.placeholder || '', options: f.options,
-        }))
-        setCardCustom(prev => ({ ...prev, [selectedCardId]: custom }))
-      }
+      // Los campos locked (Nombre completo, Email) ya están representados
+      // por FIXED_FIELDS acá arriba (hardcodeado, siempre visible) —
+      // guardarlos también acá los duplicaba en la lista, y como sí tienen
+      // un _id real de Mongo, intentar apagarlos disparaba un 400 genuino
+      // del backend (los campos locked no se pueden desactivar). Se
+      // descartan, no hace falta guardarlos en ningún lado.
+      //
+      // El resto se separa en dos grupos reales que vienen del backend
+      // (antes "opcionales" era relleno 100% local que nunca existió en la
+      // base — por eso apagarlos/editarlos tiraba 500, el ID no era un
+      // ObjectId real):
+      const mapField = (f: any) => ({
+        id: f._id, label: f.label, type: f.fieldType, isLocked: false,
+        isActive: f.isActive, isRewardSource: f.isRewardSource, order: f.order,
+        placeholder: f.placeholder || '', options: f.options,
+      })
+      const defaultOptional = fields.filter((f: any) => !f.isLocked && f.isDefaultOptional).map(mapField)
+      const trulyCustom     = fields.filter((f: any) => !f.isLocked && !f.isDefaultOptional).map(mapField)
+      setCardForms(prev => ({ ...prev, [selectedCardId]: defaultOptional }))
+      setCardCustom(prev => ({ ...prev, [selectedCardId]: trulyCustom }))
     }).catch(console.error).finally(() => setLoadingFields(false))
   }, [businessId, selectedCardId])
 
@@ -736,20 +730,24 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
             <div className="fm-card">
               <div className="fm-card-title">Campos opcionales</div>
               <div className="fm-card-sub">Arrastrá para reordenar · lápiz para renombrar · ojo para mostrar/ocultar · ★ para el campo de premio</div>
-              <div className="fm-fields-list">
-                {optional.map((f: FormField, i: number) => (
-                  <OptionalFieldRow
-                    key={f.id}
-                    field={f}
-                    onUpdate={updateLabel}
-                    onToggle={toggleOptional}
-                    onSetReward={setRewardSource}
-                    onDragStart={() => handleDragStart(i)}
-                    onDragEnter={() => handleDragEnter(i)}
-                    onDragEnd={handleDragEnd}
-                  />
-                ))}
-              </div>
+              {loadingFields ? (
+                <div className="fm-max-note">Cargando...</div>
+              ) : (
+                <div className="fm-fields-list">
+                  {optional.map((f: FormField, i: number) => (
+                    <OptionalFieldRow
+                      key={f.id}
+                      field={f}
+                      onUpdate={updateLabel}
+                      onToggle={toggleOptional}
+                      onSetReward={setRewardSource}
+                      onDragStart={() => handleDragStart(i)}
+                      onDragEnter={() => handleDragEnter(i)}
+                      onDragEnd={handleDragEnd}
+                    />
+                  ))}
+                </div>
+              )}
               <div className="fm-field-hint">
                 💡 Doble click o el lápiz para renombrar cualquier campo. Ej: "Preferencia principal" → "Corte de cabello favorito"
               </div>
