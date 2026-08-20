@@ -24,6 +24,7 @@ interface CardDesign {
   flipSubMessage?: string | null
   pointsPerVisit?: number | null
   textColor?: string | null
+  publicDescription?: string | null
 }
 
 interface FormField {
@@ -420,6 +421,7 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
         color: card.color,
         secondColor: card.secondColor,
         textColor: card.textColor,
+        publicDescription: card.publicDescription || undefined,
         isActive: card.isActive,
         stampsRequired: card.stampsRequired,
         pointsPerVisit,
@@ -564,6 +566,16 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
             ))}
           </div>
           <div className="dt-type-switch-note">Cambiar el tipo resetea la configuración específica (sellos requeridos, niveles de membresía, etc.) — el progreso de clientes existentes en esta tarjeta puede quedar inconsistente.</div>
+
+          <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Descripción pública</div>
+          <input
+            className="dt-public-desc-input"
+            value={card.publicDescription || ''}
+            onChange={e => setCard({ ...card, publicDescription: e.target.value.slice(0, 100) })}
+            placeholder={card.type === 'stamp' ? `Ej: ${card.stampsRequired} sellos = 1 café gratis` : card.type === 'points' ? 'Ej: Acumulá puntos y canjealos por premios' : 'Ej: Subí de nivel con tus visitas'}
+            maxLength={100}
+          />
+          <div className="dt-public-desc-note">{(card.publicDescription || '').length}/100 — se muestra a tus clientes si tenés 2 o más tarjetas activas, para que sepan a cuál sumarse. Si lo dejás vacío, usamos un texto automático.</div>
 
           {/* Logos */}
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Logos e íconos</div>
@@ -1309,6 +1321,9 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
         .dt-type-btn{flex:1;font-size:12.5px;font-weight:600;padding:9px 10px;border-radius:9px;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.1);color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
         .dt-type-btn--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;}
         .dt-type-switch-note{font-size:10.5px;color:rgba(43,38,32,.4);line-height:1.5;margin-top:7px;}
+        .dt-public-desc-input{width:100%;padding:10px 12px;font-size:12.5px;border:1.5px solid rgba(43,38,32,.12);border-radius:9px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
+        .dt-public-desc-input:focus{border-color:#C75D3A;background:#fff;}
+        .dt-public-desc-note{font-size:10px;color:rgba(43,38,32,.4);line-height:1.5;margin-top:6px;}
         .dt-pass-flip-wrap{transition:opacity .3s ease, transform .3s ease;}
         .dt-pass-flip-wrap--flipping{opacity:0;transform:scale(.96);}
         /* Prize card body */
