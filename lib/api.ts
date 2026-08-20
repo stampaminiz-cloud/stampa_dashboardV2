@@ -57,8 +57,11 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     body: body ? JSON.stringify(body) : undefined,
   })
 
-  // Token expirado o inválido → limpiar sesión y redirigir al login
-  if (res.status === 401) {
+  // Token expirado o inválido → limpiar sesión y redirigir al login.
+  // OJO: nunca en una llamada noAuth (páginas públicas como el registro de
+  // clientes) — ahí no hay ninguna sesión de owner que romper, y sacar a
+  // alguien de su sesión real por un 401 de una llamada pública sería un bug.
+  if (res.status === 401 && !noAuth) {
     clearToken()
     if (typeof window !== 'undefined') {
       window.location.href = '/login'
