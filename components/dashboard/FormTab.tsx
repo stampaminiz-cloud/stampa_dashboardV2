@@ -248,9 +248,13 @@ function CustomFieldBuilder({ fields, onChange, maxCustom, businessId, cardId }:
 }
 
 // ─── Share section (Link + QR only) ──────────────────────────────────────────
-function ShareSection({ businessName, slug }: { businessName: string; slug: string }) {
+function ShareSection({ businessName, slug, businessId }: { businessName: string; slug: string; businessId?: string | null }) {
   const [copied, setCopied] = useState(false)
-  const link = `https://stampa.app/r/${slug}`
+  // Usa el dominio donde esté corriendo el dashboard en este momento
+  // (staging o producción, lo que sea) — antes esto apuntaba a stampa.app,
+  // un dominio que ni siquiera confirmamos que exista todavía.
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const link = businessId ? `${origin}/r/${businessId}` : ''
 
   function copyLink() {
     navigator.clipboard?.writeText(link).catch(() => {})
@@ -283,10 +287,20 @@ function ShareSection({ businessName, slug }: { businessName: string; slug: stri
         <div className="fm-card-sub">Imprimilo y ponelo en el mostrador o la mesa</div>
         <div className="fm-qr-wrap">
           <div className="fm-qr-box">
-            <QRCode size={120} />
+            {link
+              ? <img src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(link)}`} width={120} height={120} alt="QR de registro" />
+              : <QRCode size={120} />
+            }
             <div className="fm-qr-label">{businessName}</div>
           </div>
-          <button className="fm-download-btn">
+          <button className="fm-download-btn" disabled={!link} onClick={() => {
+            if (!link) return
+            const a = document.createElement('a')
+            a.href = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(link)}`
+            a.download = `qr-${businessName.toLowerCase().replace(/\s+/g, '-')}.png`
+            a.target = '_blank'
+            a.click()
+          }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Descargar QR
           </button>
@@ -747,7 +761,7 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
 
         {/* Share */}
         <div className="fm-lbl">Compartir</div>
-        <ShareSection businessName={businessName} slug={businessSlug} />
+        <ShareSection businessName={businessName} slug={businessSlug} businessId={businessId} />
       </div>
     </>
   )
