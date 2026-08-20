@@ -69,10 +69,15 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     throw new Error('Session expired')
   }
 
-  const data = await res.json()
+  // Parseamos como texto primero — un 204 No Content (típico de los DELETE
+  // exitosos) no tiene body, y llamar res.json() directo ahí explota con
+  // "Unexpected end of JSON input". Mismo cuidado para respuestas de error
+  // que a veces tampoco traen body.
+  const text = await res.text()
+  const data = text ? JSON.parse(text) : null
 
   if (!res.ok) {
-    throw { status: res.status, ...data }
+    throw { status: res.status, ...(data || {}) }
   }
 
   return data as T
@@ -258,7 +263,7 @@ export async function apiCancelDeletion() {
 export async function apiGetPublicBusiness(businessId: string) {
   return request<{
     business: { id: string; name: string; slug: string }
-    cards: Array<{ id: string; name: string; type: string }>
+    cards: Array<{ id: string; name: string; type: string; description?: string; color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null }>
     fields: Array<{ label: string; fieldType: string; isLocked: boolean; options?: string[] }>
   }>(`/api/businesses/${businessId}/public`, { noAuth: true })
 }
