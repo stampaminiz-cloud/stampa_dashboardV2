@@ -263,8 +263,9 @@ export async function apiCancelDeletion() {
 export async function apiGetPublicBusiness(businessId: string) {
   return request<{
     business: { id: string; name: string; slug: string }
+    whiteLabel?: boolean
     cards: Array<{ id: string; name: string; type: string; description?: string; color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null }>
-    fields: Array<{ label: string; fieldType: string; isLocked: boolean; options?: string[] }>
+    fields: Array<{ label: string; fieldType: string; isLocked: boolean; options?: string[]; placeholder?: string }>
   }>(`/api/businesses/${businessId}/public`, { noAuth: true })
 }
 
