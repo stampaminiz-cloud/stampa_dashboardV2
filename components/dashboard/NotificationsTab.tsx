@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
 import { usePlan } from '@/data/plans'
 import { BASE_URL } from '@/lib/api'
@@ -7,7 +7,10 @@ import { BASE_URL } from '@/lib/api'
 type Audience = 'All' | 'Near prize' | 'Inactive'
 type SendType = 'instant' | 'scheduled'
 
-interface ScheduledNotif { id: string; message: string; audience: Audience; scheduledAt: string }
+// index en vez de id — es lo que espera DELETE /notifications/scheduled/:index
+// del backend (las programadas viven en un array plano en Business, no en
+// su propia colección con _id).
+interface ScheduledNotif { index: number; message: string; audience: string; scheduledAt: string }
 interface SentNotif      { id: string; message: string; audience: Audience; sentCount: number; sentAt: string }
 interface NotificationsData { scheduledNotifications: ScheduledNotif[]; sentNotifications: SentNotif[] }
 
@@ -26,12 +29,48 @@ export function NotificationsTab({ data, businessId, analyticsData, rewardsData 
   const [sendType, setSendType]       = useState<SendType>('instant')
   const [schedDate, setSchedDate]     = useState('')
   const [schedTime, setSchedTime]     = useState('')
-  const [scheduled, setScheduled]     = useState<ScheduledNotif[]>(data.scheduledNotifications)
-  const [sent, setSent]               = useState<SentNotif[]>(data.sentNotifications)
-  const atNotifLimit = notifLimit < 999999 && sent.length >= notifLimit
+  const [scheduled, setScheduled]     = useState<ScheduledNotif[]>([])
+  const [sent, setSent]               = useState<SentNotif[]>([])
+  // Contador real del backend — antes se aproximaba con sent.length (el
+  // array local de esta sesión), que ni siquiera reflejaba el mes actual
+  // una vez que el historial es real y puede tener meses viejos mezclados.
+  const [sentThisMonth, setSentThisMonth] = useState(0)
+  const atNotifLimit = notifLimit < 999999 && sentThisMonth >= notifLimit
   const [sentSuccess, setSentSuccess] = useState(false)
   const [charCount, setCharCount]     = useState(0)
+  const [loadingHistory, setLoadingHistory] = useState(false)
   const MAX_CHARS = 160
+
+  async function loadHistory() {
+    if (!businessId) return
+    setLoadingHistory(true)
+    try {
+      const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/notifications`, {
+        headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') },
+      })
+      const result = await res.json()
+      setSent((result.history || []).map((h: any, i: number) => ({
+        id: h._id || `h-${i}`,
+        message: h.message,
+        audience: h.audience === 'near' ? 'Near prize' : h.audience === 'inactive' ? 'Inactive' : 'All',
+        sentCount: h.sentCount || 0,
+        sentAt: h.sentAt ? new Date(h.sentAt).toLocaleDateString('es-AR') : '—',
+      })))
+      setScheduled((result.scheduled || []).map((s: any) => ({
+        index: s.index,
+        message: s.message,
+        audience: s.audience,
+        scheduledAt: s.scheduledAt ? new Date(s.scheduledAt).toLocaleString('es-AR') : '—',
+      })))
+      setSentThisMonth(result.sentThisMonth || 0)
+    } catch (err) {
+      console.error('Error loading notification history:', err)
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
+
+  useEffect(() => { loadHistory() }, [businessId])
 
   const AUDIENCES = [
     { key: 'All' as Audience, label: t('nt_all'), desc: t('nt_all_desc'), count: analyticsData?.total ?? 0, color: '#2B2620', bg: 'rgba(43,38,32,.06)' },
@@ -45,6 +84,22 @@ export function NotificationsTab({ data, businessId, analyticsData, rewardsData 
 
   const selectedAudience = AUDIENCES.find(a => a.key === audience)!
 
+  // El backend espera 'all' | 'active' | 'inactive' | 'near' — el
+  // .replace(' ', '_') de antes mandaba 'near_prize', que el backend
+  // nunca reconocía (caía siempre al filtro default = "todos", aunque el
+  // dueño hubiera elegido "Cerca del premio").
+  function audienceSlug(a: Audience): string {
+    if (a === 'Near prize') return 'near'
+    if (a === 'Inactive') return 'inactive'
+    return 'all'
+  }
+
+  function audienceMeta(slug: string): { label: string; color: string; bg: string } {
+    if (slug === 'near' || slug === 'near_prize') return { label: t('nt_near'), color: '#C75D3A', bg: 'rgba(199,93,58,.08)' }
+    if (slug === 'inactive') return { label: t('nt_inactive'), color: '#B23B3B', bg: 'rgba(178,59,59,.07)' }
+    return { label: t('nt_all'), color: '#2B2620', bg: 'rgba(43,38,32,.06)' }
+  }
+
   function handleMessage(val: string) {
     if (val.length <= MAX_CHARS) { setMessage(val); setCharCount(val.length) }
   }
@@ -53,53 +108,73 @@ export function NotificationsTab({ data, businessId, analyticsData, rewardsData 
     if (!message.trim()) return
     if (sendType === 'scheduled') {
       if (!schedDate || !schedTime) return
-      if (businessId) {
-        try {
-          await fetch(`${BASE_URL}/api/businesses/${businessId}/notifications/scheduled`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + localStorage.getItem('stampa_token')
-            },
-            body: JSON.stringify({
-              message,
-              audience: audience.toLowerCase().replace(' ', '_'),
-              scheduledAt: new Date(`${schedDate}T${schedTime}`).toISOString()
-            })
+      if (!businessId) return
+      try {
+        const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/notifications/scheduled`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('stampa_token')
+          },
+          body: JSON.stringify({
+            message,
+            audience: audienceSlug(audience),
+            scheduledAt: new Date(`${schedDate}T${schedTime}`).toISOString()
           })
-        } catch (err) { console.error('Error scheduling:', err) }
-      }
-      setScheduled([{ id: Date.now().toString(), message, audience, scheduledAt: `${schedDate}, ${schedTime}` }, ...scheduled])
-    } else {
-      if (businessId) {
-        try {
-          const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/notifications/broadcast`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + localStorage.getItem('stampa_token')
-            },
-            body: JSON.stringify({
-              message,
-              audience: audience.toLowerCase().replace(' ', '_'),
-            })
-          })
-          const result = await res.json()
-          setSent([{ id: Date.now().toString(), message, audience, sentCount: result.sent || 0, sentAt: t('now') }, ...sent])
-        } catch (err) {
-          console.error('Error broadcasting:', err)
-          setSent([{ id: Date.now().toString(), message, audience, sentCount: 0, sentAt: t('now') }, ...sent])
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          console.error('Error scheduling:', err?.error)
+          return // no limpiar el form si falló — el dueño necesita ver que no se guardó
         }
-      } else {
-        setSent([{ id: Date.now().toString(), message, audience, sentCount: selectedAudience.count, sentAt: t('now') }, ...sent])
+        await loadHistory() // trae la programada real, con su índice real del backend
+      } catch (err) { console.error('Error scheduling:', err); return }
+    } else {
+      if (!businessId) return
+      try {
+        const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/notifications/broadcast`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('stampa_token')
+          },
+          body: JSON.stringify({
+            message,
+            audience: audienceSlug(audience),
+          })
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          console.error('Error broadcasting:', err?.error)
+          return // antes esto igual mostraba "enviado" con sentCount:0 aunque hubiera fallado
+        }
+        await loadHistory() // trae el envío real, con el conteo real de dispositivos
+        setSentSuccess(true)
+        setTimeout(() => setSentSuccess(false), 3000)
+      } catch (err) {
+        console.error('Error broadcasting:', err)
+        return
       }
-      setSentSuccess(true)
-      setTimeout(() => setSentSuccess(false), 3000)
     }
     setMessage(''); setCharCount(0)
   }
 
-  function cancelScheduled(id: string) { setScheduled(scheduled.filter((n: ScheduledNotif) => n.id !== id)) }
+  async function cancelScheduled(index: number) {
+    if (!businessId) return
+    const prev = scheduled
+    setScheduled(scheduled.filter((n: ScheduledNotif) => n.index !== index))
+    try {
+      const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/notifications/scheduled/${index}`, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') },
+      })
+      if (!res.ok) throw new Error('delete failed')
+      await loadHistory() // re-sincroniza índices — cancelar corre uno los índices de las que quedan
+    } catch (err) {
+      console.error('Error cancelling scheduled notification:', err)
+      setScheduled(prev) // revertir si el backend no pudo cancelarla de verdad
+    }
+  }
 
   return (
     <>
@@ -210,7 +285,7 @@ export function NotificationsTab({ data, businessId, analyticsData, rewardsData 
 
             {notifLimit < 999999 && (
               <div style={{ fontSize: 11, color: atNotifLimit ? '#B23B3B' : 'rgba(43,38,32,.4)', marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
-                <span>{sent.length} / {notifLimit} notificaciones este mes</span>
+                <span>{sentThisMonth} / {notifLimit} notificaciones este mes</span>
                 {atNotifLimit && <span style={{ fontWeight: 700 }}>Mejorá el plan para seguir enviando</span>}
               </div>
             )}
@@ -250,18 +325,18 @@ export function NotificationsTab({ data, businessId, analyticsData, rewardsData 
           {scheduled.length === 0
             ? <div className="nt-empty">{t('nt_no_scheduled')}</div>
             : scheduled.map((n: ScheduledNotif) => {
-                const aud = AUDIENCES.find(a => a.key === n.audience)!
+                const aud = audienceMeta(n.audience)
                 return (
-                  <div key={n.id} className="nt-sched-row">
+                  <div key={n.index} className="nt-sched-row">
                     <div className="nt-sched-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
                     <div className="nt-sched-info">
                       <div className="nt-sched-msg">{n.message}</div>
                       <div className="nt-sched-meta">
-                        <span className="nt-aud-badge" style={{ color: aud.color, background: aud.bg }}>{AUDIENCE_LABELS[n.audience]}</span>
+                        <span className="nt-aud-badge" style={{ color: aud.color, background: aud.bg }}>{aud.label}</span>
                         <span className="nt-sched-time">{n.scheduledAt}</span>
                       </div>
                     </div>
-                    <button className="nt-cancel-btn" onClick={() => cancelScheduled(n.id)}>{t('nt_cancel')}</button>
+                    <button className="nt-cancel-btn" onClick={() => cancelScheduled(n.index)}>{t('nt_cancel')}</button>
                   </div>
                 )
               })
