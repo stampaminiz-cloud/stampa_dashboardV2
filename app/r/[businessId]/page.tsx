@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
-import { apiGetPublicBusiness, apiGetPublicCardFields, apiRegisterCustomer } from '@/lib/api'
+import { apiGetPublicBusiness, apiGetPublicCardFields, apiRegisterCustomer, BASE_URL } from '@/lib/api'
 
 const CSS = `
   :root { --font-display: 'Plus Jakarta Sans', sans-serif; --font-body: 'Inter', sans-serif; --brand-color: #C75D3A; --brand-second: #993C1D; --brand-text: #FFFFFF; }
@@ -34,6 +34,7 @@ const CSS = `
   .rg-card-pill-desc { font-size: 12px; color: rgba(43,38,32,.5); }
 
   .rg-success { text-align: center; }
+  .rg-wallet-btn { display: block; width: 100%; background: #000; color: #fff; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; font-family: var(--font-display); text-decoration: none; margin: 16px 0; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
   .rg-qr-img { width: 180px; height: 180px; margin: 16px auto; display: block; border-radius: 12px; border: 1px solid rgba(43,38,32,.08); }
   .rg-success-title { font-family: var(--font-display); font-weight: 700; font-size: 17px; margin-bottom: 6px; }
   .rg-success-note { font-size: 12px; color: rgba(43,38,32,.55); line-height: 1.6; }
@@ -83,7 +84,7 @@ export default function PublicRegisterPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [result, setResult] = useState<{ qrValue: string; cardName: string } | null>(null)
+  const [result, setResult] = useState<{ qrValue: string; cardName: string; customerId: string } | null>(null)
 
   useEffect(() => { injectStyles() }, [])
 
@@ -133,7 +134,7 @@ export default function PublicRegisterPage() {
         email: email.trim(),
         formResponses,
       })
-      setResult({ qrValue: res.qrValue, cardName: res.card.name })
+      setResult({ qrValue: res.qrValue, cardName: res.card.name, customerId: res.customerId })
     } catch (err: any) {
       setError(err?.error || 'No pudimos completar el registro. Intentá de nuevo.')
     } finally {
@@ -174,13 +175,19 @@ export default function PublicRegisterPage() {
                 {result ? (
                   <div className="rg-success">
                     <div className="rg-success-title">¡Listo, {fullName.split(' ')[0]}!</div>
-                    <div className="rg-success-note">Ya estás registrado en {businessName} — {result.cardName}.<br />Mostrá este código en el mostrador para sumar tu primer sello.</div>
+                    <div className="rg-success-note">Ya estás registrado en {businessName} — {result.cardName}.</div>
+                    <a
+                      className="rg-wallet-btn"
+                      href={`${BASE_URL}/api/businesses/${businessId}/customers/${result.customerId}/wallet/apple`}
+                    >
+                      Agregar a Apple Wallet
+                    </a>
+                    <div className="rg-success-note" style={{ marginTop: 14 }}>¿No tenés iPhone? Mostrá este código en el mostrador mientras sumamos Google Wallet:</div>
                     <img
                       className="rg-qr-img"
                       alt="Tu código de cliente"
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(result.qrValue)}`}
                     />
-                    <div className="rg-success-note">Sacale una captura de pantalla — pronto vas a poder agregar esta tarjeta directo a tu Apple Wallet o Google Wallet.</div>
                   </div>
                 ) : !selectedCard ? (
                   <div className="rg-card-pill-row">
