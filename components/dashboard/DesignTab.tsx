@@ -570,34 +570,20 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
         {/* ── Left panel (config) ── */}
         <div className={`dt-editor-panel${mobileView === 'preview' ? ' dt-panel--mobile-hidden' : ''}`}>
 
-          {/* Tipo de tarjeta — corregible sin borrar y crear de nuevo */}
+          {/* El tipo de tarjeta queda fijo desde que se crea — cambiar sellos
+              a puntos a membresía in-place mezclaba datos de configuración
+              incompatibles entre sí (catálogo de puntos, tiers, cantidad de
+              sellos) y dejaba a la tarjeta en un estado inconsistente. Si el
+              negocio quiere un programa distinto, la vía es crear una
+              tarjeta nueva (respetando el límite de tarjetas del plan). */}
           <div className="dt-panel-section-title">Tipo de tarjeta</div>
-          <div className="dt-type-switch">
-            {([
-              { id: 'stamp', label: 'Sellos' },
-              { id: 'points', label: 'Puntos' },
-              { id: 'membership', label: 'Membresía' },
-            ] as const).map(({ id, label }) => (
-              <button
-                key={id}
-                className={`dt-type-btn${card.type === id ? ' dt-type-btn--on' : ''}`}
-                onClick={() => {
-                  if (card.type === id) return
-                  if (!window.confirm(`¿Cambiar a "${label}"? Esto resetea la configuración específica del tipo anterior (sellos requeridos, niveles, etc.) — no se puede deshacer una vez que guardes.`)) return
-                  setCard((prev: CardDesign) => ({
-                    ...prev,
-                    type: id,
-                    stampsRequired: id === 'stamp' ? 8 : prev.stampsRequired,
-                    rewardMode: id === 'stamp' ? 'dynamic' : null,
-                  }))
-                  if (id === 'membership') setTiers([...DEFAULT_TIERS])
-                }}
-              >{label}</button>
-            ))}
-          </div>
-          <div className="dt-type-switch-note">
-            Al cambiar el tipo se resetea la configuración específica
-            <InfoTooltip text="Sellos requeridos, niveles de membresía, etc. se resetean al cambiar de tipo — el progreso de clientes existentes en esta tarjeta puede quedar inconsistente." />
+          <div className="dt-type-fixed">
+            <span className="dt-type-fixed-label">
+              {card.type === 'stamp' ? 'Sellos' : card.type === 'points' ? 'Puntos' : 'Membresía'}
+            </span>
+            <span className="dt-type-fixed-note">
+              El tipo no se puede cambiar después de creada la tarjeta — creá una nueva si necesitás otro tipo de programa.
+            </span>
           </div>
 
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Descripción pública</div>
@@ -709,8 +695,17 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
 
           {/* Appearance */}
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Apariencia de la tarjeta</div>
-          <div className="dt-appearance-label">Color de fondo</div>
-          <ColorPicker color={card.color} onChange={(s, e) => setCard({ ...card, color: s, secondColor: e })} />
+          {card.type !== 'membership' && (
+            <>
+              <div className="dt-appearance-label">Color de fondo</div>
+              <ColorPicker color={card.color} onChange={(s, e) => setCard({ ...card, color: s, secondColor: e })} />
+            </>
+          )}
+          {card.type === 'membership' && (
+            <div className="dt-membership-color-note">
+              El color de fondo lo define el nivel de membresía (Bronze, Silver, Gold, Black), no se elige acá.
+            </div>
+          )}
 
           <div className="dt-appearance-label" style={{ marginTop: 14 }}>Color de texto</div>
           {can('customTextColor') ? (
@@ -1368,10 +1363,10 @@ export function DesignTab({ data, cards, businessId, businessName, onSaved }: { 
         .dt-face-switch{display:flex;gap:20px;margin-bottom:16px;}
         .dt-face-btn{font-size:13px;color:rgba(43,38,32,.4);background:none;border:none;cursor:pointer;padding-bottom:6px;border-bottom:2.5px solid transparent;font-family:'Inter',sans-serif;transition:all .15s;display:flex;align-items:center;gap:5px;}
         .dt-face-btn--on{color:#C75D3A;border-bottom-color:#C75D3A;font-weight:600;}
-        .dt-type-switch{display:flex;gap:6px;}
-        .dt-type-btn{flex:1;font-size:12.5px;font-weight:600;padding:9px 10px;border-radius:9px;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.1);color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
-        .dt-type-btn--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;}
-        .dt-type-switch-note{font-size:10.5px;color:rgba(43,38,32,.4);line-height:1.5;margin-top:7px;}
+        .dt-type-fixed{background:#FBF6EE;border:1.5px solid rgba(43,38,32,.1);border-radius:9px;padding:10px 12px;}
+        .dt-type-fixed-label{display:block;font-size:13px;font-weight:700;color:#2B2620;margin-bottom:4px;}
+        .dt-type-fixed-note{font-size:10.5px;color:rgba(43,38,32,.4);line-height:1.5;}
+        .dt-membership-color-note{font-size:11px;color:rgba(43,38,32,.5);background:#FBF6EE;border-radius:9px;padding:10px 12px;line-height:1.5;}
         .dt-public-desc-input{width:100%;padding:10px 12px;font-size:12.5px;border:1.5px solid rgba(43,38,32,.12);border-radius:9px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
         .dt-public-desc-input:focus{border-color:#C75D3A;background:#fff;}
         .dt-public-desc-note{font-size:10px;color:rgba(43,38,32,.4);line-height:1.5;margin-top:6px;}
