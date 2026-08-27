@@ -1254,7 +1254,7 @@ export function DesignTab({ data, cards, businessId, businessName, onSaved }: { 
         .dt-real-pass-info{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 24px 20px;}
         .dt-real-pass-info-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.65);font-weight:600;margin-bottom:4px;}
         .dt-real-pass-info-val{font-size:16px;font-weight:700;color:#FFFFFF;}
-        .dt-real-pass-qr-section{background:#FFFFFF;padding:20px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+        .dt-real-pass-qr-section{background:#FFFFFF;border-radius:14px;padding:14px 18px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;margin:4px 24px 24px;}
         .dt-real-pass-powered{font-size:10px;color:#999;}
         /* Google pass */
         .dt-gpass{width:300px;border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(43,38,32,.25);background:#FFFFFF;}
