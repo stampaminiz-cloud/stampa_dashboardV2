@@ -115,6 +115,7 @@ export interface Card {
   logoUrl: string | null
   earnedIcon?: string | null
   emptyIcon?: string | null
+  pointsIcon?: string | null
   stampsRequired: number
   rewardMode: 'dynamic' | 'fixed' | null
   rewardFixedValue: string | null
