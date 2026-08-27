@@ -204,8 +204,8 @@ function ColorPicker({ color, onChange }: { color: string; onChange: (s: string,
 }
 
 // ─── Pass preview (Apple Wallet) ──────────────────────────────────────────────
-function RealPassPreview({ design, logos, rewardSourceLabel, tiers, previewTierIndex }: {
-  design: CardDesign; logos: LogoState; rewardSourceLabel: string; tiers: MembershipTier[]; previewTierIndex: number
+function RealPassPreview({ design, businessName, logos, rewardSourceLabel, tiers, previewTierIndex }: {
+  design: CardDesign; businessName?: string | null; logos: LogoState; rewardSourceLabel: string; tiers: MembershipTier[]; previewTierIndex: number
 }) {
   const stamps = Array.from({ length: design.stampsRequired }, (_: unknown, i: number) => i < 3)
   const activeTier = tiers[previewTierIndex] || tiers[0]
@@ -225,7 +225,7 @@ function RealPassPreview({ design, logos, rewardSourceLabel, tiers, previewTierI
       <div className="dt-real-pass-top">
         {logos.businessLogo
           ? <img src={logos.businessLogo} className="dt-real-pass-logo-img" alt="logo" />
-          : <div className="dt-real-pass-logo-text">{design.name.toUpperCase()}</div>
+          : <div className="dt-real-pass-logo-text" style={{ color: design.textColor || '#FFFFFF' }}>{(businessName || design.name).toUpperCase()}</div>
         }
       </div>
 
@@ -284,8 +284,8 @@ function RealPassPreview({ design, logos, rewardSourceLabel, tiers, previewTierI
 }
 
 // ─── Google Wallet preview ────────────────────────────────────────────────────
-function GooglePreview({ design, logos, rewardSourceLabel, tiers, previewTierIndex }: {
-  design: CardDesign; logos: LogoState; rewardSourceLabel: string; tiers: MembershipTier[]; previewTierIndex: number
+function GooglePreview({ design, businessName, logos, rewardSourceLabel, tiers, previewTierIndex }: {
+  design: CardDesign; businessName?: string | null; logos: LogoState; rewardSourceLabel: string; tiers: MembershipTier[]; previewTierIndex: number
 }) {
   const stamps = Array.from({ length: design.stampsRequired }, (_: unknown, i: number) => i < 3)
   const activeTier = tiers[previewTierIndex] || tiers[0]
@@ -305,7 +305,7 @@ function GooglePreview({ design, logos, rewardSourceLabel, tiers, previewTierInd
       <div className="dt-gpass-hero" style={{ background: gBgGrad }}>
         <div className="dt-gpass-logo-row">
           {logos.businessLogo ? <img src={logos.businessLogo} className="dt-gpass-logo-img" alt="" /> : <div className="dt-gpass-logo-box" />}
-          <span className="dt-gpass-issuer">{design.name}</span>
+          <span className="dt-gpass-issuer">{businessName || design.name}</span>
         </div>
         <div className="dt-gpass-hero-title">
           {design.type === 'stamp' ? `3 de ${design.stampsRequired} sellos`
@@ -336,14 +336,15 @@ function GooglePreview({ design, logos, rewardSourceLabel, tiers, previewTierInd
 }
 
 // ─── Mini pass thumbnail ──────────────────────────────────────────────────────
-function MiniPass({ design, logos }: { design: CardDesign; logos: LogoState }) {
+function MiniPass({ design, businessName, logos }: { design: CardDesign; businessName?: string | null; logos: LogoState }) {
   const stamps = Array.from({ length: Math.min(design.stampsRequired, 8) }, (_: unknown, i: number) => i < 3)
+  const fallbackLabel = (businessName || design.name).split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0,4)
   return (
     <div className="dt-mini-pass" style={{ background: `linear-gradient(170deg, ${design.color}, ${design.secondColor})` }}>
       <div className="dt-mini-pass-top">
         {logos.businessLogo
           ? <img src={logos.businessLogo} className="dt-mini-logo-img" alt="" />
-          : <div className="dt-mini-logo-text">{design.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0,4)}</div>
+          : <div className="dt-mini-logo-text" style={{ color: design.textColor || '#FFFFFF' }}>{fallbackLabel}</div>
         }
         <span className="dt-mini-type">{design.type === 'stamp' ? 'Sellos' : design.type === 'points' ? 'Puntos' : 'Membresía'}</span>
       </div>
@@ -370,8 +371,8 @@ function MiniPass({ design, logos }: { design: CardDesign; logos: LogoState }) {
 }
 
 // ─── Card Editor ──────────────────────────────────────────────────────────────
-function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
-  card: CardDesign; formFields: FormField[]; businessId?: string | null; onSaved?: () => void; onBack: () => void
+function CardEditor({ card: init, formFields, businessId, businessName, onSaved, onBack }: {
+  card: CardDesign; formFields: FormField[]; businessId?: string | null; businessName?: string | null; onSaved?: () => void; onBack: () => void
 }) {
   const { can, plan } = usePlan()
   const t = useLang()
@@ -503,8 +504,8 @@ function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
           {card.type === 'stamp' && previewSide === 'prize'
             ? PrizeCard
             : platform === 'real'
-              ? <RealPassPreview design={card} logos={logos} rewardSourceLabel={rewardSourceLabel} tiers={tiers} previewTierIndex={previewTierIndex} />
-              : <GooglePreview  design={card} logos={logos} rewardSourceLabel={rewardSourceLabel} tiers={tiers} previewTierIndex={previewTierIndex} />
+              ? <RealPassPreview design={card} businessName={businessName} logos={logos} rewardSourceLabel={rewardSourceLabel} tiers={tiers} previewTierIndex={previewTierIndex} />
+              : <GooglePreview  design={card} businessName={businessName} logos={logos} rewardSourceLabel={rewardSourceLabel} tiers={tiers} previewTierIndex={previewTierIndex} />
           }
         </div>
         <div className="dt-preview-note">
@@ -909,8 +910,8 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
 }
 
 // ─── Card manager ─────────────────────────────────────────────────────────────
-function CardManager({ cards: init, businessId, onSaved, onEdit }: {
-  cards: CardDesign[]; businessId?: string | null; onSaved?: () => void; onEdit: (card: CardDesign) => void
+function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }: {
+  cards: CardDesign[]; businessId?: string | null; businessName?: string | null; onSaved?: () => void; onEdit: (card: CardDesign) => void
 }) {
   const [cards, setCards]         = useState<CardDesign[]>(init)
   const [showModal, setModal]     = useState(false)
@@ -1022,7 +1023,7 @@ function CardManager({ cards: init, businessId, onSaved, onEdit }: {
       <div className="dt-cards-grid">
         {cards.map((card: CardDesign) => (
           <div key={card.id} className="dt-card-tile">
-            <MiniPass design={card} logos={{ businessLogo: card.logoUrl || null, earnedIcon: card.earnedIcon || null, emptyIcon: card.emptyIcon || null }} />
+            <MiniPass design={card} businessName={businessName} logos={{ businessLogo: card.logoUrl || null, earnedIcon: card.earnedIcon || null, emptyIcon: card.emptyIcon || null }} />
             <div className="dt-tile-info">
               <div className="dt-tile-name-row">
                 <span className="dt-tile-name">{card.name}</span>
@@ -1116,7 +1117,7 @@ function CardManager({ cards: init, businessId, onSaved, onEdit }: {
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignData; cards?: CardDesign[]; businessId?: string | null; onSaved?: () => void }) {
+export function DesignTab({ data, cards, businessId, businessName, onSaved }: { data: DesignData; cards?: CardDesign[]; businessId?: string | null; businessName?: string | null; onSaved?: () => void }) {
   const [editingCard, setEditingCard] = useState<CardDesign | null>(null)
 
   // Las cards reales ya vienen cargadas del dashboard (fetch único al
@@ -1334,13 +1335,13 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
         .dt-pass-flip-wrap{transition:opacity .3s ease, transform .3s ease;}
         .dt-pass-flip-wrap--flipping{opacity:0;transform:scale(.96);}
         /* Prize card body */
-        .dt-prize-card-body{display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 24px 20px;}
-        .dt-prize-stars{display:flex;align-items:flex-end;gap:6px;}
-        .dt-prize-message{font-size:24px;font-weight:800;color:#FFFFFF;text-align:center;line-height:1.2;letter-spacing:-.01em;}
-        .dt-prize-box{width:100%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:12px 16px;text-align:center;}
-        .dt-prize-box-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.55);margin-bottom:5px;}
-        .dt-prize-box-value{font-size:16px;font-weight:700;color:#FFFFFF;}
-        .dt-prize-sub-message{font-size:11px;color:rgba(255,255,255,.6);text-align:center;line-height:1.5;max-width:220px;}
+        .dt-prize-pass{width:300px;min-height:420px;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(43,38,32,.25);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:36px 28px;text-align:center;gap:18px;}
+        .dt-prize-top-msg{font-size:22px;font-weight:800;color:#FFFFFF;line-height:1.25;letter-spacing:-.01em;}
+        .dt-prize-img-area{flex:1;width:100%;display:flex;align-items:center;justify-content:center;min-height:150px;}
+        .dt-prize-img{width:100%;max-height:180px;object-fit:contain;border-radius:12px;}
+        .dt-prize-img-placeholder{display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px;border:1.5px dashed rgba(255,255,255,.3);border-radius:14px;width:100%;}
+        .dt-prize-img-hint{font-size:11.5px;color:rgba(255,255,255,.5);}
+        .dt-prize-bottom-msg{font-size:12.5px;color:rgba(255,255,255,.7);line-height:1.6;max-width:230px;}
         /* Flip editor inputs */
         .dt-flip-input{width:100%;padding:8px 11px;font-size:13px;border:1.5px solid rgba(43,38,32,.12);border-radius:9px;background:#FFFFFF;color:#2B2620;font-family:'Inter',sans-serif;outline:none;margin-bottom:2px;}
         .dt-flip-input:focus{border-color:#C75D3A;}
@@ -1405,8 +1406,8 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
       `}</style>
 
       {editingCard
-        ? <CardEditor card={editingCard} formFields={data.formFields} businessId={businessId} onSaved={onSaved} onBack={() => setEditingCard(null)} />
-        : <CardManager cards={effectiveData.cardDesigns} businessId={businessId} onSaved={onSaved} onEdit={setEditingCard} />
+        ? <CardEditor card={editingCard} formFields={data.formFields} businessId={businessId} businessName={businessName} onSaved={onSaved} onBack={() => setEditingCard(null)} />
+        : <CardManager cards={effectiveData.cardDesigns} businessId={businessId} businessName={businessName} onSaved={onSaved} onEdit={setEditingCard} />
       }
     </>
   )

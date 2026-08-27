@@ -1142,7 +1142,7 @@ export default function DashboardPage() {
           }}
         />
       case 'form':          return <FormTab businessName={business?.name || mockData.business.name} businessSlug={business?.slug || 'mi-negocio'} cardDesigns={cards.length > 0 ? cards : mockData.cardDesigns} businessId={businessId} />
-      case 'design':        return <DesignTab key={businessId ?? 'loading'} data={mockData} cards={cards} businessId={businessId} onSaved={refreshCards} />
+      case 'design': return <DesignTab key={businessId ?? 'loading'} data={mockData} cards={cards} businessId={businessId} businessName={business?.name} onSaved={refreshCards} />      
       case 'users':         return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} onRefresh={loadBusiness} owner={owner} />
       case 'settings':      return (
         <SettingsTab
