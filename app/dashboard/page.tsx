@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { mockData } from '@/data/mockData'
 import { detectLang, createT, LangContext } from '@/data/i18n'
-import { PlanProvider } from '@/data/plans'
+import { PlanProvider, PLAN_LIMITS } from '@/data/plans'
 import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL } from '@/lib/api'
 import { SettingsTab }       from '@/components/dashboard/SettingsTab'
 import { CustomersTab }      from '@/components/dashboard/CustomersTab'
@@ -174,7 +174,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
 }
 
 // ─── Header ───────────────────────────────────────────────────────────────────
-function Header({ title, t, setMobileOpen, setActive }: { title: string; t: (k: any) => string; setMobileOpen: (o: boolean) => void; setActive?: (t: any) => void }) {
+function Header({ title, t, setMobileOpen, setActive, recentActivity: realActivity }: { title: string; t: (k: any) => string; setMobileOpen: (o: boolean) => void; setActive?: (t: any) => void; recentActivity?: any[] }) {
   const [showNotif, setShowNotif] = useState(false)
   const notifRef  = useRef<HTMLDivElement>(null)
 
@@ -186,7 +186,7 @@ function Header({ title, t, setMobileOpen, setActive }: { title: string; t: (k: 
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const recentActivity = mockData.recentActivity.slice(0, 4)
+  const recentActivity = (realActivity || []).slice(0, 4)
 
   return (
     <header className="db-header">
@@ -210,13 +210,15 @@ function Header({ title, t, setMobileOpen, setActive }: { title: string; t: (k: 
                 <span className="hd-drop-title">{t('notifications_title' as any)}</span>
                 <button className="hd-mark-read" onClick={() => { setShowNotif(false); setActive?.('notifications') }}>Ver campañas →</button>
               </div>
-              {recentActivity.map((a: any) => (
-                <div key={a.id} className="hd-notif-row">
-                  <div className={`hd-notif-av hd-notif-av--${a.type}`}>
-                    {a.user.split(' ').map((w: string) => w[0]).join('').slice(0,2)}
+              {recentActivity.length === 0 ? (
+                <div style={{padding:'20px 16px',fontSize:12,color:'rgba(43,38,32,.4)',textAlign:'center'}}>Todavía no hay actividad reciente.</div>
+              ) : recentActivity.map((a: any, i: number) => (
+                <div key={i} className="hd-notif-row">
+                  <div className={`hd-notif-av hd-notif-av--${a.action === 'canjeó su premio' ? 'redeem' : a.action === 'se registró' ? 'signup' : 'login'}`}>
+                    {a.name.split(' ').map((w: string) => w[0]).join('').slice(0,2)}
                   </div>
                   <div className="hd-notif-info">
-                    <div className="hd-notif-text"><strong>{a.user}</strong> {a.action}{a.reward ? ` · ${a.reward}` : ''}</div>
+                    <div className="hd-notif-text"><strong>{a.name}</strong> {a.action}</div>
                     <div className="hd-notif-time">{a.time}</div>
                   </div>
                 </div>
@@ -239,7 +241,6 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
   detailedAnalytics?: any
   cards?: any[]
 }) {
-  const m = mockData.metrics
   const activeCards = (cards && cards.length > 0)
     ? cards.filter((c: any) => c.isActive)
     : mockData.cardDesigns.filter((c: any) => c.isActive)
@@ -1154,9 +1155,12 @@ export default function DashboardPage() {
             ...mockData.business,
             name: business.name,
             sector: business.sector,
+            timezone: business.timezone || mockData.business.timezone,
             inactiveDays: business.inactiveDays || mockData.business.inactiveDays,
             alerts: business.alerts || mockData.business.alerts,
             plan: owner?.plan || mockData.business.plan,
+            planActiveCards: cards.filter((c: any) => c.isActive).length,
+            planMaxCards: PLAN_LIMITS[(owner?.plan || 'Starter') as keyof typeof PLAN_LIMITS]?.maxActiveCards ?? mockData.business.planMaxCards,
           } : mockData.business}
         />
       )
@@ -1182,7 +1186,7 @@ export default function DashboardPage() {
         loading={loading}
       />
       <div className="db-main">
-        <Header title={t(TITLES[active] as any)} t={t} setMobileOpen={setMobileOpen} setActive={setActive} />
+        <Header title={t(TITLES[active] as any)} t={t} setMobileOpen={setMobileOpen} setActive={setActive} recentActivity={detailedAnalytics?.recentActivity} />
         {loading
           ? <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
