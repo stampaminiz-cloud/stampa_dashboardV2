@@ -303,7 +303,8 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
   const axisSteps = [1, 0.75, 0.5, 0.25, 0].map(f => Math.round(chartMax * f))
 
   const ADVANCED = [
-    { v: `${analyticsData?.recurringRate ?? 0}%`, l: t('recurring' as any), color: '#5B8C5A', bg: 'rgba(91,140,90,.1)' },    { v: analyticsData?.total > 0 ? `${Math.round((analyticsData?.active / analyticsData?.total) * 100)}%` : '0%', l: t('avg_progress' as any), color: '#185FA5', bg: 'rgba(24,95,165,.1)' },
+    { v: `${analyticsData?.recurringRate ?? 0}%`, l: t('recurring' as any), color: '#5B8C5A', bg: 'rgba(91,140,90,.1)' },
+    { v: analyticsData?.total > 0 ? `${Math.round((analyticsData?.active / analyticsData?.total) * 100)}%` : '0%', l: t('avg_progress' as any), color: '#185FA5', bg: 'rgba(24,95,165,.1)' },
     { v: `${analyticsData?.redemptionRate ?? 0}%`, l: t('redemption_rate' as any), color: '#C75D3A', bg: 'rgba(199,93,58,.1)' },
     { v: `${stampCard?.stampsRequired ?? 9}`, l: t('visits_to_prize' as any), color: '#9C7530', bg: 'rgba(212,162,76,.15)' },
   ]
@@ -938,6 +939,7 @@ export default function DashboardPage() {
             logoUrl:        c.logoUrl || null,
             earnedIcon:     c.earnedIcon || null,
             emptyIcon:      c.emptyIcon || null,
+            pointsIcon:     c.pointsIcon || null,
             flipImageUrl:   c.flipImageUrl || null,
             flipMessage:    c.flipMessage || null,
             flipSubMessage: c.flipSubMessage || null,
@@ -992,6 +994,7 @@ export default function DashboardPage() {
         logoUrl:        c.logoUrl || null,
         earnedIcon:     c.earnedIcon || null,
         emptyIcon:      c.emptyIcon || null,
+        pointsIcon:     c.pointsIcon || null,
         flipImageUrl:   c.flipImageUrl || null,
         flipMessage:    c.flipMessage || null,
         flipSubMessage: c.flipSubMessage || null,
