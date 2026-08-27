@@ -1118,13 +1118,7 @@ export default function DashboardPage() {
             cta="Ver formulario"
             onCta={() => { setActive('form'); localStorage.setItem('stampa_active_tab', 'form') }}
           /></div>
-      case 'rewards': return analyticsData?.total > 0
-        ? <RewardsTab data={mockData} cards={cards} businessId={businessId} />
-        : <div className="db-content"><EmptyState
-            icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/></svg>}
-            title="Los premios aparecen cuando hay canjes"
-            body="Acá vas a ver qué premios eligen tus clientes y cuántos canjearon este mes."
-          /></div>
+      case 'rewards': return <RewardsTab data={mockData} cards={cards} businessId={businessId} />
           case 'notifications': return <NotificationsTab
           businessId={businessId}
           analyticsData={analyticsData}
@@ -1142,7 +1136,7 @@ export default function DashboardPage() {
           }}
         />
       case 'form':          return <FormTab businessName={business?.name || mockData.business.name} businessSlug={business?.slug || 'mi-negocio'} cardDesigns={cards.length > 0 ? cards : mockData.cardDesigns} businessId={businessId} />
-      case 'design': return <DesignTab key={businessId ?? 'loading'} data={mockData} cards={cards} businessId={businessId} businessName={business?.name} onSaved={refreshCards} />      
+      case 'design':        return <DesignTab key={businessId ?? 'loading'} data={mockData} cards={cards} businessId={businessId} onSaved={refreshCards} />
       case 'users':         return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} onRefresh={loadBusiness} owner={owner} />
       case 'settings':      return (
         <SettingsTab
