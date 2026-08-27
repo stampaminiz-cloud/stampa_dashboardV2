@@ -2,11 +2,14 @@
 import React, { useState, useEffect } from 'react'
 import { usePlan } from '@/data/plans'
 import { useLang } from '@/data/i18n'
+import { BASE_URL } from '@/lib/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VisitDay    { day: string; stamps: number }
 interface HeatRow     { block: string; L: number; M: number; Mi: number; J: number; V: number; S: number; D: number }
-interface TopCustomer { name: string; visits: number }
+interface TopCustomer { name: string; visits: number; lastVisit: string; memberSince: string; cardName: string; progress: string }
+interface LoyalCustomer { name: string; totalVisits: number; lastVisit: string }
+interface Redeemer { name: string; redemptions: number }
 interface FunnelStage { stage: string; value: number }
 interface CompItem    { label: string; current: number; previous: number; unit: string }
 interface FreqBucket  { label: string; count: number }
@@ -113,7 +116,7 @@ function Heatmap({ data }: { data: HeatRow[] }) {
           <div key={row.block} className="an-hgrid">
             <div className="an-hbl">{row.block}</div>
             {vals.map((v: number, i: number) => (
-              <div key={i} className="an-hcell" style={{ background: `rgba(199,93,58,${op(v)})` }} />
+              <div key={i} className="an-hcell" title={`${row.block === 'Morning' ? 'Mañana' : row.block === 'Afternoon' ? 'Tarde' : 'Noche'}, ${days[i]}: ${v} visita${v === 1 ? '' : 's'}`} style={{ background: `rgba(199,93,58,${op(v)})` }} />
             ))}
           </div>
         )
@@ -210,6 +213,8 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
     visitsOverTime: VisitDay[]
     heatmap: HeatRow[]
     topCustomers: TopCustomer[]
+    mostLoyal: LoyalCustomer[]
+    topRedeemers: Redeemer[]
     funnel: FunnelStage[]
     comparison: CompItem[]
     frequency: { avgDays: number; trend: number; distribution: FreqBucket[] }
@@ -221,22 +226,43 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
     const businessId = localStorage.getItem('stampa_business_id')
     if (!businessId) return
     setDetailedLoading(true)
-    fetch(`http://localhost:5002/api/businesses/${businessId}/analytics/detailed?range=${range}`, {
+    const params = new URLSearchParams({ range })
+    if (selectedCardId) params.set('cardId', selectedCardId)
+    fetch(`${BASE_URL}/api/businesses/${businessId}/analytics/detailed?${params.toString()}`, {
       headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
     })
       .then(r => r.json())
       .then(d => setDetailed(d))
       .catch(err => console.error('Error loading detailed analytics:', err))
       .finally(() => setDetailedLoading(false))
-  }, [range])
+  }, [range, selectedCardId])
+
+  // Segmentos/retención — igual que arriba, se refetchean por tarjeta. El
+  // prop `analyticsData` (business-wide) queda solo como valor inicial para
+  // no mostrar la sección vacía mientras carga el primer fetch acá.
+  const [liveMetrics, setLiveMetrics] = useState<any>(null)
+  useEffect(() => {
+    const businessId = localStorage.getItem('stampa_business_id')
+    if (!businessId || !selectedCardId) return
+    const params = new URLSearchParams()
+    params.set('cardId', selectedCardId)
+    fetch(`${BASE_URL}/api/businesses/${businessId}/analytics?${params.toString()}`, {
+      headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
+    })
+      .then(r => r.json())
+      .then(d => setLiveMetrics(d))
+      .catch(err => console.error('Error loading analytics segments:', err))
+  }, [selectedCardId])
 
   // Use real analytics data when available, fall back to 0 (no mock) — la
   // colección Visit es nueva, así que hasta que se acumulen visitas reales
   // estas secciones van a mostrarse vacías/en 0, no con números inventados.
-  const realMetrics = analyticsData || null
+  const realMetrics = liveMetrics || analyticsData || null
   const visitsOverTime         = detailed?.visitsOverTime ?? []
   const heatmapData            = detailed?.heatmap ?? []
   const topCustomers           = detailed?.topCustomers ?? []
+  const mostLoyal              = detailed?.mostLoyal ?? []
+  const topRedeemers           = detailed?.topRedeemers ?? []
   const funnelData             = detailed?.funnel ?? []
   const comparisonData         = detailed?.comparison ?? []
   const frequency              = detailed?.frequency ?? { avgDays: 0, trend: 0, distribution: [] }
@@ -265,6 +291,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
         .an-lbl::after{content:'';flex:1;height:1px;background:rgba(43,38,32,.1);}
         .an-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(43,38,32,.04);}
         .an-ctitle{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
+        .an-live-tag{font-family:'Inter',sans-serif;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:rgba(43,38,32,.4);background:rgba(43,38,32,.06);padding:2px 7px;border-radius:20px;margin-left:6px;vertical-align:middle;}
         .an-csub{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:12px;}
         .an-empty-note{font-size:12px;color:rgba(43,38,32,.4);padding:20px 0;text-align:center;}
 
@@ -273,7 +300,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
         .an-card-selector{display:flex;gap:6px;flex:1;}
         .an-card-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
         .an-card-pill:hover{border-color:rgba(43,38,32,.25);}
-        .an-card-pill--on{background:#1E3329;border-color:#1E3329;color:#F7F0E4;font-weight:600;}
+        .an-card-pill--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;font-weight:600;}
         .an-range-group{display:flex;gap:5px;margin-left:auto;}
         .an-rpill{font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.5);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
         .an-rpill:hover{border-color:rgba(43,38,32,.25);}
@@ -418,8 +445,8 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
             }
           </div>
           <div className="an-card">
-            <div className="an-ctitle">Tasa de retención</div>
-            <div className="an-csub">Clientes que vuelven</div>
+            <div className="an-ctitle">Tasa de retención <span className="an-live-tag">Estado actual</span></div>
+            <div className="an-csub">Clientes que vuelven — no cambia con el filtro de fecha de arriba</div>
             <div className="an-ret">
               <div className="an-ret-num">{realMetrics?.retentionRate ?? 0}%</div>
               <div>
@@ -444,7 +471,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
         )}
         {fullAnalytics && <>
         {/* ── 2. Segmentos ── */}
-        <div className="an-lbl">Segmentos de clientes <span style={{ fontSize: 10, fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'rgba(43,38,32,.35)' }}>{cfg.segmentBasis}</span></div>
+        <div className="an-lbl">Segmentos de clientes <span className="an-live-tag" style={{ textTransform: 'none' }}>Estado actual</span> <span style={{ fontSize: 10, fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'rgba(43,38,32,.35)' }}>{cfg.segmentBasis} — no cambia con el filtro de fecha</span></div>
         <div className="an-4col">
           {SEGMENTS.map(({ label, desc, color, bg, val }) => (
             <div key={label} className="an-card an-seg-card" style={{ background: bg, border: `1px solid ${color}22` }}>
@@ -495,7 +522,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
         <div className="an-2col">
           <div className="an-card">
             <div className="an-ctitle">Horarios pico</div>
-            <div className="an-csub">Visitas por día y bloque horario</div>
+            <div className="an-csub">Cada celda es un bloque de 4-8hs en un día de la semana — más oscuro = más visitas. Pasá el mouse por una celda para ver el número exacto.</div>
             {heatmapData.length > 0
               ? <Heatmap data={heatmapData} />
               : <div className="an-empty-note">Todavía no hay suficientes visitas registradas en este rango.</div>
@@ -509,8 +536,8 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
                   <TierDistribution />
                 </>
               : <>
-                  <div className="an-ctitle">Top clientes</div>
-                  <div className="an-csub">Por cantidad de {cfg.progressUnit}</div>
+                  <div className="an-ctitle">Top clientes por actividad</div>
+                  <div className="an-csub">Por cantidad de visitas en este período — cruza todas tus tarjetas</div>
                   {topCustomers.length > 0
                     ? topCustomers.map((c: TopCustomer, i: number) => {
                         const max = topCustomers[0]?.visits || 1
@@ -520,9 +547,12 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
                             <div style={{ flex: 1 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span className="an-tn">{c.name}</span>
-                                <span className="an-tv">{c.visits}</span>
+                                <span className="an-tv">{c.visits} visitas</span>
                               </div>
                               <div className="an-tbar"><div className="an-tfill" style={{ width: `${(c.visits / max) * 100}%` }} /></div>
+                              <div style={{ fontSize: 10.5, color: 'rgba(43,38,32,.45)', marginTop: 3 }}>
+                                {c.cardName} · {c.progress} · última visita {c.lastVisit} · cliente desde {c.memberSince}
+                              </div>
                             </div>
                           </div>
                         )
@@ -530,6 +560,55 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
                     : <div className="an-empty-note">Todavía no hay suficientes visitas registradas.</div>
                   }
                 </>
+            }
+          </div>
+        </div>
+
+        {/* ── 4b. Fidelidad cross-tarjeta ── */}
+        <div className="an-2col" style={{ marginTop: 14 }}>
+          <div className="an-card">
+            <div className="an-ctitle">Clientes más fieles</div>
+            <div className="an-csub">Por visitas totales históricas — todos los tipos de tarjeta juntos, no solo este período</div>
+            {mostLoyal.length > 0
+              ? mostLoyal.map((c, i: number) => {
+                  const max = mostLoyal[0]?.totalVisits || 1
+                  return (
+                    <div key={c.name} className="an-tr">
+                      <div className={`an-trk${i === 0 ? ' an-trk--1' : ''}`}>{i + 1}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span className="an-tn">{c.name}</span>
+                          <span className="an-tv">{c.totalVisits} visitas</span>
+                        </div>
+                        <div className="an-tbar"><div className="an-tfill" style={{ width: `${(c.totalVisits / max) * 100}%` }} /></div>
+                        <div style={{ fontSize: 10.5, color: 'rgba(43,38,32,.45)', marginTop: 3 }}>última visita {c.lastVisit}</div>
+                      </div>
+                    </div>
+                  )
+                })
+              : <div className="an-empty-note">Todavía no hay suficiente historial.</div>
+            }
+          </div>
+          <div className="an-card">
+            <div className="an-ctitle">Top clientes por canjes</div>
+            <div className="an-csub">Cuántas veces canjearon un premio — todas las tarjetas</div>
+            {topRedeemers.length > 0
+              ? topRedeemers.map((c, i: number) => {
+                  const max = topRedeemers[0]?.redemptions || 1
+                  return (
+                    <div key={c.name} className="an-tr">
+                      <div className={`an-trk${i === 0 ? ' an-trk--1' : ''}`}>{i + 1}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span className="an-tn">{c.name}</span>
+                          <span className="an-tv">{c.redemptions} canjes</span>
+                        </div>
+                        <div className="an-tbar"><div className="an-tfill" style={{ width: `${(c.redemptions / max) * 100}%` }} /></div>
+                      </div>
+                    </div>
+                  )
+                })
+              : <div className="an-empty-note">Todavía no hay canjes registrados.</div>
             }
           </div>
         </div>

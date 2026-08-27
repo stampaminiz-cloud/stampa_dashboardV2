@@ -17,14 +17,14 @@ function StampaFrog({ size = 64 }: { size?: number }) {
 function StampaLogo({ dark = false }: { dark?: boolean }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-      <StampaFrog size={170} />
+      <StampaFrog size={92} />
       <img 
         src="/stampa-wordmark.png" 
         alt="Stampa" 
         style={{ 
-          height: 300, 
+          height: 160, 
           objectFit: 'contain',
-          marginLeft: -65,
+          marginLeft: -35,
           filter: dark ? 'brightness(0) saturate(100%) invert(8%) sepia(50%) saturate(1000%) hue-rotate(120deg)' : 'none' 
         }}
       />
@@ -38,16 +38,16 @@ const CSS = `
   body { font-family: var(--font-body); background: #FBF6EE; color: #2B2620; }
   .lg-shell { min-height: 100vh; display: flex; }
   /* Left */
-  .lg-left { width: 450px; flex-shrink: 0; background: #01231A; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 40px; gap: 40px; }
-  .lg-brand { display: flex; flex-direction: column; align-items: center; gap: 24px; }
-  .lg-tagline { font-family: var(--font-display); font-weight: 700; font-size: 28px; color: #F7EFE8; line-height: 1.25; text-align: center; }
+  .lg-left { width: 450px; flex-shrink: 0; background: #01231A; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 40px; gap: 22px; }
+  .lg-brand { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .lg-tagline { font-family: var(--font-display); font-weight: 700; font-size: 24px; color: #F7EFE8; line-height: 1.25; text-align: center; }
   .lg-tagline em { color: #E46C31; font-style: normal; }
-  .lg-manifesto { font-size: 14px; color: rgba(247,239,232,.5); line-height: 1.7; text-align: center; max-width: 280px; }
-  .lg-stats { display: flex; flex-direction: column; gap: 10px; }
-  .lg-stat { display: flex; align-items: center; gap: 12px; background: rgba(247,239,232,.06); border-radius: 12px; padding: 12px 16px; }
-  .lg-stat-icon { width: 32px; height: 32px; border-radius: 9px; background: rgba(228,108,49,.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .lg-stat-label { font-size: 13px; color: rgba(247,239,232,.7); font-weight: 500; }
-  .lg-stat-sub { font-size: 11px; color: rgba(247,239,232,.35); margin-top: 2px; }
+  .lg-manifesto { font-size: 13px; color: rgba(247,239,232,.5); line-height: 1.6; text-align: center; max-width: 280px; }
+  .lg-stats { display: flex; flex-direction: column; gap: 8px; }
+  .lg-stat { display: flex; align-items: center; gap: 12px; background: rgba(247,239,232,.06); border-radius: 12px; padding: 10px 14px; }
+  .lg-stat-icon { width: 30px; height: 30px; border-radius: 9px; background: rgba(228,108,49,.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .lg-stat-label { font-size: 12.5px; color: rgba(247,239,232,.7); font-weight: 500; }
+  .lg-stat-sub { font-size: 10.5px; color: rgba(247,239,232,.35); margin-top: 2px; }
   /* Right */
   .lg-right { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; background: #FBF6EE; position: relative; overflow: hidden; }
   .lg-right::before { content: ''; position: absolute; width: 600px; height: 600px; border-radius: 50%; background: rgba(230,108,49,.06); top: -200px; right: -200px; pointer-events: none; }
@@ -69,10 +69,10 @@ const CSS = `
   .lg-footer a { color: #E46C31; text-decoration: none; font-weight: 600; }
   @media (max-width: 768px) {
     .lg-shell { flex-direction: column; }
-    .lg-left { width: 100%; padding: 36px 24px; gap: 24px; }
-    .lg-tagline { font-size: 22px; }
-    .lg-manifesto { display: none; }
+    .lg-left { width: 100%; padding: 28px 24px; gap: 18px; }
     .lg-right { padding: 24px; }
+    .lg-tagline { font-size: 20px; }
+    .lg-manifesto { display: none; }
     .lg-card { padding: 28px; }
   }
 `
@@ -154,7 +154,7 @@ export default function LoginPage() {
                 <label className="lg-label">Contraseña</label>
                 <input className="lg-input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" />
               </div>
-              <div className="lg-forgot"><a href="#">¿Olvidaste tu contraseña?</a></div>
+              <div className="lg-forgot"><a href="/forgot-password">¿Olvidaste tu contraseña?</a></div>
               <button className="lg-btn" type="submit" disabled={loading}>
                 {loading ? 'Ingresando...' : 'Ingresar al dashboard →'}
               </button>

@@ -1,6 +1,5 @@
-// app/page.tsx
-import { redirect } from 'next/navigation'
+import StampaLanding from '@/components/StampaLanding';
 
-export default function Home() {
-  redirect('/login')
+export default function Page() {
+  return <StampaLanding />;
 }

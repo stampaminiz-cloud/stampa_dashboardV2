@@ -1,11 +1,12 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
-import { BASE_URL, apiResyncPass } from '@/lib/api'
+import { BASE_URL, apiResyncPass, apiGetPointsCatalog, apiRedeemPoints } from '@/lib/api'
+import { InfoTooltip } from './InfoTooltip'
 
 interface Customer {
   id: string; name: string; email: string; progress: number; total: number
-  cardType: 'stamp' | 'points' | 'membership'; cardName: string | null; membershipTier: string | null
+  cardType: 'stamp' | 'points' | 'membership'; cardName: string | null; cardId?: string | null; membershipTier: string | null
   dynamicField: string; dynamicFieldLabel: string; status: 'active' | 'inactive'; joined: string
   dob: string; preference: string; lastActivity: string; totalRedeemed: number
 }
@@ -85,6 +86,12 @@ function CustomerPanel({ customer, onClose, onDelete }: {
   const [confirmDel, setConfirmDel] = useState(false)
   const [resyncing, setResyncing] = useState(false)
   const [resyncMsg, setResyncMsg] = useState<string | null>(null)
+  const [showRedeem, setShowRedeem] = useState(false)
+  const [catalog, setCatalog] = useState<Array<{ _id: string; name: string; pointsCost: number }>>([])
+  const [catalogLoading, setCatalogLoading] = useState(false)
+  const [redeeming, setRedeeming] = useState<string | null>(null)
+  const [redeemMsg, setRedeemMsg] = useState<string | null>(null)
+  const [pointsBalance, setPointsBalance] = useState(customer.progress)
   const stamps = customer.cardType === 'stamp'
     ? Array.from({ length: customer.total }, (_: unknown, i: number) => i < customer.progress)
     : []
@@ -108,6 +115,39 @@ function CustomerPanel({ customer, onClose, onDelete }: {
       setResyncMsg(err?.error || 'No se pudo resincronizar. Intentá de nuevo.')
     } finally {
       setResyncing(false)
+    }
+  }
+
+  async function openRedeemPicker() {
+    setShowRedeem(true)
+    setRedeemMsg(null)
+    const businessId = localStorage.getItem('stampa_business_id')
+    if (!businessId || !customer.cardId) return
+    setCatalogLoading(true)
+    try {
+      const items = await apiGetPointsCatalog(businessId, customer.cardId)
+      setCatalog(items)
+    } catch {
+      setCatalog([])
+    } finally {
+      setCatalogLoading(false)
+    }
+  }
+
+  async function confirmRedeem(itemId: string) {
+    const businessId = localStorage.getItem('stampa_business_id')
+    if (!businessId) return
+    setRedeeming(itemId)
+    setRedeemMsg(null)
+    try {
+      const res = await apiRedeemPoints(businessId, customer.id, itemId)
+      setPointsBalance(res.pointsBalance)
+      setRedeemMsg(`Canjeado: ${res.redeemedItem}. Le quedan ${res.pointsBalance} puntos.`)
+      setShowRedeem(false)
+    } catch (err: any) {
+      setRedeemMsg(err?.error || 'No se pudo procesar el canje.')
+    } finally {
+      setRedeeming(null)
     }
   }
 
@@ -159,18 +199,47 @@ function CustomerPanel({ customer, onClose, onDelete }: {
             )}
           </>
         ) : customer.cardType === 'points' ? (
-          <div className="ct-panel-progress-num">{customer.progress}<span className="ct-panel-progress-den"> pts</span></div>
+          <>
+            <div className="ct-panel-progress-num">{pointsBalance}<span className="ct-panel-progress-den"> pts</span></div>
+            {!showRedeem ? (
+              <button className="ct-resync-btn" onClick={openRedeemPicker}>Canjear premio</button>
+            ) : (
+              <div className="ct-redeem-picker">
+                {catalogLoading ? (
+                  <div className="ct-resync-hint">Cargando catálogo...</div>
+                ) : catalog.length === 0 ? (
+                  <div className="ct-resync-hint">Este negocio todavía no armó ningún premio en Rewards.</div>
+                ) : (
+                  catalog.map(item => (
+                    <button
+                      key={item._id}
+                      className="ct-redeem-item"
+                      disabled={pointsBalance < item.pointsCost || redeeming === item._id}
+                      onClick={() => confirmRedeem(item._id)}
+                    >
+                      <span>{item.name}</span>
+                      <span className="ct-redeem-cost">{redeeming === item._id ? '...' : `${item.pointsCost} pts`}</span>
+                    </button>
+                  ))
+                )}
+                <button className="ct-redeem-cancel" onClick={() => setShowRedeem(false)}>Cancelar</button>
+              </div>
+            )}
+            {redeemMsg && <div className="ct-resync-msg">{redeemMsg}</div>}
+          </>
         ) : (
           <div className="ct-panel-progress-num" style={{ fontSize: 22 }}>Nivel {customer.membershipTier || 'Bronze'}</div>
         )}
       </div>
 
       <div className="ct-panel-section">
-        <button className="ct-resync-btn" onClick={handleResync} disabled={resyncing}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-          {resyncing ? 'Sincronizando...' : 'Re-sincronizar wallet'}
-        </button>
-        <div className="ct-resync-hint">Empuja el progreso real de la base al pase del celular del cliente, sin tocar sellos/puntos/nivel. Útil si el pase quedó desactualizado tras un error de escaneo o una corrección manual.</div>
+        <div className="ct-resync-row">
+          <button className="ct-resync-btn" onClick={handleResync} disabled={resyncing}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            {resyncing ? 'Sincronizando...' : 'Re-sincronizar wallet'}
+          </button>
+          <InfoTooltip text="Empuja el progreso real de la base al pase del celular del cliente, sin tocar sellos/puntos/nivel. Útil si el pase quedó desactualizado tras un error de escaneo o una corrección manual." />
+        </div>
         {resyncMsg && <div className="ct-resync-msg">{resyncMsg}</div>}
       </div>
 
@@ -312,7 +381,13 @@ export function CustomersTab({
         .ct-panel-email{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:10px;text-align:center;}
         .ct-panel-badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;}
         .ct-panel-section{width:100%;margin-top:14px;padding-top:13px;border-top:1px solid rgba(43,38,32,.07);}
-        .ct-resync-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;font-size:12.5px;font-weight:600;padding:10px 14px;border-radius:9px;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.12);color:#2B2620;cursor:pointer;font-family:'Inter',sans-serif;}
+        .ct-resync-row{display:flex;align-items:center;gap:6px;}
+        .ct-resync-btn{display:flex;align-items:center;justify-content:center;gap:7px;flex:1;font-size:12.5px;font-weight:600;padding:10px 14px;border-radius:9px;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.12);color:#2B2620;cursor:pointer;font-family:'Inter',sans-serif;}
+        .ct-redeem-picker{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+        .ct-redeem-item{display:flex;align-items:center;justify-content:space-between;width:100%;font-size:12px;padding:9px 12px;border-radius:8px;background:#FBF6EE;border:1px solid rgba(43,38,32,.1);color:#2B2620;cursor:pointer;font-family:'Inter',sans-serif;}
+        .ct-redeem-item:disabled{opacity:.4;cursor:not-allowed;}
+        .ct-redeem-cost{font-weight:700;color:#C75D3A;}
+        .ct-redeem-cancel{font-size:11px;color:rgba(43,38,32,.45);background:none;border:none;cursor:pointer;align-self:center;margin-top:2px;}
         .ct-resync-btn:disabled{opacity:.6;cursor:not-allowed;}
         .ct-resync-hint{font-size:10.5px;color:rgba(43,38,32,.4);line-height:1.5;margin-top:7px;}
         .ct-resync-msg{font-size:11.5px;color:#2B2620;background:rgba(43,38,32,.04);border-radius:8px;padding:8px 10px;margin-top:8px;}

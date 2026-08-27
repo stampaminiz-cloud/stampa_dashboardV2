@@ -1,7 +1,8 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { apiUpdateBusiness, apiChangePassword } from '@/lib/api'
+import { apiUpdateBusiness, apiChangePassword, apiUpdateProfile, apiExportCustomers, apiRequestDeletion, apiCancelDeletion } from '@/lib/api'
 import { useLang } from '@/data/i18n'
+import { InfoTooltip } from './InfoTooltip'
 
 interface BusinessAlerts { newCustomer: boolean; nearPrize: boolean; weeklyDigest: boolean }
 interface BusinessSettings {
@@ -24,6 +25,44 @@ const SECTOR_LABELS: Record<string, string> = {
   other: 'Otro rubro',
 }
 
+// Timezone por país — 30 países comunes, priorizando España/Argentina y el
+// resto de Latam (mercados actuales de Stampa) más los países más
+// frecuentes en general. Un país = un timezone representativo (el de su
+// capital/ciudad principal), no todos los países tienen uno solo pero
+// alcanza para este selector.
+const COUNTRY_TIMEZONES: Array<{ country: string; tz: string }> = [
+  { country: 'España', tz: 'Europe/Madrid' },
+  { country: 'Argentina', tz: 'America/Argentina/Buenos_Aires' },
+  { country: 'México', tz: 'America/Mexico_City' },
+  { country: 'Colombia', tz: 'America/Bogota' },
+  { country: 'Chile', tz: 'America/Santiago' },
+  { country: 'Perú', tz: 'America/Lima' },
+  { country: 'Uruguay', tz: 'America/Montevideo' },
+  { country: 'Paraguay', tz: 'America/Asuncion' },
+  { country: 'Bolivia', tz: 'America/La_Paz' },
+  { country: 'Ecuador', tz: 'America/Guayaquil' },
+  { country: 'Venezuela', tz: 'America/Caracas' },
+  { country: 'Brasil', tz: 'America/Sao_Paulo' },
+  { country: 'Estados Unidos (Este)', tz: 'America/New_York' },
+  { country: 'Estados Unidos (Centro)', tz: 'America/Chicago' },
+  { country: 'Estados Unidos (Montaña)', tz: 'America/Denver' },
+  { country: 'Estados Unidos (Pacífico)', tz: 'America/Los_Angeles' },
+  { country: 'Canadá', tz: 'America/Toronto' },
+  { country: 'Reino Unido', tz: 'Europe/London' },
+  { country: 'Francia', tz: 'Europe/Paris' },
+  { country: 'Alemania', tz: 'Europe/Berlin' },
+  { country: 'Italia', tz: 'Europe/Rome' },
+  { country: 'Portugal', tz: 'Europe/Lisbon' },
+  { country: 'Países Bajos', tz: 'Europe/Amsterdam' },
+  { country: 'Suiza', tz: 'Europe/Zurich' },
+  { country: 'Irlanda', tz: 'Europe/Dublin' },
+  { country: 'Andorra', tz: 'Europe/Andorra' },
+  { country: 'Marruecos', tz: 'Africa/Casablanca' },
+  { country: 'Japón', tz: 'Asia/Tokyo' },
+  { country: 'China', tz: 'Asia/Shanghai' },
+  { country: 'Australia', tz: 'Australia/Sydney' },
+]
+
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="st-card">
@@ -33,7 +72,7 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
   )
 }
 
-function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+function FieldRow({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="st-field-row">
       <span className="st-field-label">{label}</span>
@@ -110,6 +149,36 @@ function SectorField({ value, saving, saved, t, onSave }: { value: string; savin
   )
 }
 
+function MyAccountSection({ ownerName, ownerEmail }: { ownerName: string; ownerEmail: string }) {
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  async function handleSaveName(v: string) {
+    setSaving(true)
+    try {
+      await apiUpdateProfile(v)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      console.error('Error updating profile:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <>
+      <FieldRow label="Tu nombre">
+        <EditableText value={ownerName} saveLabel={saving ? '...' : saved ? '✓' : 'Guardar'} onSave={handleSaveName} />
+      </FieldRow>
+      <FieldRow label="Tu email">
+        <span className="st-field-val" style={{ opacity: .6 }}>{ownerEmail}</span>
+      </FieldRow>
+      <div className="st-timezone-note">Cambiar el email de acceso todavía no está disponible — escribinos si lo necesitás.</div>
+    </>
+  )
+}
+
 function PasswordSection() {
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
@@ -176,14 +245,59 @@ function CheckboxRow({ label, checked: init, description, onToggle }: { label: s
   )
 }
 
-export function SettingsTab({ business: mockBusiness, businessId, onSave }: { business: BusinessSettings; businessId?: string; onSave?: () => void }) {
+export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', deletionRequestedAt = null, onSave }: { business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; deletionRequestedAt?: string | null; onSave?: () => void }) {
   const t = useLang()
   const [business, setBusiness]       = useState(mockBusiness)
   const [inactiveDays, setInactiveDays] = useState(mockBusiness.inactiveDays)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [saving, setSaving]           = useState(false)
   const [saved, setSaved]             = useState(false)
+  const [exporting, setExporting]     = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const [deletionState, setDeletionState] = useState<string | null>(deletionRequestedAt)
+  const [deletionMsg, setDeletionMsg] = useState<string | null>(null)
+  const [deletionLoading, setDeletionLoading] = useState(false)
   // businessId and real business data come from dashboard-page.tsx as props
+
+  async function handleExport() {
+    if (!businessId) return
+    setExporting(true)
+    setExportError(null)
+    try {
+      await apiExportCustomers(businessId)
+    } catch (err: any) {
+      setExportError(err?.message || 'No se pudo exportar. Intentá de nuevo.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  async function handleConfirmDeletion() {
+    setDeletionLoading(true)
+    try {
+      const res = await apiRequestDeletion()
+      setDeletionState(new Date().toISOString())
+      setDeletionMsg(res.message)
+      setShowDeleteConfirm(false)
+    } catch (err: any) {
+      setDeletionMsg(err?.error || 'No se pudo procesar la solicitud. Intentá de nuevo.')
+    } finally {
+      setDeletionLoading(false)
+    }
+  }
+
+  async function handleCancelDeletion() {
+    setDeletionLoading(true)
+    try {
+      await apiCancelDeletion()
+      setDeletionState(null)
+      setDeletionMsg('Eliminación cancelada. Tu cuenta sigue activa.')
+    } catch (err: any) {
+      setDeletionMsg(err?.error || 'No se pudo cancelar. Intentá de nuevo.')
+    } finally {
+      setDeletionLoading(false)
+    }
+  }
 
   async function handleSave(field: string, value: any) {
     console.log('handleSave:', { field, value, businessId })
@@ -217,6 +331,7 @@ export function SettingsTab({ business: mockBusiness, businessId, onSave }: { bu
         .st-field-label{font-size:12.5px;color:rgba(43,38,32,.6);}
         .st-field-value{display:flex;align-items:center;gap:8px;}
         .st-field-val{font-size:12.5px;font-weight:600;color:#2B2620;}
+        .st-timezone-select{font-size:12.5px;font-weight:600;color:#2B2620;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.12);border-radius:8px;padding:6px 10px;font-family:'Inter',sans-serif;cursor:pointer;}
         .st-inline-input{padding:5px 9px;font-size:12.5px;border:1.5px solid #C75D3A;border-radius:7px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;width:180px;outline:none;}
         .st-pw-input{padding:6px 10px;font-size:12.5px;border:1px solid rgba(43,38,32,.15);border-radius:7px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;width:200px;outline:none;}
         .st-pw-input:focus{border-color:#C75D3A;}
@@ -270,11 +385,25 @@ export function SettingsTab({ business: mockBusiness, businessId, onSave }: { bu
       `}</style>
 
       <div className="st-content">
+        <Section title="Mi cuenta" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}>
+          <MyAccountSection ownerName={ownerName} ownerEmail={ownerEmail} />
+        </Section>
+
         <Section title={t('st_profile')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V8L3 4h18l-2 4v13"/><path d="M9 21v-6h6v6"/></svg>}>
           <FieldRow label={t('st_name')}><EditableText value={business.name} saveLabel={saving ? '...' : saved ? '✓' : t('save')} onSave={v => handleSave('name', v)} /></FieldRow>
           <FieldRow label={t('st_sector')}><SectorField value={business.sector} saving={saving} saved={saved} t={t} onSave={v => handleSave('sector', v)} /></FieldRow>
-          <FieldRow label={t('st_timezone')}><span className="st-field-val">{business.timezone}</span></FieldRow>
-          <div className="st-timezone-note">{t('st_timezone_note')}</div>
+          <FieldRow label={<>{t('st_timezone')}<InfoTooltip text="Afecta directamente el heatmap de horas pico en Analytics — sin esto bien seteado, esa sección mide en UTC, no en la hora real del local." /></>}>
+            <select
+              className="st-timezone-select"
+              value={business.timezone}
+              onChange={e => { setBusiness((prev: any) => ({ ...prev, timezone: e.target.value })); handleSave('timezone', e.target.value) }}
+            >
+              {COUNTRY_TIMEZONES.map(({ country, tz }) => <option key={tz} value={tz}>{country}</option>)}
+              {!COUNTRY_TIMEZONES.some(c => c.tz === business.timezone) && (
+                <option value={business.timezone}>{business.timezone} (actual)</option>
+              )}
+            </select>
+          </FieldRow>
         </Section>
 
         <Section title="Seguridad" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}>
@@ -319,18 +448,42 @@ export function SettingsTab({ business: mockBusiness, businessId, onSave }: { bu
           </div>
           <div className="st-danger-row">
             <span className="st-danger-label">{t('st_export')}</span>
-            <button className="st-danger-link">{t('st_export_btn')}</button>
+            <button className="st-danger-link" onClick={handleExport} disabled={exporting}>
+              {exporting ? 'Exportando...' : t('st_export_btn')}
+            </button>
           </div>
-          <div className="st-danger-row">
-            <span className="st-danger-label">{t('st_delete')}</span>
-            <button className="st-danger-link" onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}>{t('st_delete_btn')}</button>
-          </div>
-          {showDeleteConfirm && (
+          {exportError && <div className="st-delete-confirm" style={{ borderColor: 'rgba(178,59,59,.3)' }}><p style={{ color: '#B23B3B' }}>{exportError}</p></div>}
+
+          {deletionState ? (
             <div className="st-delete-confirm">
-              <p>{t('st_delete_confirm')}</p>
+              <p>
+                Tu cuenta está programada para eliminarse el{' '}
+                <strong>{new Date(new Date(deletionState).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('es-AR')}</strong>.
+                Hasta ese momento podés cancelarlo cuando quieras.
+              </p>
               <div className="st-delete-actions">
-                <button className="st-delete-btn-cancel" onClick={() => setShowDeleteConfirm(false)}>{t('cancel')}</button>
-                <button className="st-delete-btn-confirm">{t('st_delete_yes')}</button>
+                <button className="st-delete-btn-cancel" onClick={handleCancelDeletion} disabled={deletionLoading}>
+                  {deletionLoading ? '...' : 'Cancelar eliminación'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="st-danger-row">
+              <span className="st-danger-label">{t('st_delete')}</span>
+              <button className="st-danger-link" onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}>{t('st_delete_btn')}</button>
+            </div>
+          )}
+
+          {deletionMsg && !deletionState && <div className="st-delete-confirm"><p>{deletionMsg}</p></div>}
+
+          {showDeleteConfirm && !deletionState && (
+            <div className="st-delete-confirm">
+              <p>Tu cuenta va a quedar marcada para eliminar. Vas a tener <strong>30 días</strong> para cancelarlo volviendo a loguearte y tocando "Cancelar eliminación" acá mismo — después de eso, se borra todo de forma definitiva (negocio, tarjetas, clientes, todo).</p>
+              <div className="st-delete-actions">
+                <button className="st-delete-btn-cancel" onClick={() => setShowDeleteConfirm(false)} disabled={deletionLoading}>{t('cancel')}</button>
+                <button className="st-delete-btn-confirm" onClick={handleConfirmDeletion} disabled={deletionLoading}>
+                  {deletionLoading ? '...' : t('st_delete_yes')}
+                </button>
               </div>
             </div>
           )}

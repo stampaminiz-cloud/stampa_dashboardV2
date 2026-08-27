@@ -2,7 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
-import { apiUpdateCard, apiUpdateField } from '@/lib/api'
+import { apiCreateCard, apiUpdateCard, apiDeleteCard } from '@/lib/api'
+import { InfoTooltip } from './InfoTooltip'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CardType = "stamp" | "points" | "membership"
@@ -19,6 +20,12 @@ interface CardDesign {
   logoUrl?: string | null
   earnedIcon?: string | null
   emptyIcon?: string | null
+  flipImageUrl?: string | null
+  flipMessage?: string | null
+  flipSubMessage?: string | null
+  pointsPerVisit?: number | null
+  textColor?: string | null
+  publicDescription?: string | null
 }
 
 interface FormField {
@@ -54,11 +61,19 @@ interface DesignData {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const COLOR_PRESETS = [
-  { label: 'Bosque',     start: '#1E3329', end: '#16271F' },
+  { label: 'Bosque',     start: '#1B412F', end: '#132F22' },
   { label: 'Océano',     start: '#185FA5', end: '#0C447C' },
   { label: 'Terracota',  start: '#993C1D', end: '#712B13' },
   { label: 'Violeta',    start: '#533FB7', end: '#3C3489' },
   { label: 'Carbón',     start: '#2C2C2A', end: '#141414' },
+]
+
+// Desbloqueados desde Growth (extraColorPresets) — antes de llegar al color
+// 100% libre que es exclusivo de Pro+.
+const EXTRA_COLOR_PRESETS = [
+  { label: 'Coral',          start: '#D4537E', end: '#993556' },
+  { label: 'Mostaza',        start: '#EF9F27', end: '#854F0B' },
+  { label: 'Verde azulado',  start: '#1D9E75', end: '#0F6E56' },
 ]
 
 const DEFAULT_TIERS: MembershipTier[] = [
@@ -77,8 +92,13 @@ function darkenHex(hex: string, factor = 0.72): string {
   return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`
 }
 
-function planAllowsCustomColor(plan: string) {
-  return ['Growth', 'Pro', 'Enterprise'].includes(plan)
+function hexToRgba(hex: string, alpha: number): string {
+  const c = hex.replace('#', '')
+  if (c.length !== 6) return `rgba(255,255,255,${alpha})`
+  const r = parseInt(c.slice(0,2), 16)
+  const g = parseInt(c.slice(2,4), 16)
+  const b = parseInt(c.slice(4,6), 16)
+  return `rgba(${r},${g},${b},${alpha})`
 }
 
 // ─── QR Code placeholder ──────────────────────────────────────────────────────
@@ -102,9 +122,19 @@ function LogoUpload({ label, hint, value, onChange }: {
   label: string; hint: string; value: string | null; onChange: (url: string | null) => void
 }) {
   const ref = useRef<HTMLInputElement>(null)
+  const [error, setError] = useState<string | null>(null)
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    // Apple/Google Wallet exigen PNG para los assets del pase — un JPG
+    // puede terminar con fondo blanco donde debería ser transparente, o
+    // directamente ser rechazado al generar el pase real (Etapa B).
+    if (file.type !== 'image/png') {
+      setError('Tiene que ser PNG (no JPG) — Apple y Google Wallet lo requieren para que el logo se vea bien.')
+      if (ref.current) ref.current.value = ''
+      return
+    }
+    setError(null)
     const reader = new FileReader()
     reader.onload = (ev) => onChange(ev.target?.result as string)
     reader.readAsDataURL(file)
@@ -117,17 +147,20 @@ function LogoUpload({ label, hint, value, onChange }: {
           ? <img src={value} className="dt-logo-preview" alt={label} />
           : <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>{hint}</span></>
         }
-        <input ref={ref} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+        <input ref={ref} type="file" accept="image/png" onChange={handleFile} style={{ display: 'none' }} />
       </div>
+      {error && <div className="dt-logo-error">{error}</div>}
       {value && <button className="dt-logo-remove" onClick={() => onChange(null)}>Quitar</button>}
     </div>
   )
 }
 
 // ─── Color Picker ─────────────────────────────────────────────────────────────
-function ColorPicker({ color, plan, onChange }: { color: string; plan: string; onChange: (s: string, e: string) => void }) {
+function ColorPicker({ color, onChange }: { color: string; onChange: (s: string, e: string) => void }) {
   const [hex, setHex] = useState(color)
-  const allowsCustom = planAllowsCustomColor(plan)
+  const { can } = usePlan()
+  const allowsExtraPresets = can('extraColorPresets')
+  const allowsCustom = can('customColors')
   function applyHex(val: string) {
     setHex(val)
     if (/^#[0-9A-Fa-f]{6}$/.test(val)) onChange(val, darkenHex(val))
@@ -140,19 +173,30 @@ function ColorPicker({ color, plan, onChange }: { color: string; plan: string; o
             style={{ background: start }} title={label}
             onClick={() => { setHex(start); onChange(start, end) }} />
         ))}
+        {allowsExtraPresets && EXTRA_COLOR_PRESETS.map(({ label, start, end }) => (
+          <button key={label} className={`dt-color-dot${color === start ? ' dt-color-dot--on' : ''}`}
+            style={{ background: start }} title={label}
+            onClick={() => { setHex(start); onChange(start, end) }} />
+        ))}
       </div>
+      {!allowsExtraPresets && (
+        <div className="dt-upgrade-color-note">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          +3 colores más · Plan Growth o superior
+        </div>
+      )}
       {allowsCustom ? (
         <div className="dt-custom-color-row">
           <label className="dt-custom-swatch" style={{ background: hex }}>
-            <input type="color" value={hex.length === 7 ? hex : '#1E3329'} onChange={e => applyHex(e.target.value)} className="dt-color-native" />
+            <input type="color" value={hex.length === 7 ? hex : '#1B412F'} onChange={e => applyHex(e.target.value)} className="dt-color-native" />
           </label>
-          <input type="text" className="dt-hex-input" value={hex} onChange={e => applyHex(e.target.value)} placeholder="#1E3329" maxLength={7} />
+          <input type="text" className="dt-hex-input" value={hex} onChange={e => applyHex(e.target.value)} placeholder="#1B412F" maxLength={7} />
           <span className="dt-hex-label">Personalizado</span>
         </div>
       ) : (
         <div className="dt-upgrade-color-note">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          Color personalizado · Plan Growth o superior
+          Color 100% libre · Plan Pro o superior
         </div>
       )}
     </div>
@@ -209,23 +253,23 @@ function RealPassPreview({ design, logos, rewardSourceLabel, tiers, previewTierI
 
       {design.type === 'points' && (
         <div className="dt-real-pass-points-area">
-          <div className="dt-real-pass-points-num">120 pts</div>
+          <div className="dt-real-pass-points-num" style={{ color: design.textColor || '#FFFFFF' }}>120 pts</div>
           <div className="dt-real-pass-points-bar"><div className="dt-real-pass-points-fill" style={{ width: '24%' }} /></div>
-          <div className="dt-real-pass-points-sub">480 pts para el próximo premio</div>
+          <div className="dt-real-pass-points-sub" style={{ color: hexToRgba(design.textColor || '#FFFFFF', 0.6) }}>480 pts para el próximo premio</div>
         </div>
       )}
 
       <div className="dt-real-pass-info">
         <div className="dt-real-pass-info-field">
-          <div className="dt-real-pass-info-label">TITULAR</div>
-          <div className="dt-real-pass-info-val">Matias N. Marini</div>
+          <div className="dt-real-pass-info-label" style={{ color: hexToRgba(design.textColor || '#FFFFFF', 0.65) }}>TITULAR</div>
+          <div className="dt-real-pass-info-val" style={{ color: design.textColor || '#FFFFFF' }}>Matias N. Marini</div>
         </div>
         <div className="dt-real-pass-info-field">
-          <div className="dt-real-pass-info-label">
+          <div className="dt-real-pass-info-label" style={{ color: hexToRgba(design.textColor || '#FFFFFF', 0.65) }}>
             {design.type === 'stamp' ? 'PREMIO' : design.type === 'membership' ? 'NIVEL' : 'PUNTOS'}
           </div>
-          <div className="dt-real-pass-info-val">
-            {design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : 'Café gratis')
+          <div className="dt-real-pass-info-val" style={{ color: design.textColor || '#FFFFFF' }}>
+            {design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : (design.rewardField || 'Premio'))
             : design.type === 'membership' ? activeTier.name
             : '120 pts'}
           </div>
@@ -283,7 +327,7 @@ function GooglePreview({ design, logos, rewardSourceLabel, tiers, previewTierInd
         <div className="dt-gpass-info-row"><span className="dt-gpass-field-label">Titular</span><span className="dt-gpass-info-val">Matias Marini</span></div>
         <div className="dt-gpass-info-row">
           <span className="dt-gpass-field-label">{design.type === 'stamp' ? 'Premio' : design.type === 'membership' ? 'Nivel' : 'Puntos'}</span>
-          <span className="dt-gpass-info-val">{design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : 'Café gratis') : design.type === 'membership' ? activeTier?.name : '120'}</span>
+          <span className="dt-gpass-info-val">{design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : (design.rewardField || 'Premio')) : design.type === 'membership' ? activeTier?.name : '120'}</span>
         </div>
       </div>
       <div className="dt-gpass-qr-wrap"><QRCode size={60} /><div className="dt-gpass-qr-label">Powered by Stampa</div></div>
@@ -325,63 +369,15 @@ function MiniPass({ design, logos }: { design: CardDesign; logos: LogoState }) {
   )
 }
 
-// ─── Draggable fields ─────────────────────────────────────────────────────────
-function DraggableFields({ fields, onReorder, onToggle }: {
-  fields: FormField[]; onReorder: (f: FormField[]) => void; onToggle: (id: string) => void
-}) {
-  const dragIndex = useRef<number | null>(null)
-  function handleDragStart(i: number) { dragIndex.current = i }
-  function handleDragEnter(i: number) {
-    if (dragIndex.current === null || dragIndex.current === i) return
-    const arr = [...fields]
-    const dragged = arr.splice(dragIndex.current, 1)[0]
-    arr.splice(i, 0, dragged)
-    dragIndex.current = i
-    onReorder(arr)
-  }
-  function handleDragEnd() { dragIndex.current = null }
-  return (
-    <div className="dt-fields-list">
-      {fields.map((f: FormField, i: number) => (
-        <div key={f.id} className={`dt-field-row${!f.isActive ? ' dt-field-row--inactive' : ''}`}
-          draggable={!f.isLocked}
-          onDragStart={() => !f.isLocked && handleDragStart(i)}
-          onDragEnter={() => !f.isLocked && handleDragEnter(i)}
-          onDragEnd={handleDragEnd}
-          onDragOver={e => e.preventDefault()}>
-          <div className={`dt-grip-wrap${f.isLocked ? ' dt-grip-wrap--locked' : ''}`}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-              <circle cx="9" cy="5" r="1.5" fill="currentColor"/><circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="9" cy="19" r="1.5" fill="currentColor"/>
-              <circle cx="15" cy="5" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="19" r="1.5" fill="currentColor"/>
-            </svg>
-          </div>
-          <span className="dt-field-label-text">{f.label}</span>
-          <div className="dt-field-actions">
-            {f.isLocked
-              ? <span className="dt-locked-badge">Requerido</span>
-              : <button className="dt-toggle-field" onClick={() => onToggle(f.id)} title={f.isActive ? 'Ocultar' : 'Mostrar'}>
-                  {f.isActive
-                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                  }
-                </button>
-            }
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 // ─── Card Editor ──────────────────────────────────────────────────────────────
-function CardEditor({ card: init, formFields, plan, businessId, onSaved, onBack }: {
-  card: CardDesign; formFields: FormField[]; plan: string; businessId?: string | null; onSaved?: () => void; onBack: () => void
+function CardEditor({ card: init, formFields, businessId, onSaved, onBack }: {
+  card: CardDesign; formFields: FormField[]; businessId?: string | null; onSaved?: () => void; onBack: () => void
 }) {
-  const { can } = usePlan()
+  const { can, plan } = usePlan()
   const t = useLang()
   const [card, setCard] = useState<CardDesign>(init)
   const [fields, setFields] = useState<FormField[]>([...formFields].sort((a, b) => a.order - b.order))
-  const [tiers] = useState<MembershipTier[]>(DEFAULT_TIERS)
+  const [tiers, setTiers] = useState<MembershipTier[]>(DEFAULT_TIERS)
   const [logos, setLogos] = useState<LogoState>({
     businessLogo: init.logoUrl || null,
     earnedIcon: init.earnedIcon || null,
@@ -393,13 +389,13 @@ function CardEditor({ card: init, formFields, plan, businessId, onSaved, onBack 
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
-  const [pointsPerVisit, setPointsPerVisit] = useState(10)
+  const [pointsPerVisit, setPointsPerVisit] = useState(init.pointsPerVisit || 10)
   // Flip card state
   const [previewSide, setPreviewSide]       = useState<'front' | 'prize'>('front')
-  const [flipMessage, setFlipMessage]       = useState('¡Lo lograste!')
-  const [flipSubMessage, setFlipSubMessage] = useState('Presentá esta tarjeta para canjear tu premio')
+  const [flipMessage, setFlipMessage]       = useState(init.flipMessage || '¡Lo lograste!')
+  const [flipSubMessage, setFlipSubMessage] = useState(init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio')
   const [isFlipping, setIsFlipping]         = useState(false)
-  const [prizeImage, setPrizeImage]           = useState<string | null>(null)
+  const [prizeImage, setPrizeImage]           = useState<string | null>(card.flipImageUrl || null)
   const prizeImageRef                         = useRef<HTMLInputElement>(null)
 
   function switchSide(side: 'front' | 'prize') {
@@ -412,8 +408,6 @@ function CardEditor({ card: init, formFields, plan, businessId, onSaved, onBack 
   const rewardSourceLabel = rewardSource?.label || 'Sin configurar'
 
   function setLogo(key: keyof LogoState) { return (url: string | null) => setLogos({ ...logos, [key]: url }) }
-  function setRewardSource(id: string) { setFields(fields.map((f: FormField) => ({ ...f, isRewardSource: f.id === id }))) }
-  function toggleField(id: string) { setFields(fields.map((f: FormField) => f.id === id && !f.isLocked ? { ...f, isActive: !f.isActive } : f)) }
   async function handleSave() {
     if (!businessId) {
       setSaveError('No se encontró el negocio — recargá la página e intentá de nuevo.')
@@ -424,26 +418,23 @@ function CardEditor({ card: init, formFields, plan, businessId, onSaved, onBack 
     try {
       await apiUpdateCard(businessId, card.id, {
         name: card.name,
+        type: card.type,
         color: card.color,
         secondColor: card.secondColor,
+        textColor: card.textColor,
+        publicDescription: card.publicDescription || undefined,
         isActive: card.isActive,
         stampsRequired: card.stampsRequired,
+        pointsPerVisit,
         rewardMode: (card.rewardMode as any) || undefined,
         rewardFixedValue: card.rewardField || undefined,
         flipMessage,
         flipSubMessage,
+        flipImageUrl: prizeImage || undefined,
         logoUrl: logos.businessLogo || undefined,
         earnedIcon: logos.earnedIcon || undefined,
         emptyIcon: logos.emptyIcon || undefined,
       })
-
-      // Los campos del formulario (activo/inactivo, cuál es el reward source)
-      // se guardan aparte, uno por uno — mismo patrón que ya usa el FormTab.
-      await Promise.all(
-        fields.map((f: FormField) =>
-          apiUpdateField(businessId, card.id, f.id, { isActive: f.isActive, isRewardSource: f.isRewardSource })
-        )
-      )
 
       setSaved(true)
       onSaved?.()
@@ -550,8 +541,51 @@ function CardEditor({ card: init, formFields, plan, businessId, onSaved, onBack 
         {/* ── Left panel (config) ── */}
         <div className={`dt-editor-panel${mobileView === 'preview' ? ' dt-panel--mobile-hidden' : ''}`}>
 
+          {/* Tipo de tarjeta — corregible sin borrar y crear de nuevo */}
+          <div className="dt-panel-section-title">Tipo de tarjeta</div>
+          <div className="dt-type-switch">
+            {([
+              { id: 'stamp', label: 'Sellos' },
+              { id: 'points', label: 'Puntos' },
+              { id: 'membership', label: 'Membresía' },
+            ] as const).map(({ id, label }) => (
+              <button
+                key={id}
+                className={`dt-type-btn${card.type === id ? ' dt-type-btn--on' : ''}`}
+                onClick={() => {
+                  if (card.type === id) return
+                  if (!window.confirm(`¿Cambiar a "${label}"? Esto resetea la configuración específica del tipo anterior (sellos requeridos, niveles, etc.) — no se puede deshacer una vez que guardes.`)) return
+                  setCard((prev: CardDesign) => ({
+                    ...prev,
+                    type: id,
+                    stampsRequired: id === 'stamp' ? 8 : prev.stampsRequired,
+                    rewardMode: id === 'stamp' ? 'dynamic' : null,
+                  }))
+                  if (id === 'membership') setTiers([...DEFAULT_TIERS])
+                }}
+              >{label}</button>
+            ))}
+          </div>
+          <div className="dt-type-switch-note">
+            Al cambiar el tipo se resetea la configuración específica
+            <InfoTooltip text="Sellos requeridos, niveles de membresía, etc. se resetean al cambiar de tipo — el progreso de clientes existentes en esta tarjeta puede quedar inconsistente." />
+          </div>
+
+          <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Descripción pública</div>
+          <input
+            className="dt-public-desc-input"
+            value={card.publicDescription || ''}
+            onChange={e => setCard({ ...card, publicDescription: e.target.value.slice(0, 100) })}
+            placeholder={card.type === 'stamp' ? `Ej: ${card.stampsRequired} sellos = 1 café gratis` : card.type === 'points' ? 'Ej: Acumulá puntos y canjealos por premios' : 'Ej: Subí de nivel con tus visitas'}
+            maxLength={100}
+          />
+          <div className="dt-public-desc-note">
+            {(card.publicDescription || '').length}/100
+            <InfoTooltip text="Se muestra a tus clientes si tenés 2 o más tarjetas activas, para que sepan a cuál sumarse. Si lo dejás vacío, usamos un texto automático." />
+          </div>
+
           {/* Logos */}
-          <div className="dt-panel-section-title">Logos e íconos</div>
+          <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Logos e íconos</div>
           <div className="dt-logo-row">
             <LogoUpload label="Logo del negocio" hint="Subir logo" value={logos.businessLogo} onChange={setLogo('businessLogo')} />
             {card.type === 'stamp' && <>
@@ -560,10 +594,12 @@ function CardEditor({ card: init, formFields, plan, businessId, onSaved, onBack 
             </>}
           </div>
 
-          {/* Form fields */}
+          {/* Form fields — la gestión real (agregar, ocultar, reordenar) vive
+              en Forms. Acá solo un puntero, para no tener el mismo campo
+              editable desde dos tabs distintas (mismo criterio que ya
+              aplicamos con el selector de premio). */}
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Campos del formulario</div>
-          <div style={{ fontSize: 10, color: 'rgba(43,38,32,.4)', marginBottom: 8 }}>Arrastrá para reordenar · ojo para mostrar/ocultar</div>
-          <DraggableFields fields={fields} onReorder={setFields} onToggle={toggleField} />
+          <div className="dt-reward-goto-forms">Se gestionan desde la tab <strong>Forms</strong> — agregar, ocultar y reordenar campos vive ahí, no acá.</div>
 
           {/* STAMP: prize mode */}
           {card.type === 'stamp' && (
@@ -576,15 +612,13 @@ function CardEditor({ card: init, formFields, plan, businessId, onSaved, onBack 
                 </div>
                 {card.rewardMode === 'dynamic' && (
                   <div className="dt-field-picker">
-                    <div className="dt-field-picker-label">Campo a usar como premio</div>
-                    {fields.filter((f: FormField) => !f.isLocked && f.isActive).map((f: FormField) => (
-                      <div key={f.id} className={`dt-field-row${f.isRewardSource ? ' dt-field-row--selected' : ''}`} onClick={() => setRewardSource(f.id)} style={{ cursor: 'pointer' }}>
-                        <span className="dt-field-label-text">{f.label}</span>
-                        <div className={`dt-radio-dot-outer${f.isRewardSource ? ' dt-radio-dot-outer--on' : ''}`}>
-                          {f.isRewardSource && <div className="dt-radio-dot-inner" />}
-                        </div>
-                      </div>
-                    ))}
+                    {(() => {
+                      const selected = fields.find((f: FormField) => f.isRewardSource)
+                      return selected
+                        ? <div className="dt-reward-current">Hoy usa <strong>"{selected.label}"</strong> como premio.</div>
+                        : <div className="dt-reward-current dt-reward-current--empty">Todavía no elegiste qué campo usar como premio.</div>
+                    })()}
+                    <div className="dt-reward-goto-forms">Se configura desde la tab <strong>Forms</strong> (tocá la ★ en el campo que quieras usar) — así no queda el mismo dato editable en dos lugares distintos.</div>
                   </div>
                 )}
                 <div className={`dt-reward-opt${card.rewardMode === 'fixed' ? ' dt-reward-opt--on' : ''}`} onClick={() => setCard({ ...card, rewardMode: 'fixed' })}>
@@ -592,7 +626,7 @@ function CardEditor({ card: init, formFields, plan, businessId, onSaved, onBack 
                   <div><div className="dt-reward-opt-title">Yo lo defino</div><div className="dt-reward-opt-desc">El mismo premio para todos los clientes</div></div>
                 </div>
                 {card.rewardMode === 'fixed' && (
-                  <input className="dt-prize-input" placeholder="Ej: Café gratis" defaultValue="Café gratis" />
+                  <input className="dt-prize-input" placeholder="Ej: Café gratis" value={card.rewardField || ''} onChange={e => setCard({ ...card, rewardField: e.target.value })} />
                 )}
               </div>
             </>
@@ -642,7 +676,23 @@ function CardEditor({ card: init, formFields, plan, businessId, onSaved, onBack 
           {/* Appearance */}
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Apariencia de la tarjeta</div>
           <div className="dt-appearance-label">Color de fondo</div>
-          <ColorPicker color={card.color} plan={plan} onChange={(s, e) => setCard({ ...card, color: s, secondColor: e })} />
+          <ColorPicker color={card.color} onChange={(s, e) => setCard({ ...card, color: s, secondColor: e })} />
+
+          <div className="dt-appearance-label" style={{ marginTop: 14 }}>Color de texto</div>
+          {can('customTextColor') ? (
+            <div className="dt-custom-color-row">
+              <label className="dt-custom-swatch" style={{ background: card.textColor || '#FFFFFF' }}>
+                <input type="color" value={card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, textColor: e.target.value })} className="dt-color-native" />
+              </label>
+              <input type="text" className="dt-hex-input" value={card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, textColor: e.target.value })} placeholder="#FFFFFF" maxLength={7} />
+              <span className="dt-hex-label">Se ve así en la Wallet real</span>
+            </div>
+          ) : (
+            <div className="dt-upgrade-color-note">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Color de texto personalizado · Plan Growth o superior
+            </div>
+          )}
 
           {card.type === 'stamp' && (
             <>
@@ -711,7 +761,7 @@ function CardEditor({ card: init, formFields, plan, businessId, onSaved, onBack 
 // ─── New card modal ───────────────────────────────────────────────────────────
 function NewCardModal({ onClose, onAdd, existingCount }: {
   onClose: () => void
-  onAdd:   (card: CardDesign) => void
+  onAdd:   (card: Omit<CardDesign, 'id'>) => Promise<string | null>
   existingCount: number
 }) {
   const [step, setStep]         = useState<1 | 2>(1)
@@ -720,6 +770,8 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
   const [stamps, setStamps]     = useState(8)
   const [points, setPoints]     = useState(10)
   const [rewardMode, setRewardMode] = useState<'dynamic' | 'fixed'>('dynamic')
+  const [saving, setSaving]     = useState(false)
+  const [error, setError]       = useState<string | null>(null)
 
   const TYPES: Array<{ id: CardType; label: string; desc: string }> = [
     { id: 'stamp',      label: 'Tarjeta de sellos',   desc: 'Visitas → premio al completar' },
@@ -727,19 +779,23 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
     { id: 'membership', label: 'Membresía por niveles', desc: 'Bronze → Silver → Gold → Black' },
   ]
 
-  function handleCreate() {
-    const newCard: CardDesign = {
-      id:             Date.now().toString(),
-      name:           name.trim() || `Tarjeta ${existingCount + 1}`,
+  async function handleCreate() {
+    const DEFAULT_NAMES: Record<CardType, string> = { stamp: 'Sellos', points: 'Puntos', membership: 'Membresía' }
+    const draft: Omit<CardDesign, 'id'> = {
+      name:           name.trim() || DEFAULT_NAMES[type],
       type,
       isActive:       false,
-      color:          '#1E3329',
-      secondColor:    '#16271F',
+      color:          '#1B412F',
+      secondColor:    '#132F22',
       stampsRequired: type === 'stamp' ? stamps : 0,
       rewardMode:     type === 'stamp' ? rewardMode : null,
       rewardField:    null,
     }
-    onAdd(newCard)
+    setSaving(true)
+    setError(null)
+    const errMsg = await onAdd(draft)
+    setSaving(false)
+    if (errMsg) { setError(errMsg); return }
     onClose()
   }
 
@@ -836,9 +892,14 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
               </>
             )}
 
+            {error && (
+              <div className="dt-modal-hint" style={{ color: '#B23B3B', marginBottom: 0 }}>{error}</div>
+            )}
             <div className="dt-modal-footer" style={{ marginTop: 24 }}>
-              <button className="dt-modal-cancel" onClick={() => setStep(1)}>← Atrás</button>
-              <button className="dt-modal-next" onClick={handleCreate}>Crear tarjeta</button>
+              <button className="dt-modal-cancel" onClick={() => setStep(1)} disabled={saving}>← Atrás</button>
+              <button className="dt-modal-next" onClick={handleCreate} disabled={saving}>
+                {saving ? 'Creando…' : 'Crear tarjeta'}
+              </button>
             </div>
           </>
         )}
@@ -848,14 +909,14 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
 }
 
 // ─── Card manager ─────────────────────────────────────────────────────────────
-function CardManager({ cards: init, planMaxCards, planActiveCards, plan, onEdit }: {
-  cards: CardDesign[]; planMaxCards: number; planActiveCards: number; plan: string; onEdit: (card: CardDesign) => void
+function CardManager({ cards: init, businessId, onSaved, onEdit }: {
+  cards: CardDesign[]; businessId?: string | null; onSaved?: () => void; onEdit: (card: CardDesign) => void
 }) {
   const [cards, setCards]         = useState<CardDesign[]>(init)
-  const [logos]                   = useState<Record<string, LogoState>>({})
   const [showModal, setModal]     = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
-  const { can }               = usePlan()
+  const { can, plan, limit }  = usePlan()
+  const planMaxCards          = limit('maxActiveCards')
   const t                     = useLang()
 
   // Sync when parent passes new real cards
@@ -863,11 +924,28 @@ function CardManager({ cards: init, planMaxCards, planActiveCards, plan, onEdit 
   const activeCount           = cards.filter((c: CardDesign) => c.isActive).length
   const atLimit               = activeCount >= planMaxCards
 
-  function toggleCard(id: string) {
+  const [toggleError, setToggleError] = useState<string | null>(null)
+
+  async function toggleCard(id: string) {
     const card = cards.find((c: CardDesign) => c.id === id)
     if (!card) return
     if (!card.isActive && atLimit) return
-    setCards(cards.map((c: CardDesign) => c.id === id ? { ...c, isActive: !c.isActive } : c))
+    setToggleError(null)
+
+    const newActive = !card.isActive
+    // Optimista: reflejamos el cambio al toque para que se sienta instantáneo...
+    setCards(cards.map((c: CardDesign) => c.id === id ? { ...c, isActive: newActive } : c))
+
+    if (!businessId) return
+    try {
+      await apiUpdateCard(businessId, id, { isActive: newActive } as any)
+      onSaved?.()  // re-sincroniza el padre para que Analytics/Rewards/Notifications vean la tarjeta activa de verdad
+    } catch (err: any) {
+      // ...pero si el backend lo rechaza (ej. límite de plan cambiado en otra pestaña),
+      // revertimos en vez de dejar la UI mintiendo sobre el estado real.
+      setCards(cards.map((c: CardDesign) => c.id === id ? { ...c, isActive: !newActive } : c))
+      setToggleError(err?.message || 'No se pudo actualizar la tarjeta. Intentá de nuevo.')
+    }
   }
 
   function handleAddClick() {
@@ -875,13 +953,51 @@ function CardManager({ cards: init, planMaxCards, planActiveCards, plan, onEdit 
     setModal(true)
   }
 
-  function handleCardAdded(newCard: CardDesign) {
-    setCards([...cards, newCard])
+  async function handleCardAdded(draft: Omit<CardDesign, 'id'>): Promise<string | null> {
+    if (!businessId) return 'Falta el negocio activo.'
+    try {
+      const created: any = await apiCreateCard(businessId, {
+        name:           draft.name,
+        type:           draft.type,
+        color:          draft.color,
+        secondColor:    draft.secondColor,
+        stampsRequired: draft.stampsRequired,
+        rewardMode:     draft.rewardMode,
+      } as any)
+      const newCard: CardDesign = {
+        id:             created._id,
+        name:           created.name,
+        type:           created.type,
+        isActive:       created.isActive,
+        color:          created.color || draft.color,
+        secondColor:    created.secondColor || draft.secondColor,
+        stampsRequired: created.stampsRequired || draft.stampsRequired,
+        rewardMode:     created.rewardMode ?? draft.rewardMode,
+        rewardField:    created.rewardFixedValue || null,
+        logoUrl:        created.logoUrl || null,
+        earnedIcon:     created.earnedIcon || null,
+        emptyIcon:      created.emptyIcon || null,
+      }
+      setCards([...cards, newCard])
+      onSaved?.()  // re-sincroniza el estado del padre para que sobreviva un cambio de tab
+      return null
+    } catch (err: any) {
+      return err?.message || 'No se pudo crear la tarjeta. Intentá de nuevo.'
+    }
   }
 
-  function deleteCard(id: string) {
+  async function deleteCard(id: string) {
+    const prevCards = cards
     setCards(cards.filter((c: CardDesign) => c.id !== id))
     setConfirmDelete(null)
+    if (!businessId) return
+    try {
+      await apiDeleteCard(businessId, id)
+      onSaved?.()
+    } catch (err: any) {
+      setCards(prevCards)  // revert si el backend lo rechaza
+      setToggleError(err?.message || 'No se pudo eliminar la tarjeta. Intentá de nuevo.')
+    }
   }
 
   return (
@@ -899,10 +1015,14 @@ function CardManager({ cards: init, planMaxCards, planActiveCards, plan, onEdit 
         <button className="dt-upgrade-link">Mejorar plan →</button>
       </div>
 
+      {toggleError && (
+        <div className="dt-toggle-error">{toggleError}</div>
+      )}
+
       <div className="dt-cards-grid">
         {cards.map((card: CardDesign) => (
           <div key={card.id} className="dt-card-tile">
-            <MiniPass design={card} logos={logos[card.id] || { businessLogo: null, earnedIcon: null, emptyIcon: null }} />
+            <MiniPass design={card} logos={{ businessLogo: card.logoUrl || null, earnedIcon: card.earnedIcon || null, emptyIcon: card.emptyIcon || null }} />
             <div className="dt-tile-info">
               <div className="dt-tile-name-row">
                 <span className="dt-tile-name">{card.name}</span>
@@ -1033,6 +1153,7 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
         .dt-logo-zone--filled{border-style:solid;border-color:rgba(43,38,32,.12);}
         .dt-logo-preview{width:100%;height:100%;object-fit:contain;padding:6px;}
         .dt-logo-remove{font-size:9.5px;color:#B23B3B;background:none;border:none;cursor:pointer;text-align:center;}
+        .dt-logo-error{font-size:9.5px;color:#B23B3B;text-align:center;line-height:1.4;padding:0 4px;}
         .dt-fields-list{display:flex;flex-direction:column;gap:4px;}
         .dt-field-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#FBF6EE;border:1px solid rgba(43,38,32,.07);border-radius:9px;font-size:11.5px;color:#2B2620;transition:background .1s;}
         .dt-field-row:hover{background:#F5EFE6;}
@@ -1059,6 +1180,9 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
         .dt-reward-opt-desc{font-size:10px;color:rgba(43,38,32,.5);margin-top:2px;}
         .dt-field-picker{padding:10px;background:#FBF6EE;border-radius:9px;display:flex;flex-direction:column;gap:4px;}
         .dt-field-picker-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.4);font-weight:700;margin-bottom:4px;}
+        .dt-reward-current{font-size:12px;color:#2B2620;}
+        .dt-reward-current--empty{color:rgba(43,38,32,.5);font-style:italic;}
+        .dt-reward-goto-forms{font-size:10.5px;color:rgba(43,38,32,.5);margin-top:4px;line-height:1.5;}
         .dt-prize-input{width:100%;padding:9px 12px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:9px;background:#FFFFFF;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
         .dt-prize-input:focus{border-color:#C75D3A;}
         /* Points config */
@@ -1153,6 +1277,7 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
         .dt-gpass-qr-label{font-size:9px;color:#5f6368;}
         /* Card manager */
         .dt-plan-bar{display:flex;align-items:center;gap:14px;background:rgba(199,93,58,.07);border:1px solid rgba(199,93,58,.2);border-radius:12px;padding:12px 18px;}
+        .dt-toggle-error{background:rgba(178,59,59,.08);border:1px solid rgba(178,59,59,.25);color:#B23B3B;border-radius:10px;padding:10px 14px;font-size:12.5px;margin-top:12px;}
         .dt-plan-text{font-size:12.5px;color:#2B2620;flex:1;}
         .dt-plan-text strong{color:#C75D3A;}
         .dt-plan-dots{display:flex;gap:6px;}
@@ -1199,6 +1324,13 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
         .dt-face-switch{display:flex;gap:20px;margin-bottom:16px;}
         .dt-face-btn{font-size:13px;color:rgba(43,38,32,.4);background:none;border:none;cursor:pointer;padding-bottom:6px;border-bottom:2.5px solid transparent;font-family:'Inter',sans-serif;transition:all .15s;display:flex;align-items:center;gap:5px;}
         .dt-face-btn--on{color:#C75D3A;border-bottom-color:#C75D3A;font-weight:600;}
+        .dt-type-switch{display:flex;gap:6px;}
+        .dt-type-btn{flex:1;font-size:12.5px;font-weight:600;padding:9px 10px;border-radius:9px;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.1);color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+        .dt-type-btn--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;}
+        .dt-type-switch-note{font-size:10.5px;color:rgba(43,38,32,.4);line-height:1.5;margin-top:7px;}
+        .dt-public-desc-input{width:100%;padding:10px 12px;font-size:12.5px;border:1.5px solid rgba(43,38,32,.12);border-radius:9px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
+        .dt-public-desc-input:focus{border-color:#C75D3A;background:#fff;}
+        .dt-public-desc-note{font-size:10px;color:rgba(43,38,32,.4);line-height:1.5;margin-top:6px;}
         .dt-pass-flip-wrap{transition:opacity .3s ease, transform .3s ease;}
         .dt-pass-flip-wrap--flipping{opacity:0;transform:scale(.96);}
         /* Prize card body */
@@ -1273,8 +1405,8 @@ export function DesignTab({ data, cards, businessId, onSaved }: { data: DesignDa
       `}</style>
 
       {editingCard
-        ? <CardEditor card={editingCard} formFields={data.formFields} plan={effectiveData.business.plan} businessId={businessId} onSaved={onSaved} onBack={() => setEditingCard(null)} />
-        : <CardManager cards={effectiveData.cardDesigns} planMaxCards={effectiveData.business.planMaxCards} planActiveCards={effectiveData.business.planActiveCards} plan={effectiveData.business.plan} onEdit={setEditingCard} />
+        ? <CardEditor card={editingCard} formFields={data.formFields} businessId={businessId} onSaved={onSaved} onBack={() => setEditingCard(null)} />
+        : <CardManager cards={effectiveData.cardDesigns} businessId={businessId} onSaved={onSaved} onEdit={setEditingCard} />
       }
     </>
   )

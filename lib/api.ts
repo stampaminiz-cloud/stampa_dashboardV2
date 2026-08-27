@@ -57,8 +57,11 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     body: body ? JSON.stringify(body) : undefined,
   })
 
-  // Token expirado o inválido → limpiar sesión y redirigir al login
-  if (res.status === 401) {
+  // Token expirado o inválido → limpiar sesión y redirigir al login.
+  // OJO: nunca en una llamada noAuth (páginas públicas como el registro de
+  // clientes) — ahí no hay ninguna sesión de owner que romper, y sacar a
+  // alguien de su sesión real por un 401 de una llamada pública sería un bug.
+  if (res.status === 401 && !noAuth) {
     clearToken()
     if (typeof window !== 'undefined') {
       window.location.href = '/login'
@@ -66,10 +69,15 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     throw new Error('Session expired')
   }
 
-  const data = await res.json()
+  // Parseamos como texto primero — un 204 No Content (típico de los DELETE
+  // exitosos) no tiene body, y llamar res.json() directo ahí explota con
+  // "Unexpected end of JSON input". Mismo cuidado para respuestas de error
+  // que a veces tampoco traen body.
+  const text = await res.text()
+  const data = text ? JSON.parse(text) : null
 
   if (!res.ok) {
-    throw { status: res.status, ...data }
+    throw { status: res.status, ...(data || {}) }
   }
 
   return data as T
@@ -102,6 +110,8 @@ export interface Card {
   type: 'stamp' | 'points' | 'membership'
   color: string
   secondColor: string
+  textColor?: string | null
+  publicDescription?: string | null
   logoUrl: string | null
   earnedIcon?: string | null
   emptyIcon?: string | null
@@ -185,10 +195,95 @@ export async function apiChangePassword(currentPassword: string, newPassword: st
   })
 }
 
+export async function apiGetPointsCatalog(businessId: string, cardId: string) {
+  return request<Array<{ _id: string; name: string; pointsCost: number; isActive: boolean }>>(
+    `/api/businesses/${businessId}/cards/${cardId}/points-catalog`
+  )
+}
+
+export async function apiCreatePointsCatalogItem(businessId: string, cardId: string, data: { name: string; pointsCost: number }) {
+  return request<{ _id: string; name: string; pointsCost: number }>(
+    `/api/businesses/${businessId}/cards/${cardId}/points-catalog`,
+    { method: 'POST', body: data }
+  )
+}
+
+export async function apiUpdatePointsCatalogItem(businessId: string, cardId: string, itemId: string, data: Partial<{ name: string; pointsCost: number; isActive: boolean }>) {
+  return request<{ _id: string; name: string; pointsCost: number }>(
+    `/api/businesses/${businessId}/cards/${cardId}/points-catalog/${itemId}`,
+    { method: 'PATCH', body: data }
+  )
+}
+
+export async function apiDeletePointsCatalogItem(businessId: string, cardId: string, itemId: string) {
+  return request<void>(`/api/businesses/${businessId}/cards/${cardId}/points-catalog/${itemId}`, { method: 'DELETE' })
+}
+
+export async function apiRedeemPoints(businessId: string, customerId: string, catalogItemId: string) {
+  return request<{ message: string; pointsBalance: number; redeemedItem: string }>(
+    `/api/businesses/${businessId}/customers/${customerId}/redeem-points`,
+    { method: 'POST', body: { catalogItemId } }
+  )
+}
+
 export async function apiResyncPass(businessId: string, customerId: string) {
   return request<{ message: string; results: { apple: any; google: any } }>(`/api/businesses/${businessId}/customers/${customerId}/resync-pass`, {
     method: 'POST',
   })
+}
+
+export async function apiExportCustomers(businessId: string) {
+  const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/customers/export`, {
+    headers: { Authorization: 'Bearer ' + getToken() },
+  })
+  if (!res.ok) throw new Error('No se pudo exportar los clientes.')
+  const blob = await res.blob()
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = res.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'clientes.csv'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  window.URL.revokeObjectURL(url)
+}
+
+export async function apiRequestDeletion() {
+  return request<{ success: boolean; message: string; purgeDate: string }>('/api/auth/request-deletion', {
+    method: 'POST',
+  })
+}
+
+export async function apiCancelDeletion() {
+  return request<{ success: boolean; message: string }>('/api/auth/cancel-deletion', {
+    method: 'POST',
+  })
+}
+
+export async function apiGetPublicBusiness(businessId: string) {
+  return request<{
+    business: { id: string; name: string; slug: string }
+    whiteLabel?: boolean
+    cards: Array<{ id: string; name: string; type: string; description?: string; color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null }>
+    fields: Array<{ label: string; fieldType: string; isLocked: boolean; options?: string[]; placeholder?: string }>
+  }>(`/api/businesses/${businessId}/public`, { noAuth: true })
+}
+
+export async function apiGetPublicCardFields(businessId: string, cardId: string) {
+  return request<{ fields: Array<{ label: string; fieldType: string; isLocked: boolean; options?: string[] }> }>(
+    `/api/businesses/${businessId}/cards/${cardId}/public-fields`, { noAuth: true }
+  )
+}
+
+export async function apiRegisterCustomer(businessId: string, data: {
+  cardId?: string
+  fullName: string
+  email: string
+  formResponses?: Array<{ fieldId: string; value: string }>
+}) {
+  return request<{ customerId: string; qrValue: string; card: { id: string; name: string; type: string } }>(
+    `/api/businesses/${businessId}/register`, { method: 'POST', body: data, noAuth: true }
+  )
 }
 
 export async function apiUpdateProfile(fullName: string) {

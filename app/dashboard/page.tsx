@@ -3,7 +3,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { mockData } from '@/data/mockData'
 import { detectLang, createT, LangContext } from '@/data/i18n'
 import { PlanProvider } from '@/data/plans'
-import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId } from '@/lib/api'
+import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL } from '@/lib/api'
 import { SettingsTab }       from '@/components/dashboard/SettingsTab'
 import { CustomersTab }      from '@/components/dashboard/CustomersTab'
 import { AnalyticsTab }      from '@/components/dashboard/AnalyticsTab'
@@ -175,22 +175,11 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 function Header({ title, t, setMobileOpen, setActive }: { title: string; t: (k: any) => string; setMobileOpen: (o: boolean) => void; setActive?: (t: any) => void }) {
-  const [search, setSearch] = useState('')
-  const [showSearch, setShowSearch] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
-  const searchRef = useRef<HTMLDivElement>(null)
   const notifRef  = useRef<HTMLDivElement>(null)
-
-  const customers = mockData.customers.filter(c =>
-    search.length > 1 && (
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.email.toLowerCase().includes(search.toLowerCase())
-    )
-  )
 
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowSearch(false)
       if (notifRef.current  && !notifRef.current.contains(e.target as Node))  setShowNotif(false)
     }
     document.addEventListener('mousedown', handler)
@@ -209,36 +198,6 @@ function Header({ title, t, setMobileOpen, setActive }: { title: string; t: (k: 
       <h1 className="hd-title">{title}</h1>
 
       <div className="hd-right">
-        {/* Search */}
-        <div className="hd-search-wrap" ref={searchRef}>
-          <div className="hd-search">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input
-              placeholder={t('search_placeholder' as any)}
-              value={search}
-              onChange={e => { setSearch(e.target.value); setShowSearch(true) }}
-              onFocus={() => setShowSearch(true)}
-            />
-          </div>
-          {showSearch && search.length > 1 && (
-            <div className="hd-dropdown hd-search-dropdown">
-              {customers.length === 0
-                ? <div className="hd-empty">{t('no_results' as any)}</div>
-                : customers.slice(0, 5).map((c: any) => (
-                    <div key={c.id} className="hd-search-row" onClick={() => { setSearch(''); setShowSearch(false) }}>
-                      <div className="hd-srch-av">{c.name.split(' ').map((w: string) => w[0]).join('').slice(0,2)}</div>
-                      <div>
-                        <div className="hd-srch-name">{c.name}</div>
-                        <div className="hd-srch-email">{c.email}</div>
-                      </div>
-                      <div className="hd-srch-prog">{c.progress}/{c.total}</div>
-                    </div>
-                  ))
-              }
-            </div>
-          )}
-        </div>
-
         {/* Notifications */}
         <div className="hd-icon-wrap" ref={notifRef}>
           <button className="hd-icon-btn" onClick={() => { setShowNotif(!showNotif) }}>
@@ -306,32 +265,38 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
   }
   const chartCfg = CHART_LABELS[primaryCardType] || CHART_LABELS.stamp
 
-  const [granularity, setGranularity] = useState<'weekly' | 'monthly'>('weekly')
+  const [granularity, setGranularity] = useState<'7d' | '30d' | '90d'>('7d')
   const [hoveredBar, setHoveredBar] = useState<string | null>(null)
-  const [monthlyVisits, setMonthlyVisits] = useState<any[] | null>(null)
+  const [rangeVisits, setRangeVisits] = useState<any[] | null>(null)
   const [chartLoading, setChartLoading] = useState(false)
 
-  async function switchGranularity(g: 'weekly' | 'monthly') {
-    if (g === granularity) return
+  async function loadRange(g: '7d' | '30d' | '90d') {
     setGranularity(g)
-    if (g === 'weekly') return // ya lo tenemos en analyticsData, no hace falta refetch
     const businessId = localStorage.getItem('stampa_business_id')
     if (!businessId) return
     setChartLoading(true)
     try {
-      const res = await fetch(`http://localhost:5002/api/businesses/${businessId}/analytics?granularity=monthly`, {
+      // Reusa /analytics/detailed, que ya tiene el bucketing diario/semanal
+      // armado para Analytics — acá Overview solo pide el corto plazo (7/30/90
+      // días); si alguien quiere mirar más atrás en el tiempo, ese es
+      // justamente el trabajo del tab Analytics, no de Overview.
+      const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/analytics/detailed?range=${g}`, {
         headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
       })
       const data = await res.json()
-      setMonthlyVisits(data.visitsOverTime || [])
+      setRangeVisits((data.visitsOverTime || []).map((v: any) => ({ label: v.day, visits: v.stamps })))
     } catch (err) {
-      console.error('Error loading monthly chart:', err)
+      console.error('Error loading chart:', err)
     } finally {
       setChartLoading(false)
     }
   }
+  useEffect(() => { loadRange('7d') }, [])
 
-  const weeklyVisits = granularity === 'monthly' ? monthlyVisits : (analyticsData?.weeklyVisits ?? null)
+  const RANGE_SUBTITLES: Record<string, string> = {
+    '7d': 'Últimos 7 días', '30d': 'Últimos 30 días', '90d': 'Últimos 90 días',
+  }
+  const weeklyVisits = rangeVisits
   const chartMax = weeklyVisits ? Math.max(...weeklyVisits.map((w: any) => w.visits), 1) : 5000
   // 4 líneas de referencia del eje Y, redondeadas a algo legible
   const axisSteps = [1, 0.75, 0.5, 0.25, 0].map(f => Math.round(chartMax * f))
@@ -348,7 +313,7 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
   return (
     <div className="db-content">
       {/* Core metrics */}
-      <div className="ov-section-label">{t('section_growth' as any)}</div>
+      <div className="ov-section-label">{t('section_summary' as any)}</div>
       <div className="ov-metric-grid">
         {[
           { label: t('total_customers' as any), value: totalUsers,    delta: 0,    color: '#C75D3A' },
@@ -377,11 +342,12 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
           <div className="ov-card-title-row">
             <div>
               <div className="ov-card-title">{chartCfg.title}</div>
-              <div className="ov-card-sub">{granularity === 'weekly' ? 'Últimas 8 semanas' : 'Últimos 8 meses'}</div>
+              <div className="ov-card-sub">{RANGE_SUBTITLES[granularity]}</div>
             </div>
             <div className="ov-granularity-toggle">
-              <button className={`ov-gran-btn${granularity === 'weekly' ? ' ov-gran-btn--on' : ''}`} onClick={() => switchGranularity('weekly')}>8 semanas</button>
-              <button className={`ov-gran-btn${granularity === 'monthly' ? ' ov-gran-btn--on' : ''}`} onClick={() => switchGranularity('monthly')}>8 meses</button>
+              <button className={`ov-gran-btn${granularity === '7d' ? ' ov-gran-btn--on' : ''}`} onClick={() => loadRange('7d')}>7 días</button>
+              <button className={`ov-gran-btn${granularity === '30d' ? ' ov-gran-btn--on' : ''}`} onClick={() => loadRange('30d')}>30 días</button>
+              <button className={`ov-gran-btn${granularity === '90d' ? ' ov-gran-btn--on' : ''}`} onClick={() => loadRange('90d')}>90 días</button>
             </div>
           </div>
           {chartLoading
@@ -448,24 +414,26 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
       <div className="ov-three-col">
         {/* Top rewards (stamp/points) */}
         {(hasStamp || hasPoints) && (
-          <div className="db-card">
+          <div className="db-card ov-card--fill">
             <div className="ov-card-title-row">
               <span className="ov-card-title">{t('top_rewards' as any)}</span>
             </div>
             {rewardsData?.topPrizes?.length > 0
-              ? rewardsData.topPrizes.map((r: any, i: number) => {
-                  const max = rewardsData.topPrizes[0]?.count || 1
-                  return (
-                    <div key={r.prize} className="ov-reward-row">
-                      <span className={`ov-reward-rank${i === 0 ? ' ov-reward-rank--first' : ''}`}>{i + 1}</span>
-                      <div className="ov-reward-info">
-                        <div className="ov-reward-name">{r.prize}</div>
-                        <div className="ov-reward-bar"><div className="ov-reward-fill" style={{ width: `${(r.count / max) * 100}%` }} /></div>
+              ? <div className="ov-reward-list">
+                  {rewardsData.topPrizes.map((r: any, i: number) => {
+                    const max = rewardsData.topPrizes[0]?.count || 1
+                    return (
+                      <div key={r.prize} className="ov-reward-row">
+                        <span className={`ov-reward-rank${i === 0 ? ' ov-reward-rank--first' : ''}`}>{i + 1}</span>
+                        <div className="ov-reward-info">
+                          <div className="ov-reward-name">{r.prize}</div>
+                          <div className="ov-reward-bar"><div className="ov-reward-fill" style={{ width: `${(r.count / max) * 100}%` }} /></div>
+                        </div>
+                        <span className="ov-reward-count">{r.count}</span>
                       </div>
-                      <span className="ov-reward-count">{r.count}</span>
-                    </div>
-                  )
-                })
+                    )
+                  })}
+                </div>
               : <div className="ov-empty-note">Todavía no hay premios canjeados.</div>
             }
           </div>
@@ -511,13 +479,26 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
         </div>
 
         {/* Insights */}
-        <div className="db-card">
+        <div className="db-card ov-card--fill">
           <div className="ov-card-title">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C75D3A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: 'middle' }}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
             {t('smart_insights' as any)}
           </div>
           {(() => {
             const insights: { type: string; text: string }[] = []
+            // El insight más accionable primero: cuántos clientes están a
+            // 1-2 sellos de completar su premio, algo que el dueño puede
+            // resolver hoy mismo mandando una notificación. Chequeamos
+            // hasStamp explícitamente — si el negocio no tiene ninguna
+            // tarjeta de sellos activa (por ejemplo, solo membresía o
+            // puntos), este insight no aplica y no debería aparecer, sin
+            // importar qué traiga rewardsData.
+            if (hasStamp && nearPrize > 0) {
+              insights.push({
+                type: 'positive',
+                text: `${nearPrize} cliente${nearPrize === 1 ? ' está' : 's están'} a 1-2 sellos de completar su premio — es un buen momento para mandarles una notificación.`,
+              })
+            }
             if (newDelta !== 0) {
               insights.push({
                 type: newDelta >= 0 ? 'positive' : 'warning',
@@ -526,7 +507,7 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
                   : `Los nuevos registros bajaron ${Math.abs(newDelta)}% este mes.`,
               })
             }
-            if (rewardsData?.topPrize && rewardsData.topPrize !== '—') {
+            if (hasStamp && rewardsData?.topPrize && rewardsData.topPrize !== '—') {
               insights.push({ type: 'info', text: `${rewardsData.topPrize} es tu premio más popular — considerá tenerlo bien abastecido.` })
             }
             const vot = detailedAnalytics?.visitsOverTime || []
@@ -546,7 +527,7 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
               }
             }
             return insights.length > 0
-              ? insights.map((ins, i) => <div key={i} className={`ov-insight ov-insight--${ins.type}`}>{ins.text}</div>)
+              ? <div className="ov-insight-list">{insights.map((ins, i) => <div key={i} className={`ov-insight ov-insight--${ins.type}`}>{ins.text}</div>)}</div>
               : <div className="ov-empty-note">Todavía no hay suficientes datos para generar insights.</div>
           })()}
         </div>
@@ -620,6 +601,7 @@ function mapCustomersForTab(rawCustomers: any[], activeCard: any) {
       email: c.email,
       cardType,
       cardName: c.cardName || activeCard?.name || null,
+      cardId: c.cardId || activeCard?.id || null,
       membershipTier: c.membershipTier || null,
       progress,
       total,
@@ -652,7 +634,7 @@ const CSS = `
   .db-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
 
   /* ── Sidebar ── */
-  .db-sb{width:230px;flex-shrink:0;background:#1E3329;display:flex;flex-direction:column;padding:6px 12px;transition:width .25s ease;}
+  .db-sb{width:230px;flex-shrink:0;background:#1B412F;display:flex;flex-direction:column;padding:6px 12px;transition:width .25s ease;}
   .db-sb--collapsed{width:68px;}
   .sb-overlay{display:none;}
   .sb-logo{display:flex;align-items:center;gap:10px;padding:0px 8px 16px;}
@@ -699,10 +681,6 @@ const CSS = `
   .hd-hamburger{display:none;background:none;border:none;cursor:pointer;color:rgba(43,38,32,.6);padding:6px;border-radius:8px;}
   .hd-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:20px;color:#2B2620;flex:1;}
   .hd-right{display:flex;align-items:center;gap:10px;}
-  .hd-search-wrap{position:relative;}
-  .hd-search{display:flex;align-items:center;gap:8px;background:#FBF6EE;border:1px solid rgba(43,38,32,.1);border-radius:10px;padding:8px 13px;width:220px;}
-  .hd-search input{background:none;border:none;outline:none;font-family:'Inter',sans-serif;font-size:13px;color:#2B2620;width:100%;}
-  .hd-search input::placeholder{color:rgba(43,38,32,.38);}
   .hd-icon-wrap{position:relative;}
   .hd-icon-btn{width:38px;height:38px;border-radius:10px;background:#FBF6EE;border:1px solid rgba(43,38,32,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(43,38,32,.55);position:relative;transition:all .15s;}
   .hd-icon-btn:hover{background:#F0EBE3;}
@@ -711,17 +689,9 @@ const CSS = `
 
   /* ── Dropdowns ── */
   .hd-dropdown{position:absolute;top:calc(100% + 8px);right:0;background:#FFFFFF;border:1px solid rgba(43,38,32,.1);border-radius:14px;box-shadow:0 8px 32px rgba(43,38,32,.12);z-index:50;min-width:280px;}
-  .hd-search-dropdown{left:0;right:auto;}
   .hd-drop-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(43,38,32,.07);}
   .hd-drop-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:#2B2620;}
   .hd-mark-read{font-size:11px;color:#C75D3A;font-weight:600;background:none;border:none;cursor:pointer;}
-  .hd-empty{padding:20px;text-align:center;font-size:12px;color:rgba(43,38,32,.4);}
-  .hd-search-row{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:background .1s;}
-  .hd-search-row:hover{background:#FBF6EE;}
-  .hd-srch-av{width:28px;height:28px;border-radius:50%;background:#C75D3A;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;flex-shrink:0;}
-  .hd-srch-name{font-size:12.5px;font-weight:600;color:#2B2620;}
-  .hd-srch-email{font-size:10.5px;color:rgba(43,38,32,.45);}
-  .hd-srch-prog{font-size:11px;font-weight:700;color:#C75D3A;margin-left:auto;}
   .hd-notif-dropdown{width:320px;}
   .hd-notif-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(43,38,32,.06);}
   .hd-notif-row:last-child{border-bottom:none;}
@@ -770,7 +740,7 @@ const CSS = `
   .ov-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;color:#2B2620;margin-bottom:2px;}
   .ov-card-sub{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:12px;}
   .ov-card-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-  .ov-granularity-toggle{display:flex;gap:6px;}
+  .ov-granularity-toggle{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:200px;}
   .ov-gran-btn{font-size:11px;padding:5px 11px;border-radius:20px;border:1.5px solid rgba(43,38,32,.15);background:none;color:rgba(43,38,32,.5);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap;}
   .ov-gran-btn--on{border-color:#C75D3A;background:rgba(199,93,58,.08);color:#C75D3A;font-weight:600;}
   .ov-chart-loading{font-size:12px;color:rgba(43,38,32,.4);padding:32px 0;text-align:center;}
@@ -795,8 +765,11 @@ const CSS = `
   .ov-adv-val{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;margin-bottom:4px;}
   .ov-adv-label{font-size:12px;color:rgba(43,38,32,.5);}
   .ov-three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-  .ov-reward-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-  .ov-reward-row:last-child{margin-bottom:0;}
+  .ov-card--fill{display:flex;flex-direction:column;}
+  .ov-reward-list{flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:2px;}
+  .ov-insight-list{flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:10px;}
+  .ov-reward-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(43,38,32,.06);}
+  .ov-reward-row:last-child{border-bottom:none;}
   .ov-reward-rank{width:22px;height:22px;border-radius:6px;background:rgba(43,38,32,.06);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(43,38,32,.4);flex-shrink:0;}
   .ov-reward-rank--first{background:rgba(199,93,58,.12);color:#C75D3A;}
   .ov-reward-info{flex:1;}
@@ -804,7 +777,7 @@ const CSS = `
   .ov-reward-bar{height:5px;background:rgba(43,38,32,.07);border-radius:3px;overflow:hidden;}
   .ov-reward-fill{height:100%;background:linear-gradient(90deg,#C75D3A,#D4A24C);border-radius:3px;}
   .ov-reward-count{font-size:11px;font-weight:600;color:rgba(43,38,32,.5);flex-shrink:0;}
-  .ov-tier-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(43,38,32,.05);}
+  .ov-tier-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid rgba(43,38,32,.05);}
   .ov-tier-row:last-child{border-bottom:none;}
   .ov-tier-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
   .ov-tier-name{font-size:12px;color:#2B2620;width:52px;flex-shrink:0;}
@@ -824,8 +797,7 @@ const CSS = `
   .ov-activity-time{font-size:10px;color:rgba(43,38,32,.35);flex-shrink:0;}
   .ov-live{display:flex;align-items:center;gap:5px;font-size:11px;color:#5B8C5A;}
   .ov-live-dot{width:7px;height:7px;border-radius:50%;background:#5B8C5A;animation:pulse 1.5s infinite;}
-  .ov-insight{font-size:12px;color:rgba(43,38,32,.7);line-height:1.5;padding:10px 12px;border-radius:9px;background:rgba(43,38,32,.03);margin-bottom:8px;}
-  .ov-insight:last-child{margin-bottom:0;}
+  .ov-insight{font-size:12px;color:rgba(43,38,32,.7);line-height:1.5;padding:12px 14px;border-radius:9px;background:rgba(43,38,32,.03);}
   .ov-insight--positive{border-left:2.5px solid #5B8C5A;}
   .ov-insight--warning{border-left:2.5px solid #C75D3A;}
   .ov-insight--info{border-left:2.5px solid #185FA5;}
@@ -844,7 +816,6 @@ const CSS = `
     .db-sb--collapsed{transform:translateX(-100%) !important;}
     .sb-overlay{display:block;position:fixed;inset:0;background:rgba(43,38,32,.4);z-index:49;backdrop-filter:blur(2px);}
     .hd-hamburger{display:flex;}
-    .hd-search{width:160px;}
     .ov-metric-grid{grid-template-columns:repeat(2,1fr);}
     .ov-adv-grid{grid-template-columns:repeat(2,1fr);}
     .ov-three-col{grid-template-columns:1fr;}
@@ -854,7 +825,6 @@ const CSS = `
   }
   @media (max-width: 480px) {
     .ov-metric-grid{grid-template-columns:1fr 1fr;}
-    .hd-search{display:none;}
     .hd-title{font-size:17px;}
   }
 `
@@ -879,7 +849,8 @@ export default function DashboardPage() {
   const [customersTotal, setCustomersTotal]         = useState(0)
   const [customersSearch, setCustomersSearch]       = useState('')
   const [customersStatus, setCustomersStatus]       = useState<'all' | 'active' | 'inactive'>('all')
-  const [customersSortKey, setCustomersSortKey]     = useState<'name' | 'progress' | 'status' | 'lastActivity'>('progress')
+  const [customersCardFilter, setCustomersCardFilter] = useState<string>('all')
+  const [customersSortKey, setCustomersSortKey]     = useState<'name' | 'progress' | 'status' | 'lastActivity' | 'card'>('progress')
   const [customersSortDir, setCustomersSortDir]     = useState<'asc' | 'desc'>('desc')
   const [customersLoading, setCustomersLoading]     = useState(false)
   // Cache en memoria: mismo filtro/orden/página ya pedido antes → instantáneo,
@@ -907,19 +878,34 @@ export default function DashboardPage() {
 
         const cardsPromise      = apiGetCards(bid)
         const teamPromise       = apiGetTeam(bid)
-        const analyticsPromise  = fetch(`http://localhost:5002/api/businesses/${bid}/analytics`, { headers: authHeaders }).then(r => r.json())
-        const detailedPromise   = fetch(`http://localhost:5002/api/businesses/${bid}/analytics/detailed?range=30d`, { headers: authHeaders }).then(r => r.json())
-        const customersPromise  = fetch(`http://localhost:5002/api/businesses/${bid}/customers?page=1&limit=50&sortBy=progress&sortDir=desc`, { headers: authHeaders }).then(r => r.json())
-        const notifPromise      = fetch(`http://localhost:5002/api/businesses/${bid}/notifications`, { headers: authHeaders }).then(r => r.json())
-        // rewards-stats needs the first card's type, so it chains off cardsPromise instead of
-        // blocking behind team/analytics/customers/notifications like it used to
-        const rewardsPromise    = cardsPromise.then(cardsData => {
-          const firstCard = (cardsData as any[])[0]
-          if (!firstCard) return null
-          return fetch(
-            `http://localhost:5002/api/businesses/${bid}/rewards-stats?cardType=${firstCard.type}&stampsRequired=${firstCard.stampsRequired || 8}`,
-            { headers: authHeaders }
-          ).then(r => r.json())
+        const analyticsPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/analytics`, { headers: authHeaders }).then(r => r.json())
+        const detailedPromise   = fetch(`${BASE_URL}/api/businesses/${bid}/analytics/detailed?range=30d`, { headers: authHeaders }).then(r => r.json())
+        const customersPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/customers?page=1&limit=50&sortBy=progress&sortDir=desc`, { headers: authHeaders }).then(r => r.json())
+        const notifPromise      = fetch(`${BASE_URL}/api/businesses/${bid}/notifications`, { headers: authHeaders }).then(r => r.json())
+        // "Near prize" (para Notifications) tiene sentido sumado entre TODAS
+        // las tarjetas activas de tipo sello — un negocio puede tener más de
+        // una, y antes solo se miraba la primera tarjeta del negocio (que ni
+        // siquiera tenía por qué ser de sellos). Points/membership no tienen
+        // un concepto lineal de "cerca de completar", así que quedan afuera.
+        const rewardsPromise    = cardsPromise.then(async (cardsData) => {
+          const cards = cardsData as any[]
+          const activeStampCards = cards.filter(c => c.isActive && c.type === 'stamp')
+          if (activeStampCards.length === 0) return null
+
+          const results = await Promise.all(activeStampCards.map(c =>
+            fetch(
+              `${BASE_URL}/api/businesses/${bid}/rewards-stats?cardType=stamp&stampsRequired=${c.stampsRequired || 8}&cardId=${c._id}`,
+              { headers: authHeaders }
+            ).then(r => r.json())
+          ))
+
+          // La primera tarjeta aporta el resto de las métricas de Rewards
+          // (topPrize, distribution, etc.); nearPrize se pisa con la suma
+          // de todas las tarjetas de sellos activas.
+          return {
+            ...results[0],
+            nearPrize: results.reduce((sum, r) => sum + (r?.nearPrize || 0), 0),
+          }
         })
 
         const [teamRes, cardsRes, analyticsRes, customersRes, notifRes, rewardsRes, detailedRes] = await Promise.allSettled([
@@ -944,14 +930,20 @@ export default function DashboardPage() {
             name:           c.name,
             type:           c.type,
             isActive:       c.isActive,
-            color:          c.color || '#1E3329',
-            secondColor:    c.secondColor || '#16271F',
+            color:          c.color || '#1B412F',
+            secondColor:    c.secondColor || '#132F22',
             stampsRequired: c.stampsRequired || 8,
             rewardMode:     c.rewardMode || null,
             rewardField:    c.rewardFixedValue || null,
             logoUrl:        c.logoUrl || null,
             earnedIcon:     c.earnedIcon || null,
             emptyIcon:      c.emptyIcon || null,
+            flipImageUrl:   c.flipImageUrl || null,
+            flipMessage:    c.flipMessage || null,
+            flipSubMessage: c.flipSubMessage || null,
+            pointsPerVisit: c.pointsPerVisit || null,
+            textColor: c.textColor || null,
+            publicDescription: c.publicDescription || null,
           })))
         } else console.error('cards load error:', cardsRes.reason)
 
@@ -992,14 +984,20 @@ export default function DashboardPage() {
         name:           c.name,
         type:           c.type,
         isActive:       c.isActive,
-        color:          c.color || '#1E3329',
-        secondColor:    c.secondColor || '#16271F',
+        color:          c.color || '#1B412F',
+        secondColor:    c.secondColor || '#132F22',
         stampsRequired: c.stampsRequired || 8,
         rewardMode:     c.rewardMode || null,
         rewardField:    c.rewardFixedValue || null,
         logoUrl:        c.logoUrl || null,
         earnedIcon:     c.earnedIcon || null,
         emptyIcon:      c.emptyIcon || null,
+        flipImageUrl:   c.flipImageUrl || null,
+        flipMessage:    c.flipMessage || null,
+        flipSubMessage: c.flipSubMessage || null,
+            pointsPerVisit: c.pointsPerVisit || null,
+            textColor: c.textColor || null,
+            publicDescription: c.publicDescription || null,
       })))
     } catch (err) {
       console.error('Error refreshing cards:', err)
@@ -1010,13 +1008,14 @@ export default function DashboardPage() {
     page: number,
     search: string,
     status: 'all' | 'active' | 'inactive',
-    sortKey: 'name' | 'progress' | 'status' | 'lastActivity' = customersSortKey,
+    sortKey: 'name' | 'progress' | 'status' | 'lastActivity' | 'card' = customersSortKey,
     sortDir: 'asc' | 'desc' = customersSortDir,
+    cardFilter: string = customersCardFilter,
     opts: { bypassCache?: boolean } = {}
   ) {
     if (!businessId) return
 
-    const cacheKey = `${page}|${search}|${status}|${sortKey}|${sortDir}`
+    const cacheKey = `${page}|${search}|${status}|${sortKey}|${sortDir}|${cardFilter}`
     const cached = customersCacheRef.current.get(cacheKey)
     if (cached && !opts.bypassCache) {
       // Ya lo pedimos antes con estos mismos filtros — mostralo al toque,
@@ -1035,7 +1034,8 @@ export default function DashboardPage() {
       const params = new URLSearchParams({ page: String(page), limit: '50', sortBy: sortKey, sortDir })
       if (search) params.set('search', search)
       if (status !== 'all') params.set('status', status)
-      const res = await fetch(`http://localhost:5002/api/businesses/${businessId}/customers?${params.toString()}`, {
+      if (cardFilter !== 'all') params.set('cardId', cardFilter)
+      const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/customers?${params.toString()}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + localStorage.getItem('stampa_token'),
@@ -1081,6 +1081,8 @@ export default function DashboardPage() {
       case 'customers': return customersTotal > 0
         ? <CustomersTab
             customers={mapCustomersForTab(customers, cards.find((c: any) => c.isActive) || cards[0])}
+            cards={cards.filter((c: any) => c.isActive)}
+            cardFilter={customersCardFilter}
             page={customersPage}
             totalPages={customersTotalPages}
             total={customersTotal}
@@ -1096,7 +1098,8 @@ export default function DashboardPage() {
             onStatusFilterChange={(s: any) => { setCustomersStatus(s); loadCustomers(1, customersSearch, s) }}
             onSortChange={(key: any, dir: any) => loadCustomers(1, customersSearch, customersStatus, key, dir)}
             onPageChange={(p: number) => loadCustomers(p, customersSearch, customersStatus)}
-            onRefresh={() => { customersCacheRef.current.clear(); loadCustomers(customersPage, customersSearch, customersStatus, customersSortKey, customersSortDir, { bypassCache: true }) }}
+            onCardFilterChange={(cid: string) => { setCustomersCardFilter(cid); loadCustomers(1, customersSearch, customersStatus, customersSortKey, customersSortDir, cid) }}
+            onRefresh={() => { customersCacheRef.current.clear(); loadCustomers(customersPage, customersSearch, customersStatus, customersSortKey, customersSortDir, customersCardFilter, { bypassCache: true }) }}
           />
         : <div className="db-content"><EmptyState
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>}
@@ -1115,7 +1118,7 @@ export default function DashboardPage() {
             onCta={() => { setActive('form'); localStorage.setItem('stampa_active_tab', 'form') }}
           /></div>
       case 'rewards': return analyticsData?.total > 0
-        ? <RewardsTab data={mockData} rewardsData={rewardsData} cards={cards} businessId={businessId} />
+        ? <RewardsTab data={mockData} cards={cards} businessId={businessId} />
         : <div className="db-content"><EmptyState
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/></svg>}
             title="Los premios aparecen cuando hay canjes"
@@ -1137,7 +1140,7 @@ export default function DashboardPage() {
             scheduledNotifications: [],
           }}
         />
-      case 'form':          return <FormTab businessName={business?.name || mockData.business.name} businessSlug={business?.slug || 'mi-negocio'} cardDesigns={cards.length > 0 ? cards : mockData.cardDesigns} />
+      case 'form':          return <FormTab businessName={business?.name || mockData.business.name} businessSlug={business?.slug || 'mi-negocio'} cardDesigns={cards.length > 0 ? cards : mockData.cardDesigns} businessId={businessId} />
       case 'design':        return <DesignTab key={businessId ?? 'loading'} data={mockData} cards={cards} businessId={businessId} onSaved={refreshCards} />
       case 'users':         return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} onRefresh={loadBusiness} owner={owner} />
       case 'settings':      return (
@@ -1145,6 +1148,9 @@ export default function DashboardPage() {
           key={businessId ?? 'loading'}
           businessId={businessId ?? undefined}
           onSave={loadBusiness}
+          ownerName={owner?.fullName || ''}
+          ownerEmail={owner?.email || ''}
+          deletionRequestedAt={owner?.deletionRequestedAt || null}
           business={business ? {
             ...mockData.business,
             name: business.name,
