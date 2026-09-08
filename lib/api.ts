@@ -126,6 +126,19 @@ export interface Card {
   isActive: boolean
 }
 
+export interface MembershipTier {
+  _id: string
+  businessId: string
+  cardId: string
+  name: string
+  threshold: number
+  perk: string
+  color: string
+  bg: string
+  icon?: string | null
+  order: number
+}
+
 export interface FormField {
   _id: string
   cardId: string
@@ -218,6 +231,26 @@ export async function apiUpdatePointsCatalogItem(businessId: string, cardId: str
 
 export async function apiDeletePointsCatalogItem(businessId: string, cardId: string, itemId: string) {
   return request<void>(`/api/businesses/${businessId}/cards/${cardId}/points-catalog/${itemId}`, { method: 'DELETE' })
+}
+
+export async function apiGetTiers(businessId: string, cardId: string) {
+  return request<MembershipTier[]>(`/api/businesses/${businessId}/cards/${cardId}/tiers`)
+}
+
+export async function apiCreateTier(businessId: string, cardId: string, data: Partial<MembershipTier>) {
+  return request<MembershipTier>(`/api/businesses/${businessId}/cards/${cardId}/tiers`, {
+    method: 'POST', body: data,
+  })
+}
+
+export async function apiUpdateTier(businessId: string, cardId: string, tierId: string, data: Partial<MembershipTier>) {
+  return request<MembershipTier>(`/api/businesses/${businessId}/cards/${cardId}/tiers/${tierId}`, {
+    method: 'PATCH', body: data,
+  })
+}
+
+export async function apiDeleteTier(businessId: string, cardId: string, tierId: string) {
+  return request<void>(`/api/businesses/${businessId}/cards/${cardId}/tiers/${tierId}`, { method: 'DELETE' })
 }
 
 export async function apiRedeemPoints(businessId: string, customerId: string, catalogItemId: string) {
