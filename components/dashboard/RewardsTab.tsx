@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
-import { BASE_URL, apiGetPointsCatalog, apiCreatePointsCatalogItem, apiUpdatePointsCatalogItem, apiDeletePointsCatalogItem } from '@/lib/api'
+import { BASE_URL, apiGetPointsCatalog, apiCreatePointsCatalogItem, apiUpdatePointsCatalogItem, apiDeletePointsCatalogItem, apiGetTiers, apiCreateTier, apiUpdateTier } from '@/lib/api'
 
 interface CardDesign  { id: string; name: string; type: 'stamp' | 'points' | 'membership'; isActive: boolean }
 interface PrizeDist   { name: string; count: number }
@@ -223,20 +223,60 @@ function PointsRewards({ businessId, cardId, rewardsData }: { businessId?: strin
   )
 }
 
-function MembershipRewards({ tiers: initTiers, rewardsData }: { tiers: MemberTier[]; rewardsData?: any }) {
+function MembershipRewards({ businessId, cardId, rewardsData }: { businessId?: string | null; cardId?: string; rewardsData?: any }) {
   const t = useLang()
-  const [tiers, setTiers] = useState<MemberTier[]>(initTiers)
+  const [tiers, setTiers] = useState<MemberTier[]>([])
+  const [tiersLoading, setTiersLoading] = useState(false)
+  const [tiersError, setTiersError] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!businessId || !cardId) return
+    setTiersLoading(true)
+    setTiersError(null)
+    apiGetTiers(businessId, cardId)
+      .then(async (items: any[]) => {
+        if (items.length > 0) return items
+        // Primera vez que se abre esta tarjeta de membership: sembramos los
+        // 4 niveles por defecto en el servidor, para no arrancar con la
+        // pantalla vacía — coincide con lo que ya se muestra en el preview
+        // de Design.
+        const seeds = [
+          { name: 'Bronze', threshold: 0,  perk: '5% de descuento en toda la tienda',        color: '#9A6030', bg: '#F3E4D5', order: 1 },
+          { name: 'Silver', threshold: 10, perk: '10% de descuento en toda la tienda',       color: '#6B6B68', bg: '#EDEDEC', order: 2 },
+          { name: 'Gold',   threshold: 25, perk: '15% de descuento + regalo de cumpleaños',  color: '#9A6E10', bg: '#FBEFD2', order: 3 },
+          { name: 'Black',  threshold: 50, perk: 'Acceso VIP a eventos y lanzamientos',      color: '#1A1A18', bg: '#E7E6E4', order: 4 },
+        ]
+        return Promise.all(seeds.map(s => apiCreateTier(businessId, cardId, s)))
+      })
+      .then((items: any[]) => setTiers(items.map((i: any) => ({
+        id: i._id, name: i.name, threshold: i.threshold, perk: i.perk, color: i.color, bg: i.bg,
+      }))))
+      .catch((err: any) => setTiersError(err?.error || 'No se pudieron cargar los niveles.'))
+      .finally(() => setTiersLoading(false))
+  }, [businessId, cardId])
+
   const dist: Array<{ tier: string; count: number }> = rewardsData?.distribution || []
   const memberCount = (tierName: string) => dist.find(d => d.tier && d.tier.toLowerCase() === tierName.toLowerCase())?.count || 0
   const total = rewardsData?.total ?? dist.reduce((s, d) => s + d.count, 0)
 
-  function updateTier(id: string, field: keyof MemberTier, val: string | number) {
+  async function updateTier(id: string, field: keyof MemberTier, val: string | number) {
+    if (!businessId || !cardId) return
+    const prev = tiers
     setTiers(tiers.map((t: MemberTier) => t.id === id ? { ...t, [field]: val } : t))
+    try {
+      await apiUpdateTier(businessId, cardId, id, { [field]: val } as any)
+    } catch (err: any) {
+      setTiers(prev)
+      setTiersError(err?.error || 'No se pudo guardar el cambio.')
+    }
   }
+
+  if (tiersLoading) return <div className="rw-content"><div className="rw-empty-note">Cargando niveles...</div></div>
 
   return (
     <div className="rw-content">
+      {tiersError && <div className="rw-empty-note" style={{ color: '#B23B3B' }}>{tiersError}</div>}
       <div className="rw-4col">
         {tiers.map((tier: MemberTier) => {
           const count = memberCount(tier.name)
@@ -266,7 +306,6 @@ function MembershipRewards({ tiers: initTiers, rewardsData }: { tiers: MemberTie
             ))}
           </tbody>
         </table>
-        <div className="rw-empty-note" style={{ marginTop: 10 }}>Los beneficios y umbrales de cada nivel son configuración local — todavía no se guardan en el servidor.</div>
       </div>
     </div>
   )
@@ -378,7 +417,7 @@ export function RewardsTab({ data, cards, businessId }: { data: RewardsData; car
           if (!dataReady) return <RewardsLoading />
           if (cardType === 'stamp')      return <StampRewards      rewardsData={rewardsData} />
           if (cardType === 'points')     return <PointsRewards     businessId={businessId} cardId={selected.id} rewardsData={rewardsData} />
-          if (cardType === 'membership') return <MembershipRewards tiers={data.membershipTiers} rewardsData={rewardsData} />
+          if (cardType === 'membership') return <MembershipRewards businessId={businessId} cardId={selected.id} rewardsData={rewardsData} />
           return null
         })()}
       </div>
