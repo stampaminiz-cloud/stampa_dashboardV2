@@ -56,12 +56,6 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
     design:'nav_design', users:'nav_users', settings:'nav_settings',
   }
 
-  const NAV_LABELS: Record<TabId, string> = {
-    overview:'Overview', customers:'Customers', analytics:'Analytics',
-    rewards:'Premios', notifications:'Campañas', form:'Form',
-    design:'Design', users:'Team', settings:'Settings',
-  }
-
   // Close menu on outside click
   React.useEffect(() => {
     function handler(e: MouseEvent) {
@@ -102,7 +96,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
             <img 
               src="/stampa-wordmark.png" 
               alt="Stampa" 
-              style={{ height: 100, objectFit: 'contain', marginLeft: -18, filter: 'brightness(0) invert(1)' }}
+              style={{ height: 100, objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
             />
           )}
         </div>
@@ -130,10 +124,10 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
               key={id}
               className={`sb-item${active === id ? ' sb-item--on' : ''}`}
               onClick={() => { setActive(id); setMobileOpen(false) }}
-              title={collapsed ? NAV_LABELS[id] : undefined}
+              title={collapsed ? t(NAV_KEYS[id] as any) : undefined}
             >
               <NavIcon id={id} />
-              {!collapsed && <span className="sb-item-label">{NAV_LABELS[id]}</span>}
+              {!collapsed && <span className="sb-item-label">{t(NAV_KEYS[id] as any)}</span>}
               {collapsed && active === id && <div className="sb-active-dot" />}
             </button>
           ))}
@@ -277,10 +271,6 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
     if (!businessId) return
     setChartLoading(true)
     try {
-      // Reusa /analytics/detailed, que ya tiene el bucketing diario/semanal
-      // armado para Analytics — acá Overview solo pide el corto plazo (7/30/90
-      // días); si alguien quiere mirar más atrás en el tiempo, ese es
-      // justamente el trabajo del tab Analytics, no de Overview.
       const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/analytics/detailed?range=${g}`, {
         headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
       })
@@ -299,7 +289,6 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
   }
   const weeklyVisits = rangeVisits
   const chartMax = weeklyVisits ? Math.max(...weeklyVisits.map((w: any) => w.visits), 1) : 5000
-  // 4 líneas de referencia del eje Y, redondeadas a algo legible
   const axisSteps = [1, 0.75, 0.5, 0.25, 0].map(f => Math.round(chartMax * f))
 
   const ADVANCED = [
@@ -313,7 +302,6 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
 
   return (
     <div className="db-content">
-      {/* Core metrics */}
       <div className="ov-section-label">{t('section_summary' as any)}</div>
       <div className="ov-metric-grid">
         {[
@@ -337,7 +325,6 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
         ))}
       </div>
 
-      {/* Growth chart + near prize */}
       <div className="ov-two-col">
         <div className="db-card">
           <div className="ov-card-title-row">
@@ -397,7 +384,6 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
         </div>
       </div>
 
-      {/* Advanced + Engagement — solo cuando hay datos reales */}
       {analyticsData !== null && analyticsData?.total > 0 ? (
         <>
       <div className="ov-section-label">{t('section_advanced' as any)}</div>
@@ -410,10 +396,8 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
         ))}
       </div>
 
-      {/* Engagement — conditional per active cards */}
       <div className="ov-section-label">{t('section_engagement' as any)}</div>
       <div className="ov-three-col">
-        {/* Top rewards (stamp/points) */}
         {(hasStamp || hasPoints) && (
           <div className="db-card ov-card--fill">
             <div className="ov-card-title-row">
@@ -440,7 +424,6 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
           </div>
         )}
 
-        {/* Membership tier distribution */}
         {hasMembership && (
           <div className="db-card">
             <div className="ov-card-title">{t('tier_distribution' as any)}</div>
@@ -461,7 +444,6 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
           </div>
         )}
 
-        {/* Activity feed */}
         <div className="db-card">
           <div className="ov-card-title-row">
             <span className="ov-card-title">{t('recent_activity' as any)}</span>
@@ -479,7 +461,6 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
           }
         </div>
 
-        {/* Insights */}
         <div className="db-card ov-card--fill">
           <div className="ov-card-title">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C75D3A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: 'middle' }}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -487,13 +468,6 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
           </div>
           {(() => {
             const insights: { type: string; text: string }[] = []
-            // El insight más accionable primero: cuántos clientes están a
-            // 1-2 sellos de completar su premio, algo que el dueño puede
-            // resolver hoy mismo mandando una notificación. Chequeamos
-            // hasStamp explícitamente — si el negocio no tiene ninguna
-            // tarjeta de sellos activa (por ejemplo, solo membresía o
-            // puntos), este insight no aplica y no debería aparecer, sin
-            // importar qué traiga rewardsData.
             if (hasStamp && nearPrize > 0) {
               insights.push({
                 type: 'positive',
@@ -587,9 +561,6 @@ function mapCustomersForTab(rawCustomers: any[], activeCard: any) {
   const fallbackTotal = activeCard?.stampsRequired || 8
   return rawCustomers.map(c => {
     const cardType = c.cardType || activeCard?.type || 'stamp'
-    // Progreso por tipo de tarjeta — cada cliente se calcula con SU propia
-    // tarjeta (c.cardStampsRequired viene poblado desde el backend), no con
-    // una sola tarjeta elegida arbitrariamente para toda la tabla.
     const progress = cardType === 'points' ? (c.pointsBalance ?? 0)
       : cardType === 'membership' ? 0
       : (c.stamps ?? 0)
@@ -615,9 +586,6 @@ function mapCustomersForTab(rawCustomers: any[], activeCard: any) {
         ? `${c.favoriteFood === 'sweet' ? 'Dulce' : 'Salado'}${c.timeVisit ? ' · ' + (c.timeVisit === 'morning' ? 'Mañana' : 'Tarde') : ''}`
         : '—',
       lastActivity: formatRelativeTime(c.lastUpdate),
-      // No tenemos todavía un historial de canjes por cliente en el modelo de
-      // datos (solo el conteo agregado del negocio en rewards-stats) — queda
-      // en 0 hasta que se agregue esa colección/campo.
       totalRedeemed: 0,
     }
   })
@@ -630,11 +598,9 @@ const CSS = `
   html, body { overflow-x: hidden; }
   body{font-family:'Inter',sans-serif;background:#FBF6EE;color:#2B2620;}
 
-  /* ── Shell ── */
   .db-shell{display:flex;height:100vh;height:100dvh;overflow:hidden;}
   .db-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
 
-  /* ── Sidebar ── */
   .db-sb{width:230px;flex-shrink:0;background:#1B412F;display:flex;flex-direction:column;padding:6px 12px;transition:width .25s ease;}
   .db-sb--collapsed{width:68px;}
   .sb-overlay{display:none;}
@@ -677,7 +643,6 @@ const CSS = `
   .sb-popover-item--danger:hover{background:rgba(178,59,59,.15);}
   .sb-popover-divider{height:1px;background:rgba(255,255,255,.08);margin:4px 0;}
 
-  /* ── Header ── */
   .db-header{height:62px;flex-shrink:0;background:#FFFFFF;border-bottom:1px solid rgba(43,38,32,.08);display:flex;align-items:center;padding:0 24px;gap:14px;}
   .hd-hamburger{display:none;background:none;border:none;cursor:pointer;color:rgba(43,38,32,.6);padding:6px;border-radius:8px;}
   .hd-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:20px;color:#2B2620;flex:1;}
@@ -687,8 +652,6 @@ const CSS = `
   .hd-icon-btn:hover{background:#F0EBE3;}
   .hd-notif-dot{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:#C75D3A;border:1.5px solid #fff;}
 
-
-  /* ── Dropdowns ── */
   .hd-dropdown{position:absolute;top:calc(100% + 8px);right:0;background:#FFFFFF;border:1px solid rgba(43,38,32,.1);border-radius:14px;box-shadow:0 8px 32px rgba(43,38,32,.12);z-index:50;min-width:280px;}
   .hd-drop-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(43,38,32,.07);}
   .hd-drop-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:#2B2620;}
@@ -722,11 +685,9 @@ const CSS = `
   .db-empty-cta{margin-top:12px;padding:11px 22px;background:#C75D3A;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
   .db-empty-cta:hover{background:#B34E2F;}
 
-  /* ── Content area ── */
   .db-content{flex:1;overflow-y:auto;padding:22px 24px;display:flex;flex-direction:column;gap:16px;}
   .db-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(43,38,32,.04);}
 
-  /* ── Overview ── */
   .ov-section-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(43,38,32,.38);font-weight:600;display:flex;align-items:center;gap:10px;}
   .ov-section-label::after{content:'';flex:1;height:1px;background:rgba(43,38,32,.1);}
   .ov-metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
@@ -803,14 +764,12 @@ const CSS = `
   .ov-insight--warning{border-left:2.5px solid #C75D3A;}
   .ov-insight--info{border-left:2.5px solid #185FA5;}
 
-  /* ── Coming soon ── */
   .db-coming-soon{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
   .db-coming-soon-mark{width:36px;height:36px;border-radius:10px;background:#C75D3A;opacity:.15;}
   .db-coming-soon-label{font-size:14px;color:rgba(43,38,32,.38);}
 
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
 
-  /* ── RESPONSIVE ── */
   @media (max-width: 768px) {
     .db-sb{position:fixed;left:0;transform:translateX(-100%);top:0;bottom:0;z-index:50;width:260px !important;transition:transform .25s ease;box-shadow:4px 0 24px rgba(43,38,32,.2);}
     .db-sb--mobile-open{transform:translateX(0) !important;}
@@ -854,8 +813,6 @@ export default function DashboardPage() {
   const [customersSortKey, setCustomersSortKey]     = useState<'name' | 'progress' | 'status' | 'lastActivity' | 'card'>('progress')
   const [customersSortDir, setCustomersSortDir]     = useState<'asc' | 'desc'>('desc')
   const [customersLoading, setCustomersLoading]     = useState(false)
-  // Cache en memoria: mismo filtro/orden/página ya pedido antes → instantáneo,
-  // sin volver a golpear la API. Se invalida (bypass) en onRefresh, ej. tras un delete.
   const customersCacheRef = useRef<Map<string, any>>(new Map())
   const [analyticsData, setAnalyticsData]           = useState<any>(null)
   const [detailedAnalytics, setDetailedAnalytics]   = useState<any>(null)
@@ -883,11 +840,6 @@ export default function DashboardPage() {
         const detailedPromise   = fetch(`${BASE_URL}/api/businesses/${bid}/analytics/detailed?range=30d`, { headers: authHeaders }).then(r => r.json())
         const customersPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/customers?page=1&limit=50&sortBy=progress&sortDir=desc`, { headers: authHeaders }).then(r => r.json())
         const notifPromise      = fetch(`${BASE_URL}/api/businesses/${bid}/notifications`, { headers: authHeaders }).then(r => r.json())
-        // "Near prize" (para Notifications) tiene sentido sumado entre TODAS
-        // las tarjetas activas de tipo sello — un negocio puede tener más de
-        // una, y antes solo se miraba la primera tarjeta del negocio (que ni
-        // siquiera tenía por qué ser de sellos). Points/membership no tienen
-        // un concepto lineal de "cerca de completar", así que quedan afuera.
         const rewardsPromise    = cardsPromise.then(async (cardsData) => {
           const cards = cardsData as any[]
           const activeStampCards = cards.filter(c => c.isActive && c.type === 'stamp')
@@ -900,9 +852,6 @@ export default function DashboardPage() {
             ).then(r => r.json())
           ))
 
-          // La primera tarjeta aporta el resto de las métricas de Rewards
-          // (topPrize, distribution, etc.); nearPrize se pisa con la suma
-          // de todas las tarjetas de sellos activas.
           return {
             ...results[0],
             nearPrize: results.reduce((sum, r) => sum + (r?.nearPrize || 0), 0),
@@ -1021,8 +970,6 @@ export default function DashboardPage() {
     const cacheKey = `${page}|${search}|${status}|${sortKey}|${sortDir}|${cardFilter}`
     const cached = customersCacheRef.current.get(cacheKey)
     if (cached && !opts.bypassCache) {
-      // Ya lo pedimos antes con estos mismos filtros — mostralo al toque,
-      // sin spinner ni round-trip.
       setCustomers(cached.customers || [])
       setCustomersTotal(cached.total || 0)
       setCustomersTotalPages(cached.pages || 1)
