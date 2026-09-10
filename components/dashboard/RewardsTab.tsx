@@ -272,7 +272,7 @@ function MembershipRewards({ businessId, cardId, rewardsData }: { businessId?: s
     }
   }
 
-  if (tiersLoading) return <div className="rw-content"><div className="rw-empty-note">Cargando niveles...</div></div>
+  if (tiersLoading) return null
 
   return (
     <div className="rw-content">
@@ -299,7 +299,7 @@ function MembershipRewards({ businessId, cardId, rewardsData }: { businessId?: s
             {tiers.map((tier: MemberTier) => (
               <tr key={tier.id}>
                 <td><div className="rw-tier-cell"><div className="rw-tier-dot" style={{ background: tier.bg, border: `2px solid ${tier.color}` }} /><span style={{ fontWeight: 600, color: '#2B2620' }}>{tier.name}</span></div></td>
-                <td>{editing === tier.id ? <input className="rw-inline-input rw-inline-input--sm" type="number" defaultValue={tier.threshold} onBlur={e => { updateTier(tier.id, 'threshold', Number(e.target.value)); setEditing(null) }} autoFocus /> : <span className="rw-threshold">{tier.threshold === 0 ? t('rw_automatic') : `${tier.threshold}+ ${t('visits')}`}</span>}</td>
+                <td>{editing === tier.id ? <input className="rw-inline-input rw-inline-input--sm" type="number" defaultValue={tier.threshold} onBlur={e => { updateTier(tier.id, 'threshold', Number(e.target.value)); setEditing(null) }} /> : <span className="rw-threshold">{tier.threshold === 0 ? t('rw_automatic') : `${tier.threshold}+ ${t('visits')}`}</span>}</td>
                 <td>{editing === tier.id ? <input className="rw-inline-input" defaultValue={tier.perk} onBlur={e => { updateTier(tier.id, 'perk', e.target.value); setEditing(null) }} /> : <span className="rw-perk-text">{tier.perk}</span>}</td>
                 <td><button className="rw-icon-btn" onClick={() => setEditing(editing === tier.id ? null : tier.id)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></td>
               </tr>
