@@ -1,6 +1,7 @@
 'use client'
-import React, { useState, useEffect } from 'react'
-import { apiForgotPassword } from '@/lib/api'
+import React, { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { apiResetPassword } from '@/lib/api'
 
 const CSS = `
   :root { --font-display: 'Plus Jakarta Sans', sans-serif; --font-body: 'Inter', sans-serif; }
@@ -16,7 +17,6 @@ const CSS = `
   .fp-input:focus { border-color: #E46C31; background: #FFFFFF; }
   .fp-error { font-size: 11.5px; color: #B23B3B; background: rgba(178,59,59,.07); border: 1px solid rgba(178,59,59,.2); border-radius: 9px; padding: 10px 14px; margin-bottom: 16px; }
   .fp-success { font-size: 12.5px; color: #5B8C5A; background: rgba(91,140,90,.08); border: 1px solid rgba(91,140,90,.25); border-radius: 9px; padding: 12px 14px; margin-bottom: 16px; line-height: 1.5; }
-  .fp-dev-link { font-size: 11px; color: rgba(43,38,32,.45); word-break: break-all; margin-top: 8px; display: block; }
   .fp-btn { width: 100%; background: #E46C31; color: #fff; border: none; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-display); margin-top: 4px; }
   .fp-btn:disabled { opacity: .6; cursor: not-allowed; }
   .fp-footer { text-align: center; margin-top: 20px; font-size: 12.5px; color: rgba(43,38,32,.4); }
@@ -32,67 +32,79 @@ function injectStyles() {
   document.head.appendChild(s)
 }
 
-export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('')
+function ResetPasswordForm() {
+  const searchParams = useSearchParams()
+  const token = searchParams.get('token') || ''
+
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [sent, setSent] = useState(false)
-  const [devUrl, setDevUrl] = useState('')
+  const [done, setDone] = useState(false)
 
   useEffect(() => { injectStyles() }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email) { setError('Ingresá tu email'); return }
+    if (!token) { setError('Este link no es válido. Pedí uno nuevo desde "¿Olvidaste tu contraseña?".'); return }
+    if (password.length < 8) { setError('La contraseña tiene que tener al menos 8 caracteres.'); return }
+    if (password !== confirmPassword) { setError('Las contraseñas no coinciden.'); return }
+
     setLoading(true)
     setError('')
     try {
-      const res = await apiForgotPassword(email)
-      setSent(true)
-      if (res.devResetUrl) setDevUrl(res.devResetUrl)
+      await apiResetPassword(token, password)
+      setDone(true)
     } catch (err: any) {
-      setError(err.error || 'Algo salió mal. Intentá de nuevo.')
+      setError(err.error || 'El link es inválido o ya expiró. Pedí uno nuevo.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
+    <div className="fp-card">
+      <div className="fp-title">Elegí tu nueva contraseña</div>
+      <div className="fp-sub">Tiene que tener al menos 8 caracteres.</div>
+
+      {error && <div className="fp-error">{error}</div>}
+
+      {done ? (
+        <div className="fp-success">
+          Listo, tu contraseña se actualizó. Ya podés iniciar sesión con la nueva.
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <div className="fp-field">
+            <label className="fp-label">Nueva contraseña</label>
+            <input className="fp-input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" />
+          </div>
+          <div className="fp-field">
+            <label className="fp-label">Confirmar contraseña</label>
+            <input className="fp-input" type="password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} autoComplete="new-password" />
+          </div>
+          <button className="fp-btn" type="submit" disabled={loading}>
+            {loading ? 'Guardando...' : 'Restablecer contraseña →'}
+          </button>
+        </form>
+      )}
+
+      <div className="fp-footer">
+        <a href="/login">← Volver a iniciar sesión</a>
+      </div>
+    </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
       <div className="fp-shell">
-        <div className="fp-card">
-          <div className="fp-title">¿Olvidaste tu contraseña?</div>
-          <div className="fp-sub">Ingresá tu email y te mandamos un link para restablecerla.</div>
-
-          {error && <div className="fp-error">{error}</div>}
-
-          {sent ? (
-            <div className="fp-success">
-              Si existe una cuenta con ese email, te enviamos un link para restablecer tu contraseña. Revisá tu bandeja de entrada (y spam, por las dudas).
-              {devUrl && (
-                <span className="fp-dev-link">
-                  [Solo en este ambiente, sin email configurado todavía] <a href={devUrl}>{devUrl}</a>
-                </span>
-              )}
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit}>
-              <div className="fp-field">
-                <label className="fp-label">Email</label>
-                <input className="fp-input" type="email" placeholder="tu@negocio.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
-              </div>
-              <button className="fp-btn" type="submit" disabled={loading}>
-                {loading ? 'Enviando...' : 'Enviar link →'}
-              </button>
-            </form>
-          )}
-
-          <div className="fp-footer">
-            <a href="/login">← Volver a iniciar sesión</a>
-          </div>
-        </div>
+        <Suspense fallback={null}>
+          <ResetPasswordForm />
+        </Suspense>
       </div>
     </>
   )
