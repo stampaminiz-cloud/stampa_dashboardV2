@@ -1,14 +1,13 @@
 // data/i18n.ts
-// Auto-detects browser/OS language. Add more languages by extending the translations object.
+// Fijo en español por ahora — la detección automática del navegador
+// generaba mezcla de idiomas porque no todo el dashboard está traducido
+// todavía.
 import { createContext, useContext } from 'react'
 
 export type Lang = 'es' | 'en'
 
 export function detectLang(): Lang {
-  if (typeof navigator === 'undefined') return 'es'
-  const l = navigator.language.toLowerCase()
-  if (l.startsWith('es')) return 'es'
-  return 'en'
+  return 'es'
 }
 
 const translations = {
