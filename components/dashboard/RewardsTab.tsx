@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useLang } from '@/data/i18n'
 import { BASE_URL, apiGetPointsCatalog, apiCreatePointsCatalogItem, apiUpdatePointsCatalogItem, apiDeletePointsCatalogItem, apiGetTiers, apiCreateTier, apiUpdateTier } from '@/lib/api'
 
@@ -311,7 +311,7 @@ function MembershipRewards({ businessId, cardId, rewardsData }: { businessId?: s
   )
 }
 
-export function RewardsTab({ data, cards, businessId }: { data: RewardsData; cards?: any[]; businessId?: string | null }) {
+export function RewardsTab({ data, cards, businessId, initialRewardsData }: { data: RewardsData; cards?: any[]; businessId?: string | null; initialRewardsData?: any }) {
   const t = useLang()
   const activeCards = (cards && cards.length > 0)
     ? cards.filter((c: any) => c.isActive)
@@ -321,10 +321,18 @@ export function RewardsTab({ data, cards, businessId }: { data: RewardsData; car
   const cardType = selected?.type || 'stamp'
   const TYPE_ICONS: Record<string, string> = { stamp: '☕', points: '🪙', membership: '🎫' }
 
-  const [rewardsData, setRewardsData] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
+  // Si el dashboard ya nos pasó las stats de esta misma tarjeta (las
+  // precarga junto con el resto al entrar), las usamos directo y evitamos
+  // un segundo "Cargando..." — solo volvemos a pedir por nuestra cuenta
+  // cuando el usuario cambia a una tarjeta que no vino precargada.
+  const hasInitial = initialRewardsData && initialRewardsData.cardType === cardType
+  const [rewardsData, setRewardsData] = useState<any>(hasInitial ? initialRewardsData : null)
+  const [loading, setLoading] = useState(!hasInitial)
+  const skippedFirstFetch = useRef(hasInitial)
+
   useEffect(() => {
     if (!businessId || !selected) { setRewardsData(null); return }
+    if (skippedFirstFetch.current) { skippedFirstFetch.current = false; return }
     setLoading(true)
     const params = new URLSearchParams({ cardType, cardId: selected.id })
     if (cardType === 'stamp') params.set('stampsRequired', String(selected.stampsRequired || 8))

@@ -842,20 +842,35 @@ export default function DashboardPage() {
         const notifPromise      = fetch(`${BASE_URL}/api/businesses/${bid}/notifications`, { headers: authHeaders }).then(r => r.json())
         const rewardsPromise    = cardsPromise.then(async (cardsData) => {
           const cards = cardsData as any[]
-          const activeStampCards = cards.filter(c => c.isActive && c.type === 'stamp')
-          if (activeStampCards.length === 0) return null
+          const activeCards = cards.filter(c => c.isActive)
+          if (activeCards.length === 0) return null
 
-          const results = await Promise.all(activeStampCards.map(c =>
+          // "Near prize" solo tiene sentido sumado entre TODAS las tarjetas
+          // activas de tipo sello — un negocio puede tener más de una.
+          // Points/membership no tienen un concepto lineal de "cerca de
+          // completar", así que quedan afuera de esta suma.
+          const activeStampCards = activeCards.filter(c => c.type === 'stamp')
+          const stampResults = await Promise.all(activeStampCards.map(c =>
             fetch(
               `${BASE_URL}/api/businesses/${bid}/rewards-stats?cardType=stamp&stampsRequired=${c.stampsRequired || 8}&cardId=${c._id}`,
               { headers: authHeaders }
             ).then(r => r.json())
           ))
+          const nearPrize = stampResults.reduce((sum, r) => sum + (r?.nearPrize || 0), 0)
 
-          return {
-            ...results[0],
-            nearPrize: results.reduce((sum, r) => sum + (r?.nearPrize || 0), 0),
-          }
+          // Precargamos las stats de la PRIMERA tarjeta activa — es la
+          // misma que el tab Premios muestra por default. Pasárselas ya
+          // resueltas evita que Premios tenga que volver a pedirlas al
+          // montar (elimina el segundo "Cargando..." que se veía ahí).
+          const primaryCard = activeCards[0]
+          const primaryParams = new URLSearchParams({ cardType: primaryCard.type, cardId: primaryCard._id })
+          if (primaryCard.type === 'stamp') primaryParams.set('stampsRequired', String(primaryCard.stampsRequired || 8))
+          const primaryStats = await fetch(
+            `${BASE_URL}/api/businesses/${bid}/rewards-stats?${primaryParams.toString()}`,
+            { headers: authHeaders }
+          ).then(r => r.json()).catch(() => null)
+
+          return primaryStats ? { ...primaryStats, nearPrize } : null
         })
 
         const [teamRes, cardsRes, analyticsRes, customersRes, notifRes, rewardsRes, detailedRes] = await Promise.allSettled([
@@ -1067,7 +1082,7 @@ export default function DashboardPage() {
             cta="Ver formulario"
             onCta={() => { setActive('form'); localStorage.setItem('stampa_active_tab', 'form') }}
           /></div>
-      case 'rewards': return <RewardsTab data={mockData} cards={cards} businessId={businessId} />
+      case 'rewards': return <RewardsTab data={mockData} cards={cards} businessId={businessId} initialRewardsData={rewardsData} />
           case 'notifications': return <NotificationsTab
           businessId={businessId}
           analyticsData={analyticsData}
