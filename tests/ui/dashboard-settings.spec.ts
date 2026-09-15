@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { loginAsTestUser } from './helpers/auth'
+import { loginAsTestUser } from '../helpers/auth'
 
 // tests/dashboard-settings.spec.ts
 
