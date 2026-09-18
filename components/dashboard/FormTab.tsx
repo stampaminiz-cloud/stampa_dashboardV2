@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useRef, useEffect } from 'react'
-import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields, BASE_URL } from '@/lib/api'
+import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields, apiUpdateCard } from '@/lib/api'
 import { usePlan } from '@/data/plans'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -344,10 +344,20 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
   }, [businessId, selectedCardId])
 
 
-  // Branding state
+  // Branding state — arranca con el color/logo de la tarjeta activa, y se
+  // resetea cada vez que se cambia de tarjeta en el selector (antes se leía
+  // una sola vez con useState() y quedaba pegado al color de la primera
+  // tarjeta aunque cambiaras de selección).
   const [brandColor, setBrandColor] = useState(selectedCard?.color || '#1B412F')
   const [brandLogo, setBrandLogo]   = useState<string | null>(null)
   const logoRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setBrandColor(selectedCard?.color || '#1B412F')
+    // El tipo CardDesign de este archivo no trae logoUrl (solo id/name/type/
+    // isActive/color) — si el padre empieza a pasarlo, sumarlo acá también.
+    setBrandLogo(null)
+  }, [selectedCardId])
 
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -413,31 +423,42 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
     }
     setSaveError(null)
     try {
-      const token = localStorage.getItem('stampa_token')
+      // Persistir la identidad visual del formulario (color/logo) en la
+      // Card — antes esto no se guardaba en ningún lado, por eso el
+      // formulario público nunca reflejaba lo que se elegía acá.
+      // apiUpdateCard tira una excepción en vez de devolver res.ok, por
+      // eso el try/catch en vez de chequear .ok.
+      try {
+        await apiUpdateCard(businessId, selectedCardId, {
+          color: brandColor,
+          ...(brandLogo ? { logoUrl: brandLogo } : {}),
+        })
+      } catch (err: any) {
+        setSaveError(err?.error || `Error ${err?.status || ''} al guardar el color/logo.`.trim())
+        return
+      }
+
       const allCustomFields = [...optional, ...custom]
 
-      // Update each field that has a real MongoDB _id — chequeamos res.ok
-      // de cada uno: fetch() no tira excepción por un 400/500, así que sin
-      // esto un campo podía fallar en silencio y el usuario nunca se
-      // enteraba (ni error, ni confirmación real de que se guardó).
+      // Update each field that has a real MongoDB _id — cada llamada va
+      // envuelta en su propio try/catch para que un campo fallando no
+      // tumbe Promise.all ni quede en silencio (antes se chequeaba
+      // res.ok a mano porque se usaba fetch() directo; apiUpdateField ya
+      // lanza excepción sola, pero igual hay que atajarla por request).
       const patchResults = await Promise.all(allCustomFields
         .filter((f: FormField) => !f.id.startsWith('c-') && !['name','email'].includes(f.id))
         .map(async (f: FormField) => {
-          const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/cards/${selectedCardId}/fields/${f.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({
+          try {
+            await apiUpdateField(businessId, selectedCardId, f.id, {
               label: f.label,
               isActive: f.isActive,
               isRewardSource: f.isRewardSource,
               order: f.order,
             })
-          })
-          if (!res.ok) {
-            const body = await res.json().catch(() => ({}))
-            return { ok: false, label: f.label, error: body?.error || `Error ${res.status}` }
+            return { ok: true }
+          } catch (err: any) {
+            return { ok: false, label: f.label, error: err?.error || `Error ${err?.status || ''}`.trim() }
           }
-          return { ok: true }
         })
       )
 
@@ -445,21 +466,17 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
       const createResults = await Promise.all(custom
         .filter((f: FormField) => f.id.startsWith('c-') && f.label.trim())
         .map(async (f: FormField) => {
-          const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/cards/${selectedCardId}/fields`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({
+          try {
+            await apiCreateField(businessId, selectedCardId, {
               label: f.label,
               fieldType: f.type || 'text',
               isRewardSource: f.isRewardSource,
               order: f.order,
             })
-          })
-          if (!res.ok) {
-            const body = await res.json().catch(() => ({}))
-            return { ok: false, label: f.label, error: body?.error || `Error ${res.status}` }
+            return { ok: true }
+          } catch (err: any) {
+            return { ok: false, label: f.label, error: err?.error || `Error ${err?.status || ''}`.trim() }
           }
-          return { ok: true }
         })
       )
 
