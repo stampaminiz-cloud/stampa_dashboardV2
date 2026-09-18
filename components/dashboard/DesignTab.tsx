@@ -26,6 +26,7 @@ interface CardDesign {
   flipSubMessage?: string | null
   pointsPerVisit?: number | null
   textColor?: string | null
+  labelColor?: string | null
   publicDescription?: string | null
 }
 
@@ -450,6 +451,7 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
         color: card.color,
         secondColor: card.secondColor,
         textColor: card.textColor,
+        labelColor: card.labelColor || undefined,
         publicDescription: card.publicDescription || undefined,
         isActive: card.isActive,
         stampsRequired: card.stampsRequired,
@@ -722,6 +724,26 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
               Color de texto personalizado · Plan Growth o superior
             </div>
           )}
+
+          {/* Color de las etiquetas (TITULAR, PREMIO) — separado del color
+              del valor. Mismo gate que el color de texto: ambos son
+              "personalización de color de texto" desde Growth. */}
+          <div className="dt-appearance-label" style={{ marginTop: 14 }}>Color de las etiquetas</div>
+          {can('customTextColor') ? (
+            <div className="dt-custom-color-row">
+              <label className="dt-custom-swatch" style={{ background: card.labelColor || card.textColor || '#FFFFFF' }}>
+                <input type="color" value={card.labelColor || card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, labelColor: e.target.value })} className="dt-color-native" />
+              </label>
+              <input type="text" className="dt-hex-input" value={card.labelColor || card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, labelColor: e.target.value })} placeholder="#FFFFFF" maxLength={7} />
+              <span className="dt-hex-label">TITULAR, PREMIO, etc. — si no lo cambiás, usa el color de texto</span>
+            </div>
+          ) : (
+            <div className="dt-upgrade-color-note">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Color de etiquetas personalizado · Plan Growth o superior
+            </div>
+          )}
+
 
           {card.type === 'stamp' && (
             <>

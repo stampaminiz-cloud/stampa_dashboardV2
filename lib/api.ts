@@ -111,6 +111,7 @@ export interface Card {
   color: string
   secondColor: string
   textColor?: string | null
+  labelColor?: string | null
   publicDescription?: string | null
   logoUrl: string | null
   earnedIcon?: string | null
