@@ -119,7 +119,7 @@ function MobilePreview({ fields, businessName, brandColor, brandLogo }: {
 }
 
 // ─── Editable optional field row ──────────────────────────────────────────────
-function OptionalFieldRow({ field, onUpdate, onToggle, onSetReward, onDragStart, onDragEnter, onDragEnd }: {
+function OptionalFieldRow({ field, onUpdate, onToggle, onSetReward, onDragStart, onDragEnter, onDragEnd, showReward }: {
   field: FormField
   onUpdate: (id: string, label: string) => void
   onToggle: (id: string) => void
@@ -127,6 +127,7 @@ function OptionalFieldRow({ field, onUpdate, onToggle, onSetReward, onDragStart,
   onDragStart: () => void
   onDragEnter: () => void
   onDragEnd: () => void
+  showReward: boolean
 }) {
   const [editing, setEditing] = useState(false)
   const [label, setLabel]     = useState(field.label)
@@ -167,8 +168,8 @@ function OptionalFieldRow({ field, onUpdate, onToggle, onSetReward, onDragStart,
       }
 
       <div className="fm-field-actions">
-        {field.isRewardSource && <span className="fm-reward-badge">★ Premio</span>}
-        {!field.isRewardSource && field.isActive && (
+        {showReward && field.isRewardSource && <span className="fm-reward-badge">★ Premio</span>}
+        {showReward && !field.isRewardSource && field.isActive && (
           <button className="fm-set-reward-btn" onClick={() => onSetReward(field.id)} title="Usar como campo de premio">★</button>
         )}
         <button className="fm-edit-label-btn" onClick={() => setEditing(true)} title="Renombrar campo">
@@ -186,7 +187,7 @@ function OptionalFieldRow({ field, onUpdate, onToggle, onSetReward, onDragStart,
 }
 
 // ─── Custom field builder ─────────────────────────────────────────────────────
-function CustomFieldBuilder({ fields, onChange, maxCustom, businessId, cardId }: { fields: FormField[]; onChange: (f: FormField[]) => void; maxCustom: number; businessId?: string | null; cardId?: string }) {
+function CustomFieldBuilder({ fields, onChange, maxCustom, businessId, cardId, showReward }: { fields: FormField[]; onChange: (f: FormField[]) => void; maxCustom: number; businessId?: string | null; cardId?: string; showReward: boolean }) {
   function add() {
     if (fields.length >= maxCustom) return
     onChange([...fields, { id: `c-${Date.now()}`, label: '', type: 'text', isLocked: false, isActive: true, isRewardSource: false, order: 100 + fields.length, isCustom: true }])
@@ -219,7 +220,9 @@ function CustomFieldBuilder({ fields, onChange, maxCustom, businessId, cardId }:
           <select className="fm-custom-select" value={f.type} onChange={e => update(f.id, { type: e.target.value as FieldType })}>
             {FIELD_TYPE_OPTIONS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
           </select>
-          <button className={`fm-reward-toggle${f.isRewardSource ? ' fm-reward-toggle--on' : ''}`} onClick={() => update(f.id, { isRewardSource: !f.isRewardSource })} title="Usar como campo de premio">★</button>
+          {showReward && (
+            <button className={`fm-reward-toggle${f.isRewardSource ? ' fm-reward-toggle--on' : ''}`} onClick={() => update(f.id, { isRewardSource: !f.isRewardSource })} title="Usar como campo de premio">★</button>
+          )}
           <button className="fm-remove-btn" onClick={() => remove(f.id)}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -761,6 +764,7 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
                       onDragStart={() => handleDragStart(i)}
                       onDragEnter={() => handleDragEnter(i)}
                       onDragEnd={handleDragEnd}
+                      showReward={selectedCard?.type === 'stamp'}
                     />
                   ))}
                 </div>
@@ -774,23 +778,30 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
             <div className="fm-card">
               <div className="fm-card-title">Campos personalizados</div>
               <div className="fm-card-sub">{MAX_CUSTOM > 0 ? `Hasta ${MAX_CUSTOM} campos propios de tu negocio` : 'Función exclusiva de planes pagos'}</div>
-              <CustomFieldBuilder fields={custom} onChange={setCustom} maxCustom={MAX_CUSTOM} businessId={businessId} cardId={selectedCardId} />
+              <CustomFieldBuilder fields={custom} onChange={setCustom} maxCustom={MAX_CUSTOM} businessId={businessId} cardId={selectedCardId} showReward={selectedCard?.type === 'stamp'} />
             </div>
 
-            {/* Reward source */}
-            <div className="fm-card">
-              <div className="fm-card-title">Campo de premio activo</div>
-              <div className="fm-card-sub">Esto es lo que el scanner le va a mostrar como premio a entregar</div>
-              {rewardField
-                ? <div className="fm-reward-info">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                    <div>
-                      Al completar la tarjeta, el scanner verá la respuesta del cliente en <span className="fm-reward-field-name">"{rewardField.label}"</span> como el premio a entregar.
+            {/* Reward source — el mecanismo de "campo que se revela como
+                premio" solo tiene sentido para sellos. Puntos ya usa un
+                catálogo real donde el cliente elige a la vista
+                (PointsCatalogItem), y membership define el premio por
+                nivel (tier.perk) sin que el cliente elija nada — ninguno
+                de los dos necesita esta sección. */}
+            {selectedCard?.type === 'stamp' && (
+              <div className="fm-card">
+                <div className="fm-card-title">Campo de premio activo</div>
+                <div className="fm-card-sub">Esto es lo que el scanner le va a mostrar como premio a entregar</div>
+                {rewardField
+                  ? <div className="fm-reward-info">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                      <div>
+                        Al completar la tarjeta, el scanner verá la respuesta del cliente en <span className="fm-reward-field-name">"{rewardField.label}"</span> como el premio a entregar.
+                      </div>
                     </div>
-                  </div>
-                : <div className="fm-no-reward">Ningún campo marcado con ★. Hacé ★ en el campo que querés usar como premio.</div>
-              }
-            </div>
+                  : <div className="fm-no-reward">Ningún campo marcado con ★. Hacé ★ en el campo que querés usar como premio.</div>
+                }
+              </div>
+            )}
           </div>
 
           {/* Mobile preview */}
