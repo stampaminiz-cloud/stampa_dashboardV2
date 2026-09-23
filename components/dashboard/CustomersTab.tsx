@@ -4,11 +4,20 @@ import { useLang } from '@/data/i18n'
 import { BASE_URL, apiResyncPass, apiGetPointsCatalog, apiRedeemPoints } from '@/lib/api'
 import { InfoTooltip } from './InfoTooltip'
 
+interface CardEntry {
+  customerId: string; cardId: string | null
+  cardType: 'stamp' | 'points' | 'membership'; cardName: string | null
+  cardStampsRequired: number | null; stamps: number; pointsBalance: number
+  membershipTier: string | null; lastUpdate: number
+  premio: string | null
+  formResponses: Array<{ label: string; value: string }>
+}
+
 interface Customer {
-  id: string; name: string; email: string; progress: number; total: number
-  cardType: 'stamp' | 'points' | 'membership'; cardName: string | null; cardId?: string | null; membershipTier: string | null
-  dynamicField: string; dynamicFieldLabel: string; status: 'active' | 'inactive'; joined: string
-  dob: string; preference: string; lastActivity: string; totalRedeemed: number
+  id: string // email — agrupa todas las tarjetas de la misma persona en este negocio
+  name: string; email: string
+  status: 'active' | 'inactive'; joined: string; lastActivity: string
+  cards: CardEntry[]
 }
 
 interface CustomersTabProps {
@@ -54,20 +63,21 @@ function avatarColor(name: string) {
 }
 
 function isNearPrize(c: Customer) {
-  if (c.cardType !== 'stamp') return false
-  return c.total - c.progress <= 2 && c.progress < c.total
+  return c.cards.some(card => card.cardType === 'stamp' && card.cardStampsRequired && (card.cardStampsRequired - card.stamps) <= 2 && card.stamps < card.cardStampsRequired)
 }
 
-function sortCustomers(list: Customer[], key: SortKey, dir: SortDir): Customer[] {
-  return [...list].sort((a, b) => {
-    let cmp = 0
-    if (key === 'name')         cmp = a.name.localeCompare(b.name)
-    if (key === 'progress')     cmp = (b.progress / b.total) - (a.progress / a.total)
-    if (key === 'status')       cmp = a.status.localeCompare(b.status)
-    if (key === 'lastActivity') cmp = a.lastActivity.localeCompare(b.lastActivity)
-    return dir === 'asc' ? cmp : -cmp
-  })
+function CardTypeIcon({ type }: { type: string }) {
+  if (type === 'points') return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+  if (type === 'membership') return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
 }
+
+function cardTypeLabel(type: string) {
+  return type === 'stamp' ? 'Sellos' : type === 'points' ? 'Puntos' : 'Membresía'
+}
+
+// Nota: el orden real lo aplica el servidor (ver "filtered = customers"
+// más abajo) — antes había un sortCustomers acá que nunca se llamaba.
 
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   return (
@@ -79,8 +89,8 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   )
 }
 
-function CustomerPanel({ customer, onClose, onDelete }: {
-  customer: Customer; onClose: () => void; onDelete: (id: string) => void
+function CardSection({ customer, card, onDelete }: {
+  customer: Customer; card: CardEntry; onDelete: (customerId: string) => void
 }) {
   const t = useLang()
   const [confirmDel, setConfirmDel] = useState(false)
@@ -91,13 +101,11 @@ function CustomerPanel({ customer, onClose, onDelete }: {
   const [catalogLoading, setCatalogLoading] = useState(false)
   const [redeeming, setRedeeming] = useState<string | null>(null)
   const [redeemMsg, setRedeemMsg] = useState<string | null>(null)
-  const [pointsBalance, setPointsBalance] = useState(customer.progress)
-  const stamps = customer.cardType === 'stamp'
-    ? Array.from({ length: customer.total }, (_: unknown, i: number) => i < customer.progress)
+  const [pointsBalance, setPointsBalance] = useState(card.pointsBalance)
+  const stamps = card.cardType === 'stamp' && card.cardStampsRequired
+    ? Array.from({ length: card.cardStampsRequired }, (_: unknown, i: number) => i < card.stamps)
     : []
-  const color = avatarColor(customer.name)
-  const nearPrize = isNearPrize(customer)
-  const cardTypeLabel = customer.cardType === 'stamp' ? 'Sellos' : customer.cardType === 'points' ? 'Puntos' : 'Membresía'
+  const nearPrize = card.cardType === 'stamp' && !!card.cardStampsRequired && (card.cardStampsRequired - card.stamps) <= 2 && card.stamps < card.cardStampsRequired
 
   async function handleResync() {
     const businessId = localStorage.getItem('stampa_business_id')
@@ -105,7 +113,7 @@ function CustomerPanel({ customer, onClose, onDelete }: {
     setResyncing(true)
     setResyncMsg(null)
     try {
-      const res = await apiResyncPass(businessId, customer.id)
+      const res = await apiResyncPass(businessId, card.customerId)
       const { apple, google } = res.results
       const parts: string[] = []
       if (apple)  parts.push(apple.sent ? 'Apple ✓' : `Apple falló (${apple.error})`)
@@ -122,10 +130,10 @@ function CustomerPanel({ customer, onClose, onDelete }: {
     setShowRedeem(true)
     setRedeemMsg(null)
     const businessId = localStorage.getItem('stampa_business_id')
-    if (!businessId || !customer.cardId) return
+    if (!businessId || !card.cardId) return
     setCatalogLoading(true)
     try {
-      const items = await apiGetPointsCatalog(businessId, customer.cardId)
+      const items = await apiGetPointsCatalog(businessId, card.cardId)
       setCatalog(items)
     } catch {
       setCatalog([])
@@ -140,7 +148,7 @@ function CustomerPanel({ customer, onClose, onDelete }: {
     setRedeeming(itemId)
     setRedeemMsg(null)
     try {
-      const res = await apiRedeemPoints(businessId, customer.id, itemId)
+      const res = await apiRedeemPoints(businessId, card.customerId, itemId)
       setPointsBalance(res.pointsBalance)
       setRedeemMsg(`Canjeado: ${res.redeemedItem}. Le quedan ${res.pointsBalance} puntos.`)
       setShowRedeem(false)
@@ -152,24 +160,109 @@ function CustomerPanel({ customer, onClose, onDelete }: {
   }
 
   return (
-    <div className="ct-panel">
-      <div className="ct-panel-header">
-        <button className="ct-panel-delete-btn" onClick={() => setConfirmDel(true)} title="Eliminar cliente">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-        </button>
-        <button className="ct-panel-close" onClick={onClose}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <div className="ct-panel-section ct-panel-card-section">
+      <div className="ct-panel-card-header">
+        <span className="ct-panel-card-type"><CardTypeIcon type={card.cardType} />{card.cardName || cardTypeLabel(card.cardType)}</span>
+        <button className="ct-panel-delete-btn" onClick={() => setConfirmDel(true)} title="Eliminar esta tarjeta">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
         </button>
       </div>
       {confirmDel && (
         <div className="ct-confirm-del">
-          <div className="ct-confirm-del-text">¿Eliminar a <strong>{customer.name}</strong>? Esta acción no se puede deshacer.</div>
+          <div className="ct-confirm-del-text">¿Eliminar la tarjeta de <strong>{card.cardName || cardTypeLabel(card.cardType)}</strong> de {customer.name}? Esta acción no se puede deshacer.</div>
           <div className="ct-confirm-del-btns">
             <button className="ct-confirm-cancel" onClick={() => setConfirmDel(false)}>Cancelar</button>
-            <button className="ct-confirm-ok" onClick={() => onDelete(customer.id)}>Eliminar</button>
+            <button className="ct-confirm-ok" onClick={() => onDelete(card.customerId)}>Eliminar</button>
           </div>
         </div>
       )}
+
+      {card.cardType === 'stamp' ? (
+        <>
+          <div className="ct-panel-progress-num">{card.stamps}<span className="ct-panel-progress-den"> / {card.cardStampsRequired || 0}</span></div>
+          <div className="ct-panel-stamps">
+            {stamps.map((filled: boolean, i: number) => <div key={i} className={`ct-panel-stamp${filled ? ' ct-panel-stamp--filled' : ''}`} />)}
+          </div>
+          <div className="ct-panel-progress-bar"><div className="ct-panel-progress-fill" style={{ width: `${card.cardStampsRequired ? (card.stamps / card.cardStampsRequired) * 100 : 0}%` }} /></div>
+          {nearPrize && (
+            <div className="ct-near-note">
+              {(card.cardStampsRequired || 0) - card.stamps === 0
+                ? t('ct_prize_ready')
+                : `${(card.cardStampsRequired || 0) - card.stamps} ${t('ct_stamps_away')}`}
+            </div>
+          )}
+        </>
+      ) : card.cardType === 'points' ? (
+        <>
+          <div className="ct-panel-progress-num">{pointsBalance}<span className="ct-panel-progress-den"> pts</span></div>
+          {!showRedeem ? (
+            <button className="ct-resync-btn" onClick={openRedeemPicker}>Canjear premio</button>
+          ) : (
+            <div className="ct-redeem-picker">
+              {catalogLoading ? (
+                <div className="ct-resync-hint">Cargando catálogo...</div>
+              ) : catalog.length === 0 ? (
+                <div className="ct-resync-hint">Este negocio todavía no armó ningún premio en Rewards.</div>
+              ) : (
+                catalog.map(item => (
+                  <button
+                    key={item._id}
+                    className="ct-redeem-item"
+                    disabled={pointsBalance < item.pointsCost || redeeming === item._id}
+                    onClick={() => confirmRedeem(item._id)}
+                  >
+                    <span>{item.name}</span>
+                    <span className="ct-redeem-cost">{redeeming === item._id ? '...' : `${item.pointsCost} pts`}</span>
+                  </button>
+                ))
+              )}
+              <button className="ct-redeem-cancel" onClick={() => setShowRedeem(false)}>Cancelar</button>
+            </div>
+          )}
+          {redeemMsg && <div className="ct-resync-msg">{redeemMsg}</div>}
+        </>
+      ) : (
+        <div className="ct-panel-progress-num" style={{ fontSize: 22 }}>Nivel {card.membershipTier || 'Bronze'}</div>
+      )}
+
+      <div className="ct-resync-row" style={{ marginTop: 10 }}>
+        <button className="ct-resync-btn" onClick={handleResync} disabled={resyncing}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+          {resyncing ? 'Sincronizando...' : 'Re-sincronizar wallet'}
+        </button>
+        <InfoTooltip text="Empuja el progreso real de la base al pase del celular del cliente, sin tocar sellos/puntos/nivel. Útil si el pase quedó desactualizado tras un error de escaneo o una corrección manual." />
+      </div>
+      {resyncMsg && <div className="ct-resync-msg">{resyncMsg}</div>}
+
+      {card.formResponses.length > 0 && (
+        <div className="ct-panel-card-responses">
+          <div className="ct-panel-section-title">{t('ct_form_responses')}</div>
+          {card.formResponses.map((r, i) => (
+            <div key={i} className={`ct-panel-field-row${r.value === card.premio && card.premio ? ' ct-panel-field-row--highlight' : ''}`}>
+              <span className="ct-panel-field-label">{r.label}</span>
+              <span className={`ct-panel-field-val${r.value === card.premio && card.premio ? ' ct-panel-field-val--highlight' : ''}`}>{r.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CustomerPanel({ customer, onClose, onDelete }: {
+  customer: Customer; onClose: () => void; onDelete: (id: string) => void
+}) {
+  const t = useLang()
+  const color = avatarColor(customer.name)
+  const anyNearPrize = isNearPrize(customer)
+
+  return (
+    <div className="ct-panel">
+      <div className="ct-panel-header">
+        <button className="ct-panel-close" onClick={onClose}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
       <div className="ct-panel-avatar" style={{ background: color }}>{initials(customer.name)}</div>
       <div className="ct-panel-name">{customer.name}</div>
       <div className="ct-panel-email">{customer.email}</div>
@@ -177,88 +270,21 @@ function CustomerPanel({ customer, onClose, onDelete }: {
         <span className={`ct-status-badge ct-status-badge--${customer.status}`}>
           {customer.status === 'active' ? t('status_active') : t('status_inactive')}
         </span>
-        <span className={`ct-card-badge ct-card-badge--${customer.cardType}`}>{customer.cardName || cardTypeLabel}</span>
-        {nearPrize && <span className="ct-near-badge">{t('ct_near_badge')}</span>}
-      </div>
-
-      <div className="ct-panel-section">
-        <div className="ct-panel-section-title">{t('ct_panel_progress')}</div>
-        {customer.cardType === 'stamp' ? (
-          <>
-            <div className="ct-panel-progress-num">{customer.progress}<span className="ct-panel-progress-den"> / {customer.total}</span></div>
-            <div className="ct-panel-stamps">
-              {stamps.map((filled: boolean, i: number) => <div key={i} className={`ct-panel-stamp${filled ? ' ct-panel-stamp--filled' : ''}`} />)}
-            </div>
-            <div className="ct-panel-progress-bar"><div className="ct-panel-progress-fill" style={{ width: `${(customer.progress / customer.total) * 100}%` }} /></div>
-            {nearPrize && (
-              <div className="ct-near-note">
-                {customer.total - customer.progress === 0
-                  ? t('ct_prize_ready')
-                  : `${customer.total - customer.progress} ${t('ct_stamps_away')}`}
-              </div>
-            )}
-          </>
-        ) : customer.cardType === 'points' ? (
-          <>
-            <div className="ct-panel-progress-num">{pointsBalance}<span className="ct-panel-progress-den"> pts</span></div>
-            {!showRedeem ? (
-              <button className="ct-resync-btn" onClick={openRedeemPicker}>Canjear premio</button>
-            ) : (
-              <div className="ct-redeem-picker">
-                {catalogLoading ? (
-                  <div className="ct-resync-hint">Cargando catálogo...</div>
-                ) : catalog.length === 0 ? (
-                  <div className="ct-resync-hint">Este negocio todavía no armó ningún premio en Rewards.</div>
-                ) : (
-                  catalog.map(item => (
-                    <button
-                      key={item._id}
-                      className="ct-redeem-item"
-                      disabled={pointsBalance < item.pointsCost || redeeming === item._id}
-                      onClick={() => confirmRedeem(item._id)}
-                    >
-                      <span>{item.name}</span>
-                      <span className="ct-redeem-cost">{redeeming === item._id ? '...' : `${item.pointsCost} pts`}</span>
-                    </button>
-                  ))
-                )}
-                <button className="ct-redeem-cancel" onClick={() => setShowRedeem(false)}>Cancelar</button>
-              </div>
-            )}
-            {redeemMsg && <div className="ct-resync-msg">{redeemMsg}</div>}
-          </>
-        ) : (
-          <div className="ct-panel-progress-num" style={{ fontSize: 22 }}>Nivel {customer.membershipTier || 'Bronze'}</div>
-        )}
-      </div>
-
-      <div className="ct-panel-section">
-        <div className="ct-resync-row">
-          <button className="ct-resync-btn" onClick={handleResync} disabled={resyncing}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-            {resyncing ? 'Sincronizando...' : 'Re-sincronizar wallet'}
-          </button>
-          <InfoTooltip text="Empuja el progreso real de la base al pase del celular del cliente, sin tocar sellos/puntos/nivel. Útil si el pase quedó desactualizado tras un error de escaneo o una corrección manual." />
-        </div>
-        {resyncMsg && <div className="ct-resync-msg">{resyncMsg}</div>}
+        {customer.cards.map(c => (
+          <span key={c.customerId} className={`ct-card-badge ct-card-badge--${c.cardType}`}>{c.cardName || cardTypeLabel(c.cardType)}</span>
+        ))}
+        {anyNearPrize && <span className="ct-near-badge">{t('ct_near_badge')}</span>}
       </div>
 
       <div className="ct-panel-section">
         <div className="ct-panel-section-title">{t('ct_activity')}</div>
         <div className="ct-panel-field-row"><span className="ct-panel-field-label">{t('ct_last_visit')}</span><span className="ct-panel-field-val">{customer.lastActivity}</span></div>
         <div className="ct-panel-field-row"><span className="ct-panel-field-label">{t('ct_member_since')}</span><span className="ct-panel-field-val">{customer.joined}</span></div>
-        <div className="ct-panel-field-row"><span className="ct-panel-field-label">{t('ct_total_prizes')}</span><span className="ct-panel-field-val">{customer.totalRedeemed > 0 ? `${customer.totalRedeemed} ${t('redeemed')}` : t('none_yet')}</span></div>
       </div>
 
-      <div className="ct-panel-section">
-        <div className="ct-panel-section-title">{t('ct_form_responses')}</div>
-        <div className="ct-panel-field-row"><span className="ct-panel-field-label">{t('ct_dob')}</span><span className="ct-panel-field-val">{customer.dob}</span></div>
-        <div className="ct-panel-field-row ct-panel-field-row--highlight">
-          <span className="ct-panel-field-label">{customer.dynamicFieldLabel}</span>
-          <span className="ct-panel-field-val ct-panel-field-val--highlight">{customer.dynamicField}</span>
-        </div>
-        <div className="ct-panel-field-row"><span className="ct-panel-field-label">{t('ct_preference')}</span><span className="ct-panel-field-val">{customer.preference}</span></div>
-      </div>
+      {customer.cards.map(card => (
+        <CardSection key={card.customerId} customer={customer} card={card} onDelete={onDelete} />
+      ))}
     </div>
   )
 }
@@ -406,6 +432,12 @@ export function CustomersTab({
         .ct-panel-field-label{color:rgba(43,38,32,.5);}
         .ct-panel-field-val{color:#2B2620;font-weight:600;text-align:right;max-width:140px;}
         .ct-panel-field-val--highlight{color:#C75D3A;}
+        .ct-stack-cell{display:flex;flex-direction:column;gap:6px;}
+        .ct-stack-line{display:flex;align-items:center;gap:6px;color:rgba(43,38,32,.7);}
+        .ct-panel-card-section{border-top:1px solid rgba(43,38,32,.08);padding-top:14px;}
+        .ct-panel-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+        .ct-panel-card-type{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:#2B2620;}
+        .ct-panel-card-responses{margin-top:12px;}
         @media(max-width:768px){
           .ct-shell{grid-template-columns:1fr;}
           .ct-panel{display:none;}
@@ -457,7 +489,6 @@ export function CustomersTab({
                   <thead>
                     <tr>
                       <th className={sortKey === 'name' ? 'th-active' : ''} onClick={() => handleSort('name')}>{t('ct_col_customer')}<SortIcon active={sortKey === 'name'} dir={sortDir} /></th>
-                      <th className={sortKey === 'card' ? 'th-active' : ''} onClick={() => handleSort('card')}>{t('ct_col_card')}<SortIcon active={sortKey === 'card'} dir={sortDir} /></th>
                       <th className={sortKey === 'progress' ? 'th-active' : ''} onClick={() => handleSort('progress')}>{t('ct_col_progress')}<SortIcon active={sortKey === 'progress'} dir={sortDir} /></th>
                       <th className="th-dynamic">Premio</th>
                       <th className={sortKey === 'status' ? 'th-active' : ''} onClick={() => handleSort('status')}>{t('ct_col_status')}<SortIcon active={sortKey === 'status'} dir={sortDir} /></th>
@@ -467,7 +498,6 @@ export function CustomersTab({
                   <tbody>
                     {filtered.map((c: Customer) => {
                       const near = isNearPrize(c)
-                      const dots = Array.from({ length: c.total }, (_: unknown, i: number) => i < c.progress)
                       const isOld    = c.lastActivity.includes('day') && parseInt(c.lastActivity) > 30
                       const isRecent = c.lastActivity.includes('h ago') || c.lastActivity.includes('m ago')
                       return (
@@ -482,23 +512,32 @@ export function CustomersTab({
                             </div>
                           </td>
                           <td>
-                            <span className={`ct-card-badge ct-card-badge--${c.cardType}`} title={c.cardType === 'stamp' ? 'Sellos' : c.cardType === 'points' ? 'Puntos' : 'Membresía'}>
-                              {c.cardName || (c.cardType === 'stamp' ? 'Sellos' : c.cardType === 'points' ? 'Puntos' : 'Membresía')}
-                            </span>
+                            {/* Una línea por tarjeta, con su ícono — no se
+                                prioriza ninguna sobre otra (decisión: "apilar
+                                todo" en vez de elegir la más reciente). */}
+                            <div className="ct-stack-cell">
+                              {c.cards.map(card => (
+                                <div key={card.customerId} className="ct-stack-line">
+                                  <CardTypeIcon type={card.cardType} />
+                                  {card.cardType === 'stamp'
+                                    ? <span className="ct-prog-txt">{card.stamps} de {card.cardStampsRequired || 0}</span>
+                                    : card.cardType === 'points'
+                                    ? <span className="ct-prog-txt">{card.pointsBalance} pts</span>
+                                    : <span className="ct-prog-txt">Nivel {card.membershipTier || '—'}</span>
+                                  }
+                                </div>
+                              ))}
+                            </div>
                           </td>
                           <td>
-                            {c.cardType === 'stamp' ? (
-                              <div className="ct-prog-cell">
-                                <span className="ct-prog-txt">{c.progress}/{c.total}</span>
-                                <div className="ct-prog-mini">{dots.map((filled: boolean, i: number) => <div key={i} className={`ct-prog-dot${filled ? ' ct-prog-dot--filled' : ''}`} />)}</div>
-                              </div>
-                            ) : c.cardType === 'points' ? (
-                              <span className="ct-prog-txt">{c.progress} pts</span>
-                            ) : (
-                              <span className="ct-prog-txt">Nivel {c.membershipTier || '—'}</span>
-                            )}
+                            <div className="ct-stack-cell">
+                              {c.cards.map(card => (
+                                <div key={card.customerId} className="ct-stack-line">
+                                  <span className="ct-dynamic">{card.premio || '—'}</span>
+                                </div>
+                              ))}
+                            </div>
                           </td>
-                          <td><span className="ct-dynamic">{c.dynamicField}</span></td>
                           <td>
                             <div style={{ display:'flex',flexDirection:'column',gap:4 }}>
                               <span className={`ct-status-badge ct-status-badge--${c.status}`}>{c.status === 'active' ? t('status_active') : t('status_inactive')}</span>
