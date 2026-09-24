@@ -88,6 +88,7 @@ export default function PublicRegisterPage() {
   const [result, setResult] = useState<{ qrValue: string; cardName: string; customerId: string } | null>(null)
 
   useEffect(() => { injectStyles() }, [])
+  useEffect(() => { if (result) window.scrollTo(0, 0) }, [result])
 
   useEffect(() => {
     if (!businessId) return
