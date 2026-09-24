@@ -119,9 +119,10 @@ function MobilePreview({ fields, businessName, brandColor, brandLogo }: {
 }
 
 // ─── Editable optional field row ──────────────────────────────────────────────
-function OptionalFieldRow({ field, onUpdate, onToggle, onSetReward, onDragStart, onDragEnter, onDragEnd, showReward }: {
+function OptionalFieldRow({ field, onUpdate, onUpdateOptions, onToggle, onSetReward, onDragStart, onDragEnter, onDragEnd, showReward }: {
   field: FormField
   onUpdate: (id: string, label: string) => void
+  onUpdateOptions: (id: string, options: string[]) => void
   onToggle: (id: string) => void
   onSetReward: (id: string) => void
   onDragStart: () => void
@@ -131,10 +132,28 @@ function OptionalFieldRow({ field, onUpdate, onToggle, onSetReward, onDragStart,
 }) {
   const [editing, setEditing] = useState(false)
   const [label, setLabel]     = useState(field.label)
+  const [addingOption, setAddingOption] = useState(false)
+  const [newOption, setNewOption] = useState('')
 
   function saveLabel() {
     onUpdate(field.id, label)
     setEditing(false)
+  }
+
+  function removeOption(opt: string) {
+    const current = field.options || []
+    if (current.length <= 2) return // mínimo 2 opciones — un select de una sola no tiene sentido
+    onUpdateOptions(field.id, current.filter(o => o !== opt))
+  }
+
+  function confirmAddOption() {
+    const trimmed = newOption.trim()
+    const current = field.options || []
+    if (trimmed && !current.includes(trimmed)) {
+      onUpdateOptions(field.id, [...current, trimmed])
+    }
+    setNewOption('')
+    setAddingOption(false)
   }
 
   return (
@@ -167,7 +186,29 @@ function OptionalFieldRow({ field, onUpdate, onToggle, onSetReward, onDragStart,
         : <div className="fm-field-label-col">
             <span className="fm-field-label" onDoubleClick={() => setEditing(true)}>{field.label}</span>
             {field.type === 'select' && field.options && field.options.length > 0 && (
-              <span className="fm-field-options-hint">{field.options.join(' · ')}</span>
+              <div className="fm-options-chips" onClick={e => e.stopPropagation()} draggable={false}>
+                {field.options.map(opt => (
+                  <span key={opt} className="fm-option-chip">
+                    {opt}
+                    {(field.options?.length || 0) > 2 && (
+                      <button className="fm-option-chip-x" onClick={() => removeOption(opt)} title="Quitar opción">✕</button>
+                    )}
+                  </span>
+                ))}
+                {addingOption ? (
+                  <input
+                    className="fm-option-add-input"
+                    value={newOption}
+                    onChange={e => setNewOption(e.target.value)}
+                    onBlur={confirmAddOption}
+                    onKeyDown={e => { if (e.key === 'Enter') confirmAddOption(); if (e.key === 'Escape') { setNewOption(''); setAddingOption(false) } }}
+                    placeholder="Nueva opción"
+                    autoFocus
+                  />
+                ) : (
+                  <button className="fm-option-add-btn" onClick={() => setAddingOption(true)}>+ Agregar</button>
+                )}
+              </div>
             )}
           </div>
       }
@@ -390,6 +431,10 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
     setOptional(optional.map((f: FormField) => f.id === id ? { ...f, label } : f))
   }
 
+  function updateOptions(id: string, options: string[]) {
+    setOptional(optional.map((f: FormField) => f.id === id ? { ...f, options } : f))
+  }
+
   function setRewardSource(id: string) {
     const clearAll = (arr: FormField[]) => arr.map((f: FormField) => ({ ...f, isRewardSource: false }))
     const newOpt = clearAll(optional)
@@ -562,8 +607,13 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
         .fm-grip{color:rgba(43,38,32,.3);flex-shrink:0;display:flex;align-items:center;}
         .fm-field-type-tag{width:22px;height:22px;border-radius:6px;background:rgba(43,38,32,.08);display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(43,38,32,.5);flex-shrink:0;}
         .fm-field-label{flex:1;cursor:default;}
-        .fm-field-label-col{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;}
-        .fm-field-options-hint{font-size:10.5px;color:rgba(43,38,32,.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .fm-field-label-col{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;}
+        .fm-options-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+        .fm-option-chip{display:flex;align-items:center;gap:5px;background:#FBF6EE;border:1px solid rgba(43,38,32,.15);border-radius:20px;padding:3px 6px 3px 10px;font-size:11.5px;color:#2B2620;}
+        .fm-option-chip-x{width:14px;height:14px;border-radius:50%;border:none;background:rgba(43,38,32,.1);color:#2B2620;font-size:9px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+        .fm-option-chip-x:hover{background:rgba(178,59,59,.2);color:#B23B3B;}
+        .fm-option-add-btn{background:none;border:1px dashed rgba(199,93,58,.5);color:#C75D3A;border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:600;cursor:pointer;}
+        .fm-option-add-input{border:1px solid rgba(199,93,58,.4);border-radius:20px;padding:3px 10px;font-size:11.5px;font-family:'Inter',sans-serif;outline:none;width:110px;}
         .fm-label-edit-input{flex:1;padding:3px 7px;font-size:12px;border:1.5px solid #C75D3A;border-radius:7px;background:#FFFFFF;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
         .fm-field-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;}
         .fm-reward-badge{font-size:9px;padding:2px 9px;border-radius:20px;background:rgba(199,93,58,.15);color:#C75D3A;font-weight:700;}
@@ -756,7 +806,7 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
             {/* Optional — editable */}
             <div className="fm-card">
               <div className="fm-card-title">Campos opcionales</div>
-              <div className="fm-card-sub">Arrastrá para reordenar · lápiz para renombrar · ojo para mostrar/ocultar · ★ para el campo de premio</div>
+              <div className="fm-card-sub">Arrastrá para reordenar · lápiz para renombrar · ojo para mostrar/ocultar{selectedCard?.type === 'stamp' ? ' · ★ para el campo de premio' : ''}</div>
               {loadingFields ? (
                 <div className="fm-max-note">Cargando...</div>
               ) : (
@@ -766,6 +816,7 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
                       key={f.id}
                       field={f}
                       onUpdate={updateLabel}
+                      onUpdateOptions={updateOptions}
                       onToggle={toggleOptional}
                       onSetReward={setRewardSource}
                       onDragStart={() => handleDragStart(i)}

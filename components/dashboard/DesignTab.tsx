@@ -396,8 +396,9 @@ function MiniPass({ design, businessName, logos }: { design: CardDesign; busines
       {design.type === 'membership' && (
         <div className="dt-mini-tier-row">
           <div className="dt-mini-tier-chip dt-mini-tier-chip--active" style={{ background: bronze.bg, color: bronze.color, border: `1px solid ${bronze.color}` }}>Bronze</div>
-          <div className="dt-mini-tier-chip">Silver</div>
-          <div className="dt-mini-tier-chip">Gold</div>
+          <div className="dt-mini-tier-chip" style={{ background: 'transparent', color: bronze.color, opacity: 0.45, border: `1px solid ${bronze.color}` }}>Silver</div>
+          <div className="dt-mini-tier-chip" style={{ background: 'transparent', color: bronze.color, opacity: 0.45, border: `1px solid ${bronze.color}` }}>Gold</div>
+          <div className="dt-mini-tier-chip" style={{ background: 'transparent', color: bronze.color, opacity: 0.45, border: `1px solid ${bronze.color}` }}>Black</div>
         </div>
       )}
       {design.type === 'points' && <div className="dt-mini-points">120 pts</div>}
