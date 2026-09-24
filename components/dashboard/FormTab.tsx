@@ -164,7 +164,12 @@ function OptionalFieldRow({ field, onUpdate, onToggle, onSetReward, onDragStart,
             autoFocus
             onClick={e => e.stopPropagation()}
           />
-        : <span className="fm-field-label" onDoubleClick={() => setEditing(true)}>{field.label}</span>
+        : <div className="fm-field-label-col">
+            <span className="fm-field-label" onDoubleClick={() => setEditing(true)}>{field.label}</span>
+            {field.type === 'select' && field.options && field.options.length > 0 && (
+              <span className="fm-field-options-hint">{field.options.join(' · ')}</span>
+            )}
+          </div>
       }
 
       <div className="fm-field-actions">
@@ -557,6 +562,8 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
         .fm-grip{color:rgba(43,38,32,.3);flex-shrink:0;display:flex;align-items:center;}
         .fm-field-type-tag{width:22px;height:22px;border-radius:6px;background:rgba(43,38,32,.08);display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(43,38,32,.5);flex-shrink:0;}
         .fm-field-label{flex:1;cursor:default;}
+        .fm-field-label-col{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;}
+        .fm-field-options-hint{font-size:10.5px;color:rgba(43,38,32,.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
         .fm-label-edit-input{flex:1;padding:3px 7px;font-size:12px;border:1.5px solid #C75D3A;border-radius:7px;background:#FFFFFF;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
         .fm-field-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;}
         .fm-reward-badge{font-size:9px;padding:2px 9px;border-radius:20px;background:rgba(199,93,58,.15);color:#C75D3A;font-weight:700;}
