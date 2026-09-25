@@ -99,9 +99,20 @@ const FAQ_DATA = [
 
 const SOCIAL_LINKS = [
   { name: 'Instagram', href: 'https://instagram.com/stampa.app' },
-  { name: 'LinkedIn', href: 'https://linkedin.com/company/stampa-app' },
-  { name: 'X', href: 'https://x.com/stampa_app' },
 ];
+
+// Ventas por WhatsApp — en el mercado de comercios es el canal que más
+// convierte. El texto llega pre-cargado en el chat.
+const WHATSAPP_NUMBER = '5493512638999';
+const whatsappLink = (text: string) => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+const WHATSAPP_SALES = whatsappLink('Hola! Quiero saber más sobre Stampa para mi negocio.');
+const WHATSAPP_ENTERPRISE = whatsappLink('Hola! Me interesa el plan Enterprise de Stampa.');
+
+// Negocio de demo ("Stampa") para la sección "Probala en tu celular": el
+// visitante escanea el QR, se registra y recibe una tarjeta real en su
+// Wallet. Se configura con NEXT_PUBLIC_DEMO_BUSINESS_ID (el _id del
+// negocio demo en esa base) — si no está, la sección no se muestra.
+const DEMO_BUSINESS_ID = process.env.NEXT_PUBLIC_DEMO_BUSINESS_ID || '';
 
 const STAMP_PATTERN = [true, true, true, true, false, false];
 const HERO_STAMPS = STAMP_PATTERN.map((filled) => ({
@@ -126,6 +137,9 @@ export default function StampaLanding() {
   const [openFaq, setOpenFaq] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [origin, setOrigin] = useState('');
+  useEffect(() => { setOrigin(window.location.origin); }, []);
+  const demoUrl = DEMO_BUSINESS_ID && origin ? `${origin}/r/${DEMO_BUSINESS_ID}` : '';
 
   useEffect(() => {
     const updateIsMobile = () => setIsMobile(window.innerWidth < 860);
@@ -148,7 +162,11 @@ export default function StampaLanding() {
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
   return (
-    <div className={styles.page} style={{ background: 'var(--stampa-ink)', minHeight: '100vh' }}>
+    <div className={styles.page} style={{ background: 'var(--stampa-ink)', minHeight: '100vh', fontFamily: 'var(--font-sans)' }}>
+      {/* Mismas fuentes que el dashboard (ver app/login/page.tsx) */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       {/* HEADER */}
       <header
         style={{
@@ -671,6 +689,48 @@ export default function StampaLanding() {
         </div>
       </section>
 
+      {/* DEMO — probá la tarjeta en tu propio celular */}
+      {demoUrl && (
+        <section id="demo" className="stampa-bg" style={{ padding: '88px 32px', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 1000, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: isMobile ? 32 : 64 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 'var(--text-2xs)', fontWeight: 700, letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase', color: 'var(--ember-400)', marginBottom: 14 }}>
+                Probala en 10 segundos
+              </div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: isMobile ? 28 : 36, color: 'var(--text-strong)', lineHeight: 'var(--leading-tight)', marginBottom: 16 }}>
+                Llevate una tarjeta Stampa a tu Wallet
+              </h2>
+              <p style={{ fontSize: 17, color: 'var(--text-body)', lineHeight: 'var(--leading-body)', marginBottom: 24 }}>
+                {isMobile
+                  ? 'Tocá el botón, dejá tu nombre y agregá la tarjeta a tu Wallet. Así la van a ver tus clientes.'
+                  : 'Escaneá el código con la cámara de tu celular, dejá tu nombre y agregá la tarjeta a tu Wallet. Así la van a ver tus clientes.'}
+              </p>
+              {isMobile && (
+                <a
+                  href={demoUrl}
+                  className={styles.ctaEmber}
+                  style={{ display: 'inline-block', fontWeight: 700, fontSize: 'var(--text-md)', padding: '14px 22px', borderRadius: 'var(--radius-lg)' }}
+                >
+                  Probar la tarjeta
+                </a>
+              )}
+            </div>
+            {!isMobile && (
+              <div style={{ background: 'var(--stampa-cream)', borderRadius: 24, padding: 22, boxShadow: 'var(--shadow-lg)', textAlign: 'center' }}>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=440x440&margin=0&color=1B412F&bgcolor=FBF6EE&data=${encodeURIComponent(demoUrl)}`}
+                  alt="QR para probar una tarjeta Stampa"
+                  width={220}
+                  height={220}
+                  style={{ display: 'block' }}
+                />
+                <div style={{ marginTop: 12, fontSize: 'var(--text-xs)', fontWeight: 700, color: '#2B2620' }}>Apuntá la cámara acá</div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* FEATURES */}
       <section id="features" className="stampa-bg" style={{ padding: '96px 32px', display: 'flex', justifyContent: 'center' }}>
         <div style={{ width: '100%', maxWidth: 1160 }}>
@@ -946,7 +1006,8 @@ export default function StampaLanding() {
                   ))}
                 </div>
                 <a
-                  href={plan.slug === 'enterprise' ? 'mailto:hola@stampa.app' : `/register?plan=${plan.slug}`}
+                  href={plan.slug === 'enterprise' ? WHATSAPP_ENTERPRISE : `/register?plan=${plan.slug}`}
+                  {...(plan.slug === 'enterprise' ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                   style={{ textAlign: 'center', background: plan.btnBg, color: plan.btnColor, fontWeight: 700, fontSize: 'var(--text-sm)', padding: 13, borderRadius: 'var(--radius-lg)', display: 'block' }}
                 >
                   {plan.cta}
@@ -1088,7 +1149,7 @@ export default function StampaLanding() {
                 >
                   stampa.miniz@gmail.com
                 </a>
-                <a href="mailto:hola@stampa.app" style={{ color: 'var(--text-body)', fontSize: 'var(--text-sm)' }}>Hablar con ventas</a>
+                <a href={WHATSAPP_SALES} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-body)', fontSize: 'var(--text-sm)' }}>Hablar con ventas por WhatsApp</a>
               </div>
             </div>
             <div>
@@ -1107,13 +1168,23 @@ export default function StampaLanding() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, borderTop: '1px solid var(--border)', paddingTop: 24 }}>
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>© 2026 Stampa. Hecho con cariño en España y Argentina.</span>
             <div style={{ display: 'flex', gap: 24 }}>
-              <a href="/privacidad" style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>Privacidad</a>
-              <a href="/terminos" style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>Términos</a>
+              <a href="/privacy" style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>Privacidad</a>
+              <a href="/terms" style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>Términos</a>
             </div>
           </div>
           <div style={{ height: 32 }} />
         </div>
       </footer>
+
+      <a
+        href={WHATSAPP_SALES}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Escribinos por WhatsApp"
+        className={styles.whatsappFab}
+      >
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#FFFFFF" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35zM12.05 21.5h-.01a9.4 9.4 0 0 1-4.8-1.31l-.34-.2-3.57.94.95-3.48-.22-.36a9.43 9.43 0 1 1 7.99 4.41zm8.02-17.45A11.27 11.27 0 0 0 12.05.72C5.8.72.72 5.8.72 12.05c0 2 .52 3.95 1.52 5.66L.62 23.28l5.7-1.5a11.3 11.3 0 0 0 5.73 1.46h.01c6.25 0 11.33-5.08 11.33-11.33 0-3.03-1.18-5.87-3.32-8.01z"/></svg>
+      </a>
     </div>
   );
 }

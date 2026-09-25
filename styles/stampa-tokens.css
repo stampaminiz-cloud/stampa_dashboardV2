@@ -4,58 +4,48 @@
    before rendering <StampaLanding />.
    ═══════════════════════════════════════════════════════════════ */
 
-/* ── Fonts (self-hosted brand typeface) ─────────────────────── */
-@font-face {
-    font-family: 'Alte Haas Grotesk';
-    src: url('/fonts/AlteHaasGroteskRegular.ttf') format('truetype');
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-  }
-  
-  @font-face {
-    font-family: 'Alte Haas Grotesk';
-    src: url('/fonts/AlteHaasGroteskBold.ttf') format('truetype');
-    font-weight: 700;
-    font-style: normal;
-    font-display: swap;
-  }
-  
-  :root {
+/* ── Fonts ─────────────────────────────────────────────────────
+   Mismas que el dashboard y la app de escaneo: Plus Jakarta Sans para
+   títulos, Inter para texto. Se cargan desde Google Fonts en
+   components/StampaLanding.tsx (mismo patrón que app/login/page.tsx).
+   Paleta "Botanica Daylight" del dashboard — antes eran los colores del
+   handoff original (#E46C31 / #F7EFE8 / #01231A). */
+
+:root {
     /* ── Brand core ─────────────────────────────────── */
-    --stampa-ink:    #01231A;
-    --stampa-pine:   #014232;
-    --stampa-ember:  #E46C31;
-    --stampa-cream:  #F7EFE8;
+    --stampa-ink:    #1B412F;
+    --stampa-pine:   #24523D;
+    --stampa-ember:  #C75D3A;
+    --stampa-cream:  #FBF6EE;
   
     /* ── Ember (orange) ramp ────────────────────────── */
-    --ember-700:  #B8501F;
-    --ember-600:  #C95A24;
-    --ember-500:  #E46C31;
-    --ember-400:  #EC8453;
-    --ember-300:  #F3A57C;
-    --ember-200:  #F8C4A6;
-    --ember-soft: rgba(228, 108, 49, 0.14);
-    --ember-glow: rgba(228, 108, 49, 0.26);
+    --ember-700:  #9E4529;
+    --ember-600:  #B14F2F;
+    --ember-500:  #C75D3A;
+    --ember-400:  #E8794F;
+    --ember-300:  #EE9C7E;
+    --ember-200:  #F5C5B2;
+    --ember-soft: rgba(199, 93, 58, 0.14);
+    --ember-glow: rgba(199, 93, 58, 0.26);
   
     /* ── Green surface ramp (dark UI) ───────────────── */
-    --green-950: #091B17;
-    --green-900: #0C211C;
-    --green-850: #122B25;
-    --green-800: #122D20;
-    --green-700: #193730;
-    --green-600: #1E4838;
-    --green-500: #2E5C48;
-    --green-400: #346C56;
+    --green-950: #10291E;
+    --green-900: #143426;
+    --green-850: #173A2B;
+    --green-800: #1B412F;
+    --green-700: #2A4438;
+    --green-600: #2F5A45;
+    --green-500: #3D6B55;
+    --green-400: #4F7D66;
   
     /* ── Neutral / cream ramp ───────────────────────── */
-    --cream-50:  #FDFBF7;
-    --cream-100: #F7EFE8;
-    --cream-200: #EFE4D7;
-    --cream-300: #E2D3C0;
+    --cream-50:  #FFFDF9;
+    --cream-100: #FBF6EE;
+    --cream-200: #F3EADC;
+    --cream-300: #E6D8C4;
   
     /* ── Semantic accents ───────────────────────────── */
-    --green:  #3DBF8A;
+    --green:  #6FBF8F;
     --red:    #E05252;
     --blue:   #5B9FE0;
     --green-soft: rgba(61, 191, 138, 0.14);
@@ -69,9 +59,9 @@
     --surface-raised:rgba(255, 255, 255, 0.06);
   
     /* Text */
-    --text-strong:   #F5EFE6;
-    --text-body:     rgba(245, 239, 230, 0.58);
-    --text-muted:    rgba(245, 239, 230, 0.26);
+    --text-strong:   #F7F0E4;
+    --text-body:     rgba(247, 240, 228, 0.66);
+    --text-muted:    rgba(247, 240, 228, 0.40);
     --text-on-ember: #FFFFFF;
   
     /* Lines */
@@ -81,11 +71,11 @@
     /* Brand-action */
     --primary:        var(--ember-500);
     --primary-hover:  var(--ember-600);
-    --focus-ring:     rgba(228, 108, 49, 0.42);
+    --focus-ring:     rgba(199, 93, 58, 0.42);
   
     /* ── Typography ──────────────────────────────────── */
-    --font-sans: 'Alte Haas Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --font-display: 'Alte Haas Grotesk', system-ui, sans-serif;
+    --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
     --font-mono: 'SFMono-Regular', ui-monospace, 'Menlo', monospace;
   
     --weight-regular: 400;
@@ -136,7 +126,7 @@
     --shadow-sm:  0 2px 10px rgba(0, 0, 0, 0.20);
     --shadow-md:  0 8px 32px rgba(0, 0, 0, 0.36);
     --shadow-lg:  0 16px 48px rgba(0, 0, 0, 0.44);
-    --shadow-ember: 0 4px 20px rgba(228, 108, 49, 0.30);
+    --shadow-ember: 0 4px 20px rgba(199, 93, 58, 0.30);
   
     /* ── Glass ───────────────────────────────────────── */
     --blur-card:   16px;
@@ -161,15 +151,15 @@
   [data-theme="cream"] {
     --bg:            var(--cream-100);
     --surface-card:  #FFFFFF;
-    --surface-sunk:  rgba(1, 35, 26, 0.04);
-    --surface-raised:rgba(1, 35, 26, 0.06);
+    --surface-sunk:  rgba(43, 38, 32, 0.04);
+    --surface-raised:rgba(43, 38, 32, 0.06);
   
-    --text-strong:   var(--stampa-ink);
-    --text-body:     rgba(1, 35, 26, 0.66);
-    --text-muted:    rgba(1, 35, 26, 0.38);
+    --text-strong:   #2B2620;
+    --text-body:     rgba(43, 38, 32, 0.66);
+    --text-muted:    rgba(43, 38, 32, 0.42);
   
-    --border:        rgba(1, 35, 26, 0.10);
-    --border-strong: rgba(1, 35, 26, 0.18);
+    --border:        rgba(43, 38, 32, 0.10);
+    --border-strong: rgba(43, 38, 32, 0.18);
   }
   
   /* ── Base reset ──────────────────────────────────────── */
@@ -181,10 +171,10 @@
      Deep green base lit by soft radial "glows". */
   .stampa-bg {
     background:
-      radial-gradient(ellipse 80% 60% at 50% -5%, rgba(52, 108, 86, 0.48) 0%, transparent 70%),
-      radial-gradient(ellipse 55% 45% at 90% 85%, rgba(22, 62, 48, 0.38) 0%, transparent 60%),
-      radial-gradient(ellipse 45% 40% at  6% 65%, rgba(30, 72, 56, 0.32) 0%, transparent 60%),
-      linear-gradient(155deg, #122d20 0%, #0c211c 50%, #091b17 100%);
+      radial-gradient(ellipse 80% 60% at 50% -5%, rgba(79, 125, 102, 0.40) 0%, transparent 70%),
+      radial-gradient(ellipse 55% 45% at 90% 85%, rgba(199, 93, 58, 0.10) 0%, transparent 60%),
+      radial-gradient(ellipse 45% 40% at  6% 65%, rgba(47, 90, 69, 0.32) 0%, transparent 60%),
+      linear-gradient(155deg, #1B412F 0%, #173A2B 50%, #143426 100%);
   }
   
   ::selection {
