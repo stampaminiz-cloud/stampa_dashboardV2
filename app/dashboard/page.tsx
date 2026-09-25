@@ -119,7 +119,8 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
 
         {/* Nav */}
         <nav className="sb-nav">
-          {NAV_IDS.map(id => (
+          {/* Managers: sin Equipo (lo gestiona el dueño) */}
+          {NAV_IDS.filter(id => !(owner?.role === 'manager' && id === 'users')).map(id => (
             <button
               key={id}
               className={`sb-item${active === id ? ' sb-item--on' : ''}`}
@@ -813,6 +814,7 @@ export default function DashboardPage() {
     try {
       const { owner: o, businesses } = await apiMe()
       setOwner(o)
+      if (o?.role === 'manager') setActive(prev => (prev === 'users' ? 'overview' : prev))
       if (businesses.length > 0) {
         const bid = businesses[0]._id
         setBusinessId(bid)
@@ -825,7 +827,8 @@ export default function DashboardPage() {
         }
 
         const cardsPromise      = apiGetCards(bid)
-        const teamPromise       = apiGetTeam(bid)
+        // Equipo es solo del dueño: el backend le responde 403 a un manager.
+        const teamPromise       = o?.role === 'manager' ? Promise.resolve([]) : apiGetTeam(bid)
         const analyticsPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/analytics`, { headers: authHeaders }).then(r => r.json())
         const detailedPromise   = fetch(`${BASE_URL}/api/businesses/${bid}/analytics/detailed?range=30d`, { headers: authHeaders }).then(r => r.json())
         const customersPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/customers?page=1&limit=50&sortBy=progress&sortDir=desc`, { headers: authHeaders }).then(r => r.json())
@@ -1014,6 +1017,7 @@ export default function DashboardPage() {
   useLayoutEffect(() => {
     const saved = localStorage.getItem('stampa_active_tab') as TabId | null
     if (saved) setActive(saved)
+    // (si era 'users' y entra un manager, el efecto de abajo lo corrige)
   }, [])
 
   const loadedRef = useRef(false)
@@ -1091,7 +1095,8 @@ export default function DashboardPage() {
         />
       case 'form':          return <FormTab businessName={business?.name || mockData.business.name} businessSlug={business?.slug || 'mi-negocio'} cardDesigns={cards.length > 0 ? cards : mockData.cardDesigns} businessId={businessId} />
       case 'design':        return <DesignTab key={businessId ?? 'loading'} data={mockData} cards={cards} businessId={businessId} onSaved={refreshCards} />
-      case 'users':         return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} onRefresh={loadBusiness} owner={owner} />
+      case 'users':         if (owner?.role === 'manager') return null
+                            return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} onRefresh={loadBusiness} owner={owner} />
       case 'settings':      return (
         <SettingsTab
           key={businessId ?? 'loading'}
@@ -1099,6 +1104,7 @@ export default function DashboardPage() {
           onSave={loadBusiness}
           ownerName={owner?.fullName || ''}
           ownerEmail={owner?.email || ''}
+          isManager={owner?.role === 'manager'}
           deletionRequestedAt={owner?.deletionRequestedAt || null}
           business={business ? {
             ...mockData.business,

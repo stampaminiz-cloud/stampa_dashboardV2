@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
-import { apiCreateTeamMember, apiUpdateTeamMember, apiDeleteTeamMember, getBusinessId } from '@/lib/api'
+import { apiCreateTeamMember, apiUpdateTeamMember, apiDeleteTeamMember, apiResendInvite, getBusinessId } from '@/lib/api'
 import { usePlan } from '@/data/plans'
 
 type Role   = 'owner' | 'manager' | 'scanner'
@@ -28,6 +28,9 @@ function InviteModal({ businessId, onClose, onAdd }: { businessId?: string | nul
   const [sent, setSent] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // El manager se creó pero el email de invitación no salió (Resend sin
+  // configurar o con el dominio sin verificar).
+  const [inviteFailed, setInviteFailed] = useState(false)
 
   // Antes esto solo agregaba el usuario a la lista en pantalla y nunca
   // llamaba al backend — el scanner no existía de verdad y su PIN no
@@ -55,8 +58,10 @@ function InviteModal({ businessId, onClose, onAdd }: { businessId?: string | nul
       })
       setSent(true)
       // El PIN no se vuelve a mostrar (se guarda hasheado): para scanners
-      // el modal queda abierto hasta que el dueño lo cierre.
-      if (role === 'manager') setTimeout(() => { setSent(false); onClose() }, 2000)
+      // el modal queda abierto hasta que el dueño lo cierre. Lo mismo si la
+      // invitación del manager no se pudo mandar, para que lo vea.
+      if (role === 'manager' && created.inviteSent === false) setInviteFailed(true)
+      else if (role === 'manager') setTimeout(() => { setSent(false); onClose() }, 2000)
     } catch (err: any) {
       setError(err?.message || err?.error || 'No se pudo crear el usuario. Probá de nuevo.')
     } finally {
@@ -105,6 +110,12 @@ function InviteModal({ businessId, onClose, onAdd }: { businessId?: string | nul
         {sent
           ? <>
               <div className="us-success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>{role === 'manager' ? t('us_invite_sent') : t('us_scan_created')}</div>
+              {role === 'manager' && inviteFailed && (
+                <>
+                  <div className="us-error">El usuario se creó, pero no pudimos mandar el email de invitación. Probá con "Reenviar invitación" desde la lista del equipo.</div>
+                  <button className="us-invite-btn" style={{ marginTop: 12 }} onClick={onClose}>Entendido</button>
+                </>
+              )}
               {role === 'scanner' && (
                 <>
                   <div className="us-field-hint">Anotá el PIN ahora: por seguridad no se vuelve a mostrar. Si se pierde, podés eliminar al usuario y crearlo de nuevo.</div>
@@ -157,6 +168,7 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
   const [roleFilter, setFilter]           = useState<'all' | Role>('all')
   const [showInvite, setInvite]           = useState(false)
   const [showActivate, setActivate]       = useState(false)
+  const [inviteNotice, setInviteNotice]   = useState<{ ok: boolean; text: string } | null>(null)
 
   const nonOwners = users.filter((u: StaffUser) => u.role !== 'owner').length
   const atLimit   = teamLimit < 999 && nonOwners >= teamLimit
@@ -170,6 +182,19 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
     setUsers(users.filter((u: StaffUser) => u.id !== id))
     setConfirmDelete(null)
     onRefresh?.()
+  }
+
+  // Link nuevo por email (vence el anterior). Sirve si no le llegó, si se
+  // le venció o si el manager se olvidó la contraseña.
+  async function resendInvite(user: StaffUser) {
+    if (!businessId) return
+    setInviteNotice(null)
+    try {
+      const res = await apiResendInvite(businessId, user.id)
+      setInviteNotice({ ok: true, text: res.message })
+    } catch (err: any) {
+      setInviteNotice({ ok: false, text: err?.error || 'No se pudo reenviar la invitación.' })
+    }
   }
 
   async function toggleDisable(id: string) {
@@ -305,6 +330,11 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
         </div>
 
         <div className="us-lbl">{t('us_team')}</div>
+        {inviteNotice && (
+          <div className={inviteNotice.ok ? 'us-success' : 'us-error'} style={{ marginTop: 0 }} onClick={() => setInviteNotice(null)}>
+            {inviteNotice.text}
+          </div>
+        )}
         <div className="us-card">
           <div className="us-toolbar">
             <div className="us-filter-pills">
@@ -342,6 +372,15 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
                     <td>
                       {u.role !== 'owner' && (
                         <div className="us-row-actions">
+                          {u.role === 'manager' && u.status !== 'disabled' && (
+                            <button
+                              className="us-action-btn"
+                              onClick={() => resendInvite(u)}
+                              title={u.status === 'invited' ? 'Reenviar invitación' : 'Mandar link para nueva contraseña'}
+                            >
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            </button>
+                          )}
                           <button
                             className="us-action-btn"
                             onClick={() => toggleDisable(u.id)}

@@ -245,7 +245,7 @@ function CheckboxRow({ label, checked: init, description, onToggle }: { label: s
   )
 }
 
-export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', deletionRequestedAt = null, onSave }: { business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; deletionRequestedAt?: string | null; onSave?: () => void }) {
+export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', deletionRequestedAt = null, onSave, isManager = false }: { business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; deletionRequestedAt?: string | null; onSave?: () => void; isManager?: boolean }) {
   const t = useLang()
   const [business, setBusiness]       = useState(mockBusiness)
   const [inactiveDays, setInactiveDays] = useState(mockBusiness.inactiveDays)
@@ -430,6 +430,9 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           <CheckboxRow label={t('st_alert_weekly')} checked={business.alerts.weeklyDigest} description={t('st_alert_weekly_desc')} onToggle={v => handleSave('alerts', { ...business.alerts, weeklyDigest: v })} />
         </Section>
 
+        {/* Plan y zona de peligro: solo el dueño (el manager tiene "todo el
+            dashboard, sin billing ni equipo, sin zona de peligro"). */}
+        {!isManager && <>
         <Section title={t('st_plan')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>}>
           <div className="st-plan-card">
             <div>
@@ -488,6 +491,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
             </div>
           )}
         </div>
+        </>}
       </div>
     </>
   )

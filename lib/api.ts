@@ -90,6 +90,9 @@ export interface Owner {
   fullName: string
   plan: 'Starter' | 'Growth' | 'Pro' | 'Enterprise'
   maxLocations: number
+  // 'manager' = miembro del equipo invitado por el dueño: ve un solo
+  // negocio, sin Equipo, plan ni zona de peligro.
+  role?: 'owner' | 'manager'
 }
 
 export interface Business {
@@ -450,7 +453,7 @@ export async function apiCreateTeamMember(businessId: string, data: {
   email?: string
   pin?: string
 }) {
-  return request<TeamMember>(`/api/businesses/${businessId}/team`, {
+  return request<TeamMember & { id?: string; inviteSent?: boolean }>(`/api/businesses/${businessId}/team`, {
     method: 'POST',
     body: data,
   })
@@ -465,6 +468,26 @@ export async function apiUpdateTeamMember(businessId: string, userId: string, da
     method: 'PATCH',
     body: data,
   })
+}
+
+export async function apiResendInvite(businessId: string, userId: string) {
+  return request<{ success: boolean; message: string }>(`/api/businesses/${businessId}/team/${userId}/resend-invite`, {
+    method: 'POST',
+  })
+}
+
+export async function apiGetInvite(token: string) {
+  return request<{ fullName: string; email: string; businessName: string }>(`/api/auth/invite/${encodeURIComponent(token)}`, { noAuth: true })
+}
+
+export async function apiAcceptInvite(token: string, password: string) {
+  const res = await request<{ token: string; role: 'manager' }>('/api/auth/accept-invite', {
+    method: 'POST',
+    body: { token, password },
+    noAuth: true,
+  })
+  setToken(res.token)
+  return res
 }
 
 export async function apiDeleteTeamMember(businessId: string, userId: string) {

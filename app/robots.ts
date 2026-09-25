@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: '*',
       allow: '/',
       // Pantallas privadas o de un negocio puntual: no tienen sentido en Google.
-      disallow: ['/dashboard', '/onboarding', '/r/', '/reset-password', '/forgot-password'],
+      disallow: ['/dashboard', '/onboarding', '/r/', '/reset-password', '/forgot-password', '/invite'],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
   }
