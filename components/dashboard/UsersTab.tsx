@@ -19,20 +19,49 @@ function AndroidIcon() {
   return <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85a.6.6 0 0 0-.77.22l-1.86 3.22a11.5 11.5 0 0 0-9.02 0L5.67 5.67a.6.6 0 0 0-.78-.22c-.3.16-.42.54-.26.85L6.47 9.48A10.8 10.8 0 0 0 1.5 18h21a10.8 10.8 0 0 0-4.9-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
 }
 
-function InviteModal({ onClose, onAdd, onRefresh }: { onClose: () => void; onAdd: (u: StaffUser) => void; onRefresh?: () => void }) {
+function InviteModal({ businessId, onClose, onAdd }: { businessId?: string | null; onClose: () => void; onAdd: (u: StaffUser) => void }) {
   const t = useLang()
   const [role, setRole] = useState<'manager' | 'scanner'>('manager')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [pin] = useState(() => Math.floor(1000 + Math.random() * 9000).toString())
   const [sent, setSent] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  function handleInvite() {
+  // Antes esto solo agregaba el usuario a la lista en pantalla y nunca
+  // llamaba al backend — el scanner no existía de verdad y su PIN no
+  // servía para entrar a la app de escaneo.
+  async function handleInvite() {
     if (!name.trim()) return
     if (role === 'manager' && !email.trim()) return
-    onAdd({ id: Date.now().toString(), name, email: role === 'manager' ? email : '', role, access: role === 'manager' ? 'Dashboard' : `PIN ${pin}`, status: role === 'manager' ? 'invited' : 'active', lastActivity: '—' })
-    setSent(true)
-    setTimeout(() => { setSent(false); onClose() }, 2000)
+    if (!businessId) { setError('No se encontró el negocio. Recargá la página.'); return }
+    setSaving(true)
+    setError(null)
+    try {
+      const created = await apiCreateTeamMember(businessId, {
+        fullName: name.trim(),
+        role,
+        ...(role === 'manager' ? { email: email.trim() } : { pin }),
+      })
+      onAdd({
+        id: String((created as any).id ?? (created as any)._id),
+        name: created.fullName,
+        email: created.email || '',
+        role,
+        access: role === 'manager' ? 'Dashboard' : 'Scanner app',
+        status: created.status as Status,
+        lastActivity: '—',
+      })
+      setSent(true)
+      // El PIN no se vuelve a mostrar (se guarda hasheado): para scanners
+      // el modal queda abierto hasta que el dueño lo cierre.
+      if (role === 'manager') setTimeout(() => { setSent(false); onClose() }, 2000)
+    } catch (err: any) {
+      setError(err?.message || err?.error || 'No se pudo crear el usuario. Probá de nuevo.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -72,10 +101,48 @@ function InviteModal({ onClose, onAdd, onRefresh }: { onClose: () => void; onAdd
             <div className="us-field-hint">{t('us_pin_note')}</div>
           </>
         )}
+        {error && <div className="us-error">{error}</div>}
         {sent
-          ? <div className="us-success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>{role === 'manager' ? t('us_invite_sent') : t('us_scan_created')}</div>
-          : <button className="us-invite-btn" onClick={handleInvite} disabled={!name.trim() || (role === 'manager' && !email.trim())}>{role === 'manager' ? t('us_send_invite') : t('us_create_scan')}</button>
+          ? <>
+              <div className="us-success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>{role === 'manager' ? t('us_invite_sent') : t('us_scan_created')}</div>
+              {role === 'scanner' && (
+                <>
+                  <div className="us-field-hint">Anotá el PIN ahora: por seguridad no se vuelve a mostrar. Si se pierde, podés eliminar al usuario y crearlo de nuevo.</div>
+                  <button className="us-invite-btn" style={{ marginTop: 12 }} onClick={onClose}>Listo, ya lo anoté</button>
+                </>
+              )}
+            </>
+          : <button className="us-invite-btn" onClick={handleInvite} disabled={saving || !name.trim() || (role === 'manager' && !email.trim())}>{saving ? 'Guardando…' : role === 'manager' ? t('us_send_invite') : t('us_create_scan')}</button>
         }
+      </div>
+    </div>
+  )
+}
+
+// QR de activación de la app de escaneo. Codifica solo el businessId (con
+// prefijo, para que la app no confunda este QR con el del pase de un
+// cliente) — se genera acá mismo, sin endpoint nuevo, con el mismo
+// servicio de imagen que ya usa el QR de registro del Form tab. La app lo
+// escanea una sola vez por dispositivo y guarda el businessId.
+function ActivateDeviceModal({ businessId, onClose }: { businessId: string; onClose: () => void }) {
+  const payload = `stampa-device:${businessId}`
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=480x480&margin=0&data=${encodeURIComponent(payload)}`
+  return (
+    <div className="us-modal-overlay" onClick={onClose}>
+      <div className="us-modal" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+        <div className="us-modal-header">
+          <div className="us-modal-title">Activar dispositivo de escaneo</div>
+          <button className="us-modal-close" onClick={onClose}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <div className="us-activate-qr">
+          <img src={qrSrc} width={220} height={220} alt="QR de activación del dispositivo" />
+        </div>
+        <ol className="us-activate-steps">
+          <li>Instalá la app de escaneo de Stampa en el celular o tablet del local.</li>
+          <li>Abrila y apuntá la cámara a este código.</li>
+          <li>Listo: ese dispositivo queda vinculado a este negocio. De ahí en adelante, cada empleado entra con su PIN.</li>
+        </ol>
+        <div className="us-field-hint">Se hace una sola vez por dispositivo. Cualquiera que escanee este código puede vincular un dispositivo, pero sin un PIN válido no puede sumar sellos ni ver clientes.</div>
       </div>
     </div>
   )
@@ -89,6 +156,7 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [roleFilter, setFilter]           = useState<'all' | Role>('all')
   const [showInvite, setInvite]           = useState(false)
+  const [showActivate, setActivate]       = useState(false)
 
   const nonOwners = users.filter((u: StaffUser) => u.role !== 'owner').length
   const atLimit   = teamLimit < 999 && nonOwners >= teamLimit
@@ -146,6 +214,11 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
         .us-scanner-app-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;color:#F7F0E4;}
         .us-scanner-app-sub{font-size:11.5px;color:rgba(247,240,228,.6);margin-top:2px;}
         .us-scanner-app-btn{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:9px 14px;border-radius:9px;background:#C75D3A;color:#fff;border:none;cursor:pointer;text-decoration:none;font-family:'Inter',sans-serif;white-space:nowrap;}
+        .us-scanner-app-btn--light{background:#F7F0E4;color:#1B412F;}
+        .us-activate-qr{display:flex;justify-content:center;background:#FBF6EE;border:1px solid rgba(43,38,32,.1);border-radius:14px;padding:18px;margin-bottom:16px;}
+        .us-activate-qr img{display:block;border-radius:6px;background:#fff;}
+        .us-activate-steps{margin:0 0 10px;padding-left:18px;font-size:12.5px;color:rgba(43,38,32,.75);line-height:1.6;}
+        .us-activate-steps li{margin-bottom:4px;}
         .us-scanner-app-btn--disabled{background:rgba(247,240,228,.08);color:rgba(247,240,228,.4);cursor:not-allowed;}
         .us-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(43,38,32,.38);font-weight:600;display:flex;align-items:center;gap:10px;}
         .us-lbl::after{content:'';flex:1;height:1px;background:rgba(43,38,32,.1);}
@@ -198,6 +271,7 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
         .us-pin-hint{font-size:11px;color:rgba(43,38,32,.45);line-height:1.4;}
         .us-invite-btn{width:100%;background:#C75D3A;color:#fff;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;margin-top:20px;}
         .us-invite-btn:disabled{opacity:.4;cursor:not-allowed;}
+        .us-error{padding:10px 14px;background:rgba(178,59,59,.08);border-radius:10px;font-size:12px;color:#B23B3B;font-weight:600;margin-top:14px;line-height:1.5;}
         .us-success{display:flex;align-items:center;gap:8px;padding:12px 14px;background:rgba(91,140,90,.12);border-radius:10px;font-size:12.5px;color:#5B8C5A;font-weight:600;margin-top:20px;}
         @media(max-width:768px){.us-3col{grid-template-columns:1fr;}.us-content{padding:14px 16px;}.us-card{overflow-x:auto;}.us-toolbar{flex-wrap:wrap;padding:10px 14px;}}
         @media(max-width:480px){table.us{min-width:460px;}}
@@ -221,6 +295,12 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
             <button className="us-scanner-app-btn us-scanner-app-btn--disabled" disabled title="Todavía no disponible">
               <AndroidIcon /> Próximamente en Android
             </button>
+            {businessId && (
+              <button className="us-scanner-app-btn us-scanner-app-btn--light" onClick={() => setActivate(true)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3z"/><path d="M18 18h3v3h-3z"/></svg>
+                Activar dispositivo de escaneo
+              </button>
+            )}
           </div>
         </div>
 
@@ -342,7 +422,9 @@ export function UsersTab({ users: initUsers, businessId, onRefresh, owner }: { u
         </div>
       </div>
 
-      {showInvite && <InviteModal onClose={() => setInvite(false)} onAdd={u => setUsers([...users, u])} onRefresh={onRefresh} />}
+      {showActivate && businessId && <ActivateDeviceModal businessId={businessId} onClose={() => setActivate(false)} />}
+
+      {showInvite && <InviteModal businessId={businessId} onClose={() => setInvite(false)} onAdd={u => setUsers(prev => [...prev, u])} />}
 
       {confirmDelete && (() => {
         const user = users.find((u: StaffUser) => u.id === confirmDelete)
