@@ -26,6 +26,7 @@ interface CardDesign {
   flipSubMessage?: string | null
   pointsPerVisit?: number | null
   textColor?: string | null
+  labelColor?: string | null
   publicDescription?: string | null
 }
 
@@ -365,14 +366,23 @@ function GooglePreview({ design, businessName, logos, rewardSourceLabel, tiers, 
 function MiniPass({ design, businessName, logos }: { design: CardDesign; businessName?: string | null; logos: LogoState }) {
   const stamps = Array.from({ length: Math.min(design.stampsRequired, 8) }, (_: unknown, i: number) => i < 3)
   const fallbackLabel = (businessName || design.name).split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0,4)
+  // El fondo de membership no se elige en el Design tab — lo define el
+  // nivel del cliente (ver el mismo criterio en appleWalletPassBuilder.js).
+  // El preview arranca siempre en Bronze, el primer nivel, en vez de mostrar
+  // el color general de la tarjeta (que ni siquiera aplica para este tipo).
+  const bronze = DEFAULT_TIERS[0]
+  const bgStyle = design.type === 'membership'
+    ? { background: bronze.bg }
+    : { background: `linear-gradient(170deg, ${design.color}, ${design.secondColor})` }
+  const textColor = design.type === 'membership' ? bronze.color : (design.textColor || '#FFFFFF')
   return (
-    <div className="dt-mini-pass" style={{ background: `linear-gradient(170deg, ${design.color}, ${design.secondColor})` }}>
+    <div className="dt-mini-pass" style={bgStyle}>
       <div className="dt-mini-pass-top">
         {logos.businessLogo
           ? <img src={logos.businessLogo} className="dt-mini-logo-img" alt="" />
-          : <div className="dt-mini-logo-text" style={{ color: design.textColor || '#FFFFFF' }}>{fallbackLabel}</div>
+          : <div className="dt-mini-logo-text" style={{ color: textColor }}>{fallbackLabel}</div>
         }
-        <span className="dt-mini-type">{design.type === 'stamp' ? 'Sellos' : design.type === 'points' ? 'Puntos' : 'Membresía'}</span>
+        <span className="dt-mini-type" style={design.type === 'membership' ? { color: textColor } : undefined}>{design.type === 'stamp' ? 'Sellos' : design.type === 'points' ? 'Puntos' : 'Membresía'}</span>
       </div>
       {design.type === 'stamp' && (
         <div className="dt-mini-stamps">
@@ -385,13 +395,21 @@ function MiniPass({ design, businessName, logos }: { design: CardDesign; busines
       )}
       {design.type === 'membership' && (
         <div className="dt-mini-tier-row">
-          <div className="dt-mini-tier-chip">Bronze</div>
-          <div className="dt-mini-tier-chip dt-mini-tier-chip--active">Silver</div>
-          <div className="dt-mini-tier-chip">Gold</div>
+          <div className="dt-mini-tier-chip dt-mini-tier-chip--active" style={{ background: bronze.bg, color: bronze.color, border: `1px solid ${bronze.color}` }}>Bronze</div>
+          <div className="dt-mini-tier-chip" style={{ background: 'transparent', color: bronze.color, opacity: 0.45, border: `1px solid ${bronze.color}` }}>Silver</div>
+          <div className="dt-mini-tier-chip" style={{ background: 'transparent', color: bronze.color, opacity: 0.45, border: `1px solid ${bronze.color}` }}>Gold</div>
+          <div className="dt-mini-tier-chip" style={{ background: 'transparent', color: bronze.color, opacity: 0.45, border: `1px solid ${bronze.color}` }}>Black</div>
         </div>
       )}
       {design.type === 'points' && <div className="dt-mini-points">120 pts</div>}
-      <div className="dt-mini-qr-hint" />
+      {/* Antes era un cuadrado blanco vacío sin ningún ícono adentro —
+          representaba "acá va el QR" pero no se entendía qué era. */}
+      <div className="dt-mini-qr-hint" title="Acá va el código QR del cliente en el pase real">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2B2620" strokeWidth="1.6">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          <path d="M14 14h3v3h-3z"/><path d="M20 14v3"/><path d="M14 20h3"/><path d="M20 20h.01"/>
+        </svg>
+      </div>
     </div>
   )
 }
@@ -450,6 +468,7 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
         color: card.color,
         secondColor: card.secondColor,
         textColor: card.textColor,
+        labelColor: card.labelColor || undefined,
         publicDescription: card.publicDescription || undefined,
         isActive: card.isActive,
         stampsRequired: card.stampsRequired,
@@ -722,6 +741,26 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
               Color de texto personalizado · Plan Growth o superior
             </div>
           )}
+
+          {/* Color de las etiquetas (TITULAR, PREMIO) — separado del color
+              del valor. Mismo gate que el color de texto: ambos son
+              "personalización de color de texto" desde Growth. */}
+          <div className="dt-appearance-label" style={{ marginTop: 14 }}>Color de las etiquetas</div>
+          {can('customTextColor') ? (
+            <div className="dt-custom-color-row">
+              <label className="dt-custom-swatch" style={{ background: card.labelColor || card.textColor || '#FFFFFF' }}>
+                <input type="color" value={card.labelColor || card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, labelColor: e.target.value })} className="dt-color-native" />
+              </label>
+              <input type="text" className="dt-hex-input" value={card.labelColor || card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, labelColor: e.target.value })} placeholder="#FFFFFF" maxLength={7} />
+              <span className="dt-hex-label">TITULAR, PREMIO, etc. — si no lo cambiás, usa el color de texto</span>
+            </div>
+          ) : (
+            <div className="dt-upgrade-color-note">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Color de etiquetas personalizado · Plan Growth o superior
+            </div>
+          )}
+
 
           {card.type === 'stamp' && (
             <>
@@ -1338,7 +1377,7 @@ export function DesignTab({ data, cards, businessId, businessName, onSaved }: { 
         .dt-mini-tier-chip{font-size:8px;padding:2px 8px;border-radius:20px;background:rgba(255,255,255,.18);color:rgba(255,255,255,.7);font-weight:600;}
         .dt-mini-tier-chip--active{background:rgba(255,255,255,.85);color:#2B2620;}
         .dt-mini-points{font-size:22px;font-weight:800;color:#FFFFFF;}
-        .dt-mini-qr-hint{width:28px;height:28px;background:rgba(255,255,255,.9);border-radius:4px;margin-top:auto;align-self:flex-end;}
+        .dt-mini-qr-hint{width:28px;height:28px;background:rgba(255,255,255,.9);border-radius:4px;margin-top:auto;align-self:flex-end;display:flex;align-items:center;justify-content:center;}
         .dt-tile-info{padding:12px 14px;display:flex;flex-direction:column;gap:5px;}
         .dt-tile-name-row{display:flex;align-items:center;justify-content:space-between;}
         .dt-tile-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:#2B2620;}

@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useRef, useEffect } from 'react'
-import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields, BASE_URL } from '@/lib/api'
+import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields, apiUpdateCard } from '@/lib/api'
 import { usePlan } from '@/data/plans'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -119,21 +119,41 @@ function MobilePreview({ fields, businessName, brandColor, brandLogo }: {
 }
 
 // ─── Editable optional field row ──────────────────────────────────────────────
-function OptionalFieldRow({ field, onUpdate, onToggle, onSetReward, onDragStart, onDragEnter, onDragEnd }: {
+function OptionalFieldRow({ field, onUpdate, onUpdateOptions, onToggle, onSetReward, onDragStart, onDragEnter, onDragEnd, showReward }: {
   field: FormField
   onUpdate: (id: string, label: string) => void
+  onUpdateOptions: (id: string, options: string[]) => void
   onToggle: (id: string) => void
   onSetReward: (id: string) => void
   onDragStart: () => void
   onDragEnter: () => void
   onDragEnd: () => void
+  showReward: boolean
 }) {
   const [editing, setEditing] = useState(false)
   const [label, setLabel]     = useState(field.label)
+  const [addingOption, setAddingOption] = useState(false)
+  const [newOption, setNewOption] = useState('')
 
   function saveLabel() {
     onUpdate(field.id, label)
     setEditing(false)
+  }
+
+  function removeOption(opt: string) {
+    const current = field.options || []
+    if (current.length <= 2) return // mínimo 2 opciones — un select de una sola no tiene sentido
+    onUpdateOptions(field.id, current.filter(o => o !== opt))
+  }
+
+  function confirmAddOption() {
+    const trimmed = newOption.trim()
+    const current = field.options || []
+    if (trimmed && !current.includes(trimmed)) {
+      onUpdateOptions(field.id, [...current, trimmed])
+    }
+    setNewOption('')
+    setAddingOption(false)
   }
 
   return (
@@ -163,12 +183,39 @@ function OptionalFieldRow({ field, onUpdate, onToggle, onSetReward, onDragStart,
             autoFocus
             onClick={e => e.stopPropagation()}
           />
-        : <span className="fm-field-label" onDoubleClick={() => setEditing(true)}>{field.label}</span>
+        : <div className="fm-field-label-col">
+            <span className="fm-field-label" onDoubleClick={() => setEditing(true)}>{field.label}</span>
+            {field.type === 'select' && field.options && field.options.length > 0 && (
+              <div className="fm-options-chips" onClick={e => e.stopPropagation()} draggable={false}>
+                {field.options.map(opt => (
+                  <span key={opt} className="fm-option-chip">
+                    {opt}
+                    {(field.options?.length || 0) > 2 && (
+                      <button className="fm-option-chip-x" onClick={() => removeOption(opt)} title="Quitar opción">✕</button>
+                    )}
+                  </span>
+                ))}
+                {addingOption ? (
+                  <input
+                    className="fm-option-add-input"
+                    value={newOption}
+                    onChange={e => setNewOption(e.target.value)}
+                    onBlur={confirmAddOption}
+                    onKeyDown={e => { if (e.key === 'Enter') confirmAddOption(); if (e.key === 'Escape') { setNewOption(''); setAddingOption(false) } }}
+                    placeholder="Nueva opción"
+                    autoFocus
+                  />
+                ) : (
+                  <button className="fm-option-add-btn" onClick={() => setAddingOption(true)}>+ Agregar</button>
+                )}
+              </div>
+            )}
+          </div>
       }
 
       <div className="fm-field-actions">
-        {field.isRewardSource && <span className="fm-reward-badge">★ Premio</span>}
-        {!field.isRewardSource && field.isActive && (
+        {showReward && field.isRewardSource && <span className="fm-reward-badge">★ Premio</span>}
+        {showReward && !field.isRewardSource && field.isActive && (
           <button className="fm-set-reward-btn" onClick={() => onSetReward(field.id)} title="Usar como campo de premio">★</button>
         )}
         <button className="fm-edit-label-btn" onClick={() => setEditing(true)} title="Renombrar campo">
@@ -186,7 +233,7 @@ function OptionalFieldRow({ field, onUpdate, onToggle, onSetReward, onDragStart,
 }
 
 // ─── Custom field builder ─────────────────────────────────────────────────────
-function CustomFieldBuilder({ fields, onChange, maxCustom, businessId, cardId }: { fields: FormField[]; onChange: (f: FormField[]) => void; maxCustom: number; businessId?: string | null; cardId?: string }) {
+function CustomFieldBuilder({ fields, onChange, maxCustom, businessId, cardId, showReward }: { fields: FormField[]; onChange: (f: FormField[]) => void; maxCustom: number; businessId?: string | null; cardId?: string; showReward: boolean }) {
   function add() {
     if (fields.length >= maxCustom) return
     onChange([...fields, { id: `c-${Date.now()}`, label: '', type: 'text', isLocked: false, isActive: true, isRewardSource: false, order: 100 + fields.length, isCustom: true }])
@@ -219,7 +266,9 @@ function CustomFieldBuilder({ fields, onChange, maxCustom, businessId, cardId }:
           <select className="fm-custom-select" value={f.type} onChange={e => update(f.id, { type: e.target.value as FieldType })}>
             {FIELD_TYPE_OPTIONS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
           </select>
-          <button className={`fm-reward-toggle${f.isRewardSource ? ' fm-reward-toggle--on' : ''}`} onClick={() => update(f.id, { isRewardSource: !f.isRewardSource })} title="Usar como campo de premio">★</button>
+          {showReward && (
+            <button className={`fm-reward-toggle${f.isRewardSource ? ' fm-reward-toggle--on' : ''}`} onClick={() => update(f.id, { isRewardSource: !f.isRewardSource })} title="Usar como campo de premio">★</button>
+          )}
           <button className="fm-remove-btn" onClick={() => remove(f.id)}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -344,10 +393,20 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
   }, [businessId, selectedCardId])
 
 
-  // Branding state
+  // Branding state — arranca con el color/logo de la tarjeta activa, y se
+  // resetea cada vez que se cambia de tarjeta en el selector (antes se leía
+  // una sola vez con useState() y quedaba pegado al color de la primera
+  // tarjeta aunque cambiaras de selección).
   const [brandColor, setBrandColor] = useState(selectedCard?.color || '#1B412F')
   const [brandLogo, setBrandLogo]   = useState<string | null>(null)
   const logoRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setBrandColor(selectedCard?.color || '#1B412F')
+    // El tipo CardDesign de este archivo no trae logoUrl (solo id/name/type/
+    // isActive/color) — si el padre empieza a pasarlo, sumarlo acá también.
+    setBrandLogo(null)
+  }, [selectedCardId])
 
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -370,6 +429,10 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
 
   function updateLabel(id: string, label: string) {
     setOptional(optional.map((f: FormField) => f.id === id ? { ...f, label } : f))
+  }
+
+  function updateOptions(id: string, options: string[]) {
+    setOptional(optional.map((f: FormField) => f.id === id ? { ...f, options } : f))
   }
 
   function setRewardSource(id: string) {
@@ -413,31 +476,42 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
     }
     setSaveError(null)
     try {
-      const token = localStorage.getItem('stampa_token')
+      // Persistir la identidad visual del formulario (color/logo) en la
+      // Card — antes esto no se guardaba en ningún lado, por eso el
+      // formulario público nunca reflejaba lo que se elegía acá.
+      // apiUpdateCard tira una excepción en vez de devolver res.ok, por
+      // eso el try/catch en vez de chequear .ok.
+      try {
+        await apiUpdateCard(businessId, selectedCardId, {
+          color: brandColor,
+          ...(brandLogo ? { logoUrl: brandLogo } : {}),
+        })
+      } catch (err: any) {
+        setSaveError(err?.error || `Error ${err?.status || ''} al guardar el color/logo.`.trim())
+        return
+      }
+
       const allCustomFields = [...optional, ...custom]
 
-      // Update each field that has a real MongoDB _id — chequeamos res.ok
-      // de cada uno: fetch() no tira excepción por un 400/500, así que sin
-      // esto un campo podía fallar en silencio y el usuario nunca se
-      // enteraba (ni error, ni confirmación real de que se guardó).
+      // Update each field that has a real MongoDB _id — cada llamada va
+      // envuelta en su propio try/catch para que un campo fallando no
+      // tumbe Promise.all ni quede en silencio (antes se chequeaba
+      // res.ok a mano porque se usaba fetch() directo; apiUpdateField ya
+      // lanza excepción sola, pero igual hay que atajarla por request).
       const patchResults = await Promise.all(allCustomFields
         .filter((f: FormField) => !f.id.startsWith('c-') && !['name','email'].includes(f.id))
         .map(async (f: FormField) => {
-          const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/cards/${selectedCardId}/fields/${f.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({
+          try {
+            await apiUpdateField(businessId, selectedCardId, f.id, {
               label: f.label,
               isActive: f.isActive,
               isRewardSource: f.isRewardSource,
               order: f.order,
             })
-          })
-          if (!res.ok) {
-            const body = await res.json().catch(() => ({}))
-            return { ok: false, label: f.label, error: body?.error || `Error ${res.status}` }
+            return { ok: true }
+          } catch (err: any) {
+            return { ok: false, label: f.label, error: err?.error || `Error ${err?.status || ''}`.trim() }
           }
-          return { ok: true }
         })
       )
 
@@ -445,21 +519,17 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
       const createResults = await Promise.all(custom
         .filter((f: FormField) => f.id.startsWith('c-') && f.label.trim())
         .map(async (f: FormField) => {
-          const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/cards/${selectedCardId}/fields`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({
+          try {
+            await apiCreateField(businessId, selectedCardId, {
               label: f.label,
               fieldType: f.type || 'text',
               isRewardSource: f.isRewardSource,
               order: f.order,
             })
-          })
-          if (!res.ok) {
-            const body = await res.json().catch(() => ({}))
-            return { ok: false, label: f.label, error: body?.error || `Error ${res.status}` }
+            return { ok: true }
+          } catch (err: any) {
+            return { ok: false, label: f.label, error: err?.error || `Error ${err?.status || ''}`.trim() }
           }
-          return { ok: true }
         })
       )
 
@@ -537,6 +607,13 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
         .fm-grip{color:rgba(43,38,32,.3);flex-shrink:0;display:flex;align-items:center;}
         .fm-field-type-tag{width:22px;height:22px;border-radius:6px;background:rgba(43,38,32,.08);display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(43,38,32,.5);flex-shrink:0;}
         .fm-field-label{flex:1;cursor:default;}
+        .fm-field-label-col{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;}
+        .fm-options-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+        .fm-option-chip{display:flex;align-items:center;gap:5px;background:#FBF6EE;border:1px solid rgba(43,38,32,.15);border-radius:20px;padding:3px 6px 3px 10px;font-size:11.5px;color:#2B2620;}
+        .fm-option-chip-x{width:14px;height:14px;border-radius:50%;border:none;background:rgba(43,38,32,.1);color:#2B2620;font-size:9px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+        .fm-option-chip-x:hover{background:rgba(178,59,59,.2);color:#B23B3B;}
+        .fm-option-add-btn{background:none;border:1px dashed rgba(199,93,58,.5);color:#C75D3A;border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:600;cursor:pointer;}
+        .fm-option-add-input{border:1px solid rgba(199,93,58,.4);border-radius:20px;padding:3px 10px;font-size:11.5px;font-family:'Inter',sans-serif;outline:none;width:110px;}
         .fm-label-edit-input{flex:1;padding:3px 7px;font-size:12px;border:1.5px solid #C75D3A;border-radius:7px;background:#FFFFFF;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
         .fm-field-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;}
         .fm-reward-badge{font-size:9px;padding:2px 9px;border-radius:20px;background:rgba(199,93,58,.15);color:#C75D3A;font-weight:700;}
@@ -729,7 +806,7 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
             {/* Optional — editable */}
             <div className="fm-card">
               <div className="fm-card-title">Campos opcionales</div>
-              <div className="fm-card-sub">Arrastrá para reordenar · lápiz para renombrar · ojo para mostrar/ocultar · ★ para el campo de premio</div>
+              <div className="fm-card-sub">Arrastrá para reordenar · lápiz para renombrar · ojo para mostrar/ocultar{selectedCard?.type === 'stamp' ? ' · ★ para el campo de premio' : ''}</div>
               {loadingFields ? (
                 <div className="fm-max-note">Cargando...</div>
               ) : (
@@ -739,11 +816,13 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
                       key={f.id}
                       field={f}
                       onUpdate={updateLabel}
+                      onUpdateOptions={updateOptions}
                       onToggle={toggleOptional}
                       onSetReward={setRewardSource}
                       onDragStart={() => handleDragStart(i)}
                       onDragEnter={() => handleDragEnter(i)}
                       onDragEnd={handleDragEnd}
+                      showReward={selectedCard?.type === 'stamp'}
                     />
                   ))}
                 </div>
@@ -757,23 +836,30 @@ export function FormTab({ businessName, businessSlug, cardDesigns, businessId }:
             <div className="fm-card">
               <div className="fm-card-title">Campos personalizados</div>
               <div className="fm-card-sub">{MAX_CUSTOM > 0 ? `Hasta ${MAX_CUSTOM} campos propios de tu negocio` : 'Función exclusiva de planes pagos'}</div>
-              <CustomFieldBuilder fields={custom} onChange={setCustom} maxCustom={MAX_CUSTOM} businessId={businessId} cardId={selectedCardId} />
+              <CustomFieldBuilder fields={custom} onChange={setCustom} maxCustom={MAX_CUSTOM} businessId={businessId} cardId={selectedCardId} showReward={selectedCard?.type === 'stamp'} />
             </div>
 
-            {/* Reward source */}
-            <div className="fm-card">
-              <div className="fm-card-title">Campo de premio activo</div>
-              <div className="fm-card-sub">Esto es lo que el scanner le va a mostrar como premio a entregar</div>
-              {rewardField
-                ? <div className="fm-reward-info">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                    <div>
-                      Al completar la tarjeta, el scanner verá la respuesta del cliente en <span className="fm-reward-field-name">"{rewardField.label}"</span> como el premio a entregar.
+            {/* Reward source — el mecanismo de "campo que se revela como
+                premio" solo tiene sentido para sellos. Puntos ya usa un
+                catálogo real donde el cliente elige a la vista
+                (PointsCatalogItem), y membership define el premio por
+                nivel (tier.perk) sin que el cliente elija nada — ninguno
+                de los dos necesita esta sección. */}
+            {selectedCard?.type === 'stamp' && (
+              <div className="fm-card">
+                <div className="fm-card-title">Campo de premio activo</div>
+                <div className="fm-card-sub">Esto es lo que el scanner le va a mostrar como premio a entregar</div>
+                {rewardField
+                  ? <div className="fm-reward-info">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                      <div>
+                        Al completar la tarjeta, el scanner verá la respuesta del cliente en <span className="fm-reward-field-name">"{rewardField.label}"</span> como el premio a entregar.
+                      </div>
                     </div>
-                  </div>
-                : <div className="fm-no-reward">Ningún campo marcado con ★. Hacé ★ en el campo que querés usar como premio.</div>
-              }
-            </div>
+                  : <div className="fm-no-reward">Ningún campo marcado con ★. Hacé ★ en el campo que querés usar como premio.</div>
+                }
+              </div>
+            )}
           </div>
 
           {/* Mobile preview */}

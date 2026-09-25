@@ -557,38 +557,28 @@ function formatRelativeTime(timestamp: number): string {
   return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
 }
 
-function mapCustomersForTab(rawCustomers: any[], activeCard: any) {
-  const fallbackTotal = activeCard?.stampsRequired || 8
-  return rawCustomers.map(c => {
-    const cardType = c.cardType || activeCard?.type || 'stamp'
-    const progress = cardType === 'points' ? (c.pointsBalance ?? 0)
-      : cardType === 'membership' ? 0
-      : (c.stamps ?? 0)
-    const total = cardType === 'points' ? 0
-      : cardType === 'membership' ? 0
-      : (c.cardStampsRequired || fallbackTotal)
-    return {
-      id: c.id,
-      name: c.name,
-      email: c.email,
-      cardType,
-      cardName: c.cardName || activeCard?.name || null,
-      cardId: c.cardId || activeCard?.id || null,
-      membershipTier: c.membershipTier || null,
-      progress,
-      total,
-      dynamicField: c.rewardFieldValue || '—',
-      dynamicFieldLabel: c.rewardFieldLabel || 'Premio',
-      status: c.status,
-      joined: c.joinedAt,
-      dob: c.birthdate || '—',
-      preference: c.favoriteFood
-        ? `${c.favoriteFood === 'sweet' ? 'Dulce' : 'Salado'}${c.timeVisit ? ' · ' + (c.timeVisit === 'morning' ? 'Mañana' : 'Tarde') : ''}`
-        : '—',
-      lastActivity: formatRelativeTime(c.lastUpdate),
-      totalRedeemed: 0,
-    }
-  })
+function mapCustomersForTab(rawCustomers: any[]) {
+  return rawCustomers.map(c => ({
+    id: c.id,
+    name: c.name,
+    email: c.email,
+    status: c.status,
+    joined: c.joinedAt,
+    lastActivity: formatRelativeTime(c.lastUpdate),
+    cards: (c.cards || []).map((card: any) => ({
+      customerId: card.customerId,
+      cardId: card.cardId,
+      cardType: card.cardType,
+      cardName: card.cardName,
+      cardStampsRequired: card.cardStampsRequired,
+      stamps: card.stamps || 0,
+      pointsBalance: card.pointsBalance || 0,
+      membershipTier: card.membershipTier || null,
+      lastUpdate: card.lastUpdate || 0,
+      premio: card.premio,
+      formResponses: card.formResponses || [],
+    })),
+  }))
 }
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
@@ -1045,7 +1035,7 @@ export default function DashboardPage() {
       case 'overview':      return <OverviewTab t={t} analyticsData={analyticsData} rewardsData={rewardsData} detailedAnalytics={detailedAnalytics} cards={cards} />
       case 'customers': return customersTotal > 0
         ? <CustomersTab
-            customers={mapCustomersForTab(customers, cards.find((c: any) => c.isActive) || cards[0])}
+            customers={mapCustomersForTab(customers)}
             cards={cards.filter((c: any) => c.isActive)}
             cardFilter={customersCardFilter}
             page={customersPage}
