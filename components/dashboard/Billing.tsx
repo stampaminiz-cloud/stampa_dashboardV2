@@ -194,7 +194,10 @@ export function PlanModal({ billing, ownerEmail, onClose, onDone }: { billing: B
               {billing?.access === 'active' && ' Tu suscripción actual se cancela al confirmar el cambio.'}
             </div>
             <CardPayment
-              initialization={{ amount: selected.amount || 0, payer: { email: ownerEmail } }}
+              // Sin email precargado: el Brick lo pide. MP exige que el email
+              // sea el del que paga (en pruebas, el de la cuenta de prueba
+              // compradora); precargar el de la cuenta de Stampa lo rechazaba.
+              initialization={{ amount: selected.amount || 0 }}
               customization={{
                 paymentMethods: { maxInstallments: 1, minInstallments: 1 },
                 visual: { style: { customVariables: { baseColor: '#C75D3A' } } },
