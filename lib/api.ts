@@ -509,6 +509,7 @@ export interface BillingStatus {
   trialDaysLeft: number
   nextPaymentDate: string | null
   accessUntil: string | null
+  subscriptionId: string | null
 }
 
 export interface BillingPlan {

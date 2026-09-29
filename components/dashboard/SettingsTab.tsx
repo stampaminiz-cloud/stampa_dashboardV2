@@ -527,6 +527,11 @@ function BillingDetails({ billing, onCancel }: { billing?: BillingStatus | null;
         </div>
       )}
       {error && <div style={{ color: '#B23B3B', marginTop: 6 }}>{error}</div>}
+      {billing.subscriptionId && (
+        <div style={{ marginTop: 6, fontSize: 11, color: 'rgba(43,38,32,.4)' }}>
+          ID de suscripción (Mercado Pago): <span style={{ fontFamily: 'monospace', userSelect: 'all' }}>{billing.subscriptionId}</span>
+        </div>
+      )}
     </div>
   )
 }
