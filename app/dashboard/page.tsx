@@ -3,7 +3,8 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { mockData } from '@/data/mockData'
 import { detectLang, createT, LangContext } from '@/data/i18n'
 import { PlanProvider, PLAN_LIMITS } from '@/data/plans'
-import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL } from '@/lib/api'
+import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL, apiBillingStatus, apiCancelSubscription, type BillingStatus } from '@/lib/api'
+import { BillingBanner, BillingStyles, PlanModal } from '@/components/dashboard/Billing'
 import { SettingsTab }       from '@/components/dashboard/SettingsTab'
 import { CustomersTab }      from '@/components/dashboard/CustomersTab'
 import { AnalyticsTab }      from '@/components/dashboard/AnalyticsTab'
@@ -788,6 +789,9 @@ export default function DashboardPage() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [t, setT]                   = useState(() => createT('es'))
   const [owner, setOwner]           = useState<any>(null)
+  // Suscripción del dueño: banner de prueba/pausa y ventana de planes.
+  const [billing, setBilling]       = useState<BillingStatus | null>(null)
+  const [showPlans, setShowPlans]   = useState(false)
   const [business, setBusiness]     = useState<any>(null)
   const [businessId, setBusinessIdState] = useState<string | null>(null)
   const [team, setTeam]             = useState<any[]>([])
@@ -814,6 +818,7 @@ export default function DashboardPage() {
     try {
       const { owner: o, businesses } = await apiMe()
       setOwner(o)
+      apiBillingStatus().then(setBilling).catch(() => setBilling(null))
       if (o?.role === 'manager') setActive(prev => (prev === 'users' ? 'overview' : prev))
       if (businesses.length > 0) {
         const bid = businesses[0]._id
@@ -1105,6 +1110,12 @@ export default function DashboardPage() {
           ownerName={owner?.fullName || ''}
           ownerEmail={owner?.email || ''}
           isManager={owner?.role === 'manager'}
+          billing={billing}
+          onChoosePlan={() => setShowPlans(true)}
+          onCancelSubscription={async () => {
+            const res = await apiCancelSubscription()
+            setBilling(res)
+          }}
           deletionRequestedAt={owner?.deletionRequestedAt || null}
           business={business ? {
             ...mockData.business,
@@ -1142,6 +1153,8 @@ export default function DashboardPage() {
       />
       <div className="db-main">
         <Header title={t(TITLES[active] as any)} t={t} setMobileOpen={setMobileOpen} setActive={setActive} recentActivity={detailedAnalytics?.recentActivity} />
+        <BillingStyles />
+        <BillingBanner billing={billing} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
         {loading
           ? <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
@@ -1153,6 +1166,14 @@ export default function DashboardPage() {
         }
       </div>
     </div>
+    {showPlans && (
+      <PlanModal
+        billing={billing}
+        ownerEmail={owner?.email || ''}
+        onClose={() => setShowPlans(false)}
+        onDone={b => { setBilling(b); setOwner((o: any) => (o ? { ...o, plan: b.plan } : o)) }}
+      />
+    )}
     </LangContext.Provider>
     </PlanProvider>
   )

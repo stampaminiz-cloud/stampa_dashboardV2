@@ -496,6 +496,47 @@ export async function apiDeleteTeamMember(businessId: string, userId: string) {
   })
 }
 
+// ─── Cobro (suscripción del dueño) ───────────────────────────────────────────
+export type BillingAccess = 'legacy' | 'trial' | 'active' | 'paused'
+
+export interface BillingStatus {
+  access: BillingAccess
+  plan: string
+  status: string | null
+  provider: 'mercadopago' | 'stripe' | null
+  period: 'monthly' | 'annual' | null
+  trialEndsAt: string | null
+  trialDaysLeft: number
+  nextPaymentDate: string | null
+  accessUntil: string | null
+}
+
+export interface BillingPlan {
+  plan: 'starter' | 'growth' | 'pro' | 'enterprise'
+  name: string
+  period: 'monthly' | 'annual'
+  amount: number | null
+  currency: string | null
+  active: boolean
+  error?: boolean
+}
+
+export async function apiBillingStatus() {
+  return request<BillingStatus>('/api/billing')
+}
+
+export async function apiBillingPlans() {
+  return request<{ provider: 'mercadopago'; plans: BillingPlan[] }>('/api/billing/plans')
+}
+
+export async function apiSubscribeMercadoPago(data: { plan: string; period: string; cardTokenId: string; payerEmail?: string }) {
+  return request<BillingStatus>('/api/billing/mercadopago/subscribe', { method: 'POST', body: data })
+}
+
+export async function apiCancelSubscription() {
+  return request<BillingStatus>('/api/billing/cancel', { method: 'POST' })
+}
+
 // ─── Notifications ────────────────────────────────────────────────────────────
 export async function apiGetNotifications(businessId: string) {
   return request<{

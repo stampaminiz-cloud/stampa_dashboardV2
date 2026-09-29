@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
+import type { BillingStatus } from '@/lib/api'
 import { apiUpdateBusiness, apiChangePassword, apiUpdateProfile, apiExportCustomers, apiRequestDeletion, apiCancelDeletion } from '@/lib/api'
 import { useLang } from '@/data/i18n'
 import { InfoTooltip } from './InfoTooltip'
@@ -245,7 +246,7 @@ function CheckboxRow({ label, checked: init, description, onToggle }: { label: s
   )
 }
 
-export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', deletionRequestedAt = null, onSave, isManager = false }: { business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; deletionRequestedAt?: string | null; onSave?: () => void; isManager?: boolean }) {
+export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', deletionRequestedAt = null, onSave, isManager = false, billing = null, onChoosePlan, onCancelSubscription }: { business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; deletionRequestedAt?: string | null; onSave?: () => void; isManager?: boolean; billing?: BillingStatus | null; onChoosePlan?: () => void; onCancelSubscription?: () => Promise<void> }) {
   const t = useLang()
   const [business, setBusiness]       = useState(mockBusiness)
   const [inactiveDays, setInactiveDays] = useState(mockBusiness.inactiveDays)
@@ -440,8 +441,9 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
               <div className="st-plan-sub">{business.planActiveCards} {t('st_active_cards')}</div>
               <div className="st-plan-dots">{planDots.map((on: boolean, i: number) => <div key={i} className={`st-plan-dot ${on ? 'st-plan-dot--on' : 'st-plan-dot--off'}`} />)}</div>
             </div>
-            <button className="st-upgrade-btn">{t('upgrade_plan')}</button>
+            <button className="st-upgrade-btn" onClick={onChoosePlan}>{billing?.access === 'active' ? 'Cambiar plan' : 'Elegir plan'}</button>
           </div>
+          <BillingDetails billing={billing} onCancel={onCancelSubscription} />
         </Section>
 
         <div className="st-danger-card">
@@ -494,5 +496,37 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         </>}
       </div>
     </>
+  )
+}
+
+// Estado de la suscripción debajo de la tarjeta del plan, con "Cancelar".
+function BillingDetails({ billing, onCancel }: { billing?: BillingStatus | null; onCancel?: () => Promise<void> }) {
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  if (!billing) return null
+  const date = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) : '')
+  const line =
+    billing.access === 'legacy' ? 'Cuenta sin cobro (acceso completo).'
+    : billing.access === 'trial' ? `Prueba gratis: termina el ${date(billing.trialEndsAt)}.`
+    : billing.status === 'cancelled' ? `Suscripción cancelada: tenés acceso hasta el ${date(billing.accessUntil)}.`
+    : billing.access === 'active' ? `Suscripción activa (${billing.period === 'annual' ? 'anual' : 'mensual'}, Mercado Pago).${billing.nextPaymentDate ? ` Próximo cobro: ${date(billing.nextPaymentDate)}.` : ''}`
+    : 'Cuenta en pausa: elegí un plan para reactivarla.'
+  const canCancel = billing.provider === 'mercadopago' && billing.access === 'active' && billing.status !== 'cancelled'
+  return (
+    <div style={{ marginTop: 10, fontSize: 12, color: 'rgba(43,38,32,.6)', lineHeight: 1.6 }}>
+      {line}
+      {canCancel && !confirming && (
+        <button onClick={() => setConfirming(true)} style={{ marginLeft: 8, background: 'none', border: 'none', color: '#B23B3B', fontWeight: 600, cursor: 'pointer', fontSize: 12, padding: 0 }}>Cancelar suscripción</button>
+      )}
+      {confirming && (
+        <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span>¿Cancelar? Vas a seguir teniendo acceso hasta el {date(billing.nextPaymentDate)}.</span>
+          <button disabled={busy} onClick={async () => { setBusy(true); setError(null); try { await onCancel?.(); setConfirming(false) } catch (e: any) { setError(e?.error || 'No se pudo cancelar.') } finally { setBusy(false) } }} style={{ background: '#B23B3B', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{busy ? '...' : 'Sí, cancelar'}</button>
+          <button onClick={() => setConfirming(false)} style={{ background: 'none', border: '1px solid rgba(43,38,32,.15)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12 }}>No</button>
+        </div>
+      )}
+      {error && <div style={{ color: '#B23B3B', marginTop: 6 }}>{error}</div>}
+    </div>
   )
 }
