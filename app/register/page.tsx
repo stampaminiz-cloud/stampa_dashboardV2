@@ -2,6 +2,7 @@
 import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { apiRegister } from '@/lib/api'
+import { formatPrice, usePlanPrices, type PlanSlug } from '@/lib/pricing'
 
 function StampaFrog({ size = 64 }: { size?: number }) {
   return (
@@ -19,10 +20,11 @@ function StampaLogo({ dark = false }: { dark?: boolean }) {
 }
 
 // ─── Plan data ─────────────────────────────────────────────────────────────────
-const PLANS: Record<string, { name: string; price: number; features: string[]; highlight: boolean }> = {
-  starter: { name: 'Starter',    price: 29, features: ['1 local', '1 tarjeta', 'Hasta 200 clientes'],         highlight: false },
-  growth:  { name: 'Growth',     price: 49, features: ['3 tarjetas', 'Clientes ilimitados', 'Branding propio'], highlight: true  },
-  pro:     { name: 'Pro',        price: 89, features: ['3 locales', 'Todo ilimitado', 'Soporte prioritario'],   highlight: false },
+// Precios: salen de Mercado Pago (lib/pricing.ts), igual que en la landing.
+const PLANS: Record<string, { name: string; features: string[]; highlight: boolean }> = {
+  starter: { name: 'Starter',    features: ['1 local', '1 tarjeta', 'Hasta 200 clientes'],         highlight: false },
+  growth:  { name: 'Growth',     features: ['3 tarjetas', 'Clientes ilimitados', 'Branding propio'], highlight: true  },
+  pro:     { name: 'Pro',        features: ['3 locales', 'Todo ilimitado', 'Soporte prioritario'],   highlight: false },
 }
 
 const CSS = `
@@ -97,6 +99,9 @@ function RegisterForm() {
   const searchParams = useSearchParams()
   const planSlug = searchParams.get('plan') || 'growth'
   const selectedPlan = PLANS[planSlug] || PLANS.growth
+  const prices = usePlanPrices()
+  const planPrices = prices[(PLANS[planSlug] ? planSlug : 'growth') as PlanSlug]
+  const monthlyPrice = formatPrice(planPrices.monthly, planPrices.currency)
 
   const [form, setForm] = useState({ fullName: '', email: '', password: '', confirm: '', terms: false, region: 'AR' })
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -155,14 +160,14 @@ function RegisterForm() {
               <span className="rg-plan-name">Plan {selectedPlan.name}</span>
               {selectedPlan.highlight && <span className="rg-plan-badge">Más elegido</span>}
             </div>
-            <span className="rg-plan-price">€{selectedPlan.price}/mes</span>
+            <span className="rg-plan-price">{monthlyPrice}/mes</span>
           </div>
           <div className="rg-plan-features">
             {selectedPlan.features.map(f => (
               <span key={f} className="rg-plan-feat">{f}</span>
             ))}
           </div>
-          <div className="rg-plan-trial">Los primeros 14 días son gratis. Después €{selectedPlan.price}/mes.</div>
+          <div className="rg-plan-trial">Los primeros 14 días son gratis. Después {monthlyPrice}/mes.</div>
           <a href="/#precios" className="rg-plan-change">Cambiar plan →</a>
         </div>
 

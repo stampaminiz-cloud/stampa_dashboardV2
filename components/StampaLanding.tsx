@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from 'react';
 import styles from '../styles/stampa-landing.module.css';
+import { annualSavingsPct, formatPrice, usePlanPrices, type PlanSlug } from '@/lib/pricing';
 
 /* ────────────────────────────────────────────────────────────────
    Static content
@@ -81,10 +82,13 @@ const VERTICALS = [
   accentSoft: v.tag === 'Sellos' ? 'var(--ember-soft)' : v.tag === 'Puntos' ? 'var(--blue-soft)' : 'var(--green-soft)',
 }));
 
+// Montos: salen de Mercado Pago (lib/pricing.ts → usePlanPrices). Acá solo
+// hay nombre, descripción y features; monthly/annual en 0 = "tiene precio",
+// null = "A consultar" (Enterprise, solo por contacto).
 const RAW_PLANS = [
-  { name: 'Starter', slug: 'starter', desc: 'Para arrancar con un local y una tarjeta.', monthly: 29, annual: 23, features: ['1 local', '1 tarjeta de fidelización', 'Hasta 200 clientes', 'Analytics básico'], cta: 'Empezar gratis', highlight: false },
-  { name: 'Growth', slug: 'growth', desc: 'Para crecer con marca propia y equipo.', monthly: 49, annual: 39, features: ['1 local', '3 tarjetas de fidelización', 'Clientes ilimitados', 'Branding propio', '5 usuarios de equipo'], cta: 'Empezar gratis', highlight: true },
-  { name: 'Pro', slug: 'pro', desc: 'Para negocios con varios locales.', monthly: 89, annual: 71, features: ['3 locales', 'Todo ilimitado', 'Soporte prioritario'], cta: 'Empezar gratis', highlight: false },
+  { name: 'Starter', slug: 'starter', desc: 'Para arrancar con un local y una tarjeta.', monthly: 0, annual: 0, features: ['1 local', '1 tarjeta de fidelización', 'Hasta 200 clientes', 'Analytics básico'], cta: 'Empezar gratis', highlight: false },
+  { name: 'Growth', slug: 'growth', desc: 'Para crecer con marca propia y equipo.', monthly: 0, annual: 0, features: ['1 local', '3 tarjetas de fidelización', 'Clientes ilimitados', 'Branding propio', '5 usuarios de equipo'], cta: 'Empezar gratis', highlight: true },
+  { name: 'Pro', slug: 'pro', desc: 'Para negocios con varios locales.', monthly: 0, annual: 0, features: ['3 locales', 'Todo ilimitado', 'Soporte prioritario'], cta: 'Empezar gratis', highlight: false },
   { name: 'Enterprise', slug: 'enterprise', desc: 'Para cadenas y franquicias.', monthly: null as number | null, annual: null as number | null, features: ['Locales ilimitados', 'White label', 'Soporte dedicado'], cta: 'Hablar con ventas', highlight: false },
 ];
 
@@ -149,15 +153,26 @@ export default function StampaLanding() {
   }, []);
 
   const isMonthly = period === 'monthly';
-  const plans = RAW_PLANS.map((p) => ({
+  const prices = usePlanPrices();
+  // El badge del toggle muestra el ahorro mínimo entre planes ("hasta -X%"
+  // sería engañoso si alguno ahorra menos).
+  const savings = (['starter', 'growth', 'pro'] as PlanSlug[]).map((k) => annualSavingsPct(prices[k])).filter((x): x is number => x != null);
+  const annualBadge = savings.length ? `-${Math.min(...savings)}%` : null;
+  const plans = RAW_PLANS.map((p) => {
+    const pr = p.monthly === null ? null : prices[p.slug as PlanSlug];
+    // Anual: se muestra el equivalente por mes y abajo el total del año.
+    const monthlyEquivalent = pr?.annual ? Math.round(pr.annual / 12) : null;
+    return {
     ...p,
     hasPrice: p.monthly !== null,
-    price: p.monthly === null ? null : isMonthly ? p.monthly : p.annual,
+    price: pr ? formatPrice(isMonthly ? pr.monthly : monthlyEquivalent, pr.currency) : null,
+    annualTotal: pr && !isMonthly && pr.annual ? formatPrice(pr.annual, pr.currency) : null,
     cardBg: p.highlight ? 'linear-gradient(155deg, var(--ember-500), var(--ember-700))' : 'var(--surface-card)',
     cardBorder: p.highlight ? '1px solid var(--ember-glow)' : '1px solid var(--border)',
     btnBg: p.highlight ? '#fff' : 'var(--ember-soft)',
     btnColor: p.highlight ? 'var(--ember-600)' : 'var(--ember-400)',
-  }));
+    };
+  });
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -948,7 +963,7 @@ export default function StampaLanding() {
                   gap: 8,
                 }}
               >
-                Anual <span style={{ background: 'var(--green-soft)', color: 'var(--green)', fontSize: 'var(--text-2xs)', padding: '2px 8px', borderRadius: 'var(--radius-full)' }}>-20%</span>
+                Anual {annualBadge && <span style={{ background: 'var(--green-soft)', color: 'var(--green)', fontSize: 'var(--text-2xs)', padding: '2px 8px', borderRadius: 'var(--radius-full)' }}>{annualBadge}</span>}
               </button>
             </div>
           </div>
@@ -990,8 +1005,11 @@ export default function StampaLanding() {
                 <div style={{ marginBottom: 24 }}>
                   {plan.hasPrice ? (
                     <>
-                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 38, color: 'var(--text-strong)' }}>€{plan.price}</span>
+                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, color: 'var(--text-strong)' }}>{plan.price}</span>
                       <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>/mes</span>
+                      {plan.annualTotal && (
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 4 }}>{plan.annualTotal} facturado por año</div>
+                      )}
                     </>
                   ) : (
                     <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 30, color: 'var(--text-strong)' }}>A consultar</span>

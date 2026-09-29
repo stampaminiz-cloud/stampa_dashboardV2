@@ -76,14 +76,6 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   },
 }
 
-// ─── Plan pricing (for upgrade prompts) ──────────────────────────────────────
-export const PLAN_PRICE: Record<Plan, string> = {
-  Starter:    'Gratis',
-  Growth:     '$29/mes',
-  Pro:        '$79/mes',
-  Enterprise: 'A consultar',
-}
-
 // ─── Feature descriptions (for upgrade prompts) ───────────────────────────────
 export const FEATURE_LABELS: Record<keyof PlanLimits, string> = {
   maxActiveCards:  'Tipos de tarjeta activos',
