@@ -164,6 +164,9 @@ export function PlanModal({ billing, ownerEmail, onClose, onDone }: { billing: B
                 <button className={period === 'annual' ? 'on' : ''} onClick={() => { setPeriod('annual'); setSelected(null) }}>Anual</button>
               </div>
             )}
+            {plans && plans.length === 0 && (
+              <div className="bl-error">No hay planes disponibles en este momento. Probá de nuevo en unos minutos o escribinos.</div>
+            )}
             {plans && (
               <div className="bl-grid">
                 {visible.map(p => (
