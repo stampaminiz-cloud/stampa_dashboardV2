@@ -882,8 +882,6 @@ export default function DashboardPage() {
   const [businessId, setBusinessIdState] = useState<string | null>(null)
   const [team, setTeam]             = useState<any[]>([])
   const [cards, setCards]           = useState<any[]>([])
-  const [notifHistory, setNotifHistory]             = useState<any[]>([])
-  const [notifSentThisMonth, setNotifSentThisMonth] = useState(0)
   const [customers, setCustomers]                   = useState<any[]>([])
   const [customersPage, setCustomersPage]           = useState(1)
   const [customersTotalPages, setCustomersTotalPages] = useState(1)
@@ -901,7 +899,6 @@ export default function DashboardPage() {
   const customersCacheRef = useRef<Map<string, any>>(new Map())
   const [analyticsData, setAnalyticsData]           = useState<any>(null)
   const [detailedAnalytics, setDetailedAnalytics]   = useState<any>(null)
-  const [rewardsData, setRewardsData]               = useState<any>(null)
   const [loading, setLoading]       = useState(true)
 
   async function loadBusiness() {
@@ -934,31 +931,8 @@ export default function DashboardPage() {
         const analyticsPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/analytics`, { headers: authHeaders }).then(r => r.json())
         const detailedPromise   = fetch(`${BASE_URL}/api/businesses/${bid}/analytics/detailed?range=30d`, { headers: authHeaders }).then(r => r.json())
         const customersPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/customers?page=1&limit=50&sortBy=progress&sortDir=desc`, { headers: authHeaders }).then(r => r.json())
-        const notifPromise      = fetch(`${BASE_URL}/api/businesses/${bid}/notifications`, { headers: authHeaders }).then(r => r.json())
-        const rewardsPromise    = cardsPromise.then(async (cardsData) => {
-          const cards = cardsData as any[]
-          const activeCards = cards.filter(c => c.isActive)
-          if (activeCards.length === 0) return null
-
-          // "Near prize" solo tiene sentido sumado entre TODAS las tarjetas
-          // activas de tipo sello — un negocio puede tener más de una.
-          // Points/membership no tienen un concepto lineal de "cerca de
-          // completar", así que quedan afuera de esta suma.
-          const activeStampCards = activeCards.filter(c => c.type === 'stamp')
-          const stampResults = await Promise.all(activeStampCards.map(c =>
-            fetch(
-              `${BASE_URL}/api/businesses/${bid}/rewards-stats?cardId=${c._id}`,
-              { headers: authHeaders }
-            ).then(r => r.json())
-          ))
-          const nearPrize = stampResults.reduce((sum, r) => sum + (r?.nearPrize || 0), 0)
-          // Solo lo usa Notificaciones (audiencia "Cerca del premio"); Premios
-          // carga sus propios datos al abrirse.
-          return { nearPrize }
-        })
-
-        const [teamRes, cardsRes, analyticsRes, customersRes, notifRes, rewardsRes, detailedRes] = await Promise.allSettled([
-          teamPromise, cardsPromise, analyticsPromise, customersPromise, notifPromise, rewardsPromise, detailedPromise,
+        const [teamRes, cardsRes, analyticsRes, customersRes, detailedRes] = await Promise.allSettled([
+          teamPromise, cardsPromise, analyticsPromise, customersPromise, detailedPromise,
         ])
 
         if (teamRes.status === 'fulfilled') {
@@ -1008,13 +982,7 @@ export default function DashboardPage() {
           customersCacheRef.current.set('1||all|progress|desc', customersRes.value)
         } else console.error('customers load error:', customersRes.reason)
 
-        if (notifRes.status === 'fulfilled') {
-          setNotifHistory(notifRes.value.history || [])
-          setNotifSentThisMonth(notifRes.value.sentThisMonth || 0)
-        } else console.error('notif load error:', notifRes.reason)
 
-        if (rewardsRes.status === 'fulfilled' && rewardsRes.value) setRewardsData(rewardsRes.value)
-        else if (rewardsRes.status === 'rejected') console.error('rewards load error:', rewardsRes.reason)
 
         if (detailedRes.status === 'fulfilled') setDetailedAnalytics(detailedRes.value)
         else console.error('detailed analytics load error:', detailedRes.reason)
@@ -1199,19 +1167,11 @@ export default function DashboardPage() {
       case 'rewards': return <RewardsTab cards={cards} businessId={businessId} onGoToDesign={() => { setActive('design'); localStorage.setItem('stampa_active_tab', 'design') }} onOpenCustomer={openCustomerByEmail} />
           case 'notifications': return <NotificationsTab
           businessId={businessId}
-          analyticsData={analyticsData}
-          rewardsData={rewardsData}
-          data={{
-            ...mockData,
-            sentNotifications: notifHistory.map((n: any) => ({
-              id: n._id || n.sentAt,
-              message: n.message,
-              audience: n.audience,
-              sentCount: n.sentCount,
-              sentAt: new Date(n.sentAt).toLocaleDateString('es-AR'),
-            })),
-            scheduledNotifications: [],
-          }}
+          cards={cards}
+          businessName={business?.name || 'Tu negocio'}
+          inactiveDays={customersInactiveDays}
+          isManager={owner?.role === 'manager'}
+          onChoosePlan={() => setShowPlans(true)}
         />
       case 'form':          return <FormTab businessName={business?.name || mockData.business.name} businessSlug={business?.slug || 'mi-negocio'} cardDesigns={cards.length > 0 ? cards : mockData.cardDesigns} businessId={businessId} />
       case 'design':        return <DesignTab key={businessId ?? 'loading'} data={mockData} cards={cards} businessId={businessId} onSaved={refreshCards} />

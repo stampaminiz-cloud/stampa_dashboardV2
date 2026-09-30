@@ -15,7 +15,9 @@ export interface PlanLimits {
   customTextColor:  boolean       // color de texto sobre la tarjeta — desde Growth (afecta el pase real, no solo el preview)
   maxCustomFields:  number        // form builder custom fields
   maxTeamMembers:   number        // managers + scanners
-  monthlyNotifs:    number        // push notifications per month
+  monthlyNotifs:    number        // envíos (campañas) por mes, no destinatarios
+  notifTargeting:   boolean       // notificaciones por tarjeta / por nivel
+  notifIndividual:  boolean       // notificaciones a clientes puntuales
   analyticsLevel:   'basic' | 'full'
   multiLocation:    boolean       // multiple branches
   whiteLabel:       boolean       // remove Stampa branding
@@ -31,7 +33,9 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     customTextColor: false,
     maxCustomFields: 0,
     maxTeamMembers:  1,
-    monthlyNotifs:   100,
+    monthlyNotifs:   4,
+    notifTargeting:  false,
+    notifIndividual: false,
     analyticsLevel:  'basic',
     multiLocation:   false,
     whiteLabel:      false,
@@ -45,7 +49,9 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     customTextColor: true,
     maxCustomFields: 3,
     maxTeamMembers:  5,
-    monthlyNotifs:   1000,
+    monthlyNotifs:   20,
+    notifTargeting:  true,
+    notifIndividual: false,
     analyticsLevel:  'full',
     multiLocation:   false,
     whiteLabel:      false,
@@ -60,6 +66,8 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     maxCustomFields: 3,
     maxTeamMembers:  999,
     monthlyNotifs:   999999,
+    notifTargeting:  true,
+    notifIndividual: true,
     analyticsLevel:  'full',
     multiLocation:   false,
     whiteLabel:      false,
@@ -74,6 +82,8 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     maxCustomFields: 10,
     maxTeamMembers:  999,
     monthlyNotifs:   999999,
+    notifTargeting:  true,
+    notifIndividual: true,
     analyticsLevel:  'full',
     multiLocation:   true,
     whiteLabel:      true,
@@ -90,7 +100,9 @@ export const FEATURE_LABELS: Record<keyof PlanLimits, string> = {
   customTextColor: 'Color de texto personalizado',
   maxCustomFields: 'Campos personalizados en el formulario',
   maxTeamMembers:  'Miembros del equipo',
-  monthlyNotifs:   'Notificaciones push por mes',
+  monthlyNotifs:   'Envíos de notificaciones por mes',
+  notifTargeting:  'Notificaciones por tarjeta y por nivel',
+  notifIndividual: 'Notificaciones a clientes puntuales',
   analyticsLevel:  'Analítica avanzada',
   multiLocation:   'Multi-sucursal',
   whiteLabel:      'White label (sin marca Stampa)',
