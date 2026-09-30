@@ -9,6 +9,7 @@ export type Plan = 'Starter' | 'Growth' | 'Pro' | 'Enterprise'
 
 export interface PlanLimits {
   maxActiveCards:   number        // active card types allowed
+  maxCustomers:     number        // clientes registrados (0 = sin límite) — hoy solo se muestra, no se bloquea
   customColors:     boolean       // hex + color picker (color 100% libre)
   extraColorPresets:boolean       // los 3 presets extra (8 en vez de 5) — escalón intermedio antes del hex libre
   customTextColor:  boolean       // color de texto sobre la tarjeta — desde Growth (afecta el pase real, no solo el preview)
@@ -23,6 +24,7 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   Starter: {
+    maxCustomers:    200,
     maxActiveCards:  1,
     customColors:    false,
     extraColorPresets:false,
@@ -36,6 +38,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     formBranding:    false,
   },
   Growth: {
+    maxCustomers:    0,
     maxActiveCards:  3,
     customColors:    false,       // color libre queda reservado para Pro+ — acá se sube a 8 presets curados
     extraColorPresets:true,
@@ -49,6 +52,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     formBranding:    true,
   },
   Pro: {
+    maxCustomers:    0,
     maxActiveCards:  999,
     customColors:    true,
     extraColorPresets:true,
@@ -62,6 +66,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     formBranding:    true,
   },
   Enterprise: {
+    maxCustomers:    0,
     maxActiveCards:  999,
     customColors:    true,
     extraColorPresets:true,
@@ -79,6 +84,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
 // ─── Feature descriptions (for upgrade prompts) ───────────────────────────────
 export const FEATURE_LABELS: Record<keyof PlanLimits, string> = {
   maxActiveCards:  'Tipos de tarjeta activos',
+  maxCustomers:    'Clientes registrados',
   customColors:    'Color 100% libre',
   extraColorPresets:'Paleta ampliada (8 colores)',
   customTextColor: 'Color de texto personalizado',

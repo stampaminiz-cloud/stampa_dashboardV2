@@ -17,6 +17,7 @@ import { UsersTab }          from '@/components/dashboard/UsersTab'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TabId = 'overview' | 'customers' | 'analytics' | 'rewards' | 'notifications' | 'design' | 'form' | 'users' | 'settings'
+type CustomerStatusFilter = 'all' | 'active' | 'inactive' | 'near' | 'ready'
 
 // ─── Nav items ────────────────────────────────────────────────────────────────
 function NavIcon({ id }: { id: TabId }) {
@@ -603,16 +604,17 @@ function ComingSoon({ label }: { label: string }) {
 }
 
 // ─── Mapeo de clientes: API cruda → shape que espera CustomersTab ─────────────
+// "hace 5 min", "hace 3 h", "hace 2 días" — antes salía en inglés ("5m ago").
 function formatRelativeTime(timestamp: number): string {
-  if (!timestamp) return '—'
-  const diffMs = Date.now() - timestamp
-  const diffMin = Math.floor(diffMs / 60000)
-  if (diffMin < 1) return 'ahora'
-  if (diffMin < 60) return `${diffMin}m ago`
+  if (!timestamp) return 'Sin visitas aún'
+  const diffMin = Math.floor((Date.now() - timestamp) / 60000)
+  if (diffMin < 1) return 'Ahora'
+  if (diffMin < 60) return `Hace ${diffMin} min`
   const diffH = Math.floor(diffMin / 60)
-  if (diffH < 24) return `${diffH}h ago`
+  if (diffH < 24) return `Hace ${diffH} h`
   const diffDays = Math.floor(diffH / 24)
-  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
+  if (diffDays < 60) return `Hace ${diffDays} día${diffDays === 1 ? '' : 's'}`
+  return new Date(timestamp).toLocaleDateString('es-AR')
 }
 
 function mapCustomersForTab(rawCustomers: any[]) {
@@ -621,7 +623,10 @@ function mapCustomersForTab(rawCustomers: any[]) {
     name: c.name,
     email: c.email,
     status: c.status,
-    joined: c.joinedAt,
+    near: !!c.near,
+    ready: !!c.ready,
+    joined: c.createdAt ? new Date(c.createdAt).toLocaleDateString('es-AR') : '—',
+    lastUpdate: c.lastUpdate || 0,
     lastActivity: formatRelativeTime(c.lastUpdate),
     cards: (c.cards || []).map((card: any) => ({
       customerId: card.customerId,
@@ -884,7 +889,9 @@ export default function DashboardPage() {
   const [customersTotalPages, setCustomersTotalPages] = useState(1)
   const [customersTotal, setCustomersTotal]         = useState(0)
   const [customersSearch, setCustomersSearch]       = useState('')
-  const [customersStatus, setCustomersStatus]       = useState<'all' | 'active' | 'inactive'>('all')
+  const [customersStatus, setCustomersStatus]       = useState<CustomerStatusFilter>('all')
+  const [customersCounts, setCustomersCounts]       = useState<{ all: number; active: number; inactive: number; near: number; ready: number } | null>(null)
+  const [customersInactiveDays, setCustomersInactiveDays] = useState(60)
   const [customersCardFilter, setCustomersCardFilter] = useState<string>('all')
   const [customersSortKey, setCustomersSortKey]     = useState<'name' | 'progress' | 'status' | 'lastActivity' | 'card'>('progress')
   const [customersSortDir, setCustomersSortDir]     = useState<'asc' | 'desc'>('desc')
@@ -1006,6 +1013,7 @@ export default function DashboardPage() {
 
         if (customersRes.status === 'fulfilled') {
           setCustomers(customersRes.value.customers || [])
+          setCustomersCounts(customersRes.value.counts || null)
           setCustomersTotal(customersRes.value.total || 0)
           setCustomersTotalPages(customersRes.value.pages || 1)
           customersCacheRef.current.set('1||all|progress|desc', customersRes.value)
@@ -1062,7 +1070,7 @@ export default function DashboardPage() {
   async function loadCustomers(
     page: number,
     search: string,
-    status: 'all' | 'active' | 'inactive',
+    status: CustomerStatusFilter,
     sortKey: 'name' | 'progress' | 'status' | 'lastActivity' | 'card' = customersSortKey,
     sortDir: 'asc' | 'desc' = customersSortDir,
     cardFilter: string = customersCardFilter,
@@ -1074,6 +1082,7 @@ export default function DashboardPage() {
     const cached = customersCacheRef.current.get(cacheKey)
     if (cached && !opts.bypassCache) {
       setCustomers(cached.customers || [])
+      setCustomersCounts(cached.counts || null)
       setCustomersTotal(cached.total || 0)
       setCustomersTotalPages(cached.pages || 1)
       setCustomersPage(page)
@@ -1095,8 +1104,11 @@ export default function DashboardPage() {
         }
       })
       const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
       customersCacheRef.current.set(cacheKey, data)
       setCustomers(data.customers || [])
+      setCustomersCounts(data.counts || null)
+      if (data.inactiveDays) setCustomersInactiveDays(data.inactiveDays)
       setCustomersTotal(data.total || 0)
       setCustomersTotalPages(data.pages || 1)
       setCustomersPage(page)
@@ -1108,6 +1120,15 @@ export default function DashboardPage() {
       setCustomersLoading(false)
     }
   }
+
+  // Al entrar a Clientes se vuelve a pedir la página actual: los escaneos
+  // de la app cambian sellos/puntos y la lista guardada quedaba vieja.
+  useEffect(() => {
+    if (active !== 'customers' || !businessId) return
+    customersCacheRef.current.clear()
+    loadCustomers(customersPage, customersSearch, customersStatus, customersSortKey, customersSortDir, customersCardFilter, { bypassCache: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, businessId])
 
   useLayoutEffect(() => {
     const saved = localStorage.getItem('stampa_active_tab') as TabId | null
@@ -1132,7 +1153,7 @@ export default function DashboardPage() {
   function renderTab() {
     switch (active) {
       case 'overview':      return <OverviewTab t={t} analyticsData={analyticsData} detailedAnalytics={detailedAnalytics} cards={cards} setActive={tab => { setActive(tab); localStorage.setItem('stampa_active_tab', tab) }} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
-      case 'customers': return customersTotal > 0
+      case 'customers': return (analyticsData?.total ?? customersCounts?.all ?? customersTotal) > 0 || customersSearch
         ? <CustomersTab
             customers={mapCustomersForTab(customers)}
             cards={cards.filter((c: any) => c.isActive)}
@@ -1140,9 +1161,8 @@ export default function DashboardPage() {
             page={customersPage}
             totalPages={customersTotalPages}
             total={customersTotal}
-            activeCount={analyticsData?.active ?? 0}
-            inactiveCount={analyticsData?.inactive ?? 0}
-            nearCount={rewardsData?.nearPrize ?? 0}
+            counts={customersCounts}
+            inactiveDays={customersInactiveDays}
             search={customersSearch}
             autoOpenEmail={customerToOpen}
             onAutoOpened={() => setCustomerToOpen(null)}
@@ -1150,8 +1170,12 @@ export default function DashboardPage() {
             sortKey={customersSortKey}
             sortDir={customersSortDir}
             loading={customersLoading}
+            isManager={owner?.role === 'manager'}
+            plan={(owner?.plan || 'Starter') as any}
+            businessTotal={analyticsData?.total ?? null}
+            onChoosePlan={() => setShowPlans(true)}
             onSearchChange={(q: string) => { setCustomersSearch(q); loadCustomers(1, q, customersStatus) }}
-            onStatusFilterChange={(s: any) => { setCustomersStatus(s); loadCustomers(1, customersSearch, s) }}
+            onStatusFilterChange={(s: CustomerStatusFilter) => { setCustomersStatus(s); loadCustomers(1, customersSearch, s) }}
             onSortChange={(key: any, dir: any) => loadCustomers(1, customersSearch, customersStatus, key, dir)}
             onPageChange={(p: number) => loadCustomers(p, customersSearch, customersStatus)}
             onCardFilterChange={(cid: string) => { setCustomersCardFilter(cid); loadCustomers(1, customersSearch, customersStatus, customersSortKey, customersSortDir, cid) }}
