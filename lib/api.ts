@@ -426,11 +426,21 @@ export async function apiCreateCard(businessId: string, data: Partial<Card>) {
   })
 }
 
-export async function apiUpdateCard(businessId: string, cardId: string, data: Partial<Card>) {
-  return request<Card>(`/api/businesses/${businessId}/cards/${cardId}`, {
+export async function apiUpdateCard(businessId: string, cardId: string, data: Partial<Card> | Record<string, any>) {
+  return request<Card & { passUpdates?: number }>(`/api/businesses/${businessId}/cards/${cardId}`, {
     method: 'PATCH',
     body: data,
   })
+}
+
+// Clientes por tarjeta: { [cardId]: { customers, withWallet } }
+export async function apiCardStats(businessId: string) {
+  return request<Record<string, { customers: number; withWallet: number }>>(`/api/businesses/${businessId}/cards/stats`)
+}
+
+// Cuántos clientes completarían la tarjeta si se bajan los sellos a `stampsRequired`.
+export async function apiCardImpact(businessId: string, cardId: string, stampsRequired: number) {
+  return request<{ wouldComplete: number }>(`/api/businesses/${businessId}/cards/${cardId}/impact?stampsRequired=${stampsRequired}`)
 }
 
 export async function apiDeleteCard(businessId: string, cardId: string) {

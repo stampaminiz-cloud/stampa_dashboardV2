@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS } from '@/lib/colorPresets'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
-import { apiCreateCard, apiUpdateCard, apiDeleteCard } from '@/lib/api'
+import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiCardImpact } from '@/lib/api'
 import { InfoTooltip } from './InfoTooltip'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -70,9 +70,9 @@ const COLOR_PRESETS = STARTER_PRESETS
 const EXTRA_COLOR_PRESETS = GROWTH_EXTRA_PRESETS
 
 const DEFAULT_TIERS: MembershipTier[] = [
-  { id: '1', name: 'Bronze', threshold: 0,  perk: 'Bienvenido',           color: '#854F0B', bg: '#FAEEDA' },
-  { id: '2', name: 'Silver', threshold: 10, perk: '5% de descuento',      color: '#444441', bg: '#EAEAEA' },
-  { id: '3', name: 'Gold',   threshold: 25, perk: 'Regalo de cumpleaños',  color: '#633806', bg: '#FAC775' },
+  { id: '1', name: 'Bronce', threshold: 0,  perk: 'Bienvenido',           color: '#854F0B', bg: '#FAEEDA' },
+  { id: '2', name: 'Plata',  threshold: 10, perk: '5% de descuento',      color: '#444441', bg: '#EAEAEA' },
+  { id: '3', name: 'Oro',    threshold: 25, perk: 'Regalo de cumpleaños',  color: '#633806', bg: '#FAC775' },
   { id: '4', name: 'Black',  threshold: 50, perk: 'Beneficios exclusivos',        color: '#F7F0E4', bg: '#1A1A18' },
 ]
 
@@ -93,6 +93,41 @@ function hexToRgba(hex: string, alpha: number): string {
   const b = parseInt(c.slice(4,6), 16)
   return `rgba(${r},${g},${b},${alpha})`
 }
+
+// Achica una imagen antes de guardarla (antes un PNG de 3 MB entraba tal
+// cual a la tarjeta). PNG mantiene la transparencia; el resto va a JPEG.
+function compressImage(file: File, maxSide: number, asPng: boolean): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('No se pudo leer la imagen.'))
+    reader.onload = () => {
+      const img = new Image()
+      img.onerror = () => reject(new Error('No se pudo leer la imagen.'))
+      img.onload = () => {
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height))
+        const c = document.createElement('canvas')
+        c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale)
+        c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height)
+        resolve(asPng ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.85))
+      }
+      img.src = reader.result as string
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
+// Contraste WCAG entre dos colores hex (1 a 21). Menos de 3 = difícil de leer.
+function contrastRatio(a: string, b: string): number {
+  const lum = (hex: string) => {
+    const c = hex.replace('#', '')
+    if (c.length !== 6) return 1
+    const ch = [0, 2, 4].map(i => { const v = parseInt(c.slice(i, i + 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) })
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]
+  }
+  const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m)
+  return (x + 0.05) / (y + 0.05)
+}
+const isHex = (v?: string | null) => !!v && /^#[0-9A-Fa-f]{6}$/.test(v)
 
 // ─── QR Code placeholder ──────────────────────────────────────────────────────
 function QRCode({ size = 80 }: { size?: number }) {
@@ -123,14 +158,13 @@ function LogoUpload({ label, hint, value, onChange }: {
     // puede terminar con fondo blanco donde debería ser transparente, o
     // directamente ser rechazado al generar el pase real (Etapa B).
     if (file.type !== 'image/png') {
-      setError('Tiene que ser PNG (no JPG) — Apple y Google Wallet lo requieren para que el logo se vea bien.')
+      setError('Tiene que ser PNG (no JPG) — Apple Wallet lo necesita para que el fondo quede transparente.')
       if (ref.current) ref.current.value = ''
       return
     }
     setError(null)
-    const reader = new FileReader()
-    reader.onload = (ev) => onChange(ev.target?.result as string)
-    reader.readAsDataURL(file)
+    compressImage(file, 512, true).then(onChange).catch(err => setError(err.message))
+    if (ref.current) ref.current.value = ''
   }
   return (
     <div className="dt-logo-upload">
@@ -203,15 +237,12 @@ function RealPassPreview({ design, businessName, logos, rewardSourceLabel, tiers
   const stamps = Array.from({ length: design.stampsRequired }, (_: unknown, i: number) => i < 3)
   const activeTier = tiers[previewTierIndex] || tiers[0]
 
-  const TIER_GRADIENTS = [
-    { start: '#C4894A', end: '#9A6030' }, // Bronze
-    { start: '#6B6B68', end: '#4A4A47' }, // Silver
-    { start: '#C4902A', end: '#9A6E10' }, // Gold
-    { start: '#1A1A18', end: '#0A0A09' }, // Black
-  ]
-  const bgGrad = design.type === 'membership'
-    ? `linear-gradient(170deg, ${TIER_GRADIENTS[previewTierIndex]?.start || design.color}, ${TIER_GRADIENTS[previewTierIndex]?.end || design.secondColor})`
+  // Membresía: el pase real usa el fondo del nivel del cliente (bg) y su
+  // color para el texto — los niveles reales de la tarjeta (Premios).
+  const bgGrad = design.type === 'membership' && activeTier
+    ? activeTier.bg
     : `linear-gradient(170deg, ${design.color}, ${design.secondColor})`
+  if (design.type === 'membership' && activeTier) design = { ...design, textColor: activeTier.color }
 
   return (
     <div className="dt-real-pass" style={{ background: bgGrad }}>
@@ -279,7 +310,7 @@ function RealPassPreview({ design, businessName, logos, rewardSourceLabel, tiers
       <div className="dt-real-pass-info">
         <div className="dt-real-pass-info-field">
           <div className="dt-real-pass-info-label" style={{ color: hexToRgba(design.textColor || '#FFFFFF', 0.65) }}>TITULAR</div>
-          <div className="dt-real-pass-info-val" style={{ color: design.textColor || '#FFFFFF' }}>Matias N. Marini</div>
+          <div className="dt-real-pass-info-val" style={{ color: design.textColor || '#FFFFFF' }}>Nombre del cliente</div>
         </div>
         <div className="dt-real-pass-info-field">
           <div className="dt-real-pass-info-label" style={{ color: hexToRgba(design.textColor || '#FFFFFF', 0.65) }}>
@@ -307,14 +338,8 @@ function GooglePreview({ design, businessName, logos, rewardSourceLabel, tiers, 
   const stamps = Array.from({ length: design.stampsRequired }, (_: unknown, i: number) => i < 3)
   const activeTier = tiers[previewTierIndex] || tiers[0]
 
-  const GTIER_GRADIENTS = [
-    { start: '#C4894A', end: '#9A6030' },
-    { start: '#6B6B68', end: '#4A4A47' },
-    { start: '#C4902A', end: '#9A6E10' },
-    { start: '#1A1A18', end: '#0A0A09' },
-  ]
-  const gBgGrad = design.type === 'membership'
-    ? `linear-gradient(135deg, ${GTIER_GRADIENTS[previewTierIndex]?.start || design.color}, ${GTIER_GRADIENTS[previewTierIndex]?.end || design.secondColor})`
+  const gBgGrad = design.type === 'membership' && activeTier
+    ? activeTier.bg
     : `linear-gradient(135deg, ${design.color}, ${design.secondColor})`
 
   return (
@@ -327,7 +352,7 @@ function GooglePreview({ design, businessName, logos, rewardSourceLabel, tiers, 
         <div className="dt-gpass-hero-title">
           {design.type === 'stamp' ? `3 de ${design.stampsRequired} sellos`
           : design.type === 'points' ? '120 pts'
-          : activeTier?.name || 'Bronze'}
+          : activeTier?.name || 'Nivel'}
         </div>
       </div>
       <div className="dt-gpass-body">
@@ -341,7 +366,7 @@ function GooglePreview({ design, businessName, logos, rewardSourceLabel, tiers, 
           </div>
         )}
         <div className="dt-gpass-divider" />
-        <div className="dt-gpass-info-row"><span className="dt-gpass-field-label">Titular</span><span className="dt-gpass-info-val">Matias Marini</span></div>
+        <div className="dt-gpass-info-row"><span className="dt-gpass-field-label">Titular</span><span className="dt-gpass-info-val">Nombre del cliente</span></div>
         <div className="dt-gpass-info-row">
           <span className="dt-gpass-field-label">{design.type === 'stamp' ? 'Premio' : design.type === 'membership' ? 'Nivel' : 'Puntos'}</span>
           <span className="dt-gpass-info-val">{design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : (design.rewardField || 'Premio')) : design.type === 'membership' ? activeTier?.name : '120'}</span>
@@ -353,14 +378,14 @@ function GooglePreview({ design, businessName, logos, rewardSourceLabel, tiers, 
 }
 
 // ─── Mini pass thumbnail ──────────────────────────────────────────────────────
-function MiniPass({ design, businessName, logos }: { design: CardDesign; businessName?: string | null; logos: LogoState }) {
+function MiniPass({ design, businessName, logos, tiers }: { design: CardDesign; businessName?: string | null; logos: LogoState; tiers?: MembershipTier[] }) {
   const stamps = Array.from({ length: Math.min(design.stampsRequired, 8) }, (_: unknown, i: number) => i < 3)
   const fallbackLabel = (businessName || design.name).split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0,4)
   // El fondo de membership no se elige en el Design tab — lo define el
   // nivel del cliente (ver el mismo criterio en appleWalletPassBuilder.js).
   // El preview arranca siempre en Bronze, el primer nivel, en vez de mostrar
   // el color general de la tarjeta (que ni siquiera aplica para este tipo).
-  const bronze = DEFAULT_TIERS[0]
+  const bronze = tiers?.[0] || DEFAULT_TIERS[0]
   const bgStyle = design.type === 'membership'
     ? { background: bronze.bg }
     : { background: `linear-gradient(170deg, ${design.color}, ${design.secondColor})` }
@@ -385,10 +410,9 @@ function MiniPass({ design, businessName, logos }: { design: CardDesign; busines
       )}
       {design.type === 'membership' && (
         <div className="dt-mini-tier-row">
-          <div className="dt-mini-tier-chip dt-mini-tier-chip--active" style={{ background: bronze.bg, color: bronze.color, border: `1px solid ${bronze.color}` }}>Bronze</div>
-          <div className="dt-mini-tier-chip" style={{ background: 'transparent', color: bronze.color, opacity: 0.45, border: `1px solid ${bronze.color}` }}>Silver</div>
-          <div className="dt-mini-tier-chip" style={{ background: 'transparent', color: bronze.color, opacity: 0.45, border: `1px solid ${bronze.color}` }}>Gold</div>
-          <div className="dt-mini-tier-chip" style={{ background: 'transparent', color: bronze.color, opacity: 0.45, border: `1px solid ${bronze.color}` }}>Black</div>
+          {(tiers || DEFAULT_TIERS).slice(0, 4).map((t, i) => (
+            <div key={t.id} className={`dt-mini-tier-chip${i === 0 ? ' dt-mini-tier-chip--active' : ''}`} style={i === 0 ? { background: bronze.bg, color: bronze.color, border: `1px solid ${bronze.color}` } : { background: 'transparent', color: bronze.color, opacity: 0.45, border: `1px solid ${bronze.color}` }}>{t.name}</div>
+          ))}
         </div>
       )}
       {design.type === 'points' && <div className="dt-mini-points">120 pts</div>}
@@ -405,14 +429,23 @@ function MiniPass({ design, businessName, logos }: { design: CardDesign; busines
 }
 
 // ─── Card Editor ──────────────────────────────────────────────────────────────
-function CardEditor({ card: init, formFields, businessId, businessName, onSaved, onBack }: {
-  card: CardDesign; formFields: FormField[]; businessId?: string | null; businessName?: string | null; onSaved?: () => void; onBack: () => void
+function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onGoTo }: {
+  card: CardDesign; businessId?: string | null; businessName?: string | null; onSaved?: () => void; onBack: () => void
+  onGoTo?: (tab: 'form' | 'rewards') => void
 }) {
   const { can, plan } = usePlan()
   const t = useLang()
   const [card, setCard] = useState<CardDesign>(init)
-  const [fields, setFields] = useState<FormField[]>([...formFields].sort((a, b) => a.order - b.order))
+  // Campos y niveles reales de ESTA tarjeta (antes salían de datos de ejemplo).
+  const [fields, setFields] = useState<FormField[]>([])
   const [tiers, setTiers] = useState<MembershipTier[]>(DEFAULT_TIERS)
+  useEffect(() => {
+    if (!businessId) return
+    apiGetFields(businessId, init.id).then(list => setFields(list.map((f: any) => ({ id: f._id, label: f.label, type: f.fieldType, isLocked: f.isLocked, isActive: f.isActive, isRewardSource: f.isRewardSource, order: f.order })))).catch(() => {})
+    if (init.type === 'membership') {
+      apiGetTiers(businessId, init.id).then(list => { if (list.length) setTiers(list.map(t => ({ id: t._id, name: t.name, threshold: t.threshold, perk: t.perk, color: t.color, bg: t.bg }))) }).catch(() => {})
+    }
+  }, [businessId, init.id, init.type])
   const [logos, setLogos] = useState<LogoState>({
     businessLogo: init.logoUrl || null,
     earnedIcon: init.earnedIcon || null,
@@ -425,6 +458,9 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [saveNotice, setSaveNotice] = useState('')
+  const [confirmImpact, setConfirmImpact] = useState<number | null>(null)
+  const [confirmLeave, setConfirmLeave] = useState(false)
   const [pointsPerVisit, setPointsPerVisit] = useState(init.pointsPerVisit || 10)
   // Flip card state
   const [previewSide, setPreviewSide]       = useState<'front' | 'prize'>('front')
@@ -441,40 +477,64 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
   }
 
   const rewardSource = fields.find((f: FormField) => f.isRewardSource)
-  const rewardSourceLabel = rewardSource?.label || 'Sin configurar'
+  const rewardSourceLabel = rewardSource ? 'Lo elige cada cliente' : 'Sin configurar'
+
+  // Cambios sin guardar: se compara con lo que había al abrir.
+  const snapshot = (c: CardDesign, l: LogoState, fm: string, fs: string, img: string | null, ppv: number) =>
+    JSON.stringify([c.name, c.color, c.secondColor, c.textColor || null, c.labelColor || null, c.publicDescription || '', c.stampsRequired, c.rewardMode, c.rewardField || '', l, fm, fs, img, ppv])
+  const [baseline, setBaseline] = useState(() => snapshot(init, { businessLogo: init.logoUrl || null, earnedIcon: init.earnedIcon || null, emptyIcon: init.emptyIcon || null, pointsIcon: init.pointsIcon || null }, init.flipMessage || '¡Lo lograste!', init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio', init.flipImageUrl || null, init.pointsPerVisit || 10))
+  const [savedStamps, setSavedStamps] = useState(init.stampsRequired)
 
   function setLogo(key: keyof LogoState) { return (url: string | null) => setLogos({ ...logos, [key]: url }) }
-  async function handleSave() {
+  const dirty = snapshot(card, logos, flipMessage, flipSubMessage, prizeImage, pointsPerVisit) !== baseline
+  const textColorBad = !!card.textColor && !isHex(card.textColor)
+  const labelColorBad = !!card.labelColor && !isHex(card.labelColor)
+  const lowContrast = card.type !== 'membership' && isHex(card.textColor || '#FFFFFF') && isHex(card.color) && contrastRatio(card.textColor || '#FFFFFF', card.color) < 3
+
+  async function handleSave(skipImpactCheck = false) {
     if (!businessId) {
       setSaveError('No se encontró el negocio — recargá la página e intentá de nuevo.')
       return
     }
+    setSaveError(''); setSaveNotice('')
+    if (!card.name.trim()) { setSaveError('La tarjeta necesita un nombre.'); return }
+    if (card.type === 'stamp' && card.rewardMode !== 'dynamic' && !(card.rewardField || '').trim()) { setSaveError('Escribí cuál es el premio (ej: Café gratis).'); return }
+    if (textColorBad || labelColorBad) { setSaveError('Revisá los colores de texto: tienen que ser un código como #FFFFFF.'); return }
+    // Bajar los sellos completa la tarjeta de quienes ya los tienen: avisar antes.
+    if (!skipImpactCheck && card.type === 'stamp' && card.stampsRequired < savedStamps) {
+      try {
+        const { wouldComplete } = await apiCardImpact(businessId, card.id, card.stampsRequired)
+        if (wouldComplete > 0) { setConfirmImpact(wouldComplete); return }
+      } catch { /* si no se puede calcular, se guarda igual */ }
+    }
+    setConfirmImpact(null)
     setSaving(true)
-    setSaveError('')
     try {
-      await apiUpdateCard(businessId, card.id, {
-        name: card.name,
-        type: card.type,
+      const res = await apiUpdateCard(businessId, card.id, {
+        name: card.name.trim(),
         color: card.color,
         secondColor: card.secondColor,
-        textColor: card.textColor,
-        labelColor: card.labelColor || undefined,
-        publicDescription: card.publicDescription || undefined,
+        ...(can('customTextColor') ? { textColor: card.textColor || null, labelColor: card.labelColor || null } : {}),
+        publicDescription: card.publicDescription || '',
         isActive: card.isActive,
         stampsRequired: card.stampsRequired,
         pointsPerVisit,
-        rewardMode: (card.rewardMode as any) || undefined,
-        rewardFixedValue: card.rewardField || undefined,
+        ...(card.type === 'stamp' ? { rewardMode: card.rewardMode === 'dynamic' ? 'dynamic' : 'fixed' } : {}),
+        rewardFixedValue: card.rewardField || null,
         flipMessage,
         flipSubMessage,
-        flipImageUrl: prizeImage || undefined,
-        logoUrl: logos.businessLogo || undefined,
-        earnedIcon: logos.earnedIcon || undefined,
-        emptyIcon: logos.emptyIcon || undefined,
-        pointsIcon: logos.pointsIcon || undefined,
+        // null = se quitó (antes mandaba undefined y "Quitar" nunca se guardaba)
+        flipImageUrl: prizeImage || null,
+        logoUrl: logos.businessLogo || null,
+        earnedIcon: logos.earnedIcon || null,
+        emptyIcon: logos.emptyIcon || null,
+        pointsIcon: logos.pointsIcon || null,
       })
 
       setSaved(true)
+      setBaseline(snapshot(card, logos, flipMessage, flipSubMessage, prizeImage, pointsPerVisit))
+      setSavedStamps(card.stampsRequired)
+      setSaveNotice(res?.passUpdates ? `Guardado. Se actualizó la tarjeta en ${res.passUpdates} celular${res.passUpdates === 1 ? '' : 'es'}.` : 'Guardado.')
       onSaved?.()
       setTimeout(() => setSaved(false), 2000)
     } catch (err: any) {
@@ -522,7 +582,7 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
         )}
         <div className="dt-platform-switch">
           <button className={`dt-platform-btn${platform === 'real' ? ' dt-platform-btn--on' : ''}`} onClick={() => setPlatform('real')}>Apple Wallet</button>
-          <button className={`dt-platform-btn${platform === 'google' ? ' dt-platform-btn--on' : ''}`} onClick={() => setPlatform('google')}>Google Wallet</button>
+          <button className={`dt-platform-btn${platform === 'google' ? ' dt-platform-btn--on' : ''}`} onClick={() => setPlatform('google')}>Google Wallet · Próximamente</button>
         </div>
 
         {card.type === 'membership' && (
@@ -548,7 +608,7 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
         <div className="dt-preview-note">
           {card.type === 'stamp' && previewSide === 'prize'
             ? t('dt_preview' as any)
-            : platform === 'real' ? t('dt_apple_note' as any) : t('dt_google_note' as any)}
+            : platform === 'real' ? t('dt_apple_note' as any) : 'Google Wallet todavía no está disponible: por ahora tus clientes con Android usan el código QR que reciben al registrarse. Así se va a ver cuando lo sumemos.'}
         </div>
       </div>
     </div>
@@ -557,7 +617,7 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
   return (
     <>
       <div className="dt-editor-header">
-        <button className="dt-back-btn" onClick={onBack}>
+        <button className="dt-back-btn" onClick={() => dirty ? setConfirmLeave(true) : onBack()}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
           Mis tarjetas
         </button>
@@ -569,11 +629,30 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
           <button className={`dt-mobile-tab${mobileView === 'preview' ? ' dt-mobile-tab--on' : ''}`} onClick={() => setMobileView('preview')}>Preview</button>
         </div>
 
-        <button className="dt-save-btn" onClick={handleSave} disabled={saving}>
-          {saving ? 'Guardando...' : saved ? t('saved' as any) : t('save' as any)}
+        <button className="dt-save-btn" onClick={() => handleSave()} disabled={saving || !dirty}>
+          {saving ? 'Guardando…' : saved ? '✓ Guardado' : dirty ? 'Guardar cambios' : 'Sin cambios'}
         </button>
       </div>
       {saveError && <div className="dt-save-error">{saveError}</div>}
+      {saveNotice && !saveError && <div className="dt-save-notice">{saveNotice}</div>}
+      {confirmImpact != null && (
+        <div className="dt-save-warn">
+          <span>Con {card.stampsRequired} sellos, <strong>{confirmImpact} cliente{confirmImpact === 1 ? '' : 's'}</strong> van a completar su tarjeta al guardar y tener el premio listo para entregar.</span>
+          <span style={{ display: 'flex', gap: 8 }}>
+            <button className="dt-warn-btn" onClick={() => setConfirmImpact(null)}>Cancelar</button>
+            <button className="dt-warn-btn dt-warn-btn--primary" onClick={() => handleSave(true)}>Guardar igual</button>
+          </span>
+        </div>
+      )}
+      {confirmLeave && (
+        <div className="dt-save-warn">
+          <span>Tenés cambios sin guardar en esta tarjeta.</span>
+          <span style={{ display: 'flex', gap: 8 }}>
+            <button className="dt-warn-btn" onClick={() => { setConfirmLeave(false); onBack() }}>Salir sin guardar</button>
+            <button className="dt-warn-btn dt-warn-btn--primary" onClick={() => { setConfirmLeave(false); handleSave() }}>Guardar</button>
+          </span>
+        </div>
+      )}
 
       <div className="dt-editor-body">
         {/* ── Left panel (config) ── */}
@@ -623,7 +702,7 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
               editable desde dos tabs distintas (mismo criterio que ya
               aplicamos con el selector de premio). */}
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Campos del formulario</div>
-          <div className="dt-reward-goto-forms">Se gestionan desde la tab <strong>Forms</strong> — agregar, ocultar y reordenar campos vive ahí, no acá.</div>
+          <div className="dt-reward-goto-forms">Se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>. El formulario usa el color y el logo de esta tarjeta.</div>
 
           {/* STAMP: prize mode */}
           {card.type === 'stamp' && (
@@ -636,21 +715,18 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
                 </div>
                 {card.rewardMode === 'dynamic' && (
                   <div className="dt-field-picker">
-                    {(() => {
-                      const selected = fields.find((f: FormField) => f.isRewardSource)
-                      return selected
-                        ? <div className="dt-reward-current">Hoy usa <strong>"{selected.label}"</strong> como premio.</div>
-                        : <div className="dt-reward-current dt-reward-current--empty">Todavía no elegiste qué campo usar como premio.</div>
-                    })()}
-                    <div className="dt-reward-goto-forms">Se configura desde la tab <strong>Forms</strong> (tocá la ★ en el campo que quieras usar) — así no queda el mismo dato editable en dos lugares distintos.</div>
+                    {rewardSource
+                      ? <div className="dt-reward-current">El cliente elige en <strong>"{rewardSource.label}"</strong>.</div>
+                      : <div className="dt-reward-current dt-reward-current--empty">Falta la pregunta del premio en el formulario: sin ella, el cliente no puede elegir.</div>}
+                    <div className="dt-reward-goto-forms">Las opciones se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>.</div>
                   </div>
                 )}
-                <div className={`dt-reward-opt${card.rewardMode === 'fixed' ? ' dt-reward-opt--on' : ''}`} onClick={() => setCard({ ...card, rewardMode: 'fixed' })}>
-                  <div className="dt-reward-radio">{card.rewardMode === 'fixed' && <div className="dt-reward-radio-dot" />}</div>
+                <div className={`dt-reward-opt${card.rewardMode !== 'dynamic' ? ' dt-reward-opt--on' : ''}`} onClick={() => setCard({ ...card, rewardMode: 'fixed' })}>
+                  <div className="dt-reward-radio">{card.rewardMode !== 'dynamic' && <div className="dt-reward-radio-dot" />}</div>
                   <div><div className="dt-reward-opt-title">Yo lo defino</div><div className="dt-reward-opt-desc">El mismo premio para todos los clientes</div></div>
                 </div>
-                {card.rewardMode === 'fixed' && (
-                  <input className="dt-prize-input" placeholder="Ej: Café gratis" value={card.rewardField || ''} onChange={e => setCard({ ...card, rewardField: e.target.value })} />
+                {card.rewardMode !== 'dynamic' && (
+                  <input className="dt-prize-input" placeholder="Ej: Café gratis" maxLength={40} value={card.rewardField || ''} onChange={e => setCard({ ...card, rewardField: e.target.value })} />
                 )}
               </div>
             </>
@@ -691,12 +767,12 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
           {/* MEMBERSHIP: redirect to rewards */}
           {card.type === 'membership' && (
             <>
-              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Tiers de membresía</div>
+              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Niveles de membresía</div>
               <div className="dt-membership-note">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
                 <div>
-                  <div className="dt-membership-note-title">Configurá los tiers en Premios</div>
-                  <div className="dt-membership-note-desc">Desde la sección Premios podés editar el nombre, visitas mínimas y beneficios de cada tier (Bronze, Silver, Gold, Black).</div>
+                  <div className="dt-membership-note-title">Los niveles se configuran en Premios</div>
+                  <div className="dt-membership-note-desc">Nombre, color, visitas y beneficio de cada nivel: <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>ir a Premios</button>.</div>
                 </div>
               </div>
             </>
@@ -712,12 +788,12 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
           )}
           {card.type === 'membership' && (
             <div className="dt-membership-color-note">
-              El color de fondo lo define el nivel de membresía (Bronze, Silver, Gold, Black), no se elige acá.
+              El color de fondo lo define el nivel de cada cliente (se elige en Premios, junto con los niveles).
             </div>
           )}
 
           <div className="dt-appearance-label" style={{ marginTop: 14 }}>Color de texto</div>
-          {can('customTextColor') ? (
+          {can('customTextColor') ? (<>
             <div className="dt-custom-color-row">
               <label className="dt-custom-swatch" style={{ background: card.textColor || '#FFFFFF' }}>
                 <input type="color" value={card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, textColor: e.target.value })} className="dt-color-native" />
@@ -725,7 +801,9 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
               <input type="text" className="dt-hex-input" value={card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, textColor: e.target.value })} placeholder="#FFFFFF" maxLength={7} />
               <span className="dt-hex-label">Se ve así en la Wallet real</span>
             </div>
-          ) : (
+            {textColorBad && <div className="dt-color-warn">Tiene que ser un código de color como #FFFFFF.</div>}
+            {!textColorBad && lowContrast && <div className="dt-color-warn">Ojo: con este fondo, el texto se va a leer mal. Probá con un color más claro u oscuro.</div>}
+          </>) : (
             <div className="dt-upgrade-color-note">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               Color de texto personalizado · Plan Growth o superior
@@ -736,7 +814,7 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
               del valor. Mismo gate que el color de texto: ambos son
               "personalización de color de texto" desde Growth. */}
           <div className="dt-appearance-label" style={{ marginTop: 14 }}>Color de las etiquetas</div>
-          {can('customTextColor') ? (
+          {can('customTextColor') ? (<>
             <div className="dt-custom-color-row">
               <label className="dt-custom-swatch" style={{ background: card.labelColor || card.textColor || '#FFFFFF' }}>
                 <input type="color" value={card.labelColor || card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, labelColor: e.target.value })} className="dt-color-native" />
@@ -744,7 +822,8 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
               <input type="text" className="dt-hex-input" value={card.labelColor || card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, labelColor: e.target.value })} placeholder="#FFFFFF" maxLength={7} />
               <span className="dt-hex-label">TITULAR, PREMIO, etc. — si no lo cambiás, usa el color de texto</span>
             </div>
-          ) : (
+            {labelColorBad && <div className="dt-color-warn">Tiene que ser un código de color como #FFFFFF.</div>}
+          </>) : (
             <div className="dt-upgrade-color-note">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               Color de etiquetas personalizado · Plan Growth o superior
@@ -788,7 +867,7 @@ function CardEditor({ card: init, formFields, businessId, businessName, onSaved,
                     </>
                 }
                 <input ref={prizeImageRef} type="file" accept="image/*" style={{ display: 'none' }}
-                  onChange={e => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = ev => setPrizeImage(ev.target?.result as string); r.readAsDataURL(f) }} />
+                  onChange={e => { const f = e.target.files?.[0]; if (!f) return; compressImage(f, 900, f.type === 'image/png').then(setPrizeImage).catch(err => setSaveError(err.message)); e.target.value = '' }} />
               </div>
               {prizeImage && <button className="dt-logo-remove" onClick={() => setPrizeImage(null)} style={{ marginBottom: 12 }}>Quitar imagen</button>}
 
@@ -834,7 +913,7 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
   const TYPES: Array<{ id: CardType; label: string; desc: string }> = [
     { id: 'stamp',      label: 'Tarjeta de sellos',   desc: 'Visitas → premio al completar' },
     { id: 'points',     label: 'Puntos por visita',   desc: 'Acumulan puntos del catálogo'  },
-    { id: 'membership', label: 'Membresía por niveles', desc: 'Bronze → Silver → Gold → Black' },
+    { id: 'membership', label: 'Membresía por niveles', desc: 'Bronce → Plata → Oro → Black (los editás en Premios)' },
   ]
 
   async function handleCreate() {
@@ -848,6 +927,7 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
       stampsRequired: type === 'stamp' ? stamps : 0,
       rewardMode:     type === 'stamp' ? rewardMode : null,
       rewardField:    null,
+      pointsPerVisit: type === 'points' ? points : null,
     }
     setSaving(true)
     setError(null)
@@ -870,7 +950,7 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
         {step === 1 && (
           <>
             <div className="dt-modal-field-label">Nombre de la tarjeta</div>
-            <input className="dt-modal-input" placeholder="Ej: Tarjeta de puntos" value={name} onChange={e => setName(e.target.value)} autoFocus />
+            <input className="dt-modal-input" placeholder="Ej: Club Café" maxLength={40} value={name} onChange={e => setName(e.target.value)} autoFocus />
 
             <div className="dt-modal-field-label" style={{ marginTop: 16 }}>Tipo de programa</div>
             <div className="dt-modal-types">
@@ -935,7 +1015,7 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
                 <div className="dt-modal-field-label">Puntos por visita</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <input type="number" className="dt-modal-input" style={{ width: 90, textAlign: 'center', fontSize: 22, fontWeight: 800 }}
-                    value={points} onChange={e => setPoints(Number(e.target.value))} min={1} />
+                    value={points} onChange={e => setPoints(Math.max(1, Math.min(1000, Math.round(Number(e.target.value) || 1))))} min={1} max={1000} />
                   <span style={{ fontSize: 14, color: 'rgba(43,38,32,.5)' }}>puntos por visita</span>
                 </div>
                 <div className="dt-modal-hint">Los premios y umbrales se configuran desde la sección Premios.</div>
@@ -945,7 +1025,7 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
             {type === 'membership' && (
               <>
                 <div className="dt-modal-hint" style={{ marginBottom: 0 }}>
-                  Tu membresía arranca con 4 niveles predeterminados: Bronze, Silver, Gold y Black. Podés editar los beneficios de cada uno desde la sección Premios una vez que la tarjeta esté creada.
+                  Tu membresía arranca con 4 niveles: Bronce, Plata, Oro y Black. Después podés cambiar nombres, colores, visitas y beneficios desde Premios.
                 </div>
               </>
             )}
@@ -967,8 +1047,9 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
 }
 
 // ─── Card manager ─────────────────────────────────────────────────────────────
-function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }: {
+function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, onChoosePlan }: {
   cards: CardDesign[]; businessId?: string | null; businessName?: string | null; onSaved?: () => void; onEdit: (card: CardDesign) => void
+  onChoosePlan?: () => void
 }) {
   const [cards, setCards]         = useState<CardDesign[]>(init)
   const [showModal, setModal]     = useState(false)
@@ -979,15 +1060,30 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }:
 
   // Sync when parent passes new real cards
   useEffect(() => { setCards(init) }, [init])
+
+  // Clientes por tarjeta (para no eliminar tarjetas con clientes) y niveles
+  // reales de las membresías (miniatura).
+  const [stats, setStats] = useState<Record<string, { customers: number; withWallet: number }>>({})
+  const [tiersByCard, setTiersByCard] = useState<Record<string, MembershipTier[]>>({})
+  const [confirmDeactivate, setConfirmDeactivate] = useState<string | null>(null)
+  useEffect(() => {
+    if (!businessId) return
+    apiCardStats(businessId).then(setStats).catch(() => {})
+    init.filter(c => c.type === 'membership').forEach(c => {
+      apiGetTiers(businessId, c.id).then(list => setTiersByCard(m => ({ ...m, [c.id]: list.map(t => ({ id: t._id, name: t.name, threshold: t.threshold, perk: t.perk, color: t.color, bg: t.bg })) }))).catch(() => {})
+    })
+  }, [businessId, init])
   const activeCount           = cards.filter((c: CardDesign) => c.isActive).length
   const atLimit               = activeCount >= planMaxCards
 
   const [toggleError, setToggleError] = useState<string | null>(null)
 
-  async function toggleCard(id: string) {
+  async function toggleCard(id: string, confirmed = false) {
     const card = cards.find((c: CardDesign) => c.id === id)
     if (!card) return
-    if (!card.isActive && atLimit) return
+    if (!card.isActive && atLimit) { setToggleError(`Tu plan ${plan} permite ${planMaxCards} tarjeta${planMaxCards === 1 ? '' : 's'} activa${planMaxCards === 1 ? '' : 's'}. Desactivá otra o mejorá el plan.`); return }
+    if (card.isActive && !confirmed && (stats[id]?.customers || 0) > 0) { setConfirmDeactivate(id); return }
+    setConfirmDeactivate(null)
     setToggleError(null)
 
     const newActive = !card.isActive
@@ -1002,7 +1098,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }:
       // ...pero si el backend lo rechaza (ej. límite de plan cambiado en otra pestaña),
       // revertimos en vez de dejar la UI mintiendo sobre el estado real.
       setCards(cards.map((c: CardDesign) => c.id === id ? { ...c, isActive: !newActive } : c))
-      setToggleError(err?.message || 'No se pudo actualizar la tarjeta. Intentá de nuevo.')
+      setToggleError(err?.message || err?.error || 'No se pudo actualizar la tarjeta. Intentá de nuevo.')
     }
   }
 
@@ -1019,8 +1115,9 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }:
         type:           draft.type,
         color:          draft.color,
         secondColor:    draft.secondColor,
-        stampsRequired: draft.stampsRequired,
-        rewardMode:     draft.rewardMode,
+        stampsRequired: draft.stampsRequired || undefined,
+        rewardMode:     draft.rewardMode || undefined,
+        pointsPerVisit: draft.pointsPerVisit || undefined,
       } as any)
       const newCard: CardDesign = {
         id:             created._id,
@@ -1035,6 +1132,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }:
         logoUrl:        created.logoUrl || null,
         earnedIcon:     created.earnedIcon || null,
         emptyIcon:      created.emptyIcon || null,
+        pointsPerVisit: created.pointsPerVisit || null,
       }
       setCards([...cards, newCard])
       onSaved?.()  // re-sincroniza el estado del padre para que sobreviva un cambio de tab
@@ -1054,7 +1152,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }:
       onSaved?.()
     } catch (err: any) {
       setCards(prevCards)  // revert si el backend lo rechaza
-      setToggleError(err?.message || 'No se pudo eliminar la tarjeta. Intentá de nuevo.')
+      setToggleError(err?.message || err?.error || 'No se pudo eliminar la tarjeta. Intentá de nuevo.')
     }
   }
 
@@ -1063,14 +1161,14 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }:
       {/* Plan bar */}
       <div className="dt-plan-bar">
         <div className="dt-plan-text">
-          <strong>{activeCount} de {planMaxCards}</strong> tarjeta{planMaxCards !== 1 ? 's' : ''} activa{planMaxCards !== 1 ? 's' : ''} — Plan {plan}
+          {planMaxCards >= 999 ? <><strong>{activeCount}</strong> tarjeta{activeCount !== 1 ? 's' : ''} activa{activeCount !== 1 ? 's' : ''} — Plan {plan}</> : <><strong>{activeCount} de {planMaxCards}</strong> tarjeta{planMaxCards !== 1 ? 's' : ''} activa{planMaxCards !== 1 ? 's' : ''} — Plan {plan}</>}
         </div>
         <div className="dt-plan-dots">
           {Array.from({ length: Math.min(planMaxCards, 5) }, (_: unknown, i: number) => (
             <div key={i} className={`dt-plan-dot${i < activeCount ? ' dt-plan-dot--on' : ''}`} />
           ))}
         </div>
-        <button className="dt-upgrade-link">Mejorar plan →</button>
+        {onChoosePlan && planMaxCards < 999 && <button className="dt-upgrade-link" onClick={onChoosePlan}>Más tarjetas →</button>}
       </div>
 
       {toggleError && (
@@ -1080,7 +1178,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }:
       <div className="dt-cards-grid">
         {cards.map((card: CardDesign) => (
           <div key={card.id} className="dt-card-tile">
-            <MiniPass design={card} businessName={businessName} logos={{ businessLogo: card.logoUrl || null, earnedIcon: card.earnedIcon || null, emptyIcon: card.emptyIcon || null, pointsIcon: card.pointsIcon || null }} />
+            <MiniPass design={card} businessName={businessName} tiers={tiersByCard[card.id]} logos={{ businessLogo: card.logoUrl || null, earnedIcon: card.earnedIcon || null, emptyIcon: card.emptyIcon || null, pointsIcon: card.pointsIcon || null }} />
             <div className="dt-tile-info">
               <div className="dt-tile-name-row">
                 <span className="dt-tile-name">{card.name}</span>
@@ -1089,9 +1187,10 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }:
                 </button>
               </div>
               <div className="dt-tile-sub">
-                {card.type === 'stamp'      && `${card.stampsRequired} visitas · ${card.rewardMode === 'dynamic' ? 'Cliente elige' : 'Premio fijo'}`}
-                {card.type === 'points'     && 'Puntos por visita'}
-                {card.type === 'membership' && '4 niveles'}
+                {card.type === 'stamp'      && `${card.stampsRequired} sellos · ${card.rewardMode === 'dynamic' ? 'el cliente elige' : 'premio fijo'}`}
+                {card.type === 'points'     && `${card.pointsPerVisit || 10} pts por visita`}
+                {card.type === 'membership' && `${tiersByCard[card.id]?.length || 4} niveles`}
+                {stats[card.id] ? ` · ${stats[card.id].customers} cliente${stats[card.id].customers === 1 ? '' : 's'}` : ''}
                 {!card.isActive && ' · Inactiva'}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1114,10 +1213,10 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }:
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </div>
           <div className="dt-add-label">
-            {atLimit ? `Plan ${plan} · 1 tarjeta máx.` : t('dt_new_card' as any)}
+            {atLimit ? `Plan ${plan} · ${planMaxCards} tarjeta${planMaxCards === 1 ? '' : 's'} activa${planMaxCards === 1 ? '' : 's'} máx.` : t('dt_new_card' as any)}
           </div>
-          {atLimit && (
-            <div className="dt-add-upgrade">Mejorar plan →</div>
+          {atLimit && onChoosePlan && (
+            <div className="dt-add-upgrade" onClick={e => { e.stopPropagation(); onChoosePlan() }}>Mejorar plan →</div>
           )}
         </div>
       </div>
@@ -1130,10 +1229,31 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }:
         />
       )}
 
+      {confirmDeactivate && (() => {
+        const card = cards.find((c: CardDesign) => c.id === confirmDeactivate)
+        if (!card) return null
+        const n = stats[card.id]?.customers || 0
+        return (
+          <div className="dt-modal-overlay" onClick={() => setConfirmDeactivate(null)}>
+            <div className="dt-modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+              <div className="dt-modal-header"><div className="dt-modal-title">Desactivar {card.name}</div></div>
+              <div style={{ fontSize: 13, color: 'rgba(43,38,32,.65)', lineHeight: 1.6, marginBottom: 20 }}>
+                Deja de aparecer en tu formulario de registro, así que no se suman clientes nuevos. Los {n} cliente{n === 1 ? '' : 's'} que ya la tienen la siguen usando y podés seguir escaneándolos.
+              </div>
+              <div className="dt-modal-footer">
+                <button className="dt-modal-cancel" onClick={() => setConfirmDeactivate(null)}>Cancelar</button>
+                <button onClick={() => toggleCard(card.id, true)} style={{ background: '#C75D3A', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 22px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Desactivar</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {confirmDelete && (() => {
         const card = cards.find((c: CardDesign) => c.id === confirmDelete)
         if (!card) return null
         const isOnlyActive = card.isActive && activeCount === 1
+        const customers = stats[card.id]?.customers || 0
         return (
           <div className="dt-modal-overlay" onClick={() => setConfirmDelete(null)}>
             <div className="dt-modal" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
@@ -1143,7 +1263,18 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }:
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
-              {isOnlyActive
+              {customers > 0
+                ? <>
+                    <div style={{ fontSize: 13, color: 'rgba(43,38,32,.65)', lineHeight: 1.6, marginBottom: 20 }}>
+                      <strong>{card.name}</strong> tiene <strong>{customers} cliente{customers === 1 ? '' : 's'}</strong>: no se puede eliminar porque perderían su progreso y su tarjeta dejaría de funcionar.
+                      {card.isActive && <> Podés <strong>desactivarla</strong>: deja de aparecer en el formulario de registro, pero quienes ya la tienen la siguen usando.</>}
+                    </div>
+                    <div className="dt-modal-footer">
+                      <button className="dt-modal-cancel" onClick={() => setConfirmDelete(null)}>Cerrar</button>
+                      {card.isActive && !isOnlyActive && <button onClick={() => { setConfirmDelete(null); toggleCard(card.id, true) }} style={{ background: '#C75D3A', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 22px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Desactivar</button>}
+                    </div>
+                  </>
+                : isOnlyActive
                 ? <>
                     <div style={{ fontSize: 13, color: 'rgba(43,38,32,.65)', lineHeight: 1.6, marginBottom: 20 }}>
                       No podés eliminar <strong>{card.name}</strong> porque es la única tarjeta activa. Creá otra tarjeta antes de eliminar esta.
@@ -1155,7 +1286,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }:
                   </>
                 : <>
                     <div style={{ fontSize: 13, color: 'rgba(43,38,32,.65)', lineHeight: 1.6, marginBottom: 20 }}>
-                      ¿Eliminar <strong>{card.name}</strong>? Esta acción no se puede deshacer. Los clientes que tienen esta tarjeta dejarán de verla en su wallet.
+                      ¿Eliminar <strong>{card.name}</strong>? Todavía no tiene clientes. Esta acción no se puede deshacer.
                     </div>
                     <div className="dt-modal-footer">
                       <button className="dt-modal-cancel" onClick={() => setConfirmDelete(null)}>Cancelar</button>
@@ -1174,13 +1305,17 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit }:
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function DesignTab({ data, cards, businessId, businessName, onSaved }: { data: DesignData; cards?: CardDesign[]; businessId?: string | null; businessName?: string | null; onSaved?: () => void }) {
+export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePlan, onGoTo }: {
+  cards?: CardDesign[]; businessId?: string | null; businessName?: string | null; onSaved?: () => void
+  onChoosePlan?: () => void
+  onGoTo?: (tab: 'form' | 'rewards') => void
+}) {
   const [editingCard, setEditingCard] = useState<CardDesign | null>(null)
 
   // Las cards reales ya vienen cargadas del dashboard (fetch único al
   // montar, sin este segundo round-trip) — así no hay ventana de 1-2s
   // mostrando el color del mock antes de que llegue el real.
-  const effectiveData = (cards && cards.length > 0) ? { ...data, cardDesigns: cards } : data
+  const cardDesigns = cards || []
 
   return (
     <>
@@ -1194,6 +1329,12 @@ export function DesignTab({ data, cards, businessId, businessName, onSaved }: { 
         .dt-save-btn:hover{background:#B14F2F;}
         .dt-save-btn:disabled{opacity:.6;cursor:not-allowed;}
         .dt-save-error{font-size:12px;color:#B23B3B;background:rgba(178,59,59,.07);border-bottom:1px solid rgba(178,59,59,.15);padding:8px 20px;}
+        .dt-save-notice{font-size:12px;color:#3F6E3E;background:rgba(91,140,90,.1);border-bottom:1px solid rgba(91,140,90,.2);padding:8px 20px;}
+        .dt-save-warn{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12.5px;color:#7A5A12;background:rgba(212,162,76,.14);border-bottom:1px solid rgba(212,162,76,.3);padding:10px 20px;}
+        .dt-warn-btn{font-size:12px;font-weight:600;border:1px solid rgba(43,38,32,.2);background:#fff;color:#2B2620;border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;}
+        .dt-warn-btn--primary{background:#C75D3A;border-color:#C75D3A;color:#fff;}
+        .dt-color-warn{font-size:11px;color:#9E4529;background:rgba(199,93,58,.08);border-radius:7px;padding:6px 9px;margin-top:6px;line-height:1.4;}
+        .dt-inline-link{background:none;border:none;padding:0;color:#C75D3A;font-weight:700;cursor:pointer;font-family:inherit;font-size:inherit;}
         .dt-editor-body{flex:1;display:grid;grid-template-columns:300px 1fr;overflow:hidden;}
         .dt-editor-panel{background:#FFFFFF;border-right:1px solid rgba(43,38,32,.08);padding:20px 18px;overflow-y:auto;}
         .dt-panel-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:rgba(43,38,32,.45);font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
@@ -1473,8 +1614,8 @@ export function DesignTab({ data, cards, businessId, businessName, onSaved }: { 
       `}</style>
 
       {editingCard
-        ? <CardEditor card={editingCard} formFields={data.formFields} businessId={businessId} businessName={businessName} onSaved={onSaved} onBack={() => setEditingCard(null)} />
-        : <CardManager cards={effectiveData.cardDesigns} businessId={businessId} businessName={businessName} onSaved={onSaved} onEdit={setEditingCard} />
+        ? <CardEditor card={editingCard} businessId={businessId} businessName={businessName} onSaved={onSaved} onBack={() => setEditingCard(null)} onGoTo={onGoTo} />
+        : <CardManager cards={cardDesigns} businessId={businessId} businessName={businessName} onSaved={onSaved} onEdit={setEditingCard} onChoosePlan={onChoosePlan} />
       }
     </>
   )
