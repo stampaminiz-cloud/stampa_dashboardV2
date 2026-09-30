@@ -14,23 +14,15 @@ const CSS = `
   .fp-field { margin-bottom: 16px; }
   .fp-label { font-size: 11px; font-weight: 700; color: rgba(43,38,32,.5); text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 7px; }
   .fp-input { width: 100%; padding: 13px 14px; font-size: 14px; border: 1.5px solid rgba(43,38,32,.12); border-radius: 12px; background: #FBF6EE; color: #2B2620; font-family: var(--font-body); outline: none; }
-  .fp-input:focus { border-color: #E46C31; background: #FFFFFF; }
+  .fp-input:focus { border-color: #C75D3A; background: #FFFFFF; }
   .fp-error { font-size: 11.5px; color: #B23B3B; background: rgba(178,59,59,.07); border: 1px solid rgba(178,59,59,.2); border-radius: 9px; padding: 10px 14px; margin-bottom: 16px; }
   .fp-success { font-size: 12.5px; color: #5B8C5A; background: rgba(91,140,90,.08); border: 1px solid rgba(91,140,90,.25); border-radius: 9px; padding: 12px 14px; margin-bottom: 16px; line-height: 1.5; }
-  .fp-btn { width: 100%; background: #E46C31; color: #fff; border: none; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-display); margin-top: 4px; }
+  .fp-btn { width: 100%; background: #C75D3A; color: #fff; border: none; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-display); margin-top: 4px; }
   .fp-btn:disabled { opacity: .6; cursor: not-allowed; }
   .fp-footer { text-align: center; margin-top: 20px; font-size: 12.5px; color: rgba(43,38,32,.4); }
-  .fp-footer a { color: #E46C31; text-decoration: none; font-weight: 600; }
+  .fp-footer a { color: #C75D3A; text-decoration: none; font-weight: 600; }
 `
 
-function injectStyles() {
-  if (typeof document === 'undefined') return
-  if (document.getElementById('fp-css')) return
-  const s = document.createElement('style')
-  s.id = 'fp-css'
-  s.textContent = CSS
-  document.head.appendChild(s)
-}
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams()
@@ -42,7 +34,6 @@ function ResetPasswordForm() {
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
 
-  useEffect(() => { injectStyles() }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -101,6 +92,7 @@ export default function ResetPasswordPage() {
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="fp-shell">
         <Suspense fallback={null}>
           <ResetPasswordForm />

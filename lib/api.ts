@@ -51,11 +51,18 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     headers['Authorization'] = `Bearer ${token}`
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  })
+  let res: Response
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    })
+  } catch {
+    // Sin conexión o servidor caído: antes cada pantalla mostraba su error
+    // genérico ("Error al crear la cuenta") sin decir que era la conexión.
+    throw { status: 0, error: 'No pudimos conectarnos con Stampa. Revisá tu conexión a internet y probá de nuevo.' }
+  }
 
   // Token expirado o inválido → limpiar sesión y redirigir al login.
   // OJO: nunca en una llamada noAuth (páginas públicas como el registro de
@@ -361,6 +368,7 @@ export async function apiOnboarding(data: {
   pointsPerVisit?: number
   rewardMode?: 'dynamic' | 'fixed'
   rewardFixedValue?: string
+  rewardOptions?: string[]   // "El cliente elige su premio": 2 a 6 opciones
   brandColor?: string
   brandLogo?: string | null
   flipMessage?: string

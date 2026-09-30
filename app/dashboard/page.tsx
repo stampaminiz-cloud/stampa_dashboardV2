@@ -820,6 +820,13 @@ export default function DashboardPage() {
       setOwner(o)
       apiBillingStatus().then(setBilling).catch(() => setBilling(null))
       if (o?.role === 'manager') setActive(prev => (prev === 'users' ? 'overview' : prev))
+      // Cuenta sin negocio = no terminó el onboarding (cerró la ventana a
+      // mitad de camino): va a terminarlo. Antes entraba a un dashboard de
+      // "Mi negocio" vacío donde nada funcionaba.
+      if (businesses.length === 0 && o?.role !== 'manager') {
+        window.location.replace('/onboarding')
+        return
+      }
       if (businesses.length > 0) {
         const bid = businesses[0]._id
         setBusinessId(bid)

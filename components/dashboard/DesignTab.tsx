@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useRef, useEffect } from 'react'
+import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS } from '@/lib/colorPresets'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
 import { apiCreateCard, apiUpdateCard, apiDeleteCard } from '@/lib/api'
@@ -63,21 +64,10 @@ interface DesignData {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const COLOR_PRESETS = [
-  { label: 'Bosque',     start: '#1B412F', end: '#132F22' },
-  { label: 'Océano',     start: '#185FA5', end: '#0C447C' },
-  { label: 'Terracota',  start: '#993C1D', end: '#712B13' },
-  { label: 'Violeta',    start: '#533FB7', end: '#3C3489' },
-  { label: 'Carbón',     start: '#2C2C2A', end: '#141414' },
-]
-
-// Desbloqueados desde Growth (extraColorPresets) — antes de llegar al color
-// 100% libre que es exclusivo de Pro+.
-const EXTRA_COLOR_PRESETS = [
-  { label: 'Coral',          start: '#D4537E', end: '#993556' },
-  { label: 'Mostaza',        start: '#EF9F27', end: '#854F0B' },
-  { label: 'Verde azulado',  start: '#1D9E75', end: '#0F6E56' },
-]
+// Paleta por plan: lib/colorPresets.ts (espejo del backend). Starter 8,
+// Growth +8 (16), Pro/Enterprise color libre.
+const COLOR_PRESETS = STARTER_PRESETS
+const EXTRA_COLOR_PRESETS = GROWTH_EXTRA_PRESETS
 
 const DEFAULT_TIERS: MembershipTier[] = [
   { id: '1', name: 'Bronze', threshold: 0,  perk: 'Bienvenido',           color: '#854F0B', bg: '#FAEEDA' },
@@ -185,7 +175,7 @@ function ColorPicker({ color, onChange }: { color: string; onChange: (s: string,
       {!allowsExtraPresets && (
         <div className="dt-upgrade-color-note">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          +3 colores más · Plan Growth o superior
+          +8 colores más · Plan Growth o superior
         </div>
       )}
       {allowsCustom ? (
