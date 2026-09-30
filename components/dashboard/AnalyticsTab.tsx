@@ -293,22 +293,35 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   // ── /analytics/detailed (depende del rango y de la tarjeta) ──
   const [detailed, setDetailed] = useState<Detailed | null>(null)
   const [detailedKey, setDetailedKey] = useState('')
+  const [detailedError, setDetailedError] = useState(false)
+  const [retry, setRetry] = useState(0)
   const wantedDetailedKey = `${range}|${cardQuery}`
   const detailedLoading = detailedKey !== wantedDetailedKey
   useEffect(() => {
     const businessId = localStorage.getItem('stampa_business_id')
     if (!businessId || !fullAnalytics) return
     let cancelled = false
+    setDetailedError(false)
     const params = new URLSearchParams({ range })
     if (cardQuery) params.set('cardId', cardQuery)
     fetch(`${BASE_URL}/api/businesses/${businessId}/analytics/detailed?${params.toString()}`, {
       headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
     })
-      .then(r => r.json())
+      .then(async r => {
+        const d = await r.json().catch(() => null)
+        // Si la respuesta no trae lo esperado (error del servidor, o un
+        // backend viejo durante un deploy) se muestra el error en vez de
+        // romper la pantalla.
+        if (!r.ok || !d?.hourly?.visits || !Array.isArray(d.visitsOverTime) || !Array.isArray(d.funnel)) throw new Error(`detailed ${r.status}`)
+        return d as Detailed
+      })
       .then(d => { if (!cancelled) { setDetailed(d); setDetailedKey(`${range}|${cardQuery}`) } })
-      .catch(err => { console.error('Error loading detailed analytics:', err); if (!cancelled) setDetailedKey(`${range}|${cardQuery}`) })
+      .catch(err => {
+        console.error('Error loading detailed analytics:', err)
+        if (!cancelled) { setDetailed(null); setDetailedError(true); setDetailedKey(`${range}|${cardQuery}`) }
+      })
     return () => { cancelled = true }
-  }, [range, cardQuery, fullAnalytics])
+  }, [range, cardQuery, fullAnalytics, retry])
 
   // ── /analytics (estado actual; depende solo de la tarjeta) ──
   // Con "Todas" alcanza con lo que ya cargó el dashboard.
@@ -390,7 +403,9 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   ]
 
   const d = detailedLoading ? null : detailed
-  const Loading = () => <div className="an-empty-note an-loading">Cargando…</div>
+  const Loading = () => detailedError && !detailedLoading
+    ? <div className="an-empty-note">No se pudo cargar.</div>
+    : <div className="an-empty-note an-loading">Cargando…</div>
   const chartTip = (b: Bucket, v: number) => {
     if (!multiType) return `${b.label} · ${v} ${chart.unit}`
     const parts = [
@@ -437,6 +452,8 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-export:hover{border-color:rgba(43,38,32,.3);}
         .an-export:disabled{opacity:.6;cursor:default;}
         .an-export-err{font-size:11px;color:#B23B3B;}
+        .an-error{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:rgba(178,59,59,.07);border:1px solid rgba(178,59,59,.2);color:#8E2F2F;border-radius:12px;padding:10px 14px;font-size:12.5px;}
+        .an-error button{background:#fff;border:1px solid rgba(178,59,59,.3);color:#8E2F2F;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
 
         /* ── Grids ── */
         .an-2col{display:grid;grid-template-columns:1.7fr 1fr;gap:12px;}
@@ -554,6 +571,13 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
                 {TYPE_ICONS[card.type]} {card.name}
               </button>
             ))}
+          </div>
+        )}
+
+        {detailedError && !detailedLoading && (
+          <div className="an-error">
+            <span>No pudimos cargar parte de la analítica. Revisá tu conexión y probá de nuevo.</span>
+            <button onClick={() => { setDetailedKey(''); setRetry(n => n + 1) }}>Reintentar</button>
           </div>
         )}
 
