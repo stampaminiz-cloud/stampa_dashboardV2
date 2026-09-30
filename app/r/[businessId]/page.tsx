@@ -64,7 +64,11 @@ function applyBrandColor(card?: { color?: string; secondColor?: string; textColo
   document.documentElement.style.setProperty('--brand-text', card.textColor || '#FFFFFF')
 }
 
-interface PublicField { _id?: string; label: string; fieldType: string; isLocked: boolean; options?: string[]; placeholder?: string }
+interface PublicField { _id?: string; label: string; fieldType: string; isLocked: boolean; builtIn?: boolean; isRewardSource?: boolean; isRequired?: boolean; options?: string[]; placeholder?: string }
+
+// Nombre y email se dibujan aparte; el resto (incluida la pregunta de
+// premio, que está bloqueada pero hay que contestarla) va en el formulario.
+const askable = (f: PublicField) => f.builtIn !== undefined ? !f.builtIn : (!f.isLocked || !!f.isRewardSource)
 interface PublicCard { id: string; name: string; type: string; description?: string; color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null }
 
 export default function PublicRegisterPage() {
@@ -124,11 +128,13 @@ export default function PublicRegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!fullName.trim() || !email.trim()) { setError('Completá tu nombre y email.'); return }
+    const missing = fields.filter(f => askable(f) && f.isRequired && !(answers[f._id as string] || '').trim())
+    if (missing.length) { setError(`Completá: ${missing.map(f => f.label).join(', ')}.`); return }
     setSubmitting(true)
     setError('')
     try {
       const formResponses = fields
-        .filter(f => !f.isLocked && f._id)
+        .filter(f => askable(f) && f._id)
         .map(f => ({ fieldId: f._id as string, value: answers[f._id as string] || '' }))
       const res = await apiRegisterCustomer(businessId, {
         cardId: selectedCard?.id,
@@ -138,7 +144,9 @@ export default function PublicRegisterPage() {
       })
       setResult({ qrValue: res.qrValue, cardName: res.card.name, customerId: res.customerId })
     } catch (err: any) {
-      setError(err?.error || 'No pudimos completar el registro. Intentá de nuevo.')
+      setError(err?.error === 'already_registered'
+        ? 'Ya estás registrado con ese email. Si perdiste tu tarjeta, pedile al local que te la vuelva a mandar.'
+        : err?.message || (err?.error && !/^[a-z_]+$/.test(err.error) ? err.error : '') || 'No pudimos completar el registro. Intentá de nuevo.')
     } finally {
       setSubmitting(false)
     }
@@ -216,9 +224,9 @@ export default function PublicRegisterPage() {
                           <label className="rg-label">Email</label>
                           <input className="rg-input" type="email" placeholder="tu@email.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
                         </div>
-                        {fields.filter(f => !f.isLocked).map(f => (
+                        {fields.filter(askable).map(f => (
                           <div className="rg-field" key={f._id}>
-                            <label className="rg-label">{f.label}</label>
+                            <label className="rg-label">{f.label}{f.isRequired && <span style={{ color: 'var(--brand-color)' }}> *</span>}</label>
                             {f.fieldType === 'select' ? (
                               <select className="rg-select" value={answers[f._id as string] || ''} onChange={e => setAnswers({ ...answers, [f._id as string]: e.target.value })}>
                                 <option value="">Elegir...</option>
