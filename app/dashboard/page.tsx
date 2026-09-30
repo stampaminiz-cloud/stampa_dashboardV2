@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { mockData } from '@/data/mockData'
 import { detectLang, createT, LangContext } from '@/data/i18n'
-import { PlanProvider, PLAN_LIMITS } from '@/data/plans'
+import { PlanProvider, PLAN_LIMITS, usePlan } from '@/data/plans'
 import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL, apiBillingStatus, apiCancelSubscription, type BillingStatus } from '@/lib/api'
 import { BillingBanner, BillingStyles, PlanModal } from '@/components/dashboard/Billing'
 import { BrandLogo } from '@/components/brand/BrandLogo'
@@ -243,15 +243,19 @@ function Header({ title, t, setMobileOpen, setActive, recentActivity: realActivi
 // flechas "↑ 0%", "9 visitas al premio") que veían todos los negocios.
 const ACTIVITY_AV: Record<string, string> = { redeem: 'redeem', signup: 'signup', points: 'login', visit: 'login', tier_change: 'login', stamp: 'stamp' }
 
-function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, isManager }: {
+function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, isManager, onChoosePlan }: {
   t: (k: any) => string
   analyticsData?: any
   detailedAnalytics?: any
   cards?: any[]
   setActive: (tab: TabId) => void
   isManager: boolean
+  onChoosePlan: () => void
 }) {
   const a = analyticsData
+  // Growth+ tiene Analítica: Inicio queda como lectura rápida y el detalle
+  // vive allá. Starter ve lo básico y el resto con candado.
+  const fullAnalytics = usePlan().can('analyticsLevel')
   const loadingData = !a
   const activeCards = (cards || []).filter((c: any) => c.isActive)
   const types: string[] = a?.cardTypes?.length ? a.cardTypes : [...new Set(activeCards.map((c: any) => c.type))] as string[]
@@ -273,12 +277,12 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
   }
   const chartCfg = single ? CHART[single] : { title: 'Actividad', unit: 'movimientos', key: 'total' }
 
-  const [granularity, setGranularity] = useState<'7d' | '30d' | '90d'>('7d')
+  const [granularity, setGranularity] = useState<'7d' | '30d'>('7d')
   const [hoveredBar, setHoveredBar] = useState<string | null>(null)
   const [rangeVisits, setRangeVisits] = useState<any[] | null>(null)
   const [chartLoading, setChartLoading] = useState(true)
 
-  async function loadRange(g: '7d' | '30d' | '90d') {
+  async function loadRange(g: '7d' | '30d') {
     setGranularity(g)
     const businessId = localStorage.getItem('stampa_business_id')
     if (!businessId) return
@@ -302,7 +306,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
   const chartMax = Math.max(...bars.map(b => b.value), 1)
   const axisSteps = [1, 0.75, 0.5, 0.25, 0].map(f => Math.round(chartMax * f))
   const chartEmpty = bars.every(b => b.value === 0)
-  const RANGE_SUBTITLES: Record<string, string> = { '7d': 'Últimos 7 días', '30d': 'Últimos 30 días', '90d': 'Últimos 90 días' }
+  const RANGE_SUBTITLES: Record<string, string> = { '7d': 'Últimos 7 días', '30d': 'Últimos 30 días' }
   function tooltip(b: { label: string; value: number; raw: any }) {
     if (single) return `${b.label} · ${b.value} ${chartCfg.unit}`
     const parts = [
@@ -314,12 +318,17 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
     return `${b.label} · ${parts.length ? parts.join(' · ') : 'sin movimientos'}`
   }
 
-  // ── Resumen: solo la comparación que es real (nuevos vs mes anterior) ──
-  const METRICS = [
-    { label: t('total_customers' as any), value: a?.total, color: '#C75D3A', delta: null as number | null },
-    { label: t('active' as any),          value: a?.active, color: '#5B8C5A', delta: null },
-    { label: 'Nuevos este mes',           value: a?.newThisMonth, color: '#185FA5', delta: a?.newLastMonth > 0 ? a.newDelta : null },
-    { label: t('inactive' as any),        value: a?.inactive, color: '#B23B3B', delta: null },
+  // ── Resumen: 4 tarjetas, cada flecha compara contra un período real ──
+  const fmt = (n: number | undefined) => (n ?? 0).toLocaleString('es-AR')
+  const METRICS: { label: string; value?: number; color: string; delta: number | null; deltaTitle?: string; sub: string }[] = [
+    { label: 'Clientes', value: a?.total, color: '#C75D3A', delta: null,
+      sub: `${fmt(a?.active)} activos · ${fmt(a?.inactive)} inactivos` },
+    { label: 'Nuevos este mes', value: a?.newThisMonth, color: '#185FA5', delta: a?.newLastMonth > 0 ? a.newDelta : null, deltaTitle: 'Respecto al mismo período del mes pasado',
+      sub: `mes pasado a esta fecha: ${fmt(a?.newLastMonth)}` },
+    { label: 'Visitas · 7 días', value: a?.visitsThisWeek, color: '#5B8C5A', delta: a?.visitsWeekDelta ?? null, deltaTitle: 'Respecto a los 7 días anteriores',
+      sub: `hoy: ${fmt(a?.visitsToday)} · ${new Date().toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', '')}. pasado: ${fmt(a?.visitsSameDayLastWeek)}` },
+    { label: 'Premios entregados este mes', value: a?.rewardsThisMonth, color: '#9C7530', delta: a?.rewardsDelta ?? null, deltaTitle: 'Respecto al mismo período del mes pasado',
+      sub: `mes pasado a esta fecha: ${fmt(a?.rewardsLastMonth)}` },
   ]
 
   // ── Para atender (según los tipos de tarjeta) ──
@@ -354,7 +363,8 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
   const insights: { type: string; text: string }[] = []
   if (a?.toDeliver > 0) insights.push({ type: 'info', text: `${a.toDeliver} cliente${a.toDeliver === 1 ? ' completó su tarjeta y espera' : 's completaron su tarjeta y esperan'} el premio.` })
   if (a?.nearPrize > 0) insights.push({ type: 'positive', text: `${a.nearPrize} cliente${a.nearPrize === 1 ? ' está' : 's están'} a 1–2 sellos del premio: es un buen momento para mandarles una notificación.` })
-  if (a?.newLastMonth > 0 && a?.newDelta) insights.push({ type: a.newDelta > 0 ? 'positive' : 'warning', text: a.newDelta > 0 ? `Los registros nuevos crecieron ${a.newDelta}% respecto al mes pasado.` : `Los registros nuevos bajaron ${Math.abs(a.newDelta)}% respecto al mes pasado.` })
+  if (a?.newLastMonth > 0 && a?.newDelta) insights.push({ type: a.newDelta > 0 ? 'positive' : 'warning', text: a.newDelta > 0 ? `Los registros nuevos crecieron ${a.newDelta}% respecto al mismo período del mes pasado.` : `Los registros nuevos bajaron ${Math.abs(a.newDelta)}% respecto al mismo período del mes pasado.` })
+  if (a?.visitsWeekDelta != null && Math.abs(a.visitsWeekDelta) >= 10) insights.push({ type: a.visitsWeekDelta > 0 ? 'positive' : 'warning', text: a.visitsWeekDelta > 0 ? `Esta semana hubo ${a.visitsWeekDelta}% más visitas que la anterior.` : `Esta semana las visitas bajaron ${Math.abs(a.visitsWeekDelta)}% respecto a la anterior: una notificación puede ayudar.` })
   if (a?.topChosenRewards?.length > 0) insights.push({ type: 'info', text: `"${a.topChosenRewards[0].prize}" es el premio más elegido: tenelo bien abastecido.` })
   if (a?.inactive > 0 && a?.total > 0 && a.inactive / a.total >= 0.3) insights.push({ type: 'warning', text: `${Math.round(a.inactive / a.total * 100)}% de tus clientes no vuelve hace tiempo. Probá una notificación a "Inactivos".` })
 
@@ -388,20 +398,21 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
 
       <div className="ov-section-label">{t('section_summary' as any)}</div>
       <div className="ov-metric-grid">
-        {METRICS.map(({ label, value, delta, color }) => (
+        {METRICS.map(({ label, value, delta, deltaTitle, color, sub }) => (
           <div key={label} className="ov-metric-card">
             <div className="ov-metric-top">
               <div className="ov-metric-dot" style={{ background: `${color}20` }}>
                 <div style={{ width: 9, height: 9, borderRadius: '50%', background: color }} />
               </div>
               {delta != null && (
-                <span className={`ov-delta ${delta >= 0 ? 'ov-delta--up' : 'ov-delta--down'}`} title="Respecto al mes pasado">
+                <span className={`ov-delta ${delta >= 0 ? 'ov-delta--up' : 'ov-delta--down'}`} title={deltaTitle}>
                   {delta >= 0 ? '↑' : '↓'} {Math.abs(delta)}%
                 </span>
               )}
             </div>
-            <div className="ov-metric-value">{loadingData ? <Sk w={48} h={26} /> : (value ?? 0).toLocaleString('es-AR')}</div>
+            <div className="ov-metric-value">{loadingData ? <Sk w={48} h={26} /> : fmt(value)}</div>
             <div className="ov-metric-label">{label}</div>
+            <div className="ov-metric-sub">{loadingData ? <Sk w="80%" h={10} /> : sub}</div>
           </div>
         ))}
       </div>
@@ -414,7 +425,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
               <div className="ov-card-sub">{RANGE_SUBTITLES[granularity]}</div>
             </div>
             <div className="ov-granularity-toggle">
-              {(['7d', '30d', '90d'] as const).map(g => (
+              {(['7d', '30d'] as const).map(g => (
                 <button key={g} className={`ov-gran-btn${granularity === g ? ' ov-gran-btn--on' : ''}`} onClick={() => loadRange(g)}>{g.replace('d', ' días')}</button>
               ))}
             </div>
@@ -445,6 +456,9 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
                 </div>
               </div>
           }
+          {fullAnalytics && (
+            <button className="ov-more-link" onClick={() => setActive('analytics')}>Ver analítica completa →</button>
+          )}
         </div>
         <div className="db-card">
           <div className="ov-card-title">Para atender</div>
@@ -470,16 +484,32 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
 
       {!loadingData && a.total > 0 ? (
         <>
-          <div className="ov-section-label">{t('section_advanced' as any)}</div>
-          <div className="ov-adv-grid">
-            {ADVANCED.map(({ v, l, sub, color }) => (
-              <div key={l} className="ov-adv-card" style={{ borderTop: `3px solid ${color}` }}>
-                <div className="ov-adv-val" style={{ color }}>{v}</div>
-                <div className="ov-adv-label">{l}</div>
-                <div className="ov-adv-sub">{sub}</div>
+          {!fullAnalytics && (
+            <>
+              <div className="ov-section-label">{t('section_advanced' as any)}</div>
+              <div className="ov-adv-grid">
+                {ADVANCED.slice(0, 1).map(({ v, l, sub, color }) => (
+                  <div key={l} className="ov-adv-card" style={{ borderTop: `3px solid ${color}` }}>
+                    <div className="ov-adv-val" style={{ color }}>{v}</div>
+                    <div className="ov-adv-label">{l}</div>
+                    <div className="ov-adv-sub">{sub}</div>
+                  </div>
+                ))}
+                <div className="ov-adv-card ov-locked">
+                  <div className="ov-locked-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="ov-adv-label">{['Tasa de canje', hasStamp && 'progreso promedio', hasMembership && 'clientes por nivel', 'horarios pico'].filter(Boolean).join(', ')} y más</div>
+                    <div className="ov-adv-sub">Disponible desde el plan Growth</div>
+                  </div>
+                  {isManager
+                    ? <span className="ov-adv-sub">Pedile al dueño que mejore el plan</span>
+                    : <button className="ov-setup-cta" onClick={onChoosePlan}>Ver planes</button>}
+                </div>
               </div>
-            ))}
-          </div>
+            </>
+          )}
 
           <div className="ov-section-label">{t('section_engagement' as any)}</div>
           <div className="ov-three-col">
@@ -503,28 +533,6 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
                       })}
                     </div>
                   : <div className="ov-empty-note">{stampCard?.rewardMode === 'fixed' ? 'Tu tarjeta tiene un premio fijo para todos.' : 'Aparece cuando tus clientes elijan su premio al registrarse.'}</div>
-                }
-              </div>
-            )}
-
-            {hasMembership && (
-              <div className="db-card">
-                <div className="ov-card-title">Clientes por nivel</div>
-                {a.tierDistribution?.length > 0
-                  ? a.tierDistribution.map((tier: any) => {
-                      const totalTier = a.tierDistribution.reduce((s: number, x: any) => s + x.count, 0) || 1
-                      return (
-                        <div key={tier.name} className="ov-tier-row">
-                          <div className="ov-tier-dot" style={{ background: tier.bg, border: `2px solid ${tier.color}` }} />
-                          <span className="ov-tier-name">{tier.name}</span>
-                          <div className="ov-tier-bar-wrap">
-                            <div className="ov-tier-bar" style={{ width: `${(tier.count / totalTier) * 100}%`, background: tier.bg, border: tier.count ? `1px solid ${tier.color}40` : "none" }} />
-                          </div>
-                          <span className="ov-tier-count">{tier.count}</span>
-                        </div>
-                      )
-                    })
-                  : <div className="ov-empty-note">Todavía no hay clientes de membresía.</div>
                 }
               </div>
             )}
@@ -738,6 +746,11 @@ const CSS = `
   .ov-delta--up{color:#5B8C5A;}.ov-delta--down{color:#B23B3B;}
   .ov-metric-value{font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:800;color:#2B2620;line-height:1;margin-bottom:4px;}
   .ov-metric-label{font-size:12px;color:rgba(43,38,32,.5);}
+  .ov-metric-sub{font-size:10.5px;color:rgba(43,38,32,.4);margin-top:4px;line-height:1.35;}
+  .ov-more-link{display:block;margin:10px 0 0 auto;background:none;border:none;padding:0;font-size:12px;font-weight:600;color:#C75D3A;cursor:pointer;font-family:inherit;}
+  .ov-more-link:hover{text-decoration:underline;}
+  .ov-locked{grid-column:span 3;display:flex;align-items:center;gap:14px;background:rgba(43,38,32,.025);border-style:dashed;}
+  .ov-locked-icon{width:34px;height:34px;border-radius:10px;background:rgba(43,38,32,.06);color:rgba(43,38,32,.45);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .ov-two-col{display:grid;grid-template-columns:1.8fr 1fr;gap:12px;}
   .ov-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;color:#2B2620;margin-bottom:2px;}
   .ov-card-sub{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:12px;}
@@ -779,13 +792,6 @@ const CSS = `
   .ov-reward-bar{height:5px;background:rgba(43,38,32,.07);border-radius:3px;overflow:hidden;}
   .ov-reward-fill{height:100%;background:linear-gradient(90deg,#C75D3A,#D4A24C);border-radius:3px;}
   .ov-reward-count{font-size:11px;font-weight:600;color:rgba(43,38,32,.5);flex-shrink:0;}
-  .ov-tier-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid rgba(43,38,32,.05);}
-  .ov-tier-row:last-child{border-bottom:none;}
-  .ov-tier-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
-  .ov-tier-name{font-size:12px;color:#2B2620;width:52px;flex-shrink:0;}
-  .ov-tier-bar-wrap{flex:1;height:8px;background:rgba(43,38,32,.06);border-radius:4px;overflow:hidden;}
-  .ov-tier-bar{height:100%;border-radius:4px;}
-  .ov-tier-count{font-size:11px;font-weight:700;color:#2B2620;width:28px;text-align:right;}
   .ov-activity-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid rgba(43,38,32,.06);}
   .ov-activity-row:last-child{border-bottom:none;}
   .ov-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
@@ -844,6 +850,7 @@ const CSS = `
     .hd-hamburger{display:flex;}
     .ov-metric-grid{grid-template-columns:repeat(2,1fr);}
     .ov-adv-grid{grid-template-columns:repeat(2,1fr);}
+    .ov-locked{grid-column:1 / -1;flex-wrap:wrap;}
     .ov-three-col{grid-template-columns:1fr;}
     .ov-two-col{grid-template-columns:1fr;}
     .db-content{padding:16px;}
@@ -1122,7 +1129,7 @@ export default function DashboardPage() {
 
   function renderTab() {
     switch (active) {
-      case 'overview':      return <OverviewTab t={t} analyticsData={analyticsData} detailedAnalytics={detailedAnalytics} cards={cards} setActive={tab => { setActive(tab); localStorage.setItem('stampa_active_tab', tab) }} isManager={owner?.role === 'manager'} />
+      case 'overview':      return <OverviewTab t={t} analyticsData={analyticsData} detailedAnalytics={detailedAnalytics} cards={cards} setActive={tab => { setActive(tab); localStorage.setItem('stampa_active_tab', tab) }} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
       case 'customers': return customersTotal > 0
         ? <CustomersTab
             customers={mapCustomersForTab(customers)}
@@ -1153,8 +1160,8 @@ export default function DashboardPage() {
             cta="Ver formulario"
             onCta={() => { setActive('form'); localStorage.setItem('stampa_active_tab', 'form') }}
           /></div>
-      case 'analytics': return analyticsData?.total > 0
-        ? <AnalyticsTab key={cards.length > 0 ? cards[0].id : 'loading'} data={mockData} analyticsData={analyticsData} cards={cards} />
+      case 'analytics': return analyticsData?.total > 0 || PLAN_LIMITS[(owner?.plan || 'Starter') as keyof typeof PLAN_LIMITS]?.analyticsLevel !== 'full'
+        ? <AnalyticsTab key={cards.length > 0 ? cards[0].id : 'loading'} analyticsData={analyticsData} cards={cards} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
         : <div className="db-content"><EmptyState
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}
             title="Las métricas aparecen cuando tenés clientes"

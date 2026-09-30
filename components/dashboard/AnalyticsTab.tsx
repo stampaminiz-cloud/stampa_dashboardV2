@@ -37,46 +37,26 @@ function pctChange(cur: number, prev: number) {
 }
 
 // ─── Card type config — all labels that change per type ───────────────────────
-const CARD_CONFIG: Record<CardType, {
-  chartTitle: string
-  chartSub: string
-  retentionSub: string
-  progressUnit: string
-  segmentBasis: string
-}> = {
-  stamp: {
-    chartTitle: 'Sellos otorgados',
-    chartSub: 'Actividad del programa de sellos',
-    retentionSub: 'clientes con +1 visita en los últimos 30 días',
-    progressUnit: 'sellos',
-    segmentBasis: 'por progreso de sellos',
-  },
-  points: {
-    chartTitle: 'Puntos acumulados',
-    chartSub: 'Actividad del programa de puntos',
-    retentionSub: 'clientes con +1 acumulación en los últimos 30 días',
-    progressUnit: 'puntos',
-    segmentBasis: 'por puntos acumulados',
-  },
-  membership: {
-    chartTitle: 'Visitas registradas',
-    chartSub: 'Actividad del programa de membresía',
-    retentionSub: 'miembros activos en los últimos 30 días',
-    progressUnit: 'visitas',
-    segmentBasis: 'por tier y actividad',
-  },
+// Mismos títulos que el gráfico de Inicio. `key` es el campo de
+// visitsOverTime que cuenta ese tipo de movimiento.
+const CARD_CONFIG: Record<CardType, { chartTitle: string; chartSub: string; key: 'stamp' | 'points' | 'visit' }> = {
+  stamp:      { chartTitle: 'Sellos otorgados',    chartSub: 'Actividad del programa de sellos',    key: 'stamp' },
+  points:     { chartTitle: 'Visitas con puntos',  chartSub: 'Actividad del programa de puntos',    key: 'points' },
+  membership: { chartTitle: 'Visitas registradas', chartSub: 'Actividad del programa de membresía', key: 'visit' },
 }
+
+const BLOCK_LABELS: Record<string, string> = { Morning: 'Mañana', Afternoon: 'Tarde', Night: 'Noche' }
 
 // ─── Line chart ───────────────────────────────────────────────────────────────
 function LineChart({ data }: { data: VisitDay[] }) {
   const max = Math.max(...data.map((d: VisitDay) => d.stamps))
-  const min = Math.min(...data.map((d: VisitDay) => d.stamps))
+  const min = Math.min(0, ...data.map((d: VisitDay) => d.stamps))
   const r = max - min || 1
   const W = 400; const H = 110
   const px = 14; const py = 14
 
   const pts = data.map((d: VisitDay, i: number) => ({
-    x: px + (i / (data.length - 1)) * (W - px * 2),
+    x: data.length > 1 ? px + (i / (data.length - 1)) * (W - px * 2) : W / 2,
     y: H - py - ((d.stamps - min) / r) * (H - py * 2),
     day: d.day,
   }))
@@ -105,7 +85,7 @@ function LineChart({ data }: { data: VisitDay[] }) {
 function Heatmap({ data }: { data: HeatRow[] }) {
   const days = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']
   const all = data.flatMap((r: HeatRow) => [r.L, r.M, r.Mi, r.J, r.V, r.S, r.D])
-  const max = Math.max(...all)
+  const max = Math.max(1, ...all)
   const op = (v: number) => (0.1 + (v / max) * 0.9).toFixed(2)
   return (
     <div className="an-heatmap">
@@ -114,9 +94,9 @@ function Heatmap({ data }: { data: HeatRow[] }) {
         const vals = [row.L, row.M, row.Mi, row.J, row.V, row.S, row.D]
         return (
           <div key={row.block} className="an-hgrid">
-            <div className="an-hbl">{row.block}</div>
+            <div className="an-hbl">{BLOCK_LABELS[row.block] || row.block}</div>
             {vals.map((v: number, i: number) => (
-              <div key={i} className="an-hcell" title={`${row.block === 'Morning' ? 'Mañana' : row.block === 'Afternoon' ? 'Tarde' : 'Noche'}, ${days[i]}: ${v} visita${v === 1 ? '' : 's'}`} style={{ background: `rgba(199,93,58,${op(v)})` }} />
+              <div key={i} className="an-hcell" title={`${BLOCK_LABELS[row.block] || row.block}, ${days[i]}: ${v} movimiento${v === 1 ? '' : 's'}`} style={{ background: `rgba(199,93,58,${op(v)})` }} />
             ))}
           </div>
         )
@@ -137,7 +117,7 @@ function Funnel({ data }: { data: FunnelStage[] }) {
     <div className="an-funnel">
       {data.map((stage: FunnelStage, i: number) => {
         const pct = Math.round((stage.value / max) * 100)
-        const conv = i > 0 ? Math.round((stage.value / data[i - 1].value) * 100) : null
+        const conv = i > 0 ? (data[i - 1].value > 0 ? Math.round((stage.value / data[i - 1].value) * 100) : 0) : null
         return (
           <div key={stage.stage} className="an-fstage">
             {conv !== null && (
@@ -161,37 +141,62 @@ function Funnel({ data }: { data: FunnelStage[] }) {
   )
 }
 
-// ─── Membership tier distribution (solo para membership) ─────────────────────
-function TierDistribution() {
-  const tiers = [
-    { name: 'Bronze', count: 111, color: '#854F0B', bg: '#FAEEDA' },
-    { name: 'Silver', count: 89,  color: '#444441', bg: '#EAEAEA' },
-    { name: 'Gold',   count: 52,  color: '#633806', bg: '#FAC775' },
-    { name: 'Black',  count: 15,  color: '#F7F0E4', bg: '#1A1A18' },
-  ]
-  const total = tiers.reduce((a, t) => a + t.count, 0)
+// ─── Clientes por nivel (membresía, datos reales de /analytics) ──────────────
+function TierDistribution({ tiers }: { tiers: { name: string; color: string; bg: string; count: number }[] }) {
+  if (!tiers.length) return <div className="an-empty-note">Todavía no hay clientes en esta membresía.</div>
+  const total = tiers.reduce((a, t) => a + t.count, 0) || 1
   return (
-    <div className="an-card">
-      <div className="an-ctitle">Distribución por tier</div>
-      <div className="an-csub">Miembros activos en cada nivel</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {tiers.map((t) => (
-          <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 14, height: 14, borderRadius: '50%', background: t.bg, border: `2px solid ${t.color}`, flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: '#2B2620', width: 52 }}>{t.name}</span>
-            <div style={{ flex: 1, height: 10, background: 'rgba(43,38,32,.06)', borderRadius: 5, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${(t.count / total) * 100}%`, background: t.bg, borderRadius: 5, border: `1px solid ${t.color}40` }} />
-            </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#2B2620', width: 28, textAlign: 'right' }}>{t.count}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {tiers.map((t) => (
+        <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 14, height: 14, borderRadius: '50%', background: t.bg, border: `2px solid ${t.color}`, flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: '#2B2620', minWidth: 52 }}>{t.name}</span>
+          <div style={{ flex: 1, height: 10, background: 'rgba(43,38,32,.06)', borderRadius: 5, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${(t.count / total) * 100}%`, background: t.bg, borderRadius: 5, border: t.count ? `1px solid ${t.color}40` : 'none' }} />
           </div>
-        ))}
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#2B2620', width: 28, textAlign: 'right' }}>{t.count}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── Starter: Analítica es desde Growth ──────────────────────────────────────
+function AnalyticsLocked({ isManager, onChoosePlan }: { isManager: boolean; onChoosePlan: () => void }) {
+  const FEATURES = [
+    'Evolución de tu programa en 7, 30 y 90 días',
+    'Tasa de canje, progreso promedio y clientes por nivel',
+    'Segmentos: activos, inactivos, nuevos y con Wallet',
+    'Funnel: registro → 1ra visita → recurrente → premio',
+    'Horarios pico y frecuencia de visita',
+    'Tus clientes más fieles y los que más canjean',
+  ]
+  return (
+    <div className="an-content">
+      <div className="an-card" style={{ padding: '36px 28px', textAlign: 'center', maxWidth: 560, margin: '24px auto', width: '100%' }}>
+        <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(199,93,58,.1)', color: '#C75D3A', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 17, fontWeight: 800, color: '#2B2620', marginBottom: 6 }}>Analítica está disponible desde Growth</div>
+        <div style={{ fontSize: 13, color: 'rgba(43,38,32,.55)', marginBottom: 18, lineHeight: 1.55 }}>En Inicio tenés el resumen del día. Con Growth ves cómo rinde tu programa en detalle:</div>
+        <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 22px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {FEATURES.map(f => (
+            <li key={f} style={{ display: 'flex', gap: 9, fontSize: 13, color: '#2B2620', lineHeight: 1.4 }}>
+              <span style={{ color: '#5B8C5A', fontWeight: 800 }}>✓</span>{f}
+            </li>
+          ))}
+        </ul>
+        {isManager
+          ? <div style={{ fontSize: 12.5, color: 'rgba(43,38,32,.5)' }}>Pedile al dueño de la cuenta que mejore el plan.</div>
+          : <button onClick={onChoosePlan} style={{ background: '#C75D3A', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 24px', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>Ver planes</button>}
       </div>
     </div>
   )
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsData; analyticsData?: any; cards?: any[] }) {  const { can } = usePlan()
+export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoosePlan }: { data?: AnalyticsData; analyticsData?: any; cards?: any[]; isManager?: boolean; onChoosePlan: () => void }) {
+  const { can } = usePlan()
   const fullAnalytics = can('analyticsLevel')
   const t = useLang()
   const [range, setRange] = useState<Range>('30d')
@@ -224,7 +229,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
 
   useEffect(() => {
     const businessId = localStorage.getItem('stampa_business_id')
-    if (!businessId) return
+    if (!businessId || !fullAnalytics) return
     setDetailedLoading(true)
     const params = new URLSearchParams({ range })
     if (selectedCardId) params.set('cardId', selectedCardId)
@@ -235,7 +240,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
       .then(d => setDetailed(d))
       .catch(err => console.error('Error loading detailed analytics:', err))
       .finally(() => setDetailedLoading(false))
-  }, [range, selectedCardId])
+  }, [range, selectedCardId, fullAnalytics])
 
   // Segmentos/retención — igual que arriba, se refetchean por tarjeta. El
   // prop `analyticsData` (business-wide) queda solo como valor inicial para
@@ -243,7 +248,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
   const [liveMetrics, setLiveMetrics] = useState<any>(null)
   useEffect(() => {
     const businessId = localStorage.getItem('stampa_business_id')
-    if (!businessId || !selectedCardId) return
+    if (!businessId || !selectedCardId || !fullAnalytics) return
     const params = new URLSearchParams()
     params.set('cardId', selectedCardId)
     fetch(`${BASE_URL}/api/businesses/${businessId}/analytics?${params.toString()}`, {
@@ -252,13 +257,13 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
       .then(r => r.json())
       .then(d => setLiveMetrics(d))
       .catch(err => console.error('Error loading analytics segments:', err))
-  }, [selectedCardId])
+  }, [selectedCardId, fullAnalytics])
 
   // Use real analytics data when available, fall back to 0 (no mock) — la
   // colección Visit es nueva, así que hasta que se acumulen visitas reales
   // estas secciones van a mostrarse vacías/en 0, no con números inventados.
   const realMetrics = liveMetrics || analyticsData || null
-  const visitsOverTime         = detailed?.visitsOverTime ?? []
+  const visitsOverTime         = (detailed?.visitsOverTime ?? []).map((d: any) => ({ day: d.day, stamps: d[cfg.key] ?? d.stamps ?? 0 }))
   const heatmapData            = detailed?.heatmap ?? []
   const topCustomers           = detailed?.topCustomers ?? []
   const mostLoyal              = detailed?.mostLoyal ?? []
@@ -279,9 +284,24 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
     { label: 'Con wallet', desc: `Tienen la tarjeta instalada`,  color: '#533FB7', bg: 'rgba(83,63,183,.08)',  val: realMetrics?.withDevice ?? 0 },
   ]
 
+  // Métricas del programa según el tipo de la tarjeta elegida.
+  const PROGRAM = ([
+    cardType !== 'membership' && { v: `${realMetrics?.redemptionRate ?? 0}%`, l: 'Tasa de canje', sub: 'clientes que canjearon al menos una vez', color: '#C75D3A' },
+    cardType === 'stamp' && realMetrics?.avgStampProgress != null && { v: `${realMetrics.avgStampProgress}%`, l: 'Progreso promedio', sub: 'de la tarjeta de sellos', color: '#185FA5' },
+    cardType === 'stamp' && { v: `${realMetrics?.nearPrize ?? 0}`, l: 'A 1–2 sellos del premio', sub: `${realMetrics?.toDeliver ?? 0} con la tarjeta completa`, color: '#9C7530' },
+    cardType === 'points' && { v: `${realMetrics?.canRedeem ?? 0}`, l: 'Pueden canjear un premio', sub: 'ya les alcanzan los puntos', color: '#9C7530' },
+    cardType === 'membership' && { v: `${realMetrics?.nearLevel ?? 0}`, l: 'Cerca de subir de nivel', sub: 'a 2 visitas o menos', color: '#9C7530' },
+    cardType === 'membership' && realMetrics?.tierDistribution?.length > 1 && (() => {
+      const top = realMetrics.tierDistribution[realMetrics.tierDistribution.length - 1]
+      return { v: `${top.count}`, l: `En el nivel más alto (${top.name})`, sub: 'tus miembros más fieles', color: '#533FB7' }
+    })(),
+  ].filter(Boolean)) as { v: string; l: string; sub: string; color: string }[]
+
   const TYPE_ICONS: Record<CardType, string> = {
     stamp: '☕', points: '🪙', membership: '🎫',
   }
+
+  if (!fullAnalytics) return <><style>{`.an-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;} .an-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;box-shadow:0 1px 8px rgba(43,38,32,.04);} @media(max-width:768px){.an-content{padding:14px 16px;}}`}</style><AnalyticsLocked isManager={isManager} onChoosePlan={onChoosePlan} /></>
 
   return (
     <>
@@ -294,6 +314,8 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
         .an-live-tag{font-family:'Inter',sans-serif;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:rgba(43,38,32,.4);background:rgba(43,38,32,.06);padding:2px 7px;border-radius:20px;margin-left:6px;vertical-align:middle;}
         .an-csub{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:12px;}
         .an-empty-note{font-size:12px;color:rgba(43,38,32,.4);padding:20px 0;text-align:center;}
+        .an-loading{animation:anPulse 1.2s ease-in-out infinite;}
+        @keyframes anPulse{0%,100%{opacity:.4}50%{opacity:1}}
 
         /* ── Toolbar ── */
         .an-toolbar{display:flex;align-items:center;gap:8px;}
@@ -309,6 +331,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
         /* ── Grids ── */
         .an-2col{display:grid;grid-template-columns:1.7fr 1fr;gap:12px;}
         .an-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+        .an-2col-even{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
         .an-4col{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
         .an-chart-labels{display:flex;justify-content:space-between;margin-top:6px;}
         .an-chart-label{font-size:9.5px;color:rgba(43,38,32,.38);}
@@ -396,6 +419,8 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
           .an-range-group{flex-wrap:wrap;}
           .an-2col{grid-template-columns:1fr;}
           .an-4col{grid-template-columns:1fr 1fr;}
+          .an-3col{grid-template-columns:1fr;}
+          .an-2col-even{grid-template-columns:1fr;}
           .an-chart-labels{display:none;}
           .an-comparison{overflow-x:auto;}
         }
@@ -441,43 +466,49 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
                     {visitsOverTime.map((d: VisitDay, i: number) => <span key={i} className="an-chart-label">{d.day}</span>)}
                   </div>
                 </>
-              : <div className="an-empty-note">Todavía no hay suficientes visitas registradas en este rango.</div>
+              : detailedLoading ? <div className="an-empty-note an-loading">Cargando…</div> : <div className="an-empty-note">Todavía no hay suficientes visitas registradas en este rango.</div>
             }
           </div>
           <div className="an-card">
-            <div className="an-ctitle">Tasa de retención <span className="an-live-tag">Estado actual</span></div>
-            <div className="an-csub">Clientes que vuelven — no cambia con el filtro de fecha de arriba</div>
+            <div className="an-ctitle">Clientes que volvieron <span className="an-live-tag">Estado actual</span></div>
+            <div className="an-csub">No cambia con el filtro de fecha de arriba</div>
             <div className="an-ret">
-              <div className="an-ret-num">{realMetrics?.retentionRate ?? 0}%</div>
+              <div className="an-ret-num">{realMetrics?.recurringRate ?? 0}%</div>
               <div>
-                <div className="an-ret-title">Regresan activamente</div>
-                <div className="an-ret-def">{cfg.retentionSub}</div>
+                <div className="an-ret-title">Vinieron 2 veces o más</div>
+                <div className="an-ret-def">Sobre el total de clientes de esta tarjeta.</div>
               </div>
             </div>
-            <div className="an-ret-note">
-              El {100 - (realMetrics?.retentionRate ?? 0)}% restante no registró actividad — considerá una campaña desde Notifications.
-            </div>
+            {segTotal > 0 && (realMetrics?.inactive ?? 0) > 0 && (
+              <div className="an-ret-note">
+                {realMetrics.inactive} cliente{realMetrics.inactive === 1 ? '' : 's'} ({Math.round((realMetrics.inactive / segTotal) * 100)}%) no registra{realMetrics.inactive === 1 ? '' : 'n'} actividad reciente — probá una campaña desde Notificaciones.
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ── 2-5. Advanced analytics (Growth+) ── */}
-        {!fullAnalytics && (
-          <div style={{ padding: 32, textAlign: 'center', background: '#fff', borderRadius: 14, border: '1px solid rgba(43,38,32,.07)', boxShadow: '0 1px 8px rgba(43,38,32,.04)' }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(43,38,32,.25)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#2B2620', marginBottom: 6 }}>Analítica avanzada</div>
-            <div style={{ fontSize: 13, color: 'rgba(43,38,32,.5)', marginBottom: 20, lineHeight: 1.6 }}>Segmentos de clientes, heatmap de horarios,<br/>frecuencia de visita e insights avanzados<br/>disponibles desde el plan <strong>Growth</strong></div>
-            <button style={{ background: '#C75D3A', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 24px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>Mejorar a Growth →</button>
+        {/* ── Métricas del programa (antes estaban en Inicio) ── */}
+        {PROGRAM.length > 0 && (
+          <div className={PROGRAM.length >= 3 ? 'an-3col' : 'an-2col-even'}>
+            {PROGRAM.map(m => (
+              <div key={m.l} className="an-card" style={{ borderTop: `3px solid ${m.color}` }}>
+                <div className="an-stat-now" style={{ color: m.color }}>{m.v}</div>
+                <div className="an-stat-label" style={{ margin: '4px 0 0', color: '#2B2620', fontWeight: 600 }}>{m.l}</div>
+                <div className="an-stat-label" style={{ margin: 0 }}>{m.sub}</div>
+              </div>
+            ))}
           </div>
         )}
-        {fullAnalytics && <>
+
+        <>
         {/* ── 2. Segmentos ── */}
-        <div className="an-lbl">Segmentos de clientes <span className="an-live-tag" style={{ textTransform: 'none' }}>Estado actual</span> <span style={{ fontSize: 10, fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'rgba(43,38,32,.35)' }}>{cfg.segmentBasis} — no cambia con el filtro de fecha</span></div>
+        <div className="an-lbl">Segmentos de clientes <span className="an-live-tag" style={{ textTransform: 'none' }}>Estado actual</span> <span style={{ fontSize: 10, fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'rgba(43,38,32,.35)' }}>según su última actividad — no cambia con el filtro de fecha</span></div>
         <div className="an-4col">
           {SEGMENTS.map(({ label, desc, color, bg, val }) => (
             <div key={label} className="an-card an-seg-card" style={{ background: bg, border: `1px solid ${color}22` }}>
               <div className="an-seg-top">
                 <span className="an-seg-val" style={{ color }}>{val}</span>
-                <span className="an-seg-pct" style={{ color }}>({Math.round((val / segTotal) * 100)}%)</span>
+                <span className="an-seg-pct" style={{ color }}>({segTotal > 0 ? Math.round((val / segTotal) * 100) : 0}%)</span>
               </div>
               <div className="an-seg-name" style={{ color }}>{label}</div>
               <div className="an-seg-desc" style={{ color }}>{desc}</div>
@@ -492,7 +523,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
           <div className="an-csub">% de clientes que continúa a la siguiente etapa (histórico completo)</div>
           {funnelData.length > 0
             ? <Funnel data={funnelData} />
-            : <div className="an-empty-note">Todavía no hay suficientes visitas registradas.</div>
+            : detailedLoading ? <div className="an-empty-note an-loading">Cargando…</div> : <div className="an-empty-note">Todavía no hay suficientes visitas registradas.</div>
           }
         </div>
         <div className="an-3col">
@@ -525,19 +556,19 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
             <div className="an-csub">Cada celda es un bloque de 4-8hs en un día de la semana — más oscuro = más visitas. Pasá el mouse por una celda para ver el número exacto.</div>
             {heatmapData.length > 0
               ? <Heatmap data={heatmapData} />
-              : <div className="an-empty-note">Todavía no hay suficientes visitas registradas en este rango.</div>
+              : detailedLoading ? <div className="an-empty-note an-loading">Cargando…</div> : <div className="an-empty-note">Todavía no hay suficientes visitas registradas en este rango.</div>
             }
           </div>
           <div className="an-card">
             {cardType === 'membership'
               ? <>
-                  <div className="an-ctitle">Distribución por tier</div>
-                  <div className="an-csub">Miembros en cada nivel actualmente</div>
-                  <TierDistribution />
+                  <div className="an-ctitle">Clientes por nivel</div>
+                  <div className="an-csub">Miembros en cada nivel hoy</div>
+                  <TierDistribution tiers={realMetrics?.tierDistribution ?? []} />
                 </>
               : <>
                   <div className="an-ctitle">Top clientes por actividad</div>
-                  <div className="an-csub">Por cantidad de visitas en este período — cruza todas tus tarjetas</div>
+                  <div className="an-csub">Por cantidad de movimientos en este período, en esta tarjeta</div>
                   {topCustomers.length > 0
                     ? topCustomers.map((c: TopCustomer, i: number) => {
                         const max = topCustomers[0]?.visits || 1
@@ -557,7 +588,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
                           </div>
                         )
                       })
-                    : <div className="an-empty-note">Todavía no hay suficientes visitas registradas.</div>
+                    : detailedLoading ? <div className="an-empty-note an-loading">Cargando…</div> : <div className="an-empty-note">Todavía no hay suficientes visitas registradas.</div>
                   }
                 </>
             }
@@ -586,7 +617,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
                     </div>
                   )
                 })
-              : <div className="an-empty-note">Todavía no hay suficiente historial.</div>
+              : detailedLoading ? <div className="an-empty-note an-loading">Cargando…</div> : <div className="an-empty-note">Todavía no hay suficiente historial.</div>
             }
           </div>
           <div className="an-card">
@@ -608,7 +639,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
                     </div>
                   )
                 })
-              : <div className="an-empty-note">Todavía no hay canjes registrados.</div>
+              : detailedLoading ? <div className="an-empty-note an-loading">Cargando…</div> : <div className="an-empty-note">Todavía no hay canjes registrados.</div>
             }
           </div>
         </div>
@@ -640,7 +671,7 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
                   </div>
                 ))}
               </div>
-            </> : <div className="an-empty-note">Se necesitan al menos 2 visitas por cliente para calcular esto.</div>}
+            </> : detailedLoading ? <div className="an-empty-note an-loading">Cargando…</div> : <div className="an-empty-note">Se necesitan al menos 2 visitas por cliente para calcular esto.</div>}
           </div>
           <div className="an-card" style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="an-ctitle">¿Cuándo se canjean los premios?</div>
@@ -655,12 +686,12 @@ export function AnalyticsTab({ data, analyticsData, cards }: { data: AnalyticsDa
                     </div>
                   ))}
                 </div>
-              : <div className="an-empty-note">Todavía no hay premios canjeados registrados en este rango.</div>
+              : detailedLoading ? <div className="an-empty-note an-loading">Cargando…</div> : <div className="an-empty-note">Todavía no hay premios canjeados registrados en este rango.</div>
             }
           </div>
         </div>
 
-        </>}
+        </>
       </div>
     </>
   )
