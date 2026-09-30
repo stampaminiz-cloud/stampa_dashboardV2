@@ -1180,7 +1180,8 @@ export default function DashboardPage() {
           onChoosePlan={() => setShowPlans(true)}
           onGoTo={(tab) => { setActive(tab); localStorage.setItem('stampa_active_tab', tab) }} />
       case 'users':         if (owner?.role === 'manager') return null
-                            return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} onRefresh={loadBusiness} owner={owner} />
+                            return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} owner={owner}
+                              onChoosePlan={() => setShowPlans(true)} onOpenCustomer={openCustomerByEmail} />
       case 'settings':      return (
         <SettingsTab
           key={businessId ?? 'loading'}

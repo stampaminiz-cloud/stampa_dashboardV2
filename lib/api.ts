@@ -173,6 +173,15 @@ export interface TeamMember {
   role: 'manager' | 'scanner'
   status: 'active' | 'invited' | 'disabled'
   lastActivityAt: string | null
+  scans30?: number
+  lastScanAt?: string | null
+}
+
+export interface TeamActivity {
+  name: string
+  totals: { stamp: number; points: number; visit: number; redeem: number; total: number }
+  alerts: Array<{ kind: 'repeat' | 'burst'; at: number; text: string; customer?: string; email?: string | null }>
+  recent: Array<{ customer: string; email: string | null; type: string; text: string; detail: string | null; at: number }>
 }
 
 export interface NotificationHistory {
@@ -527,6 +536,11 @@ export async function apiAcceptInvite(token: string, password: string) {
   })
   setToken(res.token)
   return res
+}
+
+// Actividad de un Scanner en los últimos 30 días (con alertas).
+export async function apiTeamActivity(businessId: string, userId: string) {
+  return request<TeamActivity>(`/api/businesses/${businessId}/team/${userId}/activity`)
 }
 
 export async function apiDeleteTeamMember(businessId: string, userId: string) {
