@@ -47,6 +47,8 @@ interface CustomersTabProps {
   onSortChange: (key: SortKey, dir: SortDir) => void
   onPageChange: (page: number) => void
   onRefresh: () => void
+  autoOpenEmail?: string | null
+  onAutoOpened?: () => void
 }
 
 type SortKey = 'name' | 'progress' | 'status' | 'lastActivity' | 'card'
@@ -295,11 +297,23 @@ export function CustomersTab({
   page, totalPages, total, activeCount, inactiveCount, nearCount,
   search, statusFilter, sortKey, sortDir, loading,
   onSearchChange, onStatusFilterChange, onSortChange, onPageChange, onRefresh,
+  autoOpenEmail, onAutoOpened,
 }: CustomersTabProps) {
   const t = useLang()
   const [searchDraft, setSearchDraft] = useState(search)
   const [selected, setSelected]   = useState<Customer | null>(null)
   const [deleting, setDeleting]   = useState(false)
+
+  // Si la búsqueda cambia desde afuera (ej. un nombre clickeado en
+  // Analítica), el input la refleja en vez de pisarla con el valor viejo.
+  useEffect(() => { setSearchDraft(search) }, [search])
+
+  // Llegando desde Analítica: abrir la ficha de ese cliente cuando carga.
+  useEffect(() => {
+    if (!autoOpenEmail || loading) return
+    const match = customers.find(c => (c.email || '').toLowerCase() === autoOpenEmail.toLowerCase())
+    if (match) { setSelected(match); onAutoOpened?.() }
+  }, [autoOpenEmail, loading, customers])
 
   // Debounce: esperamos que la persona termine de tipear antes de pegarle
   // a la API con cada letra.

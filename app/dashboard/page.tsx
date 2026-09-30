@@ -310,10 +310,10 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
   function tooltip(b: { label: string; value: number; raw: any }) {
     if (single) return `${b.label} · ${b.value} ${chartCfg.unit}`
     const parts = [
-      b.raw.stamp ? `${b.raw.stamp} sellos` : null,
+      b.raw.stamp ? `${b.raw.stamp} sello${b.raw.stamp === 1 ? '' : 's'}` : null,
       b.raw.points ? `${b.raw.points} con puntos` : null,
-      b.raw.visit ? `${b.raw.visit} visitas` : null,
-      b.raw.redeem ? `${b.raw.redeem} canjes` : null,
+      b.raw.visit ? `${b.raw.visit} visita${b.raw.visit === 1 ? '' : 's'}` : null,
+      b.raw.redeem ? `${b.raw.redeem} canje${b.raw.redeem === 1 ? '' : 's'}` : null,
     ].filter(Boolean)
     return `${b.label} · ${parts.length ? parts.join(' · ') : 'sin movimientos'}`
   }
@@ -889,6 +889,8 @@ export default function DashboardPage() {
   const [customersSortKey, setCustomersSortKey]     = useState<'name' | 'progress' | 'status' | 'lastActivity' | 'card'>('progress')
   const [customersSortDir, setCustomersSortDir]     = useState<'asc' | 'desc'>('desc')
   const [customersLoading, setCustomersLoading]     = useState(false)
+  // Email del cliente a abrir al llegar a Clientes (desde los rankings de Analítica)
+  const [customerToOpen, setCustomerToOpen]         = useState<string | null>(null)
   const customersCacheRef = useRef<Map<string, any>>(new Map())
   const [analyticsData, setAnalyticsData]           = useState<any>(null)
   const [detailedAnalytics, setDetailedAnalytics]   = useState<any>(null)
@@ -1142,6 +1144,8 @@ export default function DashboardPage() {
             inactiveCount={analyticsData?.inactive ?? 0}
             nearCount={rewardsData?.nearPrize ?? 0}
             search={customersSearch}
+            autoOpenEmail={customerToOpen}
+            onAutoOpened={() => setCustomerToOpen(null)}
             statusFilter={customersStatus}
             sortKey={customersSortKey}
             sortDir={customersSortDir}
@@ -1161,7 +1165,13 @@ export default function DashboardPage() {
             onCta={() => { setActive('form'); localStorage.setItem('stampa_active_tab', 'form') }}
           /></div>
       case 'analytics': return analyticsData?.total > 0 || PLAN_LIMITS[(owner?.plan || 'Starter') as keyof typeof PLAN_LIMITS]?.analyticsLevel !== 'full'
-        ? <AnalyticsTab key={cards.length > 0 ? cards[0].id : 'loading'} analyticsData={analyticsData} cards={cards} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
+        ? <AnalyticsTab analyticsData={analyticsData} cards={cards} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)}
+            onOpenCustomer={(email: string) => {
+              setCustomersSearch(email); setCustomersStatus('all'); setCustomersCardFilter('all')
+              loadCustomers(1, email, 'all', customersSortKey, customersSortDir, 'all')
+              setCustomerToOpen(email)
+              setActive('customers'); localStorage.setItem('stampa_active_tab', 'customers')
+            }} />
         : <div className="db-content"><EmptyState
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}
             title="Las métricas aparecen cuando tenés clientes"
