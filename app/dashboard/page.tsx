@@ -1197,13 +1197,15 @@ export default function DashboardPage() {
             setBilling(res)
           }}
           deletionRequestedAt={owner?.deletionRequestedAt || null}
+          pendingEmail={owner?.pendingEmail || null}
           business={business ? {
             ...mockData.business,
             name: business.name,
             sector: business.sector,
-            timezone: business.timezone || mockData.business.timezone,
-            inactiveDays: business.inactiveDays || mockData.business.inactiveDays,
-            alerts: business.alerts || mockData.business.alerts,
+            // Valores reales del negocio (vienen en /me); si faltan, los defaults del backend.
+            timezone: business.timezone || 'America/Argentina/Buenos_Aires',
+            inactiveDays: business.inactiveDays || 60,
+            alerts: { nearPrize: true, weeklyDigest: true, suspicious: true, ...(business.alerts || {}) },
             plan: owner?.plan || mockData.business.plan,
             planActiveCards: cards.filter((c: any) => c.isActive).length,
             planMaxCards: PLAN_LIMITS[(owner?.plan || 'Starter') as keyof typeof PLAN_LIMITS]?.maxActiveCards ?? mockData.business.planMaxCards,

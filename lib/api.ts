@@ -316,9 +316,22 @@ export async function apiExportCustomers(businessId: string) {
   window.URL.revokeObjectURL(url)
 }
 
-export async function apiRequestDeletion() {
+export async function apiRequestDeletion(password: string) {
   return request<{ success: boolean; message: string; purgeDate: string }>('/api/auth/request-deletion', {
-    method: 'POST',
+    method: 'POST', body: { password },
+  })
+}
+
+// Cambio de email: manda un link al email nuevo; se aplica al confirmarlo.
+export async function apiChangeEmail(newEmail: string, password: string) {
+  return request<{ success: boolean; message: string }>('/api/auth/change-email', {
+    method: 'POST', body: { newEmail, password },
+  })
+}
+
+export async function apiConfirmEmail(token: string) {
+  return request<{ success: boolean; email: string }>('/api/auth/confirm-email', {
+    method: 'POST', body: { token }, noAuth: true,
   })
 }
 
