@@ -160,6 +160,8 @@ export interface FormField {
   isLocked: boolean
   isActive: boolean
   isRewardSource: boolean
+  isRequired?: boolean
+  isDefaultOptional?: boolean
   isCustom: boolean
   order: number
 }
@@ -322,14 +324,21 @@ export async function apiGetPublicBusiness(businessId: string) {
     business: { id: string; name: string; slug: string }
     whiteLabel?: boolean
     cards: Array<{ id: string; name: string; type: string; description?: string; color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null }>
-    fields: Array<{ label: string; fieldType: string; isLocked: boolean; options?: string[]; placeholder?: string }>
+    fields: Array<{ _id?: string; label: string; fieldType: string; isLocked: boolean; builtIn?: boolean; isRewardSource?: boolean; isRequired?: boolean; options?: string[]; placeholder?: string }>
   }>(`/api/businesses/${businessId}/public`, { noAuth: true })
 }
 
 export async function apiGetPublicCardFields(businessId: string, cardId: string) {
-  return request<{ fields: Array<{ label: string; fieldType: string; isLocked: boolean; options?: string[] }> }>(
+  return request<{ fields: Array<{ _id?: string; label: string; fieldType: string; isLocked: boolean; builtIn?: boolean; isRewardSource?: boolean; isRequired?: boolean; options?: string[]; placeholder?: string }> }>(
     `/api/businesses/${businessId}/cards/${cardId}/public-fields`, { noAuth: true }
   )
+}
+
+// "Ya estoy registrado": le manda al cliente su tarjeta por email.
+export async function apiResendCard(businessIdOrSlug: string, email: string) {
+  return request<{ success: boolean; message: string }>(`/api/businesses/${businessIdOrSlug}/resend-card`, {
+    method: 'POST', body: { email }, noAuth: true,
+  })
 }
 
 export async function apiRegisterCustomer(businessId: string, data: {

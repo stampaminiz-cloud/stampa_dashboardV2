@@ -533,7 +533,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
                         )
                       })}
                     </div>
-                  : <div className="ov-empty-note">{stampCard?.rewardMode === 'fixed' ? 'Tu tarjeta tiene un premio fijo para todos.' : 'Aparece cuando tus clientes elijan su premio al registrarse.'}</div>
+                  : <div className="ov-empty-note">{stampCard?.rewardMode !== 'dynamic' ? 'Tu tarjeta tiene un premio fijo para todos.' : 'Aparece cuando tus clientes elijan su premio al registrarse.'}</div>
                 }
               </div>
             )}
@@ -1173,7 +1173,9 @@ export default function DashboardPage() {
           isManager={owner?.role === 'manager'}
           onChoosePlan={() => setShowPlans(true)}
         />
-      case 'form':          return <FormTab businessName={business?.name || mockData.business.name} businessSlug={business?.slug || 'mi-negocio'} cardDesigns={cards.length > 0 ? cards : mockData.cardDesigns} businessId={businessId} />
+      case 'form':          return <FormTab businessName={business?.name || 'Tu negocio'} businessSlug={business?.slug} cards={cards} businessId={businessId}
+          isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)}
+          onGoToDesign={() => { setActive('design'); localStorage.setItem('stampa_active_tab', 'design') }} />
       case 'design':        return <DesignTab key={businessId ?? 'loading'} data={mockData} cards={cards} businessId={businessId} onSaved={refreshCards} />
       case 'users':         if (owner?.role === 'manager') return null
                             return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} onRefresh={loadBusiness} owner={owner} />
