@@ -140,7 +140,7 @@ function CardSection({ customer, card, canDelete, onDelete, onChanged }: {
     if (!businessId || !card.cardId) return
     setCatalogLoading(true)
     try {
-      setCatalog(await apiGetPointsCatalog(businessId, card.cardId))
+      setCatalog((await apiGetPointsCatalog(businessId, card.cardId)).filter(i => i.isActive !== false))
     } catch {
       setCatalog([])
     } finally {

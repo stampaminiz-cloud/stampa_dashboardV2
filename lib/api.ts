@@ -254,6 +254,18 @@ export async function apiCreateTier(businessId: string, cardId: string, data: Pa
   })
 }
 
+// Guarda la escalera completa (el editor de Premios). Devuelve cuántos
+// clientes cambiaron de nivel y cuántos subieron.
+export async function apiSaveTiers(businessId: string, cardId: string, tiers: Array<{ id?: string; name: string; threshold: number; perk: string; color: string; bg: string }>) {
+  return request<{ tiers: MembershipTier[]; updatedCustomers: number; promoted: number }>(`/api/businesses/${businessId}/cards/${cardId}/tiers`, {
+    method: 'PUT', body: { tiers },
+  })
+}
+
+export async function apiCreateDefaultTiers(businessId: string, cardId: string) {
+  return request<MembershipTier[]>(`/api/businesses/${businessId}/cards/${cardId}/tiers/defaults`, { method: 'POST' })
+}
+
 export async function apiUpdateTier(businessId: string, cardId: string, tierId: string, data: Partial<MembershipTier>) {
   return request<MembershipTier>(`/api/businesses/${businessId}/cards/${cardId}/tiers/${tierId}`, {
     method: 'PATCH', body: data,

@@ -947,25 +947,14 @@ export default function DashboardPage() {
           const activeStampCards = activeCards.filter(c => c.type === 'stamp')
           const stampResults = await Promise.all(activeStampCards.map(c =>
             fetch(
-              `${BASE_URL}/api/businesses/${bid}/rewards-stats?cardType=stamp&stampsRequired=${c.stampsRequired || 8}&cardId=${c._id}`,
+              `${BASE_URL}/api/businesses/${bid}/rewards-stats?cardId=${c._id}`,
               { headers: authHeaders }
             ).then(r => r.json())
           ))
           const nearPrize = stampResults.reduce((sum, r) => sum + (r?.nearPrize || 0), 0)
-
-          // Precargamos las stats de la PRIMERA tarjeta activa — es la
-          // misma que el tab Premios muestra por default. Pasárselas ya
-          // resueltas evita que Premios tenga que volver a pedirlas al
-          // montar (elimina el segundo "Cargando..." que se veía ahí).
-          const primaryCard = activeCards[0]
-          const primaryParams = new URLSearchParams({ cardType: primaryCard.type, cardId: primaryCard._id })
-          if (primaryCard.type === 'stamp') primaryParams.set('stampsRequired', String(primaryCard.stampsRequired || 8))
-          const primaryStats = await fetch(
-            `${BASE_URL}/api/businesses/${bid}/rewards-stats?${primaryParams.toString()}`,
-            { headers: authHeaders }
-          ).then(r => r.json()).catch(() => null)
-
-          return primaryStats ? { ...primaryStats, nearPrize } : null
+          // Solo lo usa Notificaciones (audiencia "Cerca del premio"); Premios
+          // carga sus propios datos al abrirse.
+          return { nearPrize }
         })
 
         const [teamRes, cardsRes, analyticsRes, customersRes, notifRes, rewardsRes, detailedRes] = await Promise.allSettled([
@@ -1150,6 +1139,15 @@ export default function DashboardPage() {
     form:'nav_form', users:'nav_users', settings:'nav_settings',
   } as any
 
+  // Abre Clientes filtrado por ese email, con la ficha abierta (desde los
+  // rankings de Analítica y los canjes de Premios).
+  function openCustomerByEmail(email: string) {
+    setCustomersSearch(email); setCustomersStatus('all'); setCustomersCardFilter('all')
+    loadCustomers(1, email, 'all', customersSortKey, customersSortDir, 'all')
+    setCustomerToOpen(email)
+    setActive('customers'); localStorage.setItem('stampa_active_tab', 'customers')
+  }
+
   function renderTab() {
     switch (active) {
       case 'overview':      return <OverviewTab t={t} analyticsData={analyticsData} detailedAnalytics={detailedAnalytics} cards={cards} setActive={tab => { setActive(tab); localStorage.setItem('stampa_active_tab', tab) }} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
@@ -1190,12 +1188,7 @@ export default function DashboardPage() {
           /></div>
       case 'analytics': return analyticsData?.total > 0 || PLAN_LIMITS[(owner?.plan || 'Starter') as keyof typeof PLAN_LIMITS]?.analyticsLevel !== 'full'
         ? <AnalyticsTab analyticsData={analyticsData} cards={cards} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)}
-            onOpenCustomer={(email: string) => {
-              setCustomersSearch(email); setCustomersStatus('all'); setCustomersCardFilter('all')
-              loadCustomers(1, email, 'all', customersSortKey, customersSortDir, 'all')
-              setCustomerToOpen(email)
-              setActive('customers'); localStorage.setItem('stampa_active_tab', 'customers')
-            }} />
+            onOpenCustomer={openCustomerByEmail} />
         : <div className="db-content"><EmptyState
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}
             title="Las métricas aparecen cuando tenés clientes"
@@ -1203,7 +1196,7 @@ export default function DashboardPage() {
             cta="Ver formulario"
             onCta={() => { setActive('form'); localStorage.setItem('stampa_active_tab', 'form') }}
           /></div>
-      case 'rewards': return <RewardsTab data={mockData} cards={cards} businessId={businessId} initialRewardsData={rewardsData} />
+      case 'rewards': return <RewardsTab cards={cards} businessId={businessId} onGoToDesign={() => { setActive('design'); localStorage.setItem('stampa_active_tab', 'design') }} onOpenCustomer={openCustomerByEmail} />
           case 'notifications': return <NotificationsTab
           businessId={businessId}
           analyticsData={analyticsData}
