@@ -3,9 +3,9 @@ import React, { useEffect, useState } from 'react'
 import { apiUpdateCard, apiUpdateBusiness } from '@/lib/api'
 import { InfoTooltip } from './InfoTooltip'
 
-// Reglas del programa (Configuración): vencimiento por inactividad y días
-// dobles van por tarjeta (solo sellos y puntos); el cumpleaños es del
-// negocio. Lo que corre solo (avisos, vencimientos, regalos) está en el
+// Reglas del programa (Configuración): vencimiento por inactividad (todas
+// las tarjetas; en membresía baja un nivel) y días dobles (sellos y puntos)
+// van por tarjeta; el cumpleaños es del negocio. Lo que corre solo (avisos, vencimientos, regalos) está en el
 // backend: services/programRules.js.
 
 export interface RulesCard { id: string; name: string; type: string; isActive: boolean; expiryMonths?: number; doubleDays?: number[] }
@@ -24,7 +24,7 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
   const [local, setLocal] = useState<Record<string, { expiryMonths: number; doubleDays: number[] }>>({})
   const [msg, setMsg] = useState<{ key: string; ok: boolean; text: string } | null>(null)
   useEffect(() => {
-    setLocal(Object.fromEntries(ruleCards.map(c => [c.id, { expiryMonths: c.expiryMonths || 0, doubleDays: c.doubleDays || [] }])))
+    setLocal(Object.fromEntries(cards.map(c => [c.id, { expiryMonths: c.expiryMonths || 0, doubleDays: c.doubleDays || [] }])))
   }, [cards]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const flash = (key: string, ok: boolean, text: string) => { setMsg({ key, ok, text }); if (ok) setTimeout(() => setMsg(m => m?.key === key ? null : m), 2000) }
@@ -71,9 +71,9 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
       <div className="pr-block">
         <div className="pr-title">
           Vencimiento por inactividad
-          <InfoTooltip text="Si un cliente no vuelve en ese tiempo, pierde los sellos o puntos acumulados. Le avisamos por push 7 días antes. Un premio listo para entregar no vence." />
+          <InfoTooltip text="Si un cliente no vuelve en ese tiempo, pierde los sellos o puntos acumulados; en membresía baja un nivel por cada período sin venir. Cada visita vuelve a empezar el plazo. Le avisamos por push 7 días antes. Un premio listo para entregar no vence." />
         </div>
-        {ruleCards.length === 0 ? <div className="pr-note">Aplica a tarjetas de sellos y de puntos. Las membresías no vencen.</div> : ruleCards.map(c => {
+        {cards.length === 0 ? <div className="pr-note">Todavía no tenés tarjetas.</div> : cards.map(c => {
           const v = local[c.id]?.expiryMonths ?? 0
           return (
             <div key={c.id} className="pr-row">
@@ -84,6 +84,7 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
                     onClick={() => v !== m && saveCard(c, { expiryMonths: m }, `exp-${c.id}`)}>{m === 0 ? 'Nunca' : `${m} meses`}</button>
                 ))}
               </div>
+              {v > 0 && <span className="pr-x2">{c.type === 'membership' ? 'baja un nivel' : `pierde los ${c.type === 'stamp' ? 'sellos' : 'puntos'}`}</span>}
               {msgFor(`exp-${c.id}`)}
             </div>
           )
