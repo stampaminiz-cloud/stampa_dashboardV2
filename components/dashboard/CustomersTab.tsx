@@ -264,7 +264,7 @@ function CardSection({ customer, card, canDelete, onDelete, onChanged }: {
 }
 
 // ─── Historial de movimientos ─────────────────────────────────────────────────
-const HISTORY_ICON: Record<string, string> = { stamp: '●', points: '★', visit: '◆', redeem: '🎁', tier_change: '▲' }
+const HISTORY_ICON: Record<string, string> = { stamp: '●', points: '★', visit: '◆', redeem: '🎁', tier_change: '▲', expire: '⌛' }
 function History({ customer }: { customer: Customer }) {
   const [items, setItems] = useState<Array<{ type: string; text: string; at: number; card: string | null; by: string }> | null>(null)
   const [error, setError] = useState(false)
