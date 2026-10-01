@@ -92,7 +92,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
         <div className="sb-logo" onClick={() => setCollapsed(!collapsed)} style={{cursor:'pointer', justifyContent: collapsed ? 'center' : 'flex-start'}}>
           {collapsed
             ? <img src="/stampa-mascot-cream.png" alt="Stampa" width={40} height={38} style={{ display: 'block' }} />
-            : <BrandLogo height={40} tone="cream" />}
+            : <BrandLogo height={28} tone="cream" />}
         </div>
 
         {/* Business block */}

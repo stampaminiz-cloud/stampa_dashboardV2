@@ -4,6 +4,7 @@ import type { BillingStatus } from '@/lib/api'
 import { apiUpdateBusiness, apiChangePassword, apiUpdateProfile, apiExportCustomers, apiRequestDeletion, apiCancelDeletion, apiChangeEmail } from '@/lib/api'
 import { useLang } from '@/data/i18n'
 import { InfoTooltip } from './InfoTooltip'
+import { NumberStepper } from '@/components/ui/NumberStepper'
 
 interface BusinessAlerts { newCustomer?: boolean; nearPrize: boolean; weeklyDigest: boolean; suspicious?: boolean }
 interface BusinessSettings {
@@ -361,8 +362,17 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
   }
   const msgFor = (field: string) => fieldMsg?.field === field ? <span className={fieldMsg.ok ? 'st-ok' : 'st-inline-error'} style={{ marginLeft: 6 }}>{fieldMsg.ok ? '✓ Guardado' : fieldMsg.text}</span> : null
 
-  function saveInactive() {
-    const n = Number(inactiveDraft)
+  // El selector cambia de a uno (mantener apretado): se guarda cuando el
+  // valor queda quieto un momento, no en cada paso.
+  const [pendingInactive, setPendingInactive] = useState<number | null>(null)
+  useEffect(() => {
+    if (pendingInactive == null) return
+    const id = setTimeout(() => saveInactive(pendingInactive), 700)
+    return () => clearTimeout(id)
+  }, [pendingInactive]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function saveInactive(value?: number) {
+    const n = value ?? Number(inactiveDraft)
     if (!Number.isInteger(n) || n < 7 || n > 365) { setFieldMsg({ field: 'inactiveDays', ok: false, text: 'Entre 7 y 365 días.' }); return }
     if (n === inactiveDays) return
     handleSave('inactiveDays', n).then(err => { if (!err) setInactiveDays(n) })
@@ -471,8 +481,8 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           <div className="st-rules-note">Define cuándo un cliente pasa a <strong>inactivo</strong>: se usa en Inicio, Clientes, Analítica y en la audiencia "Inactivos" de Notificaciones.</div>
           <FieldRow label={t('st_inactive_label')}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type="number" className="st-number-input" value={inactiveDraft} min={7} max={365} onChange={e => setInactiveDraft(e.target.value)} onBlur={saveInactive} onKeyDown={e => e.key === 'Enter' && saveInactive()} />
-              <span style={{ fontSize: 12, color: 'rgba(43,38,32,.45)' }}>{t('days')}</span>
+              <NumberStepper value={Number(inactiveDraft) || inactiveDays} min={7} max={365} suffix="días" presets={[30, 60, 90]} size="sm" ariaLabel="Días para considerar inactivo"
+                onChange={n => { setInactiveDraft(String(n)); setPendingInactive(n) }} />
               {msgFor('inactiveDays')}
             </div>
           </FieldRow>

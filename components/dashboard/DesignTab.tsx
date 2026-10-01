@@ -3,8 +3,9 @@ import React, { useState, useRef, useEffect } from 'react'
 import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS } from '@/lib/colorPresets'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
-import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiCardImpact } from '@/lib/api'
+import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiCardImpact, apiGetPointsCatalog } from '@/lib/api'
 import { InfoTooltip } from './InfoTooltip'
+import { NumberStepper } from '@/components/ui/NumberStepper'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CardType = "stamp" | "points" | "membership"
@@ -39,6 +40,7 @@ interface FormField {
   isActive: boolean
   isRewardSource: boolean
   order: number
+  options?: string[]
 }
 
 interface MembershipTier {
@@ -230,10 +232,47 @@ function ColorPicker({ color, onChange }: { color: string; onChange: (s: string,
   )
 }
 
+// ─── Selector de color de texto ──────────────────────────────────────────────
+// Colores que suelen leerse bien sobre una tarjeta + uno libre (rueda de
+// color) con su código. `auto` agrega la opción "Automático" (= null).
+const TEXT_SWATCHES = ['#FFFFFF', '#FBF6EE', '#F2D9A6', '#C9A84C', '#8A8580', '#2B2620', '#000000']
+function SwatchPicker({ value, onChange, auto = false }: { value: string | null; onChange: (v: string | null) => void; auto?: boolean }) {
+  const custom = !!value && !TEXT_SWATCHES.includes(value.toUpperCase())
+  return (
+    <div className="dt-swatches">
+      {auto && (
+        <button type="button" className={`dt-swatch dt-swatch--auto${value === null ? ' dt-swatch--on' : ''}`} onClick={() => onChange(null)} title="Automático" aria-label="Automático">A</button>
+      )}
+      {TEXT_SWATCHES.map(c => (
+        <button key={c} type="button" className={`dt-swatch${value?.toUpperCase() === c ? ' dt-swatch--on' : ''}`} style={{ background: c }} onClick={() => onChange(c)} title={c} aria-label={c} />
+      ))}
+      <label className={`dt-swatch dt-swatch--custom${custom ? ' dt-swatch--on' : ''}`} title="Otro color" style={custom ? { background: value! } : undefined}>
+        <input type="color" value={value && value.length === 7 ? value : '#FFFFFF'} onChange={e => onChange(e.target.value.toUpperCase())} className="dt-color-native" />
+      </label>
+      {custom && <input type="text" className="dt-hex-input" value={value!} onChange={e => onChange(e.target.value)} maxLength={7} aria-label="Código de color" />}
+    </div>
+  )
+}
+
+function ProLock({ label }: { label: string }) {
+  return (
+    <div className="dt-upgrade-color-note">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      {label} · Plan Pro
+    </div>
+  )
+}
+
 // ─── Pass preview (Apple Wallet) ──────────────────────────────────────────────
-function RealPassPreview({ design, businessName, logos, rewardSourceLabel, tiers, previewTierIndex }: {
+function RealPassPreview({ design, businessName, logos, rewardSourceLabel, tiers, previewTierIndex, catalog = [] }: {
   design: CardDesign; businessName?: string | null; logos: LogoState; rewardSourceLabel: string; tiers: MembershipTier[]; previewTierIndex: number
+  catalog?: { name: string; cost: number }[]
 }) {
+  // Puntos: saldo de ejemplo entre el primer y el segundo premio, para que
+  // se vean marcas llenas y huecas.
+  const ptsCosts = Array.from(new Set(catalog.map(c => c.cost).filter(c => c > 0))).sort((a, b) => a - b)
+  const ptsMax = ptsCosts[ptsCosts.length - 1] || 0
+  const ptsBal = !ptsMax ? 120 : ptsCosts.length >= 2 ? Math.round((ptsCosts[0] + ptsCosts[1]) / 2) : Math.round(ptsMax * 0.6)
   const stamps = Array.from({ length: design.stampsRequired }, (_: unknown, i: number) => i < 3)
   const activeTier = tiers[previewTierIndex] || tiers[0]
 
@@ -266,26 +305,33 @@ function RealPassPreview({ design, businessName, logos, rewardSourceLabel, tiers
         </div>
       )}
 
-      {design.type === 'membership' && (
-        <div className="dt-real-pass-tier-ladder">
-          <div className="dt-real-pass-ladder-row">
-            {tiers.map((tier, i) => (
-              <React.Fragment key={tier.id}>
-                {i > 0 && <div className={`dt-real-pass-ladder-line${i <= previewTierIndex ? ' dt-real-pass-ladder-line--on' : ''}`} />}
-                <div className={`dt-real-pass-ladder-step${i === previewTierIndex ? ' dt-real-pass-ladder-step--on' : ''}`}>
-                  <div className="dt-real-pass-ladder-dot" style={i === previewTierIndex ? { background: tier.bg, color: tier.color } : {}} />
-                  <span className="dt-real-pass-ladder-label">{tier.name}</span>
+      {design.type === 'membership' && tiers.length > 0 && (() => {
+        // Misma geometría que el strip del pase real (buildMembershipLadderStrip):
+        // columnas iguales, línea de un centro al otro, todo en el color de
+        // texto del nivel (es el que se lee sobre su fondo).
+        const c = activeTier.color || '#FFFFFF'
+        const n = tiers.length
+        const next = tiers[previewTierIndex + 1]
+        const pct = n > 1 ? (previewTierIndex / (n - 1)) * 100 : 0
+        return (
+          <div className="dt-ladder" style={{ color: c }}>
+            <div className="dt-ladder-steps" style={{ gridTemplateColumns: `repeat(${n}, 1fr)` }}>
+              <div className="dt-ladder-track" style={{ left: `${50 / n}%`, right: `${50 / n}%` }}>
+                <div className="dt-ladder-fill" style={{ width: `${pct}%` }} />
+              </div>
+              {tiers.map((tier, i) => (
+                <div key={tier.id} className={`dt-ladder-step${i < previewTierIndex ? ' is-done' : ''}${i === previewTierIndex ? ' is-on' : ''}`}>
+                  <span className="dt-ladder-dot" />
+                  <span className="dt-ladder-name">{tier.name}</span>
                 </div>
-              </React.Fragment>
-            ))}
-          </div>
-          {tiers[previewTierIndex + 1] && (
-            <div className="dt-real-pass-tier-perk">
-              {Math.max((tiers[previewTierIndex + 1].threshold || 0) - (activeTier.threshold || 0), 1)} visitas para {tiers[previewTierIndex + 1].name}
+              ))}
             </div>
-          )}
-        </div>
-      )}
+            <div className="dt-ladder-caption">
+              {next ? `${Math.max((next.threshold || 0) - (activeTier.threshold || 0), 1)} visitas para ${next.name}` : 'Nivel máximo'}
+            </div>
+          </div>
+        )
+      })()}
 
       {design.type === 'points' && (
         <div className="dt-real-pass-points-area">
@@ -296,14 +342,28 @@ function RealPassPreview({ design, businessName, logos, rewardSourceLabel, tiers
                 : <div className="dt-real-pass-icon-default dt-real-pass-icon-filled" />
               }
             </div>
-            <div className="dt-real-pass-points-num" style={{ color: design.textColor || '#FFFFFF' }}>120</div>
+            <div className="dt-real-pass-points-num" style={{ color: design.textColor || '#FFFFFF' }}>{ptsBal}</div>
           </div>
-          <div className="dt-real-pass-points-segments">
-            {[0, 1, 2, 3, 4].map(i => (
-              <div key={i} className={`dt-real-pass-points-segment${i < 3 ? ' dt-real-pass-points-segment--filled' : ''}`} />
-            ))}
-          </div>
-          <div className="dt-real-pass-points-sub" style={{ color: hexToRgba(design.textColor || '#FFFFFF', 0.6) }}>480 pts para el próximo premio</div>
+          {(() => {
+            // Igual que el pase real: barra de 0 al premio más caro, una marca
+            // por premio (llena = ya le alcanza).
+            const tc = design.textColor || '#FFFFFF'
+            const costs = ptsCosts, max = ptsMax, bal = ptsBal
+            const next = catalog.filter(c => c.cost > bal).sort((a, b) => a.cost - b.cost)[0]
+            const ready = costs.filter(c => c <= bal).length
+            const caption = !max ? 'Cargá premios en Premios para ver la barra'
+              : next ? (ready ? `${ready} para canjear · ${next.cost - bal} pts al siguiente` : `${next.cost - bal} pts para ${next.name}`)
+              : '¡Ya podés canjear cualquier premio!'
+            return (<>
+              <div className="dt-pts-bar" style={{ color: tc }}>
+                <div className="dt-pts-fill" style={{ width: `${max ? Math.min(100, (bal / max) * 100) : 0}%` }} />
+                {costs.map(c => (
+                  <span key={c} className={`dt-pts-mark${c <= bal ? ' is-ok' : ''}`} style={{ left: `clamp(6px, ${(c / max) * 100}%, calc(100% - 6px))`, background: c <= bal ? tc : design.color }} />
+                ))}
+              </div>
+              <div className="dt-real-pass-points-sub" style={{ color: hexToRgba(tc, 0.7) }}>{caption}</div>
+            </>)
+          })()}
         </div>
       )}
 
@@ -314,12 +374,12 @@ function RealPassPreview({ design, businessName, logos, rewardSourceLabel, tiers
         </div>
         <div className="dt-real-pass-info-field">
           <div className="dt-real-pass-info-label" style={{ color: hexToRgba(design.textColor || '#FFFFFF', 0.65) }}>
-            {design.type === 'stamp' ? 'PREMIO' : design.type === 'membership' ? 'NIVEL' : 'PUNTOS'}
+            {design.type === 'stamp' ? 'PREMIO' : design.type === 'membership' ? 'NIVEL' : 'PRÓXIMO PREMIO'}
           </div>
           <div className="dt-real-pass-info-val" style={{ color: design.textColor || '#FFFFFF' }}>
             {design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : (design.rewardField || 'Premio'))
             : design.type === 'membership' ? activeTier.name
-            : '120 pts'}
+            : (catalog.filter(c => c.cost > ptsBal).sort((a, b) => a.cost - b.cost)[0]?.name || (catalog.length ? '—' : 'Sin premios cargados'))}
           </div>
         </div>
       </div>
@@ -439,9 +499,13 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   // Campos y niveles reales de ESTA tarjeta (antes salían de datos de ejemplo).
   const [fields, setFields] = useState<FormField[]>([])
   const [tiers, setTiers] = useState<MembershipTier[]>(DEFAULT_TIERS)
+  const [catalog, setCatalog] = useState<{ name: string; cost: number }[]>([])
   useEffect(() => {
     if (!businessId) return
-    apiGetFields(businessId, init.id).then(list => setFields(list.map((f: any) => ({ id: f._id, label: f.label, type: f.fieldType, isLocked: f.isLocked, isActive: f.isActive, isRewardSource: f.isRewardSource, order: f.order })))).catch(() => {})
+    apiGetFields(businessId, init.id).then(list => setFields(list.map((f: any) => ({ id: f._id, label: f.label, type: f.fieldType, isLocked: f.isLocked, isActive: f.isActive, isRewardSource: f.isRewardSource, order: f.order, options: f.options || [] })))).catch(() => {})
+    if (init.type === 'points') {
+      apiGetPointsCatalog(businessId, init.id).then(list => setCatalog(list.filter(i => i.isActive !== false).map(i => ({ name: i.name, cost: i.pointsCost })))).catch(() => {})
+    }
     if (init.type === 'membership') {
       apiGetTiers(businessId, init.id).then(list => { if (list.length) setTiers(list.map(t => ({ id: t._id, name: t.name, threshold: t.threshold, perk: t.perk, color: t.color, bg: t.bg }))) }).catch(() => {})
     }
@@ -477,6 +541,22 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   }
 
   const rewardSource = fields.find((f: FormField) => f.isRewardSource)
+  // Opciones de "Lo elige el cliente": se editan acá y se guardan en la
+  // pregunta de premio del formulario.
+  const [rewardOpts, setRewardOpts] = useState<string[]>([])
+  const [rewardOptsBase, setRewardOptsBase] = useState('[]')
+  const [newOpt, setNewOpt] = useState('')
+  useEffect(() => {
+    const o = rewardSource?.options || []
+    setRewardOpts(o); setRewardOptsBase(JSON.stringify(o))
+  }, [rewardSource?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  const cleanOpts = rewardOpts.map(o => o.trim()).filter(Boolean)
+  const optsChanged = JSON.stringify(cleanOpts) !== rewardOptsBase
+  function addOpt() {
+    const v = newOpt.trim().slice(0, 40)
+    if (!v || rewardOpts.length >= 6 || rewardOpts.some(o => o.toLowerCase() === v.toLowerCase())) return
+    setRewardOpts([...rewardOpts, v]); setNewOpt('')
+  }
   const rewardSourceLabel = rewardSource ? 'Lo elige cada cliente' : 'Sin configurar'
 
   // Cambios sin guardar: se compara con lo que había al abrir.
@@ -486,7 +566,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const [savedStamps, setSavedStamps] = useState(init.stampsRequired)
 
   function setLogo(key: keyof LogoState) { return (url: string | null) => setLogos({ ...logos, [key]: url }) }
-  const dirty = snapshot(card, logos, flipMessage, flipSubMessage, prizeImage, pointsPerVisit) !== baseline
+  const dirty = snapshot(card, logos, flipMessage, flipSubMessage, prizeImage, pointsPerVisit) !== baseline || (card.type === 'stamp' && card.rewardMode === 'dynamic' && optsChanged)
   const textColorBad = !!card.textColor && !isHex(card.textColor)
   const labelColorBad = !!card.labelColor && !isHex(card.labelColor)
   const lowContrast = card.type !== 'membership' && isHex(card.textColor || '#FFFFFF') && isHex(card.color) && contrastRatio(card.textColor || '#FFFFFF', card.color) < 3
@@ -499,6 +579,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
     setSaveError(''); setSaveNotice('')
     if (!card.name.trim()) { setSaveError('La tarjeta necesita un nombre.'); return }
     if (card.type === 'stamp' && card.rewardMode !== 'dynamic' && !(card.rewardField || '').trim()) { setSaveError('Escribí cuál es el premio (ej: Café gratis).'); return }
+    if (card.type === 'stamp' && card.rewardMode === 'dynamic' && (cleanOpts.length < 2 || cleanOpts.length > 6)) { setSaveError('Cargá entre 2 y 6 opciones de premio para que el cliente elija.'); return }
     if (textColorBad || labelColorBad) { setSaveError('Revisá los colores de texto: tienen que ser un código como #FFFFFF.'); return }
     // Bajar los sellos completa la tarjeta de quienes ya los tienen: avisar antes.
     if (!skipImpactCheck && card.type === 'stamp' && card.stampsRequired < savedStamps) {
@@ -520,6 +601,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
         stampsRequired: card.stampsRequired,
         pointsPerVisit,
         ...(card.type === 'stamp' ? { rewardMode: card.rewardMode === 'dynamic' ? 'dynamic' : 'fixed' } : {}),
+        ...(card.type === 'stamp' && card.rewardMode === 'dynamic' && (optsChanged || !rewardSource) ? { rewardOptions: cleanOpts } : {}),
         rewardFixedValue: card.rewardField || null,
         flipMessage,
         flipSubMessage,
@@ -534,6 +616,10 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
       setSaved(true)
       setBaseline(snapshot(card, logos, flipMessage, flipSubMessage, prizeImage, pointsPerVisit))
       setSavedStamps(card.stampsRequired)
+      if (card.type === 'stamp' && card.rewardMode === 'dynamic') {
+        setRewardOpts(cleanOpts); setRewardOptsBase(JSON.stringify(cleanOpts))
+        if (!rewardSource) apiGetFields(businessId, card.id).then(list => setFields(list.map((f: any) => ({ id: f._id, label: f.label, type: f.fieldType, isLocked: f.isLocked, isActive: f.isActive, isRewardSource: f.isRewardSource, order: f.order, options: f.options || [] })))).catch(() => {})
+      }
       setSaveNotice(res?.passUpdates ? `Guardado. Se actualizó la tarjeta en ${res.passUpdates} celular${res.passUpdates === 1 ? '' : 'es'}.` : 'Guardado.')
       onSaved?.()
       setTimeout(() => setSaved(false), 2000)
@@ -601,7 +687,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           {card.type === 'stamp' && previewSide === 'prize'
             ? PrizeCard
             : platform === 'real'
-              ? <RealPassPreview design={card} businessName={businessName} logos={logos} rewardSourceLabel={rewardSourceLabel} tiers={tiers} previewTierIndex={previewTierIndex} />
+              ? <RealPassPreview design={card} businessName={businessName} logos={logos} rewardSourceLabel={rewardSourceLabel} tiers={tiers} previewTierIndex={previewTierIndex} catalog={catalog} />
               : <GooglePreview  design={card} businessName={businessName} logos={logos} rewardSourceLabel={rewardSourceLabel} tiers={tiers} previewTierIndex={previewTierIndex} />
           }
         </div>
@@ -668,9 +754,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           <div className="dt-type-fixed">
             <span className="dt-type-fixed-label">
               {card.type === 'stamp' ? 'Sellos' : card.type === 'points' ? 'Puntos' : 'Membresía'}
-            </span>
-            <span className="dt-type-fixed-note">
-              El tipo no se puede cambiar después de creada la tarjeta — creá una nueva si necesitás otro tipo de programa.
+              <InfoTooltip text="El tipo no se cambia después de crear la tarjeta. Si necesitás otro programa, creá una tarjeta nueva." />
             </span>
           </div>
 
@@ -702,7 +786,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
               editable desde dos tabs distintas (mismo criterio que ya
               aplicamos con el selector de premio). */}
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Campos del formulario</div>
-          <div className="dt-reward-goto-forms">Se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>. El formulario usa el color y el logo de esta tarjeta.</div>
+          <div className="dt-reward-goto-forms">Se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>. <InfoTooltip text="El formulario de registro usa el color y el logo de esta tarjeta." /></div>
 
           {/* STAMP: prize mode */}
           {card.type === 'stamp' && (
@@ -715,10 +799,24 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
                 </div>
                 {card.rewardMode === 'dynamic' && (
                   <div className="dt-field-picker">
-                    {rewardSource
-                      ? <div className="dt-reward-current">El cliente elige en <strong>"{rewardSource.label}"</strong>.</div>
-                      : <div className="dt-reward-current dt-reward-current--empty">Falta la pregunta del premio en el formulario: sin ella, el cliente no puede elegir.</div>}
-                    <div className="dt-reward-goto-forms">Las opciones se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>.</div>
+                    <div className="dt-appearance-label">
+                      Opciones de premio ({cleanOpts.length}/6)
+                      <InfoTooltip text="El cliente elige una al registrarse y esa queda como su premio. Se muestran como pregunta obligatoria en el formulario." />
+                    </div>
+                    <div className="dt-opts">
+                      {rewardOpts.map((o, i) => (
+                        <span key={i} className="dt-opt">
+                          <input value={o} maxLength={40} onChange={e => setRewardOpts(rewardOpts.map((x, j) => j === i ? e.target.value : x))} aria-label={`Opción ${i + 1}`} style={{ width: `${Math.max(4, o.length) + 1}ch` }} />
+                          <button type="button" onClick={() => setRewardOpts(rewardOpts.filter((_, j) => j !== i))} aria-label="Quitar opción">×</button>
+                        </span>
+                      ))}
+                      {rewardOpts.length < 6 && (
+                        <span className="dt-opt dt-opt--new">
+                          <input value={newOpt} maxLength={40} placeholder="+ Agregar (ej: Café gratis)" onChange={e => setNewOpt(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOpt() } }} onBlur={addOpt} aria-label="Nueva opción" />
+                        </span>
+                      )}
+                    </div>
+                    {cleanOpts.length < 2 && <div className="dt-color-warn">Cargá al menos 2 opciones.</div>}
                   </div>
                 )}
                 <div className={`dt-reward-opt${card.rewardMode !== 'dynamic' ? ' dt-reward-opt--on' : ''}`} onClick={() => setCard({ ...card, rewardMode: 'fixed' })}>
@@ -744,21 +842,10 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
               <div className="dt-points-config">
                 <div className="dt-points-row">
                   <label className="dt-points-label">Puntos por visita</label>
-                  <div className="dt-points-input-wrap">
-                    <input
-                      type="number"
-                      className="dt-points-input"
-                      min={1}
-                      max={1000}
-                      value={pointsPerVisit}
-                      onChange={e => setPointsPerVisit(Number(e.target.value))}
-                    />
-                    <span className="dt-points-unit">pts</span>
-                  </div>
+                  <NumberStepper value={pointsPerVisit} onChange={setPointsPerVisit} min={1} max={1000} suffix="pts" presets={[5, 10, 20, 50]} size="sm" ariaLabel="Puntos por visita" />
                 </div>
                 <div className="dt-points-note">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  Los premios y umbrales de canje se gestionan en la sección <strong>Premios</strong>
+                  Los premios y sus puntos se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>Premios</button>.
                 </div>
               </div>
             </>
@@ -787,49 +874,31 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
             </>
           )}
           {card.type === 'membership' && (
-            <div className="dt-membership-color-note">
-              El color de fondo lo define el nivel de cada cliente (se elige en Premios, junto con los niveles).
+            <div className="dt-appearance-label">
+              Color de fondo: el del nivel de cada cliente
+              <InfoTooltip text="Cada nivel tiene su color. Se eligen en Premios, junto con los niveles." />
             </div>
           )}
 
-          <div className="dt-appearance-label" style={{ marginTop: 14 }}>Color de texto</div>
+          {/* Colores de texto y etiquetas: desde Pro (afectan el pase real). */}
+          <div className="dt-appearance-label" style={{ marginTop: 14 }}>
+            Color de texto
+            <InfoTooltip text="El color del nombre, los números y los datos de la tarjeta, tal como se ve en la Wallet." />
+          </div>
           {can('customTextColor') ? (<>
-            <div className="dt-custom-color-row">
-              <label className="dt-custom-swatch" style={{ background: card.textColor || '#FFFFFF' }}>
-                <input type="color" value={card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, textColor: e.target.value })} className="dt-color-native" />
-              </label>
-              <input type="text" className="dt-hex-input" value={card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, textColor: e.target.value })} placeholder="#FFFFFF" maxLength={7} />
-              <span className="dt-hex-label">Se ve así en la Wallet real</span>
-            </div>
+            <SwatchPicker value={card.textColor || '#FFFFFF'} onChange={v => setCard({ ...card, textColor: v })} />
             {textColorBad && <div className="dt-color-warn">Tiene que ser un código de color como #FFFFFF.</div>}
-            {!textColorBad && lowContrast && <div className="dt-color-warn">Ojo: con este fondo, el texto se va a leer mal. Probá con un color más claro u oscuro.</div>}
-          </>) : (
-            <div className="dt-upgrade-color-note">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              Color de texto personalizado · Plan Growth o superior
-            </div>
-          )}
+            {!textColorBad && lowContrast && <div className="dt-color-warn">Con este fondo el texto se va a leer mal. Probá un color más claro u oscuro.</div>}
+          </>) : <ProLock label="Color de texto y etiquetas" />}
 
-          {/* Color de las etiquetas (TITULAR, PREMIO) — separado del color
-              del valor. Mismo gate que el color de texto: ambos son
-              "personalización de color de texto" desde Growth. */}
-          <div className="dt-appearance-label" style={{ marginTop: 14 }}>Color de las etiquetas</div>
-          {can('customTextColor') ? (<>
-            <div className="dt-custom-color-row">
-              <label className="dt-custom-swatch" style={{ background: card.labelColor || card.textColor || '#FFFFFF' }}>
-                <input type="color" value={card.labelColor || card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, labelColor: e.target.value })} className="dt-color-native" />
-              </label>
-              <input type="text" className="dt-hex-input" value={card.labelColor || card.textColor || '#FFFFFF'} onChange={e => setCard({ ...card, labelColor: e.target.value })} placeholder="#FFFFFF" maxLength={7} />
-              <span className="dt-hex-label">TITULAR, PREMIO, etc. — si no lo cambiás, usa el color de texto</span>
+          {can('customTextColor') && (<>
+            <div className="dt-appearance-label" style={{ marginTop: 14 }}>
+              Color de las etiquetas
+              <InfoTooltip text="Los títulos chicos (TITULAR, PREMIO…). En Automático usan el color de texto." />
             </div>
+            <SwatchPicker value={card.labelColor || null} auto onChange={v => setCard({ ...card, labelColor: v })} />
             {labelColorBad && <div className="dt-color-warn">Tiene que ser un código de color como #FFFFFF.</div>}
-          </>) : (
-            <div className="dt-upgrade-color-note">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              Color de etiquetas personalizado · Plan Growth o superior
-            </div>
-          )}
-
+          </>)}
 
           {card.type === 'stamp' && (
             <>
@@ -1013,11 +1082,7 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
             {type === 'points' && (
               <>
                 <div className="dt-modal-field-label">Puntos por visita</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <input type="number" className="dt-modal-input" style={{ width: 90, textAlign: 'center', fontSize: 22, fontWeight: 800 }}
-                    value={points} onChange={e => setPoints(Math.max(1, Math.min(1000, Math.round(Number(e.target.value) || 1))))} min={1} max={1000} />
-                  <span style={{ fontSize: 14, color: 'rgba(43,38,32,.5)' }}>puntos por visita</span>
-                </div>
+                <NumberStepper value={points} onChange={setPoints} min={1} max={1000} suffix="pts" presets={[5, 10, 20, 50]} ariaLabel="Puntos por visita" />
                 <div className="dt-modal-hint">Los premios y umbrales se configuran desde la sección Premios.</div>
               </>
             )}
@@ -1401,9 +1466,9 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-membership-note-title{font-size:12px;font-weight:700;color:#C75D3A;margin-bottom:3px;}
         .dt-membership-note-desc{font-size:10.5px;color:rgba(43,38,32,.6);line-height:1.5;}
         /* Color picker */
-        .dt-appearance-label{font-size:11.5px;color:rgba(43,38,32,.55);margin-bottom:8px;font-weight:500;}
-        .dt-color-row{display:flex;gap:8px;margin-bottom:8px;}
-        .dt-color-dot{width:24px;height:24px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:all .15s;}
+        .dt-appearance-label{font-size:11.5px;color:rgba(43,38,32,.55);margin-bottom:8px;font-weight:500;display:flex;align-items:center;gap:4px;}
+        .dt-color-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
+        .dt-color-dot{width:24px;height:24px;flex:0 0 24px;padding:0;aspect-ratio:1;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:all .15s;}
         .dt-color-dot--on{border-color:#2B2620;transform:scale(1.12);}
         .dt-custom-color-row{display:flex;align-items:center;gap:8px;}
         .dt-custom-swatch{width:26px;height:26px;border-radius:50%;border:2px solid rgba(43,38,32,.2);cursor:pointer;display:block;overflow:hidden;flex-shrink:0;}
@@ -1411,6 +1476,20 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-hex-input{width:80px;padding:5px 8px;font-size:11.5px;border:1px solid rgba(43,38,32,.15);border-radius:7px;background:#FBF6EE;color:#2B2620;font-family:monospace;outline:none;}
         .dt-hex-input:focus{border-color:#C75D3A;}
         .dt-hex-label{font-size:10px;color:rgba(43,38,32,.45);}
+        .dt-opts{display:flex;flex-wrap:wrap;gap:6px;}
+        .dt-opt{display:inline-flex;align-items:center;gap:2px;background:#fff;border:1.5px solid rgba(43,38,32,.14);border-radius:999px;padding:3px 4px 3px 10px;}
+        .dt-opt:focus-within{border-color:#C75D3A;}
+        .dt-opt input{border:none;outline:none;background:transparent;font-size:12px;font-weight:600;color:#2B2620;font-family:'Inter',sans-serif;min-width:4ch;max-width:200px;padding:0;}
+        .dt-opt button{width:20px;height:20px;border-radius:50%;border:none;background:rgba(43,38,32,.07);color:rgba(43,38,32,.6);cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;}
+        .dt-opt button:hover{background:rgba(199,93,58,.15);color:#C75D3A;}
+        .dt-opt--new{border-style:dashed;padding-right:10px;}
+        .dt-opt--new input{width:190px;font-weight:500;}
+        .dt-swatches{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+        .dt-swatch{width:26px;height:26px;flex:0 0 26px;padding:0;border-radius:50%;border:1.5px solid rgba(43,38,32,.18);cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;transition:transform .12s,box-shadow .12s;}
+        .dt-swatch:hover{transform:scale(1.08);}
+        .dt-swatch--on{box-shadow:0 0 0 2px #fff,0 0 0 4px #C75D3A;}
+        .dt-swatch--auto{background:#fff;font-size:11px;font-weight:800;color:rgba(43,38,32,.6);font-family:'Plus Jakarta Sans',sans-serif;}
+        .dt-swatch--custom{background:conic-gradient(#f43f5e,#f59e0b,#84cc16,#06b6d4,#6366f1,#d946ef,#f43f5e);overflow:hidden;}
         .dt-upgrade-color-note{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(43,38,32,.45);padding:8px 10px;background:rgba(43,38,32,.04);border-radius:8px;margin-top:4px;}
         .dt-stamps-row{display:flex;gap:7px;}
         .dt-stamp-count-btn{width:40px;height:32px;border-radius:8px;border:1px solid rgba(43,38,32,.12);background:#FBF6EE;font-size:13px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;}
@@ -1451,13 +1530,28 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-real-pass-ladder-line{flex:1;height:2px;background:rgba(255,255,255,.25);margin:16px 4px 0;}
         .dt-real-pass-ladder-line--on{background:rgba(255,255,255,.7);}
         .dt-real-pass-tier-perk{font-size:11px;color:rgba(255,255,255,.65);text-align:center;}
+        .dt-ladder{padding:14px 16px 18px;}
+        .dt-ladder-steps{position:relative;display:grid;}
+        .dt-ladder-track{position:absolute;top:10px;height:3px;}
+        .dt-ladder-track::before{content:'';position:absolute;inset:0;border-radius:3px;background:currentColor;opacity:.22;}
+        .dt-ladder-fill{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:currentColor;opacity:.85;}
+        .dt-ladder-step{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;}
+        .dt-ladder-dot{width:12px;height:12px;margin-top:5.5px;border-radius:50%;background:currentColor;opacity:.3;}
+        .dt-ladder-step.is-done .dt-ladder-dot{opacity:.9;}
+        .dt-ladder-step.is-on .dt-ladder-dot{width:22px;height:22px;margin-top:0;opacity:1;box-shadow:0 0 0 4px rgba(255,255,255,.18);}
+        .dt-ladder-name{font-size:9.5px;font-weight:500;opacity:.6;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+        .dt-ladder-step.is-done .dt-ladder-name{opacity:.85;}
+        .dt-ladder-step.is-on .dt-ladder-name{font-weight:800;opacity:1;}
+        .dt-ladder-caption{margin:14px auto 0;width:max-content;max-width:100%;font-size:11px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid currentColor;opacity:.9;}
         .dt-real-pass-points-area{padding:8px 24px 20px;}
         .dt-real-pass-points-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
         .dt-real-pass-points-icon{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
         .dt-real-pass-points-num{font-size:32px;font-weight:800;color:#FFFFFF;}
-        .dt-real-pass-points-segments{display:flex;gap:4px;margin-bottom:8px;}
-        .dt-real-pass-points-segment{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.2);}
-        .dt-real-pass-points-segment--filled{background:rgba(255,255,255,.9);}
+        .dt-pts-bar{position:relative;height:6px;margin:4px 0 10px;}
+        .dt-pts-bar::before{content:'';position:absolute;inset:0;border-radius:3px;background:currentColor;opacity:.22;}
+        .dt-pts-fill{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:currentColor;}
+        .dt-pts-mark{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);box-sizing:border-box;border:2px solid currentColor;}
+        .dt-pts-mark.is-ok{border:none;}
         .dt-real-pass-points-sub{font-size:10px;color:rgba(255,255,255,.6);}
         .dt-real-pass-info{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 24px 20px;}
         .dt-real-pass-info-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.65);font-weight:600;margin-bottom:4px;}
@@ -1534,7 +1628,7 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-face-btn{font-size:13px;color:rgba(43,38,32,.4);background:none;border:none;cursor:pointer;padding-bottom:6px;border-bottom:2.5px solid transparent;font-family:'Inter',sans-serif;transition:all .15s;display:flex;align-items:center;gap:5px;}
         .dt-face-btn--on{color:#C75D3A;border-bottom-color:#C75D3A;font-weight:600;}
         .dt-type-fixed{background:#FBF6EE;border:1.5px solid rgba(43,38,32,.1);border-radius:9px;padding:10px 12px;}
-        .dt-type-fixed-label{display:block;font-size:13px;font-weight:700;color:#2B2620;margin-bottom:4px;}
+        .dt-type-fixed-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#2B2620;}
         .dt-type-fixed-note{font-size:10.5px;color:rgba(43,38,32,.4);line-height:1.5;}
         .dt-membership-color-note{font-size:11px;color:rgba(43,38,32,.5);background:#FBF6EE;border-radius:9px;padding:10px 12px;line-height:1.5;}
         .dt-public-desc-input{width:100%;padding:10px 12px;font-size:12.5px;border:1.5px solid rgba(43,38,32,.12);border-radius:9px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}

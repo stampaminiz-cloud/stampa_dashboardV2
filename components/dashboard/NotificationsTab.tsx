@@ -35,6 +35,48 @@ function localInputValue(d: Date) {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
+// Selector de fecha y hora para programar: días y horarios comunes en un
+// toque, y "Otro día" / "Otra hora" para el resto. Trabaja con el mismo
+// formato que <input type="datetime-local"> (YYYY-MM-DDTHH:mm, hora local).
+const TIME_PRESETS = ['09:00', '12:00', '18:00', '20:00']
+function WhenPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [day, time] = value.split('T')
+  const dayOf = (offset: number) => localInputValue(new Date(Date.now() + offset * 864e5)).slice(0, 10)
+  const today = dayOf(0), tomorrow = dayOf(1)
+  const [customDay, setCustomDay] = useState(day !== today && day !== tomorrow)
+  const [customTime, setCustomTime] = useState(!TIME_PRESETS.includes(time))
+  const nowHM = localInputValue(new Date(Date.now() + 5 * 60 * 1000)).slice(11)
+  const past = (d: string, t: string) => d < today || (d === today && t < nowHM)
+  function pickDay(d: string) {
+    // Si el horario ya pasó hoy, se pasa al primer horario común que quede.
+    let t = time
+    if (past(d, t)) t = TIME_PRESETS.find(x => !past(d, x)) || t
+    onChange(`${d}T${t}`)
+  }
+  const d = new Date(value)
+  const label = `${day === today ? 'hoy' : day === tomorrow ? 'mañana' : d.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '')} a las ${time}`
+  return (
+    <div className="nt-when">
+      <div className="nt-chips">
+        <button type="button" className={`nt-chip${!customDay && day === today ? ' nt-chip--on' : ''}`} onClick={() => { setCustomDay(false); pickDay(today) }}>Hoy</button>
+        <button type="button" className={`nt-chip${!customDay && day === tomorrow ? ' nt-chip--on' : ''}`} onClick={() => { setCustomDay(false); pickDay(tomorrow) }}>Mañana</button>
+        <button type="button" className={`nt-chip${customDay ? ' nt-chip--on' : ''}`} onClick={() => setCustomDay(true)}>Otro día</button>
+        {customDay && <input type="date" className="nt-input nt-when-input" value={day} min={today} onChange={e => e.target.value && pickDay(e.target.value)} aria-label="Día" />}
+      </div>
+      <div className="nt-chips">
+        {TIME_PRESETS.map(t => (
+          <button key={t} type="button" disabled={past(day, t)} className={`nt-chip${!customTime && time === t ? ' nt-chip--on' : ''}`} onClick={() => { setCustomTime(false); onChange(`${day}T${t}`) }}>{t}</button>
+        ))}
+        <button type="button" className={`nt-chip${customTime ? ' nt-chip--on' : ''}`} onClick={() => setCustomTime(true)}>Otra hora</button>
+        {customTime && <input type="time" className="nt-input nt-when-input" value={time} step={300} onChange={e => e.target.value && onChange(`${day}T${e.target.value}`)} aria-label="Hora" />}
+      </div>
+      <div className={`nt-when-sum${past(day, time) ? ' nt-when-sum--bad' : ''}`}>
+        {past(day, time) ? 'Ese horario ya pasó: elegí otro.' : <>Se envía <strong>{day === today || day === tomorrow ? label : `el ${label}`}</strong>.</>}
+      </div>
+    </div>
+  )
+}
+
 const authHeaders = () => ({ 'Content-Type': 'application/json', Authorization: 'Bearer ' + localStorage.getItem('stampa_token') })
 
 function Lock() {
@@ -95,7 +137,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
   const [results, setResults] = useState<Picked[]>([])
   const [searching, setSearching] = useState(false)
   const [sendType, setSendType] = useState<'now' | 'later'>('now')
-  const [when, setWhen] = useState(() => localInputValue(new Date(Date.now() + 24 * 3600 * 1000)))
+  const [when, setWhen] = useState(() => `${localInputValue(new Date(Date.now() + 24 * 3600 * 1000)).slice(0, 10)}T12:00`)
   const [busy, setBusy] = useState<'send' | 'test' | null>(null)
   const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null)
   const [paramReach, setParamReach] = useState<Reach | null>(null)
@@ -147,7 +189,6 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
   const unlimited = monthlyLimit >= 999999
   const atLimit = !unlimited && used >= monthlyLimit
   const audienceReady = audience === 'card' ? !!cardId : audience === 'tier' ? !!tierName : audience === 'customers' ? picked.length > 0 : true
-  const minWhen = localInputValue(new Date(Date.now() + 5 * 60 * 1000))
 
   async function send() {
     if (!businessId || !message.trim() || busy) return
@@ -280,6 +321,15 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
         .nt-chip button{border:none;background:rgba(199,93,58,.15);color:#C75D3A;border-radius:50%;width:16px;height:16px;line-height:14px;cursor:pointer;font-size:12px;padding:0;}
         .nt-hint{font-size:10.5px;color:rgba(43,38,32,.45);line-height:1.45;}
         .nt-types{display:flex;gap:6px;margin-bottom:10px;}
+        .nt-when{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+        .nt-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+        .nt-chip{padding:6px 13px;border-radius:999px;border:1.5px solid rgba(43,38,32,.12);background:#fff;font-size:12px;font-weight:600;color:rgba(43,38,32,.65);cursor:pointer;font-family:'Inter',sans-serif;}
+        .nt-chip:hover:not(:disabled){border-color:rgba(43,38,32,.3);}
+        .nt-chip:disabled{opacity:.35;cursor:default;}
+        .nt-chip--on{background:rgba(199,93,58,.1);border-color:#C75D3A;color:#C75D3A;}
+        .nt-when-input{width:auto;padding:6px 10px;border-radius:999px;}
+        .nt-when-sum{font-size:11.5px;color:rgba(43,38,32,.6);}
+        .nt-when-sum--bad{color:#B4442A;}
         .nt-type{flex:1;padding:9px;border-radius:10px;border:1.5px solid rgba(43,38,32,.1);background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:rgba(43,38,32,.55);display:flex;align-items:center;justify-content:center;gap:7px;font-family:'Inter',sans-serif;}
         .nt-type--on{border-color:#C75D3A;background:rgba(199,93,58,.06);color:#C75D3A;}
         .nt-actions{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;}
@@ -402,7 +452,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
               <button className={`nt-type${sendType === 'later' ? ' nt-type--on' : ''}`} onClick={() => setSendType('later')}>Programar</button>
             </div>
             {sendType === 'later' && (
-              <input type="datetime-local" className="nt-input" style={{ marginBottom: 10 }} value={when} min={minWhen} onChange={e => setWhen(e.target.value)} />
+              <WhenPicker value={when} onChange={setWhen} />
             )}
 
             <div className="nt-actions">

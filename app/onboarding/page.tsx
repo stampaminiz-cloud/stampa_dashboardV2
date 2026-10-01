@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { apiMe, apiOnboarding, getToken } from '@/lib/api'
 import { BrandLogo } from '@/components/brand/BrandLogo'
+import { NumberStepper } from '@/components/ui/NumberStepper'
 import { allowsFreeColor, darkenHex, DEFAULT_CARD_COLOR, presetsForPlan } from '@/lib/colorPresets'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -417,15 +418,9 @@ function Step3({ state, onChange, onNext, onBack }: StepProps) {
               </button>
             ))}
           </div>
-          {/* Otro valor: − / número / + (en vez del input numérico suelto) */}
           <div className="ob-stepper-row">
             <span className="ob-stepper-lbl">Otro valor</span>
-            <div className="ob-stepper">
-              <button type="button" aria-label="Menos" onClick={() => setPoints(state.pointsPerVisit - 1)} disabled={state.pointsPerVisit <= 1}>−</button>
-              <input type="number" inputMode="numeric" min={1} max={1000} value={state.pointsPerVisit}
-                onChange={e => onChange({ pointsPerVisit: Number(e.target.value) })} onBlur={() => setPoints(state.pointsPerVisit)} />
-              <button type="button" aria-label="Más" onClick={() => setPoints(state.pointsPerVisit + 1)} disabled={state.pointsPerVisit >= 1000}>+</button>
-            </div>
+            <NumberStepper value={state.pointsPerVisit} onChange={setPoints} min={1} max={1000} suffix="pts" ariaLabel="Puntos por visita" />
           </div>
           <div className="ob-hint"><StampyIcon size={24} />Los premios (ej: café gratis por 100 puntos) los cargás después en Premios.</div>
         </>
