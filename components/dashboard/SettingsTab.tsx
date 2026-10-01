@@ -5,6 +5,7 @@ import { apiUpdateBusiness, apiChangePassword, apiUpdateProfile, apiExportCustom
 import { useLang } from '@/data/i18n'
 import { InfoTooltip } from './InfoTooltip'
 import { NumberStepper } from '@/components/ui/NumberStepper'
+import { ProgramRules, type RulesCard, type BirthdayRule } from './ProgramRules'
 
 interface BusinessAlerts { newCustomer?: boolean; nearPrize: boolean; weeklyDigest: boolean; suspicious?: boolean }
 interface BusinessSettings {
@@ -283,7 +284,7 @@ function CheckboxRow({ label, checked: init, description, onToggle }: { label: s
   )
 }
 
-export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', pendingEmail = null, deletionRequestedAt = null, onSave, isManager = false, billing = null, onChoosePlan, onCancelSubscription }: { business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; pendingEmail?: string | null; deletionRequestedAt?: string | null; onSave?: () => void; isManager?: boolean; billing?: BillingStatus | null; onChoosePlan?: () => void; onCancelSubscription?: () => Promise<void> }) {
+export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', pendingEmail = null, deletionRequestedAt = null, onSave, isManager = false, billing = null, onChoosePlan, onCancelSubscription, cards = [], birthday = { enabled: false, gift: '' }, onCardsChanged }: { cards?: RulesCard[]; birthday?: BirthdayRule; onCardsChanged?: () => void; business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; pendingEmail?: string | null; deletionRequestedAt?: string | null; onSave?: () => void; isManager?: boolean; billing?: BillingStatus | null; onChoosePlan?: () => void; onCancelSubscription?: () => Promise<void> }) {
   const t = useLang()
   const [business, setBusiness]       = useState(mockBusiness)
   const [inactiveDays, setInactiveDays] = useState(mockBusiness.inactiveDays)
@@ -489,6 +490,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           <div className="st-rules-summary">
             Con este valor, un cliente que no vuelve en <strong>{inactiveDays} días</strong> se marca como inactivo automáticamente.
           </div>
+          <ProgramRules businessId={businessId} cards={cards} birthday={birthday} onCardsChanged={onCardsChanged} onBusinessChanged={onSave} />
         </Section>
 
         <Section title={t('st_alerts')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}>

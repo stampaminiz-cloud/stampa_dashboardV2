@@ -22,6 +22,7 @@ interface EditField {
   isRewardSource: boolean
   isLocked: boolean
   isCustom: boolean
+  isBirthday?: boolean
 }
 interface CardInfo {
   id: string; name: string; type: 'stamp' | 'points' | 'membership'; isActive: boolean
@@ -39,7 +40,7 @@ function toEdit(f: any): EditField {
   return {
     key: `f${fieldKey++}`, id: f._id, label: f.label, type: (f.fieldType || 'text') as FieldType,
     options: f.options || [], placeholder: f.placeholder || '', isActive: f.isActive !== false,
-    isRequired: !!f.isRequired, isRewardSource: !!f.isRewardSource, isLocked: !!f.isLocked, isCustom: !!f.isCustom,
+    isRequired: !!f.isRequired, isRewardSource: !!f.isRewardSource, isLocked: !!f.isLocked, isCustom: !!f.isCustom, isBirthday: !!f.isBirthday,
   }
 }
 const comparable = (f: EditField) => JSON.stringify([f.id, f.label, f.type, f.options, f.placeholder, f.isActive, f.isRequired, f.isRewardSource])
@@ -438,8 +439,9 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
                             <label className="fm-switch"><input type="checkbox" checked={f.isRequired} disabled={!f.isActive} onChange={e => patch(f.key, { isRequired: e.target.checked })} /><span />Obligatorio</label>
                           </>
                         )}
+                        {f.isBirthday && <span className="fm-badge" title="La usa la regla Cumpleaños (Configuración)">🎂 Regla de cumpleaños</span>}
                         <div style={{ flex: 1 }} />
-                        {(f.isCustom || !f.id) && !f.isLocked && (
+                        {(f.isCustom || !f.id) && !f.isLocked && !f.isBirthday && (
                           confirmDel === f.key
                             ? <span className="fm-confirm">¿Borrar? Las respuestas que ya dieron tus clientes se dejan de mostrar. <button className="fm-link-btn" onClick={() => setConfirmDel(null)}>No</button> <button className="fm-link-btn fm-danger" onClick={() => remove(f)}>Sí, borrar</button></span>
                             : <button className="fm-link-btn fm-danger" onClick={() => f.id ? setConfirmDel(f.key) : remove(f)}>Borrar</button>

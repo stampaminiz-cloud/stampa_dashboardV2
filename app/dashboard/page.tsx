@@ -968,6 +968,8 @@ export default function DashboardPage() {
             pointsPerVisit: c.pointsPerVisit || null,
             textColor: c.textColor || null,
             publicDescription: c.publicDescription || null,
+            expiryMonths: c.expiryMonths || 0,
+            doubleDays: c.doubleDays || [],
           })))
         } else console.error('cards load error:', cardsRes.reason)
 
@@ -1018,6 +1020,8 @@ export default function DashboardPage() {
             pointsPerVisit: c.pointsPerVisit || null,
             textColor: c.textColor || null,
             publicDescription: c.publicDescription || null,
+            expiryMonths: c.expiryMonths || 0,
+            doubleDays: c.doubleDays || [],
       })))
     } catch (err) {
       console.error('Error refreshing cards:', err)
@@ -1198,6 +1202,9 @@ export default function DashboardPage() {
           }}
           deletionRequestedAt={owner?.deletionRequestedAt || null}
           pendingEmail={owner?.pendingEmail || null}
+          cards={cards as any}
+          birthday={{ enabled: !!business?.birthday?.enabled, gift: business?.birthday?.gift || '' }}
+          onCardsChanged={refreshCards}
           business={business ? {
             ...mockData.business,
             name: business.name,
