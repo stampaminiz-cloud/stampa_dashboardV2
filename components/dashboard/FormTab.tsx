@@ -280,7 +280,6 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
     if (f.id) setRemoved(r => [...r, f])
     setConfirmDel(null); setNotice(null)
   }
-  function setReward(key: string) { setDraft(d => (d || []).map(f => ({ ...f, isRewardSource: f.key === key, ...(f.key === key ? { isRequired: true, isActive: true } : {}) }))) }
   function addField(reward = false) {
     setDraft(d => [...(d || []), {
       key: `f${fieldKey++}`, label: reward ? REWARD_QUESTION : '', type: reward ? 'select' : 'text', options: [], placeholder: '',
@@ -388,11 +387,11 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
                     <button className="fm-link-btn" onClick={onGoToDesign}>Cambiar en Diseño</button>
                   </div>
                 ) : rewardField ? (
-                  <div className="fm-card-sub" style={{ margin: 0 }}>El cliente elige su premio al registrarse en <strong>"{rewardField.label}"</strong>. Editá las opciones abajo.</div>
+                  <div className="fm-card-sub" style={{ margin: 0 }}>El cliente elige su premio al registrarse en <strong>"{rewardField.label}"</strong>. Las opciones se editan en <button className="fm-link-btn" onClick={onGoToDesign}>Diseño</button>.</div>
                 ) : (
                   <>
-                    <div className="fm-card-sub">Tu tarjeta dice que el cliente elige el premio, pero el formulario no tiene la pregunta.</div>
-                    <button className="fm-primary" onClick={() => addField(true)}>Agregar pregunta de premio</button>
+                    <div className="fm-card-sub">El cliente elige el premio, pero todavía no cargaste las opciones.</div>
+                    <button className="fm-primary" onClick={onGoToDesign}>Cargar opciones en Diseño</button>
                   </>
                 )}
               </div>
@@ -424,7 +423,9 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
                           </select>
                         ) : null}
                       </div>
-                      {f.type === 'select' && <OptionsEditor options={f.options} onChange={o => patch(f.key, { options: o })} />}
+                      {f.isRewardSource
+                        ? <div className="fm-hint" style={{ margin: '6px 0 0' }}>Opciones: {f.options.filter(Boolean).join(' · ') || '—'}. Se editan en <button className="fm-link-btn" onClick={onGoToDesign}>Diseño</button>.</div>
+                        : f.type === 'select' && <OptionsEditor options={f.options} onChange={o => patch(f.key, { options: o })} />}
                       {['text', 'tel', 'number'].includes(f.type) && (
                         <input className="fm-ph-input" value={f.placeholder} maxLength={80} placeholder="Texto de ayuda dentro del campo (opcional)" onChange={e => patch(f.key, { placeholder: e.target.value })} />
                       )}
@@ -435,7 +436,6 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
                           <>
                             <label className="fm-switch"><input type="checkbox" checked={f.isActive} onChange={e => patch(f.key, { isActive: e.target.checked })} /><span />Visible</label>
                             <label className="fm-switch"><input type="checkbox" checked={f.isRequired} disabled={!f.isActive} onChange={e => patch(f.key, { isRequired: e.target.checked })} /><span />Obligatorio</label>
-                            {askReward && f.type === 'select' && <button className="fm-link-btn" onClick={() => setReward(f.key)}>★ Usar como premio</button>}
                           </>
                         )}
                         <div style={{ flex: 1 }} />

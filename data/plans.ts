@@ -12,7 +12,7 @@ export interface PlanLimits {
   maxCustomers:     number        // clientes registrados (0 = sin límite) — hoy solo se muestra, no se bloquea
   customColors:     boolean       // hex + color picker (color 100% libre)
   extraColorPresets:boolean       // los 3 presets extra (8 en vez de 5) — escalón intermedio antes del hex libre
-  customTextColor:  boolean       // color de texto sobre la tarjeta — desde Growth (afecta el pase real, no solo el preview)
+  customTextColor:  boolean       // color de texto sobre la tarjeta — desde Pro (afecta el pase real, no solo el preview)
   maxCustomFields:  number        // form builder custom fields
   maxTeamMembers:   number        // managers + scanners
   monthlyNotifs:    number        // envíos (campañas) por mes, no destinatarios
@@ -46,7 +46,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     maxActiveCards:  3,
     customColors:    false,       // color libre queda reservado para Pro+ — acá se sube a 8 presets curados
     extraColorPresets:true,
-    customTextColor: true,
+    customTextColor: false,     // colores de texto y etiquetas: desde Pro
     maxCustomFields: 3,
     maxTeamMembers:  5,
     monthlyNotifs:   20,

@@ -4,6 +4,7 @@ import {
   BASE_URL, apiGetPointsCatalog, apiCreatePointsCatalogItem, apiUpdatePointsCatalogItem, apiDeletePointsCatalogItem,
   apiGetTiers, apiSaveTiers, apiCreateDefaultTiers,
 } from '@/lib/api'
+import { NumberStepper } from '@/components/ui/NumberStepper'
 
 // Premios, por tarjeta. Todo sale de /rewards-stats (canjes reales que
 // registra la app de escaneo o el dashboard) y de los editores de catálogo
@@ -137,7 +138,7 @@ function PointsRewards({ businessId, cardId, data, onOpenCustomer, onChanged }: 
   const [editing, setEditing] = useState<{ id: string; name: string; points: string } | null>(null)
   const [confirmDel, setConfirmDel] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
-  const [newItem, setNewItem] = useState({ points: '', name: '' })
+  const [newItem, setNewItem] = useState({ points: '50', name: '' })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -162,7 +163,7 @@ function PointsRewards({ businessId, cardId, data, onOpenCustomer, onChanged }: 
     try {
       const created = await apiCreatePointsCatalogItem(businessId, cardId, { name: newItem.name.trim(), pointsCost: Number(newItem.points) })
       setCatalog(c => [...(c || []), { isActive: true, ...(created as any) }].sort((a, b) => a.pointsCost - b.pointsCost))
-      setNewItem({ points: '', name: '' }); setShowAdd(false); onChanged()
+      setNewItem({ points: '50', name: '' }); setShowAdd(false); onChanged()
     } catch (err: any) {
       setError(err?.error || 'No se pudo crear el premio.')
     } finally { setSaving(false) }
@@ -221,7 +222,7 @@ function PointsRewards({ businessId, cardId, data, onOpenCustomer, onChanged }: 
         {showAdd && (
           <div className="rw-add-form">
             <input className="rw-input" placeholder="Nombre del premio (ej: Café gratis)" maxLength={40} value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} onKeyDown={e => e.key === 'Enter' && addItem()} autoFocus />
-            <input className="rw-input rw-input--sm" type="number" min={1} inputMode="numeric" placeholder="Puntos" value={newItem.points} onChange={e => setNewItem({ ...newItem, points: e.target.value })} onKeyDown={e => e.key === 'Enter' && addItem()} />
+            <NumberStepper value={Number(newItem.points) || 50} onChange={n => setNewItem(it => ({ ...it, points: String(n) }))} min={1} max={100000} step={5} suffix="pts" size="sm" ariaLabel="Puntos del premio" />
             <button className="rw-confirm-btn" onClick={addItem} disabled={saving}>{saving ? 'Guardando…' : 'Agregar'}</button>
             <button className="rw-cancel-btn" onClick={() => { setShowAdd(false); setError(null) }}>Cancelar</button>
           </div>
@@ -240,7 +241,7 @@ function PointsRewards({ businessId, cardId, data, onOpenCustomer, onChanged }: 
                   {editing?.id === item._id ? (
                     <>
                       <td><input className="rw-inline-input" maxLength={40} value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} onKeyDown={e => e.key === 'Enter' && saveEdit()} autoFocus /></td>
-                      <td><input className="rw-inline-input rw-inline-input--sm" type="number" min={1} value={editing.points} onChange={e => setEditing({ ...editing, points: e.target.value })} onKeyDown={e => e.key === 'Enter' && saveEdit()} /></td>
+                      <td><NumberStepper value={Number(editing.points) || 1} onChange={n => setEditing(ed => ed ? { ...ed, points: String(n) } : ed)} min={1} max={100000} step={5} suffix="pts" size="sm" ariaLabel="Puntos del premio" /></td>
                       <td />
                       <td>
                         <div className="rw-actions">
@@ -395,7 +396,7 @@ function MembershipRewards({ businessId, cardId, data, onChanged }: { businessId
         <div className="rw-tier-grid" style={{ ['--n' as any]: Math.min(dist.length, 6) }}>
           {dist.map(d => (
             <div key={d.tier} className="rw-card rw-tier-card" style={{ background: d.bg, border: `1px solid ${d.color}22` }}>
-              <div className="rw-tier-badge" style={{ background: d.color, color: d.bg }}>{d.tier}</div>
+              <div className="rw-tier-badge" style={{ background: d.color, color: '#FFFFFF' }}>{d.tier}</div>
               <div className="rw-tier-members" style={{ color: d.color }}>{d.count}</div>
               <div className="rw-tier-sub" style={{ color: d.color }}>{total > 0 ? Math.round((d.count / total) * 100) : 0}% de tus miembros</div>
             </div>
@@ -437,8 +438,9 @@ function MembershipRewards({ businessId, cardId, data, onChanged }: { businessId
                   </div>
                   <input className="rw-inline-input" placeholder="Nombre" maxLength={20} value={t.name} onChange={e => update(t.key, { name: e.target.value })} aria-label="Nombre del nivel" />
                   <div className="rw-visits">
-                    <input className="rw-inline-input rw-inline-input--sm" type="number" min={0} value={t.threshold} disabled={i === 0} onChange={e => update(t.key, { threshold: e.target.value })} aria-label="Visitas necesarias" />
-                    <span>{i === 0 ? 'al registrarse' : 'visitas'}</span>
+                    {i === 0
+                      ? <span>Desde el registro</span>
+                      : <NumberStepper value={Number(t.threshold) || 1} onChange={n => update(t.key, { threshold: String(n) })} min={1} max={10000} suffix="visitas" size="sm" ariaLabel="Visitas necesarias" />}
                   </div>
                   <input className="rw-inline-input" placeholder="Ej: 10% de descuento" maxLength={80} value={t.perk} onChange={e => update(t.key, { perk: e.target.value })} aria-label="Beneficio" />
                   <button className="rw-icon-btn rw-icon-btn--danger" onClick={() => remove(t.key)} disabled={draft.length <= 2 || i === 0} title={i === 0 ? 'El primer nivel no se puede borrar' : draft.length <= 2 ? 'Mínimo 2 niveles' : 'Borrar nivel'}>
@@ -572,7 +574,7 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer }: 
         .rw-tier-members{font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:800;}
         .rw-tier-sub{font-size:11px;margin-top:2px;opacity:.75;}
         .rw-tier-editor{display:flex;flex-direction:column;gap:8px;}
-        .rw-tier-row{display:grid;grid-template-columns:30px minmax(100px,1fr) 150px minmax(140px,2fr) 30px;gap:10px;align-items:center;}
+        .rw-tier-row{display:grid;grid-template-columns:30px minmax(100px,1fr) 190px minmax(140px,2fr) 30px;gap:10px;align-items:center;}
         .rw-tier-row--head span{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.4);font-weight:700;}
         .rw-visits{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(43,38,32,.5);white-space:nowrap;}
         .rw-swatch{width:26px;height:26px;border-radius:8px;border:2px solid;cursor:pointer;padding:0;}
