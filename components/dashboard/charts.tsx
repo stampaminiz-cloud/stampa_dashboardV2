@@ -55,6 +55,52 @@ export function NewVsReturning({ data }: { data: NvrBucket[] }) {
   )
 }
 
+// ── Anillo de retención (Inicio) ─────────────────────────────────────────────
+// Qué parte del movimiento es gente que vuelve, con la frase grande y la
+// comparación con el período anterior. El detalle por semana está en Analítica.
+export interface Retention { current: { returning: number; newCustomers: number }; previous: { returning: number; newCustomers: number } }
+export function RetentionRing({ data }: { data: Retention }) {
+  const { returning: r, newCustomers: n } = data.current
+  const total = r + n
+  const share = total ? Math.round((r / total) * 100) : 0
+  const pt = data.previous.returning + data.previous.newCustomers
+  const prevShare = pt ? Math.round((data.previous.returning / pt) * 100) : null
+  const diff = prevShare == null ? null : share - prevShare
+  const R = 46, C = 2 * Math.PI * R
+  const retLen = total ? (r / total) * C : 0
+  const gap = r && n ? 3 : 0
+  return (
+    <div className="ch-ring">
+      <style>{CSS}</style>
+      <svg width="120" height="120" viewBox="0 0 120 120" role="img" aria-label={`${share}% volvieron, ${100 - share}% nuevos`}>
+        <circle cx="60" cy="60" r={R} fill="none" stroke="rgba(43,38,32,.07)" strokeWidth="14" />
+        {total > 0 && <>
+          <circle cx="60" cy="60" r={R} fill="none" stroke={BLUE} strokeWidth="14" strokeDasharray={`${Math.max(0, C - retLen - gap * 2)} ${C}`} strokeDashoffset={-(retLen + gap)} transform="rotate(-90 60 60)" strokeLinecap="butt" />
+          <circle cx="60" cy="60" r={R} fill="none" stroke={CORAL} strokeWidth="14" strokeDasharray={`${Math.max(0, retLen - gap)} ${C}`} transform="rotate(-90 60 60)" strokeLinecap="butt" />
+        </>}
+        <text x="60" y="58" textAnchor="middle" fontSize="24" fontWeight="800" fill="#2B2620" fontFamily="Plus Jakarta Sans, sans-serif">{share}%</text>
+        <text x="60" y="76" textAnchor="middle" fontSize="10.5" fill="rgba(43,38,32,.55)" fontFamily="Inter, sans-serif">vuelven</text>
+      </svg>
+      <div className="ch-ring-body">
+        <div className="ch-ring-head">
+          {total === 0 ? 'Todavía no hay movimientos en este período.'
+            : share >= 50 ? <><strong>{share}%</strong> de tu movimiento es gente que vuelve</>
+            : <>La mayoría de tu movimiento son <strong>clientes nuevos</strong></>}
+        </div>
+        {diff != null && total > 0 && (
+          <div className={`ch-ring-delta ${diff > 0 ? 'up' : diff < 0 ? 'down' : ''}`}>
+            {diff === 0 ? 'Igual que el período anterior' : `${diff > 0 ? '↑' : '↓'} ${Math.abs(diff)} puntos vs el período anterior`}
+          </div>
+        )}
+        <div className="ch-legend">
+          <span><i style={{ background: CORAL }} />Volvieron <strong>{r}</strong></span>
+          <span><i style={{ background: BLUE }} />Nuevos <strong>{n}</strong></span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Distribución de progreso: una barra apilada horizontal + filas ──────────
 // Escala secuencial de un solo tono (más oscuro = más cerca del premio).
 const SEQ = ['#F3D6CB', '#E6AE98', '#D98565', '#C75D3A', '#8E3B20']
@@ -148,6 +194,13 @@ export function CardComparison({ data }: { data: CardRow[] }) {
 const CSS = `
   .ch{display:flex;flex-direction:column;gap:12px;}
   .ch-legend{display:flex;gap:16px;font-size:11.5px;color:rgba(43,38,32,.65);}
+  .ch-ring{display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+  .ch-ring-body{flex:1;min-width:180px;display:flex;flex-direction:column;gap:8px;}
+  .ch-ring-head{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:600;color:#2B2620;line-height:1.35;}
+  .ch-ring-head strong{font-weight:800;}
+  .ch-ring-delta{font-size:11.5px;font-weight:600;color:rgba(43,38,32,.55);}
+  .ch-ring-delta.up{color:#2E7D4F;}
+  .ch-ring-delta.down{color:#B4442A;}
   .ch-legend i,.ch-row i,.ch-card i{display:inline-block;flex-shrink:0;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:middle;}
   .ch-legend strong{color:#2B2620;}
   .ch-stack{display:flex;align-items:stretch;gap:6px;height:160px;}
