@@ -46,6 +46,7 @@ interface CustomersTabProps {
   isManager?: boolean
   plan: Plan
   businessTotal: number | null
+  customerUsage?: CustomerUsage | null
   onChoosePlan: () => void
   onSearchChange: (q: string) => void
   onStatusFilterChange: (s: StatusFilter) => void
@@ -326,16 +327,22 @@ function CustomerPanel({ customer, canDelete, onClose, onDelete, onChanged }: {
 }
 
 // ─── Límite de clientes (Starter) ─────────────────────────────────────────────
-function CustomerLimit({ used, max, isManager, onChoosePlan }: { used: number; max: number; isManager: boolean; onChoosePlan: () => void }) {
+// Límite suave (backend: services/customerLimit.js): al 80% se avisa, al
+// 100% quedan `grace` lugares extra y recién después el formulario deja de
+// sumar clientes nuevos.
+export interface CustomerUsage { used: number | null; max: number; grace: number; state: 'unlimited' | 'ok' | 'warn' | 'over' | 'blocked' }
+function CustomerLimit({ usage, isManager, onChoosePlan }: { usage: CustomerUsage; isManager: boolean; onChoosePlan: () => void }) {
+  const used = usage.used || 0, max = usage.max
   const pct = Math.min(100, (used / max) * 100)
-  const level = used >= max ? 'full' : pct >= 80 ? 'warn' : 'ok'
+  const level = usage.state === 'over' || usage.state === 'blocked' ? 'full' : usage.state === 'warn' ? 'warn' : 'ok'
   return (
     <div className={`ct-limit ct-limit--${level}`}>
       <div style={{ flex: 1, minWidth: 180 }}>
         <div className="ct-limit-text">
           <strong>{used.toLocaleString('es-AR')} de {max} clientes</strong> en el plan Starter
-          {level === 'warn' && <> · te quedan {max - used}</>}
-          {level === 'full' && <> · llegaste al límite</>}
+          {usage.state === 'warn' && <> · te quedan {max - used}</>}
+          {usage.state === 'over' && <> · llegaste al límite: te quedan {Math.max(0, max + usage.grace - used)} lugares extra</>}
+          {usage.state === 'blocked' && <> · el formulario ya no suma clientes nuevos</>}
         </div>
         <div className="ct-limit-bar"><div style={{ width: `${pct}%` }} /></div>
       </div>
@@ -351,7 +358,7 @@ export function CustomersTab({
   cards = [], cardFilter = 'all', onCardFilterChange,
   page, totalPages, total, counts, inactiveDays,
   search, statusFilter, sortKey, sortDir, loading,
-  isManager = false, plan, businessTotal, onChoosePlan,
+  isManager = false, plan, businessTotal, customerUsage, onChoosePlan,
   onSearchChange, onStatusFilterChange, onSortChange, onPageChange, onRefresh,
   autoOpenEmail, onAutoOpened,
 }: CustomersTabProps) {
@@ -620,8 +627,8 @@ export function CustomersTab({
 
       <div className="ct-shell">
         <div className="ct-main">
-          {limits.maxCustomers > 0 && businessTotal != null && (
-            <CustomerLimit used={businessTotal} max={limits.maxCustomers} isManager={isManager} onChoosePlan={onChoosePlan} />
+          {customerUsage && customerUsage.max > 0 && customerUsage.used != null && (
+            <CustomerLimit usage={customerUsage} isManager={isManager} onChoosePlan={onChoosePlan} />
           )}
           <div className="ct-toolbar">
             <div className="ct-search">
