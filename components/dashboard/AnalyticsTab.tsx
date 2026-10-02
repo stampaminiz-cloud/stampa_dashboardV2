@@ -35,6 +35,7 @@ interface Detailed {
   frequency: { avgDays: number; trend: number; distribution: FreqBucket[] }
   newVsReturning?: NvrBucket[]
   retention?: Retention
+  progressByCard?: { cardId: string; name: string; type: CardType; total: number | null; segments: { label: string; count: number }[] }[]
   progressDistribution?: ProgressDist | null
   formAnswers?: FormAnswerData[]
   cardComparison?: CardRow[]
@@ -224,6 +225,9 @@ function DayHourBars({ hourly, mode }: { hourly: Hourly; mode: 'redeems' | 'sign
     </div>
   )
 }
+
+// Misma escala que ProgressDistribution (más oscuro = más cerca del premio).
+const PSEQ = ['#F3D6CB', '#E6AE98', '#D98565', '#C75D3A', '#8E3B20']
 
 // ─── Funnel ───────────────────────────────────────────────────────────────────
 function Funnel({ data }: { data: FunnelStage[] }) {
@@ -630,6 +634,12 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-when-dot--up{background:#5B8C5A;}
         .an-when-dot--down{background:#D4A24C;}
         .an-when-scroll{overflow-x:auto;}
+        .an-pbc{display:flex;flex-direction:column;gap:9px;}
+        .an-pbc-row{display:flex;align-items:center;gap:12px;font-size:12.5px;}
+        .an-pbc-name{width:120px;flex-shrink:0;color:#2B2620;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .an-pbc-note{color:rgba(43,38,32,.45);font-size:12px;}
+        .an-pbc-bar{flex:1;display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;}
+        .an-pbc-total{width:76px;text-align:right;color:rgba(43,38,32,.55);font-size:11.5px;flex-shrink:0;}
         .an-tiers{display:flex;flex-direction:column;gap:12px;}
         .an-tiers-bar{display:flex;gap:2px;height:14px;border-radius:7px;overflow:hidden;}
         .an-tiers-legend{display:flex;flex-wrap:wrap;gap:8px 22px;}
@@ -832,23 +842,48 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
               {metricsLoading ? <Loading /> : <TierDistribution tiers={m?.tierDistribution ?? []} />}
             </div>
           )}
-          <div>
+          {/* "¿Hasta dónde llegan?" y el ranking, uno al lado del otro. */}
+          <div className="an-2even">
             {/* Progreso + embudo: los dos responden "¿hasta dónde llegan?" */}
             <div className="an-card">
               <div className="an-ctitle">¿Hasta dónde llegan tus clientes?</div>
-              <div className="an-csub">{!d?.progressDistribution ? 'Desde que se registraron' : d.progressDistribution.kind === 'points' ? 'Según sus puntos, hoy' : 'Según cuántos sellos tienen, hoy'}</div>
+              <div className="an-csub">{!selectedCard ? 'Todas las tarjetas' : !d?.progressDistribution ? 'Desde que se registraron' : d.progressDistribution.kind === 'points' ? 'Según sus puntos, hoy' : 'Según cuántos sellos tienen, hoy'}</div>
               {!d ? <Loading /> : !(d.funnel[0]?.value > 0)
                 ? <EmptyState title="Todavía sin clientes" text="Aparece cuando se registren en tus tarjetas." />
+                : !selectedCard && d.progressByCard?.length
+                ? <>
+                    {/* Todas las tarjetas: el progreso de cada una con su nombre
+                        y el embudo sumando todas, bien rotulado. */}
+                    <div className="an-subhead" style={{ marginTop: 4 }}>Progreso hoy, por tarjeta</div>
+                    <div className="an-pbc">
+                      {d.progressByCard.map(c => (
+                        <div key={c.cardId} className="an-pbc-row">
+                          <span className="an-pbc-name">{c.name}</span>
+                          {c.type === 'membership'
+                            ? <span className="an-pbc-note">Va por niveles: mirá Clientes por nivel</span>
+                            : !c.total
+                            ? <span className="an-pbc-note">Todavía sin clientes</span>
+                            : <>
+                                <span className="an-pbc-bar" role="img" aria-label={c.segments.map(x => `${x.label}: ${x.count}`).join(', ')}>
+                                  {c.segments.map((x, i) => x.count > 0 && <span key={x.label} title={`${x.label}: ${x.count}`} style={{ flex: x.count, background: (c.segments.length === 3 ? [PSEQ[0], PSEQ[2], PSEQ[4]] : PSEQ)[i] }} />)}
+                                </span>
+                                <span className="an-pbc-total">{c.total} {c.total === 1 ? 'cliente' : 'clientes'}</span>
+                              </>}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="an-subhead">Todas tus tarjetas, desde que se registraron</div>
+                    <Funnel data={d.funnel} />
+                  </>
                 : <>
                     {d.progressDistribution && <ProgressDistribution data={d.progressDistribution} />}
                     {d.progressDistribution && <div className="an-subhead">Desde que se registraron</div>}
                     <Funnel data={d.funnel} />
                   </>}
             </div>
-          </div>
 
           {/* Un solo ranking (antes eran tres bloques: más activos del período,
-              más fieles y los que más canjearon), a todo el ancho. */}
+              más fieles y los que más canjearon). */}
           <div className="an-card">
               <div className="an-card-head">
                 <div>
@@ -870,6 +905,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
                     onOpen={onOpenCustomer} empty="Todavía sin visitas en el período" />
                 : <Ranking rows={d.mostLoyal} value={r => r.totalVisits} unit={n => plural(n, 'visita', 'visitas')}
                     sub={r => `última visita ${r.lastVisit}`} onOpen={onOpenCustomer} empty="Todavía sin visitas" />}
+          </div>
           </div>
 
           <div className="an-2even">
