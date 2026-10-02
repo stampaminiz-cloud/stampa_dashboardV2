@@ -816,7 +816,9 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
                         </span>
                       )}
                     </div>
-                    {cleanOpts.length < 2 && <div className="dt-color-warn">Cargá al menos 2 opciones.</div>}
+                    {cleanOpts.length < 2
+                      ? <div className="dt-color-warn">Cargá al menos 2 opciones.</div>
+                      : <div className="dt-public-desc-note">Elegí premios de valor parecido: si uno vale mucho más, todos van a elegir ese.</div>}
                   </div>
                 )}
                 <div className={`dt-reward-opt${card.rewardMode !== 'dynamic' ? ' dt-reward-opt--on' : ''}`} onClick={() => setCard({ ...card, rewardMode: 'fixed' })}>
@@ -867,18 +869,11 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
 
           {/* Appearance */}
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Apariencia de la tarjeta</div>
-          {card.type !== 'membership' && (
-            <>
-              <div className="dt-appearance-label">Color de fondo</div>
-              <ColorPicker color={card.color} onChange={(s, e) => setCard({ ...card, color: s, secondColor: e })} />
-            </>
-          )}
-          {card.type === 'membership' && (
-            <div className="dt-appearance-label">
-              Color de fondo: el del nivel de cada cliente
-              <InfoTooltip text="Cada nivel tiene su color. Se eligen en Premios, junto con los niveles." />
-            </div>
-          )}
+          <div className="dt-appearance-label">
+            {card.type === 'membership' ? 'Color de marca' : 'Color de fondo'}
+            {card.type === 'membership' && <InfoTooltip text="Se usa en el formulario de registro y en la app de escaneo. En la Wallet, la tarjeta toma el color del nivel de cada cliente (se elige en Premios)." />}
+          </div>
+          <ColorPicker color={card.color} onChange={(s, e) => setCard({ ...card, color: s, secondColor: e })} />
 
           {/* Colores de texto y etiquetas: desde Pro (afectan el pase real). */}
           <div className="dt-appearance-label" style={{ marginTop: 14 }}>

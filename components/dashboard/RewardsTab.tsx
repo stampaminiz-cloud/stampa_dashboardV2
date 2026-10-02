@@ -308,6 +308,15 @@ function PointsRewards({ businessId, cardId, data, onOpenCustomer, onChanged }: 
 
 // ─── Membresía ────────────────────────────────────────────────────────────────
 interface EditTier { key: string; id?: string; name: string; threshold: string; perk: string; color: string; bg: string }
+// Texto del badge del nivel: oscuro sobre colores claros (ej. Black, que
+// tiene texto crema) y blanco sobre los oscuros.
+function badgeText(hex: string) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i.exec(hex || '')
+  if (!m) return '#FFFFFF'
+  const [r, g, b] = [m[1], m[2], m[3]].map(x => parseInt(x, 16))
+  return 0.299 * r + 0.587 * g + 0.114 * b > 160 ? '#2B2620' : '#FFFFFF'
+}
+
 // Pares color de texto / fondo (el pase del Wallet usa el fondo del nivel).
 const TIER_PALETTE = [
   { label: 'Bronce',  color: '#854F0B', bg: '#FAEEDA' },
@@ -396,7 +405,7 @@ function MembershipRewards({ businessId, cardId, data, onChanged }: { businessId
         <div className="rw-tier-grid" style={{ ['--n' as any]: Math.min(dist.length, 6) }}>
           {dist.map(d => (
             <div key={d.tier} className="rw-card rw-tier-card" style={{ background: d.bg, border: `1px solid ${d.color}22` }}>
-              <div className="rw-tier-badge" style={{ background: d.color, color: '#FFFFFF' }}>{d.tier}</div>
+              <div className="rw-tier-badge" style={{ background: d.color, color: badgeText(d.color) }}>{d.tier}</div>
               <div className="rw-tier-members" style={{ color: d.color }}>{d.count}</div>
               <div className="rw-tier-sub" style={{ color: d.color }}>{total > 0 ? Math.round((d.count / total) * 100) : 0}% de tus miembros</div>
             </div>

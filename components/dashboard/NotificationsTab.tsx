@@ -9,7 +9,8 @@ import { BASE_URL, apiGetTiers } from '@/lib/api'
 // (services/broadcast.js); acá se arma el envío y se muestra el alcance real.
 
 type BaseAudience = 'all' | 'active' | 'inactive' | 'near' | 'ready'
-type Audience = BaseAudience | 'card' | 'tier' | 'customers'
+type Audience = BaseAudience | 'card' | 'tier' | 'answer' | 'customers'
+interface AnswerField { fieldId: string; label: string; cardName: string; options: string[] }
 interface Reach { total: number; reachable: number }
 interface HistoryItem { message: string; audience: string; audienceLabel?: string | null; sentCount: number; recipients?: number | null; sentAt: string }
 interface ScheduledItem { index: number; message: string; audience: string; audienceLabel?: string | null; scheduledAt: string }
@@ -25,7 +26,7 @@ const BASE: { key: BaseAudience; label: string; desc: (d: number) => string; sta
 ]
 const AUD_LABEL: Record<string, string> = {
   all: 'Todos', active: 'Activos', inactive: 'Inactivos', near: 'Cerca del premio', ready: 'Premio para entregar',
-  card: 'Por tarjeta', tier: 'Por nivel', customers: 'Clientes puntuales',
+  card: 'Por tarjeta', tier: 'Por nivel', answer: 'Por respuesta', customers: 'Clientes puntuales',
 }
 
 function fmtDateTime(d: string | number) {
@@ -105,6 +106,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
   const [scheduled, setScheduled] = useState<ScheduledItem[]>([])
   const [failedScheduled, setFailedScheduled] = useState<Array<{ message: string; scheduledAt: string; error: string }>>([])
   const [reach, setReach] = useState<Record<string, Reach>>({})
+  const [answerFields, setAnswerFields] = useState<AnswerField[]>([])
   const [used, setUsed] = useState(0)
   const [monthlyLimit, setMonthlyLimit] = useState(limit('monthlyNotifs'))
 
@@ -115,7 +117,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
       const d = await res.json()
       if (!res.ok) throw new Error()
       setHistory(d.history || []); setScheduled(d.scheduled || []); setFailedScheduled(d.failedScheduled || [])
-      setReach(d.reach || {}); setUsed(d.sentThisMonth || 0); setMonthlyLimit(d.monthlyLimit ?? limit('monthlyNotifs'))
+      setReach(d.reach || {}); setAnswerFields(d.answerFields || []); setUsed(d.sentThisMonth || 0); setMonthlyLimit(d.monthlyLimit ?? limit('monthlyNotifs'))
       setLoadError(false)
     } catch {
       setLoadError(true)
@@ -132,6 +134,9 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
   const [tierCardId, setTierCardId] = useState<string>(membershipCards[0]?.id || '')
   const [tiers, setTiers] = useState<string[]>([])
   const [tierName, setTierName] = useState('')
+  const [answerFieldId, setAnswerFieldId] = useState('')
+  const [answer, setAnswer] = useState('')
+  const answerField = answerFields.find(f => f.fieldId === answerFieldId) || answerFields[0]
   const [picked, setPicked] = useState<Picked[]>([])
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<Picked[]>([])
@@ -154,15 +159,15 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
   const reachTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     setParamReach(null)
-    if (!businessId || !['card', 'tier', 'customers'].includes(audience)) return
+    if (!businessId || !['card', 'tier', 'answer', 'customers'].includes(audience)) return
     const body = audienceBody()
-    if ((audience === 'card' && !cardId) || (audience === 'tier' && !tierName) || (audience === 'customers' && !picked.length)) return
+    if ((audience === 'card' && !cardId) || (audience === 'tier' && !tierName) || (audience === 'answer' && !(answerField && answer)) || (audience === 'customers' && !picked.length)) return
     if (reachTimer.current) clearTimeout(reachTimer.current)
     reachTimer.current = setTimeout(() => {
       fetch(`${BASE_URL}/api/businesses/${businessId}/notifications/reach`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(body) })
         .then(r => r.ok ? r.json() : null).then(d => setParamReach(d)).catch(() => {})
     }, 250)
-  }, [audience, cardId, tierCardId, tierName, picked, businessId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [audience, cardId, tierCardId, tierName, answerFieldId, answer, picked, businessId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Buscador de clientes puntuales
   useEffect(() => {
@@ -181,14 +186,15 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
   function audienceBody() {
     if (audience === 'card') return { audience, cardId }
     if (audience === 'tier') return { audience, cardId: tierCardId, tierName }
+    if (audience === 'answer') return { audience, fieldId: answerField?.fieldId, answer }
     if (audience === 'customers') return { audience, customerIds: picked.flatMap(p => p.ids) }
     return { audience }
   }
 
-  const currentReach: Reach | null = ['card', 'tier', 'customers'].includes(audience) ? paramReach : reach[audience] || null
+  const currentReach: Reach | null = ['card', 'tier', 'answer', 'customers'].includes(audience) ? paramReach : reach[audience] || null
   const unlimited = monthlyLimit >= 999999
   const atLimit = !unlimited && used >= monthlyLimit
-  const audienceReady = audience === 'card' ? !!cardId : audience === 'tier' ? !!tierName : audience === 'customers' ? picked.length > 0 : true
+  const audienceReady = audience === 'card' ? !!cardId : audience === 'tier' ? !!tierName : audience === 'answer' ? !!(answerField && answer) : audience === 'customers' ? picked.length > 0 : true
 
   async function send() {
     if (!businessId || !message.trim() || busy) return
@@ -415,6 +421,19 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
                           )}
                           <select className="nt-select" value={tierName} onChange={e => setTierName(e.target.value)}>
                             {tiers.map(n => <option key={n} value={n}>{n}</option>)}
+                          </select>
+                        </div>
+                      ) })
+                    )}
+                    {answerFields.length > 0 && (
+                      audienceRow({ k: 'answer', label: 'Por respuesta', desc: 'Según lo que contestaron en el formulario (ej: talle M)', locked: !canTarget, lockText: 'Growth', children: (
+                        <div className="nt-row">
+                          <select className="nt-select" value={answerField?.fieldId || ''} onChange={e => { setAnswerFieldId(e.target.value); setAnswer('') }} aria-label="Pregunta">
+                            {answerFields.map(f => <option key={f.fieldId} value={f.fieldId}>{f.label}{answerFields.some(x => x !== f && x.label === f.label) ? ` · ${f.cardName}` : ''}</option>)}
+                          </select>
+                          <select className="nt-select" value={answer} onChange={e => setAnswer(e.target.value)} aria-label="Respuesta">
+                            <option value="">Elegí la respuesta</option>
+                            {(answerField?.options || []).map(o => <option key={o} value={o}>{o}</option>)}
                           </select>
                         </div>
                       ) })

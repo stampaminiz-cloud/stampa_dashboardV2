@@ -30,29 +30,29 @@ const STAMPA_PROS = ['Vive en el wallet que ya usa', 'Lista para usar en minutos
 const PROGRAM_TYPES = [
   { name: 'Sellos', desc: 'Acumulá visitas y elegí un premio al completar la tarjeta.', fit: 'Cafeterías y panaderías' },
   { name: 'Puntos', desc: 'Cada visita suma puntos canjeables por lo que quieras ofrecer.', fit: 'Restaurantes y spas' },
-  { name: 'Membresía', desc: 'Niveles Bronze, Silver, Gold y Black con beneficios exclusivos.', fit: 'Gimnasios y peluquerías premium' },
+  { name: 'Membresía', desc: 'Niveles (Bronce, Plata, Oro, Black o los que armes) que suben solos con las visitas.', fit: 'Gimnasios y peluquerías premium' },
 ];
 
 const STEPS = [
   { n: '01', title: 'Creás tu tarjeta', desc: 'Elegís el formato — sellos, puntos o membresía — y la personalizás con tu marca en minutos, sin saber programar.' },
-  { n: '02', title: 'El cliente la guarda en su wallet', desc: 'Con un link o un QR, la tarjeta queda guardada en Apple Wallet o Google Wallet. No hay que descargar ninguna app.' },
+  { n: '02', title: 'El cliente la guarda en su wallet', desc: 'Con un link o un QR, la tarjeta queda guardada en Apple Wallet (Google Wallet, muy pronto). No hay que descargar ninguna app.' },
   { n: '03', title: 'Cada visita suma', desc: 'Escaneás con la app de Stampa y el sello, punto o beneficio se actualiza al instante en el teléfono del cliente.' },
 ];
 
 const HERO_FEATURE = {
-  title: 'Dashboard con analytics',
-  desc: 'Visitas, clientes nuevos y tasa de retorno, todo en un solo vistazo — sin planillas ni adivinar qué está funcionando.',
+  title: 'Analítica que se entiende',
+  desc: 'Cuándo viene tu gente, quién vuelve y quién no, en qué parte de la tarjeta está cada cliente y qué premios eligen — sin planillas ni adivinar qué está funcionando.',
 };
 
 const LIST_FEATURES = [
   { mark: 'S/P', title: 'Sellos, puntos o membresía', desc: 'Elegí el formato que mejor se adapta a tu negocio.' },
-  { mark: 'W', title: 'Apple & Google Wallet', desc: 'Tu tarjeta vive donde tu cliente ya vive.' },
-  { mark: 'N', title: 'Notificaciones push', desc: 'Avisale sin depender de redes sociales.' },
+  { mark: 'W', title: 'En Apple Wallet', desc: 'Tu tarjeta vive donde tu cliente ya vive. Google Wallet, muy pronto.' },
+  { mark: 'N', title: 'Notificaciones segmentadas', desc: 'A todos, a los inactivos, a los que están cerca del premio o según lo que respondieron.' },
+  { mark: 'R', title: 'Reglas automáticas', desc: 'Días con sello doble, regalo de cumpleaños y vencimiento por inactividad, con aviso.' },
   { mark: '0', title: 'Sin app para el cliente', desc: 'Cero fricción, cero descarga.' },
-  { mark: 'SC', title: 'Scanner app para el equipo', desc: 'Suma sellos y puntos desde el celular, en segundos.' },
-  { mark: 'EQ', title: 'Gestión de equipo', desc: 'Managers con acceso completo, scanners solo para escanear.' },
-  { mark: 'F', title: 'Formulario personalizable', desc: 'Elegí qué datos pedirle a tu cliente al sumarse.' },
-  { mark: 'M', title: 'Multi-local (plan Pro)', desc: 'Gestioná todos tus locales desde un mismo dashboard.' },
+  { mark: 'SC', title: 'App de escaneo', desc: 'Tu equipo entra con PIN; vos, con tu email. Suma, canjea y busca clientes en segundos.' },
+  { mark: 'EQ', title: 'Gestión de equipo', desc: 'Administradores y scanners, con historial de quién escaneó y alertas de escaneos raros.' },
+  { mark: 'F', title: 'Formulario personalizable', desc: 'Elegí qué datos pedirle a tu cliente al sumarse y usalos para segmentar.' },
 ];
 
 const TESTIMONIAL = {
@@ -71,10 +71,10 @@ const VERTICALS = [
   { name: 'Cafeterías', example: 'Sello por cada café — el décimo, gratis.', tag: 'Sellos', initial: 'CA' },
   { name: 'Restaurantes', example: 'Puntos por consumo, canjeables por platos.', tag: 'Puntos', initial: 'RE' },
   { name: 'Peluquerías', example: 'Membresía por niveles con beneficios exclusivos.', tag: 'Membresía', initial: 'PE' },
-  { name: 'Gimnasios', example: 'Puntos por asistencia y por traer amigos.', tag: 'Membresía', initial: 'GI' },
+  { name: 'Gimnasios', example: 'Membresía por asistencia: más visitas, mejor nivel.', tag: 'Membresía', initial: 'GI' },
   { name: 'Panaderías', example: 'Sello por compra, premio a la décima visita.', tag: 'Sellos', initial: 'PA' },
   { name: 'Spas', example: 'Puntos canjeables por tratamientos y upgrades.', tag: 'Puntos', initial: 'SP' },
-  { name: 'Ropa', example: 'Puntos por compra, descuentos según tu nivel.', tag: 'Puntos', initial: 'RO' },
+  { name: 'Ropa', example: 'Puntos por compra, canjeables por descuentos.', tag: 'Puntos', initial: 'RO' },
   { name: 'Librerías', example: 'Sello por compra, un libro de regalo al completar.', tag: 'Sellos', initial: 'LI' },
 ].map((v) => ({
   ...v,
@@ -86,19 +86,19 @@ const VERTICALS = [
 // hay nombre, descripción y features; monthly/annual en 0 = "tiene precio",
 // null = "A consultar" (Enterprise, solo por contacto).
 const RAW_PLANS = [
-  { name: 'Starter', slug: 'starter', desc: 'Para arrancar con un local y una tarjeta.', monthly: 0, annual: 0, features: ['1 local', '1 tarjeta de fidelización', 'Hasta 200 clientes', 'Analytics básico'], cta: 'Empezar gratis', highlight: false },
-  { name: 'Growth', slug: 'growth', desc: 'Para crecer con marca propia y equipo.', monthly: 0, annual: 0, features: ['1 local', '3 tarjetas de fidelización', 'Clientes ilimitados', 'Branding propio', '5 usuarios de equipo'], cta: 'Empezar gratis', highlight: true },
-  { name: 'Pro', slug: 'pro', desc: 'Para negocios con varios locales.', monthly: 0, annual: 0, features: ['3 locales', 'Todo ilimitado', 'Soporte prioritario'], cta: 'Empezar gratis', highlight: false },
+  { name: 'Starter', slug: 'starter', desc: 'Para arrancar con un local y una tarjeta.', monthly: 0, annual: 0, features: ['1 local', '1 tarjeta de fidelización', 'Hasta 200 clientes', 'Métricas clave en Inicio', '4 notificaciones por mes'], cta: 'Empezar gratis', highlight: false },
+  { name: 'Growth', slug: 'growth', desc: 'Para crecer con marca propia y equipo.', monthly: 0, annual: 0, features: ['1 local', '3 tarjetas de fidelización', 'Clientes ilimitados', 'Analítica completa', '20 notificaciones por mes, segmentadas', '5 usuarios de equipo'], cta: 'Empezar gratis', highlight: true },
+  { name: 'Pro', slug: 'pro', desc: 'Para negocios con varios locales.', monthly: 0, annual: 0, features: ['3 locales', 'Tarjetas, equipo y notificaciones ilimitados', 'Color 100% libre', 'Notificaciones a clientes puntuales', 'Soporte prioritario'], cta: 'Empezar gratis', highlight: false },
   { name: 'Enterprise', slug: 'enterprise', desc: 'Para cadenas y franquicias.', monthly: null as number | null, annual: null as number | null, features: ['Locales ilimitados', 'White label', 'Soporte dedicado'], cta: 'Hablar con ventas', highlight: false },
 ];
 
 const FAQ_DATA = [
-  { q: '¿Mis clientes necesitan descargar una app?', a: 'No. La tarjeta de fidelización vive directamente en Apple Wallet o Google Wallet, que ya vienen instalados en su teléfono. Nada que descargar, nada que crear cuenta.' },
-  { q: '¿Cómo escaneo la tarjeta de mis clientes?', a: 'Con la app de Stampa para tu negocio. Escaneás el código de la tarjeta y el sello, punto o beneficio se actualiza al instante en el wallet del cliente.' },
+  { q: '¿Mis clientes necesitan descargar una app?', a: 'No. La tarjeta de fidelización vive directamente en Apple Wallet, que ya viene instalada en el iPhone. Nada que descargar, nada que crear cuenta. Google Wallet llega muy pronto.' },
+  { q: '¿Cómo escaneo la tarjeta de mis clientes?', a: 'Con la app de escaneo de Stampa. Tu equipo entra con un PIN y vos con tu email. Escaneás el código de la tarjeta (o buscás al cliente por nombre) y el sello, punto o visita se actualiza al instante en su Wallet.' },
   { q: '¿Cuánto tarda en configurarse?', a: 'Menos de 15 minutos. Elegís el formato de tu tarjeta (sellos, puntos o membresía), la personalizás con tu marca y ya podés compartirla con tus clientes.' },
   { q: '¿Necesito tarjeta de crédito para probar?', a: 'No. Los 14 días de prueba gratuita no piden tarjeta de crédito. Solo pagás si decidís continuar con un plan pago.' },
   { q: '¿Puedo cambiar de plan o cancelar cuando quiera?', a: 'Sí, no hay permanencia. Podés subir, bajar o cancelar tu plan en cualquier momento desde el dashboard.' },
-  { q: '¿Funciona para más de un local?', a: 'Sí. Los planes Pro y Enterprise permiten gestionar varios locales desde un mismo dashboard, cada uno con sus propias tarjetas y analytics.' },
+  { q: '¿Puedo premiar cumpleaños o hacer días con sello doble?', a: 'Sí. En Configuración activás el regalo de cumpleaños, elegís qué días de la semana cada visita vale doble y si los sellos o puntos vencen cuando un cliente deja de venir. Los avisos salen solos y no cuentan para tus notificaciones del mes.' },
 ];
 
 const SOCIAL_LINKS = [

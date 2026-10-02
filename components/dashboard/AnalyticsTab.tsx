@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
+import { NewVsReturning, ProgressDistribution, FormAnswers, CardComparison, type NvrBucket, type ProgressDist, type FormAnswer as FormAnswerData, type CardRow } from './charts'
 import { usePlan } from '@/data/plans'
 import { BASE_URL } from '@/lib/api'
 
@@ -29,6 +30,10 @@ interface Detailed {
   funnel: FunnelStage[]
   comparison: CompItem[]
   frequency: { avgDays: number; trend: number; distribution: FreqBucket[] }
+  newVsReturning?: NvrBucket[]
+  progressDistribution?: ProgressDist | null
+  formAnswers?: FormAnswerData[]
+  cardComparison?: CardRow[]
 }
 
 type Range = '7d' | '30d' | '90d'
@@ -62,14 +67,15 @@ function BarChart({ data, valueKey, tooltip }: { data: Bucket[]; valueKey: keyof
   return (
     <div className="an-bars-wrap">
       <div className="an-bars-axis">{ticks.map((t, i) => <span key={i}>{t}</span>)}</div>
-      <div className="an-bars" data-many={data.length > 8 ? '1' : undefined}>
+      <div className="an-bars" data-many={data.length > 8 ? '1' : undefined} data-dense={data.length > 16 ? '1' : undefined}>
         {data.map((b, i) => (
           <div key={i} className="an-bar-col" onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} onClick={() => setHover(hover === i ? null : i)}>
             {hover === i && <div className="an-bar-tip">{tooltip(b, values[i])}</div>}
             <div className="an-bar-track">
               <div className={`an-bar-fill${hover === i ? ' an-bar-fill--on' : ''}`} style={{ height: `${(values[i] / max) * 100}%` }} />
             </div>
-            <div className="an-bar-label">{b.day}</div>
+            {/* Con muchas barras (30 días) se muestra una etiqueta cada 5. */}
+            <div className="an-bar-label">{data.length <= 16 || i % 5 === 0 || i === data.length - 1 ? b.day : ''}</div>
           </div>
         ))}
       </div>
@@ -85,24 +91,32 @@ const DAYS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const DAYS_PLURAL = ['los lunes', 'los martes', 'los miércoles', 'los jueves', 'los viernes', 'los sábados', 'los domingos']
 const DAYS_SINGULAR = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
 type HeatMode = 'visits' | 'redeems' | 'signups'
-const HEAT_MODES: { key: HeatMode; label: string; unit: [string, string] }[] = [
-  { key: 'visits',  label: 'Visitas',   unit: ['visita', 'visitas'] },
-  { key: 'redeems', label: 'Canjes',    unit: ['canje', 'canjes'] },
-  { key: 'signups', label: 'Registros', unit: ['registro', 'registros'] },
-]
+// Un bloque por tipo (antes era un selector): cada uno con su color.
+const HEAT_MODES: Record<HeatMode, { title: string; sub: string; unit: [string, string]; rgb: string }> = {
+  visits:  { title: '¿Cuándo viene tu gente?', sub: 'Visitas promedio por día, según la hora de los escaneos', unit: ['visita', 'visitas'], rgb: '199,93,58' },
+  redeems: { title: '¿Cuándo canjean?', sub: 'Premios entregados por día y horario', unit: ['canje', 'canjes'], rgb: '91,140,90' },
+  signups: { title: '¿Cuándo se registran?', sub: 'Clientes nuevos por día y horario', unit: ['registro', 'registros'], rgb: '24,95,165' },
+}
 const slotLabel = (s: number) => `${s * 2}–${s * 2 + 2}`
 const fmt1 = (n: number) => (Math.round(n * 10) / 10).toLocaleString('es-AR')
 
-function WhenHeatmap({ hourly }: { hourly: Hourly }) {
-  const [mode, setMode] = useState<HeatMode>('visits')
+// Las tres grillas usan las mismas franjas horarias (las que tuvieron algo en
+// cualquiera de las tres), así se comparan de un vistazo y ninguna queda con
+// una sola columna estirada.
+function sharedSlots(hourly: Hourly) {
+  const tot = Array.from({ length: 12 }, (_, s) => (['visits', 'redeems', 'signups'] as HeatMode[]).reduce((a, m) => a + hourly[m].reduce((b, row) => b + row[s], 0), 0))
+  const first = tot.findIndex(v => v > 0)
+  if (first === -1) return []
+  const last = 11 - [...tot].reverse().findIndex(v => v > 0)
+  return Array.from({ length: last - first + 1 }, (_, i) => first + i)
+}
+
+function WhenHeatmap({ hourly, mode }: { hourly: Hourly; mode: HeatMode }) {
   const grid = hourly[mode]
-  const unit = HEAT_MODES.find(m => m.key === mode)!.unit
+  const { unit, rgb, title, sub } = HEAT_MODES[mode]
   const avg = grid.map((row, d) => row.map(v => hourly.weekdayCount[d] > 0 ? v / hourly.weekdayCount[d] : 0))
-  const slotTotals = Array.from({ length: 12 }, (_, s) => grid.reduce((a, row) => a + row[s], 0))
-  const first = slotTotals.findIndex(v => v > 0)
-  const last = 11 - [...slotTotals].reverse().findIndex(v => v > 0)
-  const empty = first === -1
-  const slots = empty ? [] : Array.from({ length: last - first + 1 }, (_, i) => first + i)
+  const empty = !grid.some(row => row.some(v => v > 0))
+  const slots = empty ? [] : sharedSlots(hourly)
   const max = Math.max(0.0001, ...avg.flat())
 
   let best = { d: 0, s: 0, v: -1 }
@@ -118,13 +132,8 @@ function WhenHeatmap({ hourly }: { hourly: Hourly }) {
     <div className="an-card">
       <div className="an-card-head">
         <div>
-          <div className="an-ctitle">¿Cuándo viene tu gente?</div>
-          <div className="an-csub">Promedio por día, según la hora de los escaneos (y de los registros)</div>
-        </div>
-        <div className="an-seg-switch">
-          {HEAT_MODES.map(m => (
-            <button key={m.key} className={mode === m.key ? 'on' : ''} onClick={() => setMode(m.key)}>{m.label}</button>
-          ))}
+          <div className="an-ctitle">{title}</div>
+          <div className="an-csub">{sub}</div>
         </div>
       </div>
       {empty
@@ -137,7 +146,7 @@ function WhenHeatmap({ hourly }: { hourly: Hourly }) {
               )}
             </div>
             <div className="an-when-scroll">
-              <div className="an-when" style={{ gridTemplateColumns: `34px repeat(${slots.length}, minmax(30px, 72px))` }}>
+              <div className="an-when" style={{ gridTemplateColumns: `34px repeat(${slots.length}, minmax(26px, 1fr))` }}>
                 <div />
                 {slots.map(s => <div key={s} className="an-when-h">{slotLabel(s)}</div>)}
                 {DAYS_SHORT.map((dn, d) => (
@@ -148,7 +157,7 @@ function WhenHeatmap({ hourly }: { hourly: Hourly }) {
                       return (
                         <div key={s} className="an-when-cell"
                           title={`${DAYS_SINGULAR[d][0].toUpperCase() + DAYS_SINGULAR[d].slice(1)} ${slotLabel(s)} hs · ${fmt1(v)} ${v === 1 ? unit[0] : unit[1]} por día en promedio`}
-                          style={{ background: v > 0 ? `rgba(199,93,58,${(0.12 + (v / max) * 0.88).toFixed(2)})` : 'rgba(43,38,32,.04)' }} />
+                          style={{ background: v > 0 ? `rgba(${rgb},${(0.12 + (v / max) * 0.88).toFixed(2)})` : 'rgba(43,38,32,.04)' }} />
                       )
                     })}
                   </React.Fragment>
@@ -157,7 +166,7 @@ function WhenHeatmap({ hourly }: { hourly: Hourly }) {
             </div>
             <div className="an-hlegend">
               <span>Menos</span>
-              <div className="an-hscale">{[.12, .34, .56, .78, 1].map(o => <div key={o} className="an-hsdot" style={{ background: `rgba(199,93,58,${o})` }} />)}</div>
+              <div className="an-hscale">{[.12, .34, .56, .78, 1].map(o => <div key={o} className="an-hsdot" style={{ background: `rgba(${rgb},${o})` }} />)}</div>
               <span>Más</span>
             </div>
           </>
@@ -497,6 +506,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-bars-wrap{display:flex;gap:8px;height:170px;}
         .an-bars-axis{display:flex;flex-direction:column;justify-content:space-between;font-size:9.5px;color:rgba(43,38,32,.35);padding-bottom:20px;text-align:right;min-width:18px;}
         .an-bars{flex:1;display:flex;align-items:stretch;gap:6px;min-width:0;}
+        .an-bars[data-dense]{gap:3px;}
         .an-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;cursor:default;min-width:0;}
         .an-bar-track{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;}
         .an-bar-fill{width:100%;max-width:38px;min-height:2px;background:rgba(199,93,58,.55);border-radius:5px 5px 2px 2px;transition:background .15s;}
@@ -513,7 +523,9 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-when-dot--up{background:#5B8C5A;}
         .an-when-dot--down{background:#D4A24C;}
         .an-when-scroll{overflow-x:auto;}
-        .an-when{display:grid;gap:4px;align-items:center;min-width:min-content;}
+        .an-when-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+        @media(max-width:900px){.an-when-pair{grid-template-columns:1fr;}}
+        .an-when{display:grid;gap:4px;align-items:center;min-width:min-content;width:100%;}
         .an-when-h{font-size:9.5px;color:rgba(43,38,32,.4);text-align:center;white-space:nowrap;}
         .an-when-d{font-size:10px;color:rgba(43,38,32,.5);font-weight:600;}
         .an-when-cell{height:24px;border-radius:5px;}
@@ -551,7 +563,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         }
         @media(max-width:768px){
           .an-content{padding:14px 16px;}
-          .an-bars[data-many] .an-bar-col:nth-child(even) .an-bar-label{visibility:hidden;}
+          .an-bars[data-many]:not([data-dense]) .an-bar-col:nth-child(even) .an-bar-label{visibility:hidden;}
         }
         @media(max-width:480px){
           .an-rpill{font-size:10.5px;padding:5px 9px;}
@@ -671,7 +683,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         <div className="an-2col">
           <div className="an-card">
             <div className="an-ctitle">{chart.title}</div>
-            <div className="an-csub">{range === '7d' ? 'Por día' : 'Por semana'} · pasá el mouse por una barra para ver el detalle</div>
+            <div className="an-csub">{range === '90d' ? 'Por semana' : 'Por día'} · pasá el mouse por una barra para ver el detalle</div>
             {!d ? <Loading /> : chartEmpty
               ? <div className="an-empty-note">Todavía no hay movimientos en este período. Aparecen cuando escaneás tarjetas con la app.</div>
               : <BarChart data={d.visitsOverTime} valueKey={chart.key} tooltip={chartTip} />}
@@ -699,7 +711,44 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           </div>
         </div>
 
-        {!d ? <div className="an-card"><div className="an-ctitle">¿Cuándo viene tu gente?</div><Loading /></div> : <WhenHeatmap hourly={d.hourly} />}
+        {!d ? <div className="an-card"><div className="an-ctitle">¿Cuándo viene tu gente?</div><Loading /></div> : <>
+          <WhenHeatmap hourly={d.hourly} mode="visits" />
+          <div className="an-when-pair">
+            <WhenHeatmap hourly={d.hourly} mode="redeems" />
+            <WhenHeatmap hourly={d.hourly} mode="signups" />
+          </div>
+        </>}
+
+        {d && (
+          <>
+            <div className="an-2even">
+              <div className="an-card">
+                <div className="an-ctitle">Nuevos vs que vuelven</div>
+                <div className="an-csub">Clientes que se registraron y clientes que ya estaban y volvieron</div>
+                <NewVsReturning data={d.newVsReturning || []} />
+              </div>
+              <div className="an-card">
+                <div className="an-ctitle">¿En qué parte de la tarjeta están?</div>
+                <div className="an-csub">{d.progressDistribution?.kind === 'points' ? 'Clientes según sus puntos' : 'Clientes según cuántos sellos tienen'} · hoy</div>
+                {d.progressDistribution ? <ProgressDistribution data={d.progressDistribution} /> : <div className="an-empty-note">Aplica a tarjetas de sellos y de puntos.</div>}
+              </div>
+            </div>
+            <div className={(d.cardComparison?.length || 0) >= 2 ? 'an-2even' : ''}>
+              <div className="an-card">
+                <div className="an-ctitle">Respuestas del formulario</div>
+                <div className="an-csub">Lo que contestaron tus clientes al registrarse</div>
+                <FormAnswers data={d.formAnswers || []} />
+              </div>
+              {(d.cardComparison?.length || 0) >= 2 && (
+                <div className="an-card">
+                  <div className="an-ctitle">Comparación entre tarjetas</div>
+                  <div className="an-csub">En los últimos {range.replace('d', '')} días (clientes: total)</div>
+                  <CardComparison data={d.cardComparison!} />
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
         <div className="an-2even">
           <div className="an-card">

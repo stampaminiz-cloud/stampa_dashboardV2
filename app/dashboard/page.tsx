@@ -5,6 +5,7 @@ import { detectLang, createT, LangContext } from '@/data/i18n'
 import { PlanProvider, PLAN_LIMITS, usePlan } from '@/data/plans'
 import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL, apiBillingStatus, apiCancelSubscription, type BillingStatus } from '@/lib/api'
 import { BillingBanner, BillingStyles, PlanModal } from '@/components/dashboard/Billing'
+import { NewVsReturning, type NvrBucket } from '@/components/dashboard/charts'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { SettingsTab }       from '@/components/dashboard/SettingsTab'
 import { CustomersTab }      from '@/components/dashboard/CustomersTab'
@@ -91,7 +92,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
         {/* Logo */}
         <div className="sb-logo" onClick={() => setCollapsed(!collapsed)} style={{cursor:'pointer', justifyContent: collapsed ? 'center' : 'flex-start'}}>
           {collapsed
-            ? <img src="/stampa-mascot-cream.png" alt="Stampa" width={40} height={38} style={{ display: 'block' }} />
+            ? <img src="/stampa-mascot-cream.png" alt="Stampa" width={30} height={28} style={{ display: 'block' }} />
             : <BrandLogo height={28} tone="cream" />}
         </div>
 
@@ -281,6 +282,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
   const [granularity, setGranularity] = useState<'7d' | '30d'>('7d')
   const [hoveredBar, setHoveredBar] = useState<string | null>(null)
   const [rangeVisits, setRangeVisits] = useState<any[] | null>(null)
+  const [rangeNvr, setRangeNvr] = useState<NvrBucket[]>([])
   const [chartLoading, setChartLoading] = useState(true)
 
   async function loadRange(g: '7d' | '30d') {
@@ -294,6 +296,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
       })
       const data = await res.json()
       setRangeVisits(data.visitsOverTime || [])
+      setRangeNvr(data.newVsReturning || [])
     } catch (err) {
       console.error('Error loading chart:', err)
       setRangeVisits([])
@@ -419,7 +422,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
       </div>
 
       <div className="ov-two-col">
-        <div className="db-card">
+        <div className="db-card ov-chart-card">
           <div className="ov-card-title-row">
             <div>
               <div className="ov-card-title">{chartCfg.title}</div>
@@ -444,13 +447,13 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
                     {axisSteps.map((_, i) => <div key={i} className="ov-chart-gridline" />)}
                   </div>
                   <div className="ov-bars">
-                    {bars.map(b => (
-                      <div key={b.label} className="ov-bar-col" onMouseEnter={() => setHoveredBar(b.label)} onMouseLeave={() => setHoveredBar(null)}>
+                    {bars.map((b, i) => (
+                      <div key={i} className="ov-bar-col" onMouseEnter={() => setHoveredBar(b.label)} onMouseLeave={() => setHoveredBar(null)}>
                         {hoveredBar === b.label && (
                           <div className="ov-bar-tooltip">{tooltip(b)}<div className="ov-bar-tooltip-arrow" /></div>
                         )}
                         <div className={`ov-bar-fill${hoveredBar === b.label ? ' ov-bar-fill--active' : ''}`} style={{ height: `${(b.value / chartMax) * 100}%` }} />
-                        <div className="ov-bar-label">{b.label}</div>
+                        <div className="ov-bar-label">{bars.length <= 10 || i % 5 === 0 || i === bars.length - 1 ? b.label : '\u00a0'}</div>
                       </div>
                     ))}
                   </div>
@@ -510,6 +513,18 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
                 </div>
               </div>
             </>
+          )}
+
+          {rangeNvr.some(b => b.newCustomers + b.returning > 0) && (
+            <div className="db-card" style={{ marginTop: 12 }}>
+              <div className="ov-card-title-row">
+                <div>
+                  <div className="ov-card-title">Nuevos vs que vuelven</div>
+                  <div className="ov-card-sub">{RANGE_SUBTITLES[granularity]} · ¿el programa retiene o solo suma gente?</div>
+                </div>
+              </div>
+              <NewVsReturning data={rangeNvr} />
+            </div>
           )}
 
           <div className="ov-section-label">{t('section_engagement' as any)}</div>
@@ -763,13 +778,14 @@ const CSS = `
   .ov-granularity-toggle{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:200px;}
   .ov-gran-btn{font-size:11px;padding:5px 11px;border-radius:20px;border:1.5px solid rgba(43,38,32,.15);background:none;color:rgba(43,38,32,.5);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap;}
   .ov-gran-btn--on{border-color:#C75D3A;background:rgba(199,93,58,.08);color:#C75D3A;font-weight:600;}
-  .ov-chart-loading{font-size:12px;color:rgba(43,38,32,.4);padding:32px 0;text-align:center;}
-  .ov-chart-wrap{display:flex;gap:8px;margin-top:8px;}
-  .ov-chart-axis{display:flex;flex-direction:column;justify-content:space-between;height:90px;font-size:9.5px;color:rgba(43,38,32,.35);text-align:right;flex-shrink:0;padding-bottom:16px;}
-  .ov-chart-plot{position:relative;flex:1;}
-  .ov-chart-gridlines{position:absolute;top:0;left:0;right:0;height:90px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none;}
+  .ov-chart-card{display:flex;flex-direction:column;}
+  .ov-chart-loading{font-size:12px;color:rgba(43,38,32,.4);padding:32px 0;text-align:center;flex:1;display:flex;align-items:center;justify-content:center;}
+  .ov-chart-wrap{display:flex;gap:8px;margin-top:8px;flex:1;min-height:170px;}
+  .ov-chart-axis{display:flex;flex-direction:column;justify-content:space-between;font-size:9.5px;color:rgba(43,38,32,.35);text-align:right;flex-shrink:0;padding-bottom:20px;}
+  .ov-chart-plot{position:relative;flex:1;display:flex;}
+  .ov-chart-gridlines{position:absolute;top:6px;left:0;right:0;bottom:20px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none;}
   .ov-chart-gridline{border-top:1px solid rgba(43,38,32,.07);}
-  .ov-bars{display:flex;align-items:flex-end;gap:8px;height:90px;position:relative;z-index:1;}
+  .ov-bars{display:flex;align-items:flex-end;gap:clamp(2px,0.6vw,8px);flex:1;position:relative;z-index:1;}
   .ov-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end;position:relative;}
   .ov-bar-fill{width:100%;background:#C75D3A;border-radius:4px 4px 0 0;min-height:4px;cursor:default;transition:opacity .15s;}
   .ov-bar-fill:hover{opacity:.8;}

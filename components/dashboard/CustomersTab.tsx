@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
 import { PLAN_LIMITS, type Plan } from '@/data/plans'
-import { BASE_URL, apiResyncPass, apiGetPointsCatalog, apiRedeemPoints } from '@/lib/api'
-import { InfoTooltip } from './InfoTooltip'
+import { BASE_URL, apiGetPointsCatalog, apiRedeemPoints } from '@/lib/api'
 
 interface CardEntry {
   customerId: string; cardId: string | null
@@ -99,8 +98,6 @@ function CardSection({ customer, card, canDelete, onDelete, onChanged }: {
   const [confirmDel, setConfirmDel] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [resyncing, setResyncing] = useState(false)
-  const [resyncMsg, setResyncMsg] = useState<string | null>(null)
   const [showRedeem, setShowRedeem] = useState(false)
   const [catalog, setCatalog] = useState<Array<{ _id: string; name: string; pointsCost: number }>>([])
   const [catalogLoading, setCatalogLoading] = useState(false)
@@ -113,25 +110,6 @@ function CardSection({ customer, card, canDelete, onDelete, onChanged }: {
   const stamps = card.cardType === 'stamp' && required
     ? Array.from({ length: required }, (_: unknown, i: number) => i < card.stamps)
     : []
-
-  async function handleResync() {
-    const businessId = localStorage.getItem('stampa_business_id')
-    if (!businessId) return
-    setResyncing(true)
-    setResyncMsg(null)
-    try {
-      const res = await apiResyncPass(businessId, card.customerId)
-      const { apple, google } = res.results
-      const parts: string[] = []
-      parts.push(apple ? (apple.sent ? 'iPhone: actualizada ✓' : `iPhone: no se pudo (${apple.error})`) : 'iPhone: no la guardó en Apple Wallet')
-      if (google) parts.push(google.sent ? 'Android: actualizada si la guardó en Google Wallet ✓' : 'Android: no la guardó en Google Wallet')
-      setResyncMsg(parts.join(' · '))
-    } catch (err: any) {
-      setResyncMsg(err?.error || 'No se pudo resincronizar. Intentá de nuevo.')
-    } finally {
-      setResyncing(false)
-    }
-  }
 
   async function openRedeemPicker() {
     setShowRedeem(true)
@@ -238,15 +216,6 @@ function CardSection({ customer, card, canDelete, onDelete, onChanged }: {
       ) : (
         <div className="ct-panel-progress-num" style={{ fontSize: 22 }}>{card.membershipTier ? `Nivel ${card.membershipTier}` : 'Sin nivel todavía'}</div>
       )}
-
-      <div className="ct-resync-row" style={{ marginTop: 10 }}>
-        <button className="ct-resync-btn" onClick={handleResync} disabled={resyncing}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-          {resyncing ? 'Sincronizando…' : 'Re-sincronizar wallet'}
-        </button>
-        <InfoTooltip text="Vuelve a mandar al celular del cliente lo que ves acá (sellos, puntos o nivel), sin cambiar nada. Útil si su tarjeta en el Wallet quedó desactualizada." />
-      </div>
-      {resyncMsg && <div className="ct-resync-msg">{resyncMsg}</div>}
 
       {card.formResponses.length > 0 && (
         <div className="ct-panel-card-responses">
