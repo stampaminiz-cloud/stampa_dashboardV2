@@ -1,4 +1,5 @@
 'use client'
+import { readCache } from '@/lib/cache'
 import React, { useState, useEffect, useMemo } from 'react'
 import QRCode from 'qrcode'
 import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields } from '@/lib/api'
@@ -250,7 +251,11 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
 
   async function load() {
     if (!businessId || !card) return
-    setSaved(null); setDraft(null); setRemoved([]); setLoadError(false); setError(null)
+    // Lo guardado aparece al instante y se actualiza con la consulta (lib/cache).
+    const cachedList = readCache<any[]>(`/api/businesses/${businessId}/cards/${card.id}/fields`)
+    const toEditable = (list: any[]) => list.filter((f: any) => !(f.isLocked && !f.isRewardSource)).sort((a: any, b: any) => a.order - b.order).map(toEdit)
+    if (cachedList) { const e = toEditable(cachedList); setSaved(e); setDraft(e) } else { setSaved(null); setDraft(null) }
+    setRemoved([]); setLoadError(false); setError(null)
     try {
       const list = await apiGetFields(businessId, card.id)
       // Nombre y email (bloqueados y no-premio) se muestran aparte.

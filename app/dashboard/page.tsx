@@ -5,6 +5,8 @@ import { detectLang, createT, LangContext } from '@/data/i18n'
 import { PlanProvider, PLAN_LIMITS, usePlan } from '@/data/plans'
 import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL, apiBillingStatus, apiCancelSubscription, type BillingStatus } from '@/lib/api'
 import { BillingBanner, BillingStyles, PlanModal } from '@/components/dashboard/Billing'
+import { MascotLoader } from '@/components/ui/MascotLoader'
+import { getJson, prefetch } from '@/lib/cache'
 import { NewVsReturning, type NvrBucket } from '@/components/dashboard/charts'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { SettingsTab }       from '@/components/dashboard/SettingsTab'
@@ -944,8 +946,9 @@ export default function DashboardPage() {
         const cardsPromise      = apiGetCards(bid)
         // Equipo es solo del dueño: el backend le responde 403 a un manager.
         const teamPromise       = o?.role === 'manager' ? Promise.resolve([]) : apiGetTeam(bid)
-        const analyticsPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/analytics`, { headers: authHeaders }).then(r => r.json())
-        const detailedPromise   = fetch(`${BASE_URL}/api/businesses/${bid}/analytics/detailed?range=30d`, { headers: authHeaders }).then(r => r.json())
+        // getJson deja la respuesta en caché: Analítica abre con esto al instante.
+        const analyticsPromise  = getJson<any>(`/api/businesses/${bid}/analytics`)
+        const detailedPromise   = getJson<any>(`/api/businesses/${bid}/analytics/detailed?range=30d`)
         const customersPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/customers?page=1&limit=50&sortBy=progress&sortDir=desc`, { headers: authHeaders }).then(r => r.json())
         const [teamRes, cardsRes, analyticsRes, customersRes, detailedRes] = await Promise.allSettled([
           teamPromise, cardsPromise, analyticsPromise, customersPromise, detailedPromise,
@@ -1004,6 +1007,22 @@ export default function DashboardPage() {
 
         if (detailedRes.status === 'fulfilled') setDetailedAnalytics(detailedRes.value)
         else console.error('detailed analytics load error:', detailedRes.reason)
+
+        // Con Inicio ya cargado, se precargan en segundo plano los datos de
+        // las demás tabs, así la primera vez que se abren no hay espera.
+        if (cardsRes.status === 'fulfilled') {
+          const active = (cardsRes.value as any[]).filter(c => c.isActive)
+          const first = active[0]
+          const B = `/api/businesses/${bid}`
+          prefetch([
+            ...(first ? [`${B}/rewards-stats?cardId=${first._id}`] : []),
+            ...(first?.type === 'points' ? [`${B}/cards/${first._id}/points-catalog`] : []),
+            ...(first?.type === 'membership' ? [`${B}/cards/${first._id}/tiers`] : []),
+            `${B}/notifications`,
+            ...active.map(c => `${B}/cards/${c._id}/fields`),
+            `${B}/cards/stats`,
+          ])
+        }
       }
     } catch (err) {
       console.error(err)
@@ -1262,10 +1281,7 @@ export default function DashboardPage() {
         <BillingBanner billing={billing} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
         {loading
           ? <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 32, height: 32, border: '3px solid rgba(43,38,32,.1)', borderTopColor: '#C75D3A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                <div style={{ fontSize: 12, color: 'rgba(43,38,32,.35)' }}>Cargando...</div>
-              </div>
+              <MascotLoader text="Preparando tu negocio…" size={64} />
             </div>
           : renderTab()
         }

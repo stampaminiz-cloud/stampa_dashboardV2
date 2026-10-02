@@ -1,5 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
+import { readCache, getJson } from '@/lib/cache'
+import { MascotLoader } from '@/components/ui/MascotLoader'
 import { NewVsReturning, ProgressDistribution, FormAnswers, CardComparison, type NvrBucket, type ProgressDist, type FormAnswer as FormAnswerData, type CardRow } from './charts'
 import { usePlan } from '@/data/plans'
 import { BASE_URL } from '@/lib/api'
@@ -300,8 +302,18 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   const cardQuery = selectedCard ? selectedCard.id : ''
 
   // ── /analytics/detailed (depende del rango y de la tarjeta) ──
-  const [detailed, setDetailed] = useState<Detailed | null>(null)
-  const [detailedKey, setDetailedKey] = useState('')
+  // Lo último cargado (o precargado por Inicio) se muestra al instante y se
+  // actualiza en silencio (lib/cache).
+  const detailedPath = (r: string, c: string) => {
+    const params = new URLSearchParams({ range: r })
+    if (c) params.set('cardId', c)
+    return `/api/businesses/${typeof window !== 'undefined' ? localStorage.getItem('stampa_business_id') : ''}/analytics/detailed?${params.toString()}`
+  }
+  // Si la respuesta no trae lo esperado (error del servidor, o un backend
+  // viejo durante un deploy) se muestra el error en vez de romper la pantalla.
+  const isDetailed = (d: any): d is Detailed => !!d?.hourly?.visits && Array.isArray(d.visitsOverTime) && Array.isArray(d.funnel)
+  const [detailed, setDetailed] = useState<Detailed | null>(() => { const c = readCache<Detailed>(detailedPath(range, cardQuery)); return isDetailed(c) ? c : null })
+  const [detailedKey, setDetailedKey] = useState(() => (detailed ? `${range}|${cardQuery}` : ''))
   const [detailedError, setDetailedError] = useState(false)
   const [retry, setRetry] = useState(0)
   const wantedDetailedKey = `${range}|${cardQuery}`
@@ -311,23 +323,16 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
     if (!businessId || !fullAnalytics) return
     let cancelled = false
     setDetailedError(false)
-    const params = new URLSearchParams({ range })
-    if (cardQuery) params.set('cardId', cardQuery)
-    fetch(`${BASE_URL}/api/businesses/${businessId}/analytics/detailed?${params.toString()}`, {
-      headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
-    })
-      .then(async r => {
-        const d = await r.json().catch(() => null)
-        // Si la respuesta no trae lo esperado (error del servidor, o un
-        // backend viejo durante un deploy) se muestra el error en vez de
-        // romper la pantalla.
-        if (!r.ok || !d?.hourly?.visits || !Array.isArray(d.visitsOverTime) || !Array.isArray(d.funnel)) throw new Error(`detailed ${r.status}`)
-        return d as Detailed
-      })
+    const path = detailedPath(range, cardQuery)
+    const cached = readCache(path)
+    if (isDetailed(cached)) { setDetailed(cached); setDetailedKey(`${range}|${cardQuery}`) }
+    getJson(path)
+      .then(d => { if (!isDetailed(d)) throw new Error('detailed: respuesta inesperada'); return d })
       .then(d => { if (!cancelled) { setDetailed(d); setDetailedKey(`${range}|${cardQuery}`) } })
       .catch(err => {
         console.error('Error loading detailed analytics:', err)
-        if (!cancelled) { setDetailed(null); setDetailedError(true); setDetailedKey(`${range}|${cardQuery}`) }
+        // Si ya se estaba mostrando lo guardado, se queda eso.
+        if (!cancelled && !isDetailed(cached)) { setDetailed(null); setDetailedError(true); setDetailedKey(`${range}|${cardQuery}`) }
       })
     return () => { cancelled = true }
   }, [range, cardQuery, fullAnalytics, retry])
@@ -339,10 +344,10 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
     const businessId = localStorage.getItem('stampa_business_id')
     if (!businessId || !cardQuery || !fullAnalytics) return
     let cancelled = false
-    fetch(`${BASE_URL}/api/businesses/${businessId}/analytics?cardId=${cardQuery}`, {
-      headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
-    })
-      .then(r => r.json())
+    const path = `/api/businesses/${businessId}/analytics?cardId=${cardQuery}`
+    const cached = readCache(path)
+    if (cached) setCardMetrics({ id: cardQuery, data: cached })
+    getJson(path)
       .then(d => { if (!cancelled) setCardMetrics({ id: cardQuery, data: d }) })
       .catch(err => console.error('Error loading analytics:', err))
     return () => { cancelled = true }
@@ -414,7 +419,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   const d = detailedLoading ? null : detailed
   const Loading = () => detailedError && !detailedLoading
     ? <div className="an-empty-note">No se pudo cargar.</div>
-    : <div className="an-empty-note an-loading">Cargando…</div>
+    : <div className="an-skel" style={{ height: 120 }} />
   const chartTip = (b: Bucket, v: number) => {
     if (!multiType) return `${b.label} · ${v} ${chart.unit}`
     const parts = [
@@ -523,6 +528,8 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-when-dot--up{background:#5B8C5A;}
         .an-when-dot--down{background:#D4A24C;}
         .an-when-scroll{overflow-x:auto;}
+        .an-skel{background:rgba(43,38,32,.06);border-radius:10px;animation:anPulse 1.2s ease-in-out infinite;}
+        @keyframes anPulse{0%,100%{opacity:1}50%{opacity:.5}}
         .an-when-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
         @media(max-width:900px){.an-when-pair{grid-template-columns:1fr;}}
         .an-when{display:grid;gap:4px;align-items:center;min-width:min-content;width:100%;}
@@ -684,7 +691,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           <div className="an-card">
             <div className="an-ctitle">{chart.title}</div>
             <div className="an-csub">{range === '90d' ? 'Por semana' : 'Por día'} · pasá el mouse por una barra para ver el detalle</div>
-            {!d ? <Loading /> : chartEmpty
+            {!d ? (detailedError && !detailedLoading ? <Loading /> : <MascotLoader text="Armando tus números…" size={44} minHeight={170} />) : chartEmpty
               ? <div className="an-empty-note">Todavía no hay movimientos en este período. Aparecen cuando escaneás tarjetas con la app.</div>
               : <BarChart data={d.visitsOverTime} valueKey={chart.key} tooltip={chartTip} />}
           </div>
