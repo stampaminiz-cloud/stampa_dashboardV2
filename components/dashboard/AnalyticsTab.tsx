@@ -255,21 +255,35 @@ function Funnel({ data }: { data: FunnelStage[] }) {
 }
 
 // ─── Clientes por nivel (membresía) ───────────────────────────────────────────
+// Una barra dividida por nivel y la leyenda en una fila (compacto, se
+// acomoda solo de 2 a 6 niveles). Color de cada nivel: el más "con color" de
+// sus dos colores (ej. Oro = dorado, Black = negro).
+function tierSwatch(t: { color: string; bg: string }) {
+  const rgb = (h: string) => { const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i.exec(h || ''); return m ? [m[1], m[2], m[3]].map(x => parseInt(x, 16)) : null }
+  const a = rgb(t.bg), b = rgb(t.color)
+  if (!a || !b) return b ? t.color : a ? t.bg : '#C75D3A'
+  const chroma = (c: number[]) => Math.max(...c) - Math.min(...c)
+  const lum = (c: number[]) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
+  if (chroma(a) < 30 && chroma(b) < 30) return lum(a) < lum(b) ? t.bg : t.color
+  return chroma(a) >= chroma(b) ? t.bg : t.color
+}
 function TierDistribution({ tiers }: { tiers: { name: string; color: string; bg: string; count: number }[] }) {
-  if (!tiers.length) return <EmptyState title="Todavía sin miembros" />
-  const total = tiers.reduce((a, t) => a + t.count, 0) || 1
+  if (!tiers.length) return <EmptyState title="Todavía sin miembros" compact />
+  const total = tiers.reduce((a, t) => a + t.count, 0)
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {tiers.map((t) => (
-        <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 14, height: 14, borderRadius: '50%', background: t.bg, border: `2px solid ${t.color}`, flexShrink: 0 }} />
-          <span style={{ fontSize: 12, color: '#2B2620', minWidth: 52 }}>{t.name}</span>
-          <div style={{ flex: 1, height: 10, background: 'rgba(43,38,32,.06)', borderRadius: 5, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${(t.count / total) * 100}%`, background: t.bg, borderRadius: 5, border: t.count ? `1px solid ${t.color}40` : 'none' }} />
-          </div>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#2B2620', width: 28, textAlign: 'right' }}>{t.count}</span>
-        </div>
-      ))}
+    <div className="an-tiers">
+      <div className="an-tiers-bar" role="img" aria-label={tiers.map(t => `${t.name}: ${t.count}`).join(', ')}>
+        {total === 0
+          ? <span style={{ flex: 1, background: 'rgba(43,38,32,.07)' }} />
+          : tiers.filter(t => t.count > 0).map(t => <span key={t.name} title={`${t.name}: ${t.count}`} style={{ flex: t.count, background: tierSwatch(t) }} />)}
+      </div>
+      <div className="an-tiers-legend">
+        {tiers.map(t => (
+          <span key={t.name} className="an-tiers-item">
+            <i style={{ background: tierSwatch(t) }} />{t.name} <strong>{t.count}</strong>
+          </span>
+        ))}
+      </div>
     </div>
   )
 }
@@ -350,7 +364,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
     try { const v = localStorage.getItem('stampa_analytics_section'); return (['summary', 'customers', 'hours', 'cards'].includes(v || '') ? v : 'summary') as Section } catch { return 'summary' }
   })
   const pickSection = (sec: Section) => { setSection(sec); try { localStorage.setItem('stampa_analytics_section', sec) } catch { /* sin storage */ } }
-  const [rankScope, setRankScope] = useState<'period' | 'all'>('period')
+  const [rankScope, setRankScope] = useState<'period' | 'all' | 'redeems'>('period')
   const activeCards: CardDesign[] = (cards || []).filter((c: any) => c.isActive)
   const [selectedCardId, setSelectedCardId] = useState<string>('all')
   const selectedCard = activeCards.find(c => c.id === selectedCardId) || null
@@ -496,6 +510,9 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   ]
   const view = section === 'cards' && !showCards ? 'summary' : section
 
+  const onlyMembership = types.length > 0 && types.every(t => t === 'membership')
+  const scope = onlyMembership && rankScope === 'redeems' ? 'period' : rankScope
+
   // Datos destacados del Resumen (ícono + dato grande), en vez de frases.
   type Highlight = { icon: 'repeat' | 'flame' | 'moon'; k: string; v: string; sub: string; tone?: 'up' | 'down' }
   const highlights: Highlight[] = []
@@ -613,6 +630,12 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-when-dot--up{background:#5B8C5A;}
         .an-when-dot--down{background:#D4A24C;}
         .an-when-scroll{overflow-x:auto;}
+        .an-tiers{display:flex;flex-direction:column;gap:12px;}
+        .an-tiers-bar{display:flex;gap:2px;height:14px;border-radius:7px;overflow:hidden;}
+        .an-tiers-legend{display:flex;flex-wrap:wrap;gap:8px 22px;}
+        .an-tiers-item{display:flex;align-items:center;gap:7px;font-size:12.5px;color:rgba(43,38,32,.75);}
+        .an-tiers-item i{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+        .an-tiers-item strong{color:#2B2620;font-weight:700;}
         .an-tabsbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 14px;}
         .an-tabs{display:flex;gap:4px;background:rgba(43,38,32,.05);border-radius:12px;padding:4px;}
         .an-tab{border:none;background:transparent;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;}
@@ -802,48 +825,54 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
 
         {/* ═══════════════ CLIENTES ═══════════════ */}
         {view === 'customers' && <>
-          <div className={types.includes('membership') ? 'an-2even' : ''}>
+          {types.includes('membership') && (
+            <div className="an-card">
+              <div className="an-ctitle">Clientes por nivel</div>
+              <div className="an-csub">Miembros en cada nivel hoy{m?.tierDistribution?.length ? ` · ${(m.tierDistribution as any[]).reduce((a: number, t: any) => a + t.count, 0)} en total` : ''}</div>
+              {metricsLoading ? <Loading /> : <TierDistribution tiers={m?.tierDistribution ?? []} />}
+            </div>
+          )}
+          <div>
             {/* Progreso + embudo: los dos responden "¿hasta dónde llegan?" */}
             <div className="an-card">
               <div className="an-ctitle">¿Hasta dónde llegan tus clientes?</div>
-              <div className="an-csub">{d?.progressDistribution?.kind === 'points' ? 'Según sus puntos, hoy' : 'Según cuántos sellos tienen, hoy'}</div>
+              <div className="an-csub">{!d?.progressDistribution ? 'Desde que se registraron' : d.progressDistribution.kind === 'points' ? 'Según sus puntos, hoy' : 'Según cuántos sellos tienen, hoy'}</div>
               {!d ? <Loading /> : !(d.funnel[0]?.value > 0)
                 ? <EmptyState title="Todavía sin clientes" text="Aparece cuando se registren en tus tarjetas." />
                 : <>
                     {d.progressDistribution && <ProgressDistribution data={d.progressDistribution} />}
-                    <div className="an-subhead">Desde que se registraron</div>
+                    {d.progressDistribution && <div className="an-subhead">Desde que se registraron</div>}
                     <Funnel data={d.funnel} />
                   </>}
             </div>
-            {types.includes('membership') && (
-              <div className="an-card">
-                <div className="an-ctitle">Clientes por nivel</div>
-                <div className="an-csub">Miembros en cada nivel hoy</div>
-                {metricsLoading ? <Loading /> : <TierDistribution tiers={m?.tierDistribution ?? []} />}
-              </div>
-            )}
           </div>
 
-          <div className="an-2even">
-            {/* Un solo ranking: antes eran "Más activos del período" y "Clientes más fieles". */}
-            <div className="an-card">
+          {/* Un solo ranking (antes eran tres bloques: más activos del período,
+              más fieles y los que más canjearon), a todo el ancho. */}
+          <div className="an-card">
               <div className="an-card-head">
                 <div>
                   <div className="an-ctitle">Tus mejores clientes</div>
-                  <div className="an-csub">{rankScope === 'period' ? `Por visitas en los últimos ${range.replace('d', '')} días` : 'Por visitas totales, desde que empezaste'}</div>
+                  <div className="an-csub">{scope === 'period' ? `Por visitas en los últimos ${range.replace('d', '')} días` : scope === 'redeems' ? 'Por premios canjeados, desde que empezaste' : 'Por visitas totales, desde que empezaste'}</div>
                 </div>
                 <div className="an-seg-switch">
                   <button className={rankScope === 'period' ? 'on' : ''} onClick={() => setRankScope('period')}>En el período</button>
                   <button className={rankScope === 'all' ? 'on' : ''} onClick={() => setRankScope('all')}>Desde siempre</button>
+                  {!onlyMembership && <button className={rankScope === 'redeems' ? 'on' : ''} onClick={() => setRankScope('redeems')}>Más canjes</button>}
                 </div>
               </div>
-              {!d ? <Loading /> : rankScope === 'period'
+              {!d ? <Loading /> : scope === 'redeems'
+                ? <Ranking rows={d.topRedeemers} value={r => r.redemptions} unit={n => plural(n, 'canje', 'canjes')}
+                    onOpen={onOpenCustomer} empty="Todavía sin premios entregados" />
+                : scope === 'period'
                 ? <Ranking rows={d.topCustomers} value={r => r.visits} unit={n => plural(n, 'visita', 'visitas')}
                     sub={r => `${activeCards.length > 1 ? `${r.cardName} · ` : ''}${r.progress} · última visita ${r.lastVisit}`}
                     onOpen={onOpenCustomer} empty="Todavía sin visitas en el período" />
                 : <Ranking rows={d.mostLoyal} value={r => r.totalVisits} unit={n => plural(n, 'visita', 'visitas')}
                     sub={r => `última visita ${r.lastVisit}`} onOpen={onOpenCustomer} empty="Todavía sin visitas" />}
-            </div>
+          </div>
+
+          <div className="an-2even">
             <div className="an-card">
               <div className="an-ctitle">Frecuencia de visita</div>
               <div className="an-csub">Cada cuántos días vuelve un mismo cliente</div>
@@ -870,17 +899,6 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
               </div>
             </> : <EmptyState title="Todavía sin datos" text="Aparece cuando un mismo cliente vuelve en el período." />}
             </div>
-          </div>
-
-          <div className="an-2even">
-            <div className="an-card">
-              <div className="an-ctitle">Los que más canjearon</div>
-              <div className="an-csub">Premios entregados, desde que empezaste</div>
-              {!d ? <Loading /> : types.every(t => t === 'membership')
-                ? <EmptyState title="Sin canjes en membresía" text="Los beneficios se aplican por nivel." />
-                : <Ranking rows={d.topRedeemers} value={r => r.redemptions} unit={n => plural(n, 'canje', 'canjes')}
-                    onOpen={onOpenCustomer} empty="Todavía sin premios entregados" />}
-            </div>
             <div className="an-card">
               <div className="an-ctitle">Respuestas del formulario</div>
               <div className="an-csub">Lo que contestaron tus clientes al registrarse</div>
@@ -893,10 +911,13 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         {view === 'hours' && <>
           {!d ? <div className="an-card"><div className="an-ctitle">¿Cuándo viene tu gente?</div><Loading /></div> : <>
             <WhenHeatmap hourly={d.hourly} mode="visits" modes={['visits']} />
-            <div className="an-when-pair">
-              <DayHourBars hourly={d.hourly} mode="redeems" />
-              <DayHourBars hourly={d.hourly} mode="signups" />
-            </div>
+            {/* Un bloque sin datos no ocupa media fila: el otro va a todo el ancho. */}
+            {(() => {
+              const has = (m: 'redeems' | 'signups') => d.hourly[m].some(row => row.some(v => v > 0))
+              const modes = (['redeems', 'signups'] as const).filter(m => has(m) && !(m === 'redeems' && onlyMembership))
+              const shown = modes.length ? modes : (['signups'] as const)
+              return <div className={shown.length === 2 ? 'an-when-pair' : ''}>{shown.map(m => <DayHourBars key={m} hourly={d.hourly} mode={m} />)}</div>
+            })()}
           </>}
         </>}
 

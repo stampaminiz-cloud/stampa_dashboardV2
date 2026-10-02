@@ -7,7 +7,7 @@ import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL,
 import { BillingBanner, BillingStyles, PlanModal } from '@/components/dashboard/Billing'
 import { MascotLoader } from '@/components/ui/MascotLoader'
 import { getJson, prefetch } from '@/lib/cache'
-import { RetentionRing, type Retention } from '@/components/dashboard/charts'
+import { RetentionRing, EmptyState as EmptyNote, type Retention } from '@/components/dashboard/charts'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { SettingsTab }       from '@/components/dashboard/SettingsTab'
 import { CustomersTab }      from '@/components/dashboard/CustomersTab'
@@ -267,6 +267,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
   const hasPoints = types.includes('points')
   const hasMembership = types.includes('membership')
   const stampCard = activeCards.find((c: any) => c.type === 'stamp')
+  const showChosen = hasStamp && stampCard?.rewardMode === 'dynamic'
   const pointsCard = activeCards.find((c: any) => c.type === 'points')
   const initials = (n: string) => n.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
 
@@ -530,8 +531,10 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
           )}
 
           <div className="ov-section-label">{t('section_engagement' as any)}</div>
-          <div className="ov-three-col">
-            {hasStamp && (
+          {/* "Premios más elegidos" solo si el cliente elige el premio; si no, la
+              fila queda en dos columnas (sin tarjetas con hueco). */}
+          <div className="ov-three-col" style={{ gridTemplateColumns: showChosen ? undefined : 'repeat(2, minmax(0, 1fr))' }}>
+            {showChosen && (
               <div className="db-card ov-card--fill">
                 <div className="ov-card-title-row"><span className="ov-card-title">Premios más elegidos</span></div>
                 {a.topChosenRewards?.length > 0
@@ -550,7 +553,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
                         )
                       })}
                     </div>
-                  : <div className="ov-empty-note">{stampCard?.rewardMode !== 'dynamic' ? 'Tu tarjeta tiene un premio fijo para todos.' : 'Aparece cuando tus clientes elijan su premio al registrarse.'}</div>
+                  : <EmptyNote title="Todavía sin elecciones" text="Aparece cuando tus clientes elijan su premio al registrarse." />
                 }
               </div>
             )}
