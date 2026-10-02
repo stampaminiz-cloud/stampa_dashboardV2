@@ -436,7 +436,7 @@ const CSS = `
   .us-count{font-size:11.5px;color:rgba(43,38,32,.5);}
   .us-count--full{color:#B23B3B;font-weight:600;}
   .us-list{display:flex;flex-direction:column;}
-  .us-row{display:grid;grid-template-columns:minmax(180px,1.4fr) auto minmax(160px,1.3fr) auto;gap:14px;align-items:center;padding:12px 16px;border-top:1px solid rgba(43,38,32,.05);}
+  .us-row{display:grid;grid-template-columns:minmax(180px,1.4fr) 170px minmax(150px,1.2fr) 300px;gap:14px;align-items:center;padding:12px 16px;border-top:1px solid rgba(43,38,32,.05);}
   .us-row:first-child{border-top:none;}
   .us-row--owner{background:rgba(199,93,58,.03);}
   .us-row--off{opacity:.6;}

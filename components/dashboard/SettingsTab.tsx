@@ -389,6 +389,13 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         .st-card-head{display:flex;align-items:center;gap:8px;padding-bottom:14px;border-bottom:1px solid rgba(43,38,32,.07);margin-bottom:14px;}
         .st-card-head svg{color:rgba(43,38,32,.5);flex-shrink:0;}
         .st-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;color:#2B2620;}
+        .st-rule{display:flex;flex-direction:column;gap:8px;}
+        .st-rule-title{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:#2B2620;}
+        .st-rule-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+        .st-rule-text{font-size:12px;color:rgba(43,38,32,.75);min-width:130px;}
+        .st-rule-presets{display:flex;gap:6px;}
+        .st-rule-chip{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid rgba(43,38,32,.14);background:#fff;color:rgba(43,38,32,.7);cursor:pointer;font-family:'Inter',sans-serif;}
+        .st-rule-chip.is-on{background:rgba(199,93,58,.1);border-color:#C75D3A;color:#C75D3A;}
         .st-field-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(43,38,32,.05);min-height:42px;}
         .st-field-row:last-child{border-bottom:none;padding-bottom:0;}
         .st-field-label{font-size:12.5px;color:rgba(43,38,32,.6);}
@@ -479,16 +486,23 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         </Section>
 
         <Section title={t('st_rules')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}>
-          <div className="st-rules-note">Define cuándo un cliente pasa a <strong>inactivo</strong>: se usa en Inicio, Clientes, Analítica y en la audiencia "Inactivos" de Notificaciones.</div>
-          <FieldRow label={t('st_inactive_label')}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <NumberStepper value={Number(inactiveDraft) || inactiveDays} min={7} max={365} suffix="días" presets={[30, 60, 90]} size="sm" ariaLabel="Días para considerar inactivo"
+          {/* Mismo formato que las demás reglas (ProgramRules): título con ⓘ y el control debajo. */}
+          <div className="st-rule">
+            <div className="st-rule-title">
+              Cliente inactivo
+              <InfoTooltip text={'Se usa en Inicio, Clientes, Analítica y en la audiencia "Inactivos" de Notificaciones. No borra ni cambia nada del cliente.'} />
+            </div>
+            <div className="st-rule-row">
+              <span className="st-rule-text">Pasa a inactivo si no vuelve en</span>
+              <NumberStepper value={Number(inactiveDraft) || inactiveDays} min={7} max={365} suffix="días" size="sm" ariaLabel="Días para considerar inactivo"
                 onChange={n => { setInactiveDraft(String(n)); setPendingInactive(n) }} />
+              <div className="st-rule-presets">
+                {[30, 60, 90].map(n => (
+                  <button key={n} type="button" className={`st-rule-chip${(Number(inactiveDraft) || inactiveDays) === n ? ' is-on' : ''}`} onClick={() => { setInactiveDraft(String(n)); setPendingInactive(n) }}>{n} días</button>
+                ))}
+              </div>
               {msgFor('inactiveDays')}
             </div>
-          </FieldRow>
-          <div className="st-rules-summary">
-            Con este valor, un cliente que no vuelve en <strong>{inactiveDays} días</strong> se marca como inactivo automáticamente.
           </div>
           <ProgramRules businessId={businessId} cards={cards} birthday={birthday} onCardsChanged={onCardsChanged} onBusinessChanged={onSave} />
         </Section>
