@@ -105,20 +105,20 @@ const fmt1 = (n: number) => (Math.round(n * 10) / 10).toLocaleString('es-AR')
 // Las tres grillas usan las mismas franjas horarias (las que tuvieron algo en
 // cualquiera de las tres), así se comparan de un vistazo y ninguna queda con
 // una sola columna estirada.
-function sharedSlots(hourly: Hourly) {
-  const tot = Array.from({ length: 12 }, (_, s) => (['visits', 'redeems', 'signups'] as HeatMode[]).reduce((a, m) => a + hourly[m].reduce((b, row) => b + row[s], 0), 0))
+function sharedSlots(hourly: Hourly, modes: HeatMode[] = ['visits', 'redeems', 'signups']) {
+  const tot = Array.from({ length: 12 }, (_, s) => modes.reduce((a, m) => a + hourly[m].reduce((b, row) => b + row[s], 0), 0))
   const first = tot.findIndex(v => v > 0)
   if (first === -1) return []
   const last = 11 - [...tot].reverse().findIndex(v => v > 0)
   return Array.from({ length: last - first + 1 }, (_, i) => first + i)
 }
 
-function WhenHeatmap({ hourly, mode }: { hourly: Hourly; mode: HeatMode }) {
+function WhenHeatmap({ hourly, mode, modes }: { hourly: Hourly; mode: HeatMode; modes?: HeatMode[] }) {
   const grid = hourly[mode]
   const { unit, rgb, title, sub } = HEAT_MODES[mode]
   const avg = grid.map((row, d) => row.map(v => hourly.weekdayCount[d] > 0 ? v / hourly.weekdayCount[d] : 0))
   const empty = !grid.some(row => row.some(v => v > 0))
-  const slots = empty ? [] : sharedSlots(hourly)
+  const slots = empty ? [] : sharedSlots(hourly, modes)
   const max = Math.max(0.0001, ...avg.flat())
 
   let best = { d: 0, s: 0, v: -1 }
@@ -296,6 +296,14 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   const { can } = usePlan()
   const fullAnalytics = can('analyticsLevel')
   const [range, setRange] = useState<Range>('30d')
+  // Sección elegida (se recuerda entre visitas) y opciones de cada una.
+  type Section = 'summary' | 'customers' | 'hours' | 'cards'
+  const [section, setSection] = useState<Section>(() => {
+    try { const v = localStorage.getItem('stampa_analytics_section'); return (['summary', 'customers', 'hours', 'cards'].includes(v || '') ? v : 'summary') as Section } catch { return 'summary' }
+  })
+  const pickSection = (sec: Section) => { setSection(sec); try { localStorage.setItem('stampa_analytics_section', sec) } catch { /* sin storage */ } }
+  const [rankScope, setRankScope] = useState<'period' | 'all'>('period')
+  const [showMoreHours, setShowMoreHours] = useState(false)
   const activeCards: CardDesign[] = (cards || []).filter((c: any) => c.isActive)
   const [selectedCardId, setSelectedCardId] = useState<string>('all')
   const selectedCard = activeCards.find(c => c.id === selectedCardId) || null
@@ -432,6 +440,35 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   }
   const chartEmpty = !d || d.visitsOverTime.every(b => !Number(b[chart.key]))
   const freqMax = Math.max(1, ...(d?.frequency.distribution ?? []).map(b => b.count))
+
+  // "Tarjetas" solo si hay 2 o más y no se está filtrando por una.
+  const showCards = activeCards.length >= 2 && !selectedCard
+  const SECTIONS: { key: 'summary' | 'customers' | 'hours' | 'cards'; label: string }[] = [
+    { key: 'summary', label: 'Resumen' }, { key: 'customers', label: 'Clientes' }, { key: 'hours', label: 'Horarios' },
+    ...(showCards ? [{ key: 'cards' as const, label: 'Tarjetas' }] : []),
+  ]
+  const view = section === 'cards' && !showCards ? 'summary' : section
+
+  // Conclusiones en texto para el Resumen (máximo 3), así no hay que
+  // interpretar cada gráfico.
+  const insights: string[] = []
+  if (d) {
+    const nvr = d.newVsReturning || []
+    const ret = nvr.reduce((a, b) => a + b.returning, 0), neu = nvr.reduce((a, b) => a + b.newCustomers, 0)
+    if (ret + neu > 0) insights.push(ret >= neu
+      ? `${Math.round((ret / (ret + neu)) * 100)}% de tu movimiento es gente que vuelve: el programa está reteniendo.`
+      : 'Hay más clientes nuevos que gente que vuelve: probá una notificación a los inactivos o a los que están cerca del premio.')
+    const avg = d.hourly.visits.map((row, di) => row.map(v => d.hourly.weekdayCount[di] > 0 ? v / d.hourly.weekdayCount[di] : 0))
+    let best = { di: 0, sl: 0, v: 0 }
+    avg.forEach((row, di) => row.forEach((v, sl) => { if (v > best.v) best = { di, sl, v } }))
+    if (best.v > 0) insights.push(`Tu momento más fuerte: ${DAYS_PLURAL[best.di]} de ${slotLabel(best.sl)} hs.`)
+    const dayTot = avg.map(row => row.reduce((a, b) => a + b, 0))
+    const open = dayTot.map((v, di) => ({ v, di })).filter(x => x.v > 0)
+    if (open.length >= 2) {
+      const worst = open.reduce((a, b) => (b.v < a.v ? b : a))
+      if (worst.di !== best.di) insights.push(`El día más flojo es ${DAYS_SINGULAR[worst.di]}: buen momento para una promo o un día con sello doble.`)
+    }
+  }
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
   return (
@@ -528,6 +565,16 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-when-dot--up{background:#5B8C5A;}
         .an-when-dot--down{background:#D4A24C;}
         .an-when-scroll{overflow-x:auto;}
+        .an-tabsbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 14px;}
+        .an-tabs{display:flex;gap:4px;background:rgba(43,38,32,.05);border-radius:12px;padding:4px;}
+        .an-tab{border:none;background:transparent;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;}
+        .an-tab--on{background:#fff;color:#2B2620;box-shadow:0 1px 4px rgba(43,38,32,.1);}
+        .an-insights{display:flex;flex-direction:column;gap:8px;background:#FFFBF5;border-color:rgba(199,93,58,.18);}
+        .an-insight{font-size:13px;color:#2B2620;line-height:1.5;display:flex;gap:10px;align-items:baseline;}
+        .an-insight-dot{flex:0 0 7px;height:7px;border-radius:50%;background:#C75D3A;transform:translateY(-1px);}
+        .an-subhead{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.45);margin:18px 0 10px;}
+        .an-more{align-self:center;border:1.5px dashed rgba(43,38,32,.2);background:#fff;border-radius:12px;padding:12px 18px;font-size:12.5px;font-weight:600;color:rgba(43,38,32,.7);cursor:pointer;font-family:inherit;}
+        .an-more:hover{border-color:#C75D3A;color:#C75D3A;}
         .an-skel{background:rgba(43,38,32,.06);border-radius:10px;animation:anPulse 1.2s ease-in-out infinite;}
         @keyframes anPulse{0%,100%{opacity:1}50%{opacity:.5}}
         .an-when-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
@@ -600,80 +647,13 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           </div>
         )}
 
-        {/* ═══════════════ HOY ═══════════════ */}
-        <div className="an-block-head">
-          <div>
-            <div className="an-block-title">Hoy</div>
-            <div className="an-block-sub">Cómo está tu programa ahora y desde que empezaste — no depende de fechas</div>
-          </div>
-        </div>
-
-        <div className="an-program" style={{ ['--cols' as any]: PROGRAM.length <= 4 ? PROGRAM.length : 3 }}>
-          {PROGRAM.map(p => (
-            <div key={p.l} className="an-card" style={{ borderTop: `3px solid ${p.color}` }}>
-              {metricsLoading
-                ? <div className="an-skel" style={{ width: 54, height: 26 }} />
-                : <div className="an-stat-now" style={{ color: p.color }}>{p.v}</div>}
-              <div className="an-stat-name">{p.l}</div>
-              <div className="an-stat-label">{p.sub}</div>
-            </div>
-          ))}
-        </div>
-
-        <div className="an-4col">
-          {SEGMENTS.map(({ label, desc, color, bg, val, pct }) => (
-            <div key={label} className="an-card an-seg-card" style={{ background: bg, border: `1px solid ${color}22` }}>
-              <div className="an-seg-top">
-                {metricsLoading
-                  ? <div className="an-skel" style={{ width: 36, height: 24 }} />
-                  : <span className="an-seg-val" style={{ color }}>{val.toLocaleString('es-AR')}</span>}
-                {pct && !metricsLoading && <span className="an-seg-pct" style={{ color }}>({pctOf(val)})</span>}
-              </div>
-              <div className="an-seg-name" style={{ color }}>{label}</div>
-              <div className="an-seg-desc" style={{ color }}>{desc}</div>
-            </div>
-          ))}
-        </div>
-
-        <div className={types.includes('membership') ? 'an-2even' : ''}>
-          <div className="an-card">
-            <div className="an-ctitle">Funnel de tu programa</div>
-            <div className="an-csub">De cada etapa, cuántos llegaron a la siguiente (desde que empezaste)</div>
-            {!d ? <Loading /> : d.funnel.length > 0 && d.funnel[0].value > 0
-              ? <Funnel data={d.funnel} />
-              : <div className="an-empty-note">Todavía no hay clientes registrados.</div>}
-          </div>
-          {types.includes('membership') && (
-            <div className="an-card">
-              <div className="an-ctitle">Clientes por nivel</div>
-              <div className="an-csub">Miembros en cada nivel hoy</div>
-              {metricsLoading ? <Loading /> : <TierDistribution tiers={m?.tierDistribution ?? []} />}
-            </div>
-          )}
-        </div>
-
-        <div className="an-2even">
-          <div className="an-card">
-            <div className="an-ctitle">Clientes más fieles</div>
-            <div className="an-csub">Por visitas totales, desde que empezaste</div>
-            {!d ? <Loading /> : <Ranking rows={d.mostLoyal} value={r => r.totalVisits} unit={n => plural(n, 'visita', 'visitas')}
-              sub={r => `última visita ${r.lastVisit}`} onOpen={onOpenCustomer} empty="Todavía no hay visitas registradas." />}
-          </div>
-          <div className="an-card">
-            <div className="an-ctitle">Los que más canjearon</div>
-            <div className="an-csub">Premios entregados, desde que empezaste</div>
-            {!d ? <Loading /> : types.every(t => t === 'membership')
-              ? <div className="an-empty-note">La membresía no tiene canjes: los beneficios se aplican por nivel.</div>
-              : <Ranking rows={d.topRedeemers} value={r => r.redemptions} unit={n => plural(n, 'canje', 'canjes')}
-                  onOpen={onOpenCustomer} empty="Todavía no hay premios entregados." />}
-          </div>
-        </div>
-
-        {/* ═══════════════ EN EL PERÍODO ═══════════════ */}
-        <div className="an-block-head" style={{ marginTop: 14 }}>
-          <div>
-            <div className="an-block-title">En el período</div>
-            <div className="an-block-sub">Lo que pasó en los últimos {range.replace('d', '')} días, comparado con los {range.replace('d', '')} anteriores</div>
+        {/* Secciones: Resumen / Clientes / Horarios / Tarjetas. El rango y la
+            tarjeta de arriba aplican a todas. */}
+        <div className="an-tabsbar">
+          <div className="an-tabs" role="tablist">
+            {SECTIONS.map(sec => (
+              <button key={sec.key} role="tab" aria-selected={view === sec.key} className={`an-tab${view === sec.key ? ' an-tab--on' : ''}`} onClick={() => pickSection(sec.key)}>{sec.label}</button>
+            ))}
           </div>
           <div className="an-block-tools">
             {RANGES.map(({ key, label }) => (
@@ -687,87 +667,120 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         </div>
         {exportError && <div className="an-export-err">{exportError}</div>}
 
-        <div className="an-2col">
-          <div className="an-card">
-            <div className="an-ctitle">{chart.title}</div>
-            <div className="an-csub">{range === '90d' ? 'Por semana' : 'Por día'} · pasá el mouse por una barra para ver el detalle</div>
-            {!d ? (detailedError && !detailedLoading ? <Loading /> : <MascotLoader text="Armando tus números…" size={44} minHeight={170} />) : chartEmpty
-              ? <div className="an-empty-note">Todavía no hay movimientos en este período. Aparecen cuando escaneás tarjetas con la app.</div>
-              : <BarChart data={d.visitsOverTime} valueKey={chart.key} tooltip={chartTip} />}
+        {/* ═══════════════ RESUMEN ═══════════════ */}
+        {view === 'summary' && <>
+          {d && insights.length > 0 && (
+            <div className="an-card an-insights">
+              {insights.map((t, i) => <div key={i} className="an-insight"><span className="an-insight-dot" />{t}</div>)}
+            </div>
+          )}
+          <div className="an-program" style={{ ['--cols' as any]: PROGRAM.length <= 4 ? PROGRAM.length : 3 }}>
+            {PROGRAM.map(p => (
+              <div key={p.l} className="an-card" style={{ borderTop: `3px solid ${p.color}` }}>
+                {metricsLoading
+                  ? <div className="an-skel" style={{ width: 54, height: 26 }} />
+                  : <div className="an-stat-now" style={{ color: p.color }}>{p.v}</div>}
+                <div className="an-stat-name">{p.l}</div>
+                <div className="an-stat-label">{p.sub}</div>
+              </div>
+            ))}
           </div>
-          <div className="an-comp">
-            {(d?.comparison ?? [{ label: 'Nuevos clientes' }, { label: 'Visitas' }, { label: 'Premios entregados' }] as any[]).map((item: CompItem) => {
-              const delta = d ? pctChange(item.current, item.previous) : null
-              return (
-                <div key={item.label} className="an-card">
-                  <div className="an-stat-label">{item.label}</div>
-                  {!d
-                    ? <div className="an-skel" style={{ width: 70, height: 22, marginTop: 4 }} />
-                    : <>
-                        <div>
-                          <span className="an-stat-now">{item.current.toLocaleString('es-AR')}</span>
-                          <span className="an-stat-prev">vs {item.previous.toLocaleString('es-AR')} antes</span>
-                        </div>
-                        <div className={`an-stat-delta ${delta == null || delta === 0 ? 'an-delta-flat' : delta > 0 ? 'an-delta-up' : 'an-delta-down'}`}>
-                          {delta == null ? (item.current > 0 ? 'Nuevo en este período' : 'Sin cambios') : delta === 0 ? 'Igual que el período anterior' : `${delta > 0 ? '↑' : '↓'} ${Math.abs(delta)}% vs período anterior`}
-                        </div>
-                      </>}
+          <div className="an-4col">
+            {SEGMENTS.map(({ label, desc, color, bg, val, pct }) => (
+              <div key={label} className="an-card an-seg-card" style={{ background: bg, border: `1px solid ${color}22` }}>
+                <div className="an-seg-top">
+                  {metricsLoading
+                    ? <div className="an-skel" style={{ width: 36, height: 24 }} />
+                    : <span className="an-seg-val" style={{ color }}>{val.toLocaleString('es-AR')}</span>}
+                  {pct && !metricsLoading && <span className="an-seg-pct" style={{ color }}>({pctOf(val)})</span>}
                 </div>
-              )
-            })}
+                <div className="an-seg-name" style={{ color }}>{label}</div>
+                <div className="an-seg-desc" style={{ color }}>{desc}</div>
+              </div>
+            ))}
           </div>
-        </div>
-
-        {!d ? <div className="an-card"><div className="an-ctitle">¿Cuándo viene tu gente?</div><Loading /></div> : <>
-          <WhenHeatmap hourly={d.hourly} mode="visits" />
-          <div className="an-when-pair">
-            <WhenHeatmap hourly={d.hourly} mode="redeems" />
-            <WhenHeatmap hourly={d.hourly} mode="signups" />
+          <div className="an-2col">
+            <div className="an-card">
+              <div className="an-ctitle">{chart.title}</div>
+              <div className="an-csub">{range === '90d' ? 'Por semana' : 'Por día'} · pasá el mouse por una barra para ver el detalle</div>
+              {!d ? (detailedError && !detailedLoading ? <Loading /> : <MascotLoader text="Armando tus números…" size={44} minHeight={170} />) : chartEmpty
+                ? <div className="an-empty-note">Todavía no hay movimientos en este período. Aparecen cuando escaneás tarjetas con la app.</div>
+                : <BarChart data={d.visitsOverTime} valueKey={chart.key} tooltip={chartTip} />}
+            </div>
+            <div className="an-comp">
+              {(d?.comparison ?? [{ label: 'Nuevos clientes' }, { label: 'Visitas' }, { label: 'Premios entregados' }] as any[]).map((item: CompItem) => {
+                const delta = d ? pctChange(item.current, item.previous) : null
+                return (
+                  <div key={item.label} className="an-card">
+                    <div className="an-stat-label">{item.label}</div>
+                    {!d
+                      ? <div className="an-skel" style={{ width: 70, height: 22, marginTop: 4 }} />
+                      : <>
+                          <div>
+                            <span className="an-stat-now">{item.current.toLocaleString('es-AR')}</span>
+                            <span className="an-stat-prev">vs {item.previous.toLocaleString('es-AR')} antes</span>
+                          </div>
+                          <div className={`an-stat-delta ${delta == null || delta === 0 ? 'an-delta-flat' : delta > 0 ? 'an-delta-up' : 'an-delta-down'}`}>
+                            {delta == null ? (item.current > 0 ? 'Nuevo en este período' : 'Sin cambios') : delta === 0 ? 'Igual que el período anterior' : `${delta > 0 ? '↑' : '↓'} ${Math.abs(delta)}% vs período anterior`}
+                          </div>
+                        </>}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+          <div className="an-card">
+            <div className="an-ctitle">Nuevos vs que vuelven</div>
+            <div className="an-csub">Clientes que se registraron y clientes que ya estaban y volvieron, en los últimos {range.replace('d', '')} días</div>
+            {!d ? <Loading /> : <NewVsReturning data={d.newVsReturning || []} />}
           </div>
         </>}
 
-        {d && (
-          <>
-            <div className="an-2even">
-              <div className="an-card">
-                <div className="an-ctitle">Nuevos vs que vuelven</div>
-                <div className="an-csub">Clientes que se registraron y clientes que ya estaban y volvieron</div>
-                <NewVsReturning data={d.newVsReturning || []} />
-              </div>
-              <div className="an-card">
-                <div className="an-ctitle">¿En qué parte de la tarjeta están?</div>
-                <div className="an-csub">{d.progressDistribution?.kind === 'points' ? 'Clientes según sus puntos' : 'Clientes según cuántos sellos tienen'} · hoy</div>
-                {d.progressDistribution ? <ProgressDistribution data={d.progressDistribution} /> : <div className="an-empty-note">Aplica a tarjetas de sellos y de puntos.</div>}
-              </div>
+        {/* ═══════════════ CLIENTES ═══════════════ */}
+        {view === 'customers' && <>
+          <div className={types.includes('membership') ? 'an-2even' : ''}>
+            {/* Progreso + embudo: los dos responden "¿hasta dónde llegan?" */}
+            <div className="an-card">
+              <div className="an-ctitle">¿Hasta dónde llegan tus clientes?</div>
+              <div className="an-csub">{d?.progressDistribution?.kind === 'points' ? 'Según sus puntos, hoy' : 'Según cuántos sellos tienen, hoy'}</div>
+              {!d ? <Loading /> : d.progressDistribution ? <ProgressDistribution data={d.progressDistribution} /> : null}
+              <div className="an-subhead">Desde que se registraron</div>
+              {!d ? <Loading /> : d.funnel.length > 0 && d.funnel[0].value > 0
+                ? <Funnel data={d.funnel} />
+                : <div className="an-empty-note">Todavía no hay clientes registrados.</div>}
             </div>
-            <div className={(d.cardComparison?.length || 0) >= 2 ? 'an-2even' : ''}>
+            {types.includes('membership') && (
               <div className="an-card">
-                <div className="an-ctitle">Respuestas del formulario</div>
-                <div className="an-csub">Lo que contestaron tus clientes al registrarse</div>
-                <FormAnswers data={d.formAnswers || []} />
+                <div className="an-ctitle">Clientes por nivel</div>
+                <div className="an-csub">Miembros en cada nivel hoy</div>
+                {metricsLoading ? <Loading /> : <TierDistribution tiers={m?.tierDistribution ?? []} />}
               </div>
-              {(d.cardComparison?.length || 0) >= 2 && (
-                <div className="an-card">
-                  <div className="an-ctitle">Comparación entre tarjetas</div>
-                  <div className="an-csub">En los últimos {range.replace('d', '')} días (clientes: total)</div>
-                  <CardComparison data={d.cardComparison!} />
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        <div className="an-2even">
-          <div className="an-card">
-            <div className="an-ctitle">Más activos del período</div>
-            <div className="an-csub">Por cantidad de visitas en los últimos {range.replace('d', '')} días</div>
-            {!d ? <Loading /> : <Ranking rows={d.topCustomers} value={r => r.visits} unit={n => plural(n, 'visita', 'visitas')}
-              sub={r => `${activeCards.length > 1 ? `${r.cardName} · ` : ''}${r.progress} · última visita ${r.lastVisit}`}
-              onOpen={onOpenCustomer} empty="Todavía no hay visitas en este período." />}
+            )}
           </div>
-          <div className="an-card">
-            <div className="an-ctitle">Frecuencia de visita</div>
-            <div className="an-csub">Cada cuántos días vuelve un mismo cliente</div>
+
+          <div className="an-2even">
+            {/* Un solo ranking: antes eran "Más activos del período" y "Clientes más fieles". */}
+            <div className="an-card">
+              <div className="an-card-head">
+                <div>
+                  <div className="an-ctitle">Tus mejores clientes</div>
+                  <div className="an-csub">{rankScope === 'period' ? `Por visitas en los últimos ${range.replace('d', '')} días` : 'Por visitas totales, desde que empezaste'}</div>
+                </div>
+                <div className="an-seg-switch">
+                  <button className={rankScope === 'period' ? 'on' : ''} onClick={() => setRankScope('period')}>En el período</button>
+                  <button className={rankScope === 'all' ? 'on' : ''} onClick={() => setRankScope('all')}>Desde siempre</button>
+                </div>
+              </div>
+              {!d ? <Loading /> : rankScope === 'period'
+                ? <Ranking rows={d.topCustomers} value={r => r.visits} unit={n => plural(n, 'visita', 'visitas')}
+                    sub={r => `${activeCards.length > 1 ? `${r.cardName} · ` : ''}${r.progress} · última visita ${r.lastVisit}`}
+                    onOpen={onOpenCustomer} empty="Todavía no hay visitas en este período." />
+                : <Ranking rows={d.mostLoyal} value={r => r.totalVisits} unit={n => plural(n, 'visita', 'visitas')}
+                    sub={r => `última visita ${r.lastVisit}`} onOpen={onOpenCustomer} empty="Todavía no hay visitas registradas." />}
+            </div>
+            <div className="an-card">
+              <div className="an-ctitle">Frecuencia de visita</div>
+              <div className="an-csub">Cada cuántos días vuelve un mismo cliente</div>
             {!d ? <Loading /> : d.frequency.distribution.some(b => b.count > 0) ? <>
               <div style={{ marginBottom: 4 }}>
                 <span className="an-freq-stat">{d.frequency.avgDays.toLocaleString('es-AR')}</span>
@@ -790,8 +803,49 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
                 ))}
               </div>
             </> : <div className="an-empty-note">Aparece cuando un mismo cliente vuelve al menos una vez en el período.</div>}
+            </div>
           </div>
-        </div>
+
+          <div className="an-2even">
+            <div className="an-card">
+              <div className="an-ctitle">Los que más canjearon</div>
+              <div className="an-csub">Premios entregados, desde que empezaste</div>
+              {!d ? <Loading /> : types.every(t => t === 'membership')
+                ? <div className="an-empty-note">La membresía no tiene canjes: los beneficios se aplican por nivel.</div>
+                : <Ranking rows={d.topRedeemers} value={r => r.redemptions} unit={n => plural(n, 'canje', 'canjes')}
+                    onOpen={onOpenCustomer} empty="Todavía no hay premios entregados." />}
+            </div>
+            <div className="an-card">
+              <div className="an-ctitle">Respuestas del formulario</div>
+              <div className="an-csub">Lo que contestaron tus clientes al registrarse</div>
+              {!d ? <Loading /> : <FormAnswers data={d.formAnswers || []} />}
+            </div>
+          </div>
+        </>}
+
+        {/* ═══════════════ HORARIOS ═══════════════ */}
+        {view === 'hours' && <>
+          {!d ? <div className="an-card"><div className="an-ctitle">¿Cuándo viene tu gente?</div><Loading /></div> : <>
+            <WhenHeatmap hourly={d.hourly} mode="visits" modes={showMoreHours ? undefined : ['visits']} />
+            {showMoreHours
+              ? <div className="an-when-pair">
+                  <WhenHeatmap hourly={d.hourly} mode="redeems" />
+                  <WhenHeatmap hourly={d.hourly} mode="signups" />
+                </div>
+              : <button className="an-more" onClick={() => setShowMoreHours(true)}>Ver cuándo canjean y cuándo se registran</button>}
+          </>}
+        </>}
+
+        {/* ═══════════════ TARJETAS ═══════════════ */}
+        {view === 'cards' && (
+          <div className="an-card">
+            <div className="an-ctitle">Comparación entre tarjetas</div>
+            <div className="an-csub">En los últimos {range.replace('d', '')} días (clientes: total)</div>
+            {!d ? <Loading /> : (d.cardComparison?.length || 0) >= 2
+              ? <CardComparison data={d.cardComparison!} />
+              : <div className="an-empty-note">Aparece cuando tenés 2 o más tarjetas.</div>}
+          </div>
+        )}
 
       </div>
     </>

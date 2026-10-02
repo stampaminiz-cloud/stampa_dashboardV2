@@ -7,7 +7,7 @@ import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL,
 import { BillingBanner, BillingStyles, PlanModal } from '@/components/dashboard/Billing'
 import { MascotLoader } from '@/components/ui/MascotLoader'
 import { getJson, prefetch } from '@/lib/cache'
-import { NewVsReturning, type NvrBucket } from '@/components/dashboard/charts'
+import { RetentionRing, type Retention } from '@/components/dashboard/charts'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { SettingsTab }       from '@/components/dashboard/SettingsTab'
 import { CustomersTab }      from '@/components/dashboard/CustomersTab'
@@ -284,7 +284,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
   const [granularity, setGranularity] = useState<'7d' | '30d'>('7d')
   const [hoveredBar, setHoveredBar] = useState<string | null>(null)
   const [rangeVisits, setRangeVisits] = useState<any[] | null>(null)
-  const [rangeNvr, setRangeNvr] = useState<NvrBucket[]>([])
+  const [rangeRetention, setRangeRetention] = useState<Retention | null>(null)
   const [chartLoading, setChartLoading] = useState(true)
 
   async function loadRange(g: '7d' | '30d') {
@@ -298,7 +298,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
       })
       const data = await res.json()
       setRangeVisits(data.visitsOverTime || [])
-      setRangeNvr(data.newVsReturning || [])
+      setRangeRetention(data.retention || null)
     } catch (err) {
       console.error('Error loading chart:', err)
       setRangeVisits([])
@@ -517,15 +517,16 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
             </>
           )}
 
-          {rangeNvr.some(b => b.newCustomers + b.returning > 0) && (
+          {rangeRetention && (rangeRetention.current.returning + rangeRetention.current.newCustomers) > 0 && (
             <div className="db-card" style={{ marginTop: 12 }}>
               <div className="ov-card-title-row">
                 <div>
-                  <div className="ov-card-title">Nuevos vs que vuelven</div>
-                  <div className="ov-card-sub">{RANGE_SUBTITLES[granularity]} · ¿el programa retiene o solo suma gente?</div>
+                  <div className="ov-card-title">¿Tu programa retiene?</div>
+                  <div className="ov-card-sub">{RANGE_SUBTITLES[granularity]} · clientes que volvieron vs clientes nuevos</div>
                 </div>
+                {fullAnalytics && <button className="ov-more-link" style={{ marginTop: 0 }} onClick={() => setActive('analytics')}>Ver por semana →</button>}
               </div>
-              <NewVsReturning data={rangeNvr} />
+              <RetentionRing data={rangeRetention} />
             </div>
           )}
 
