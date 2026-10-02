@@ -1,4 +1,5 @@
 'use client'
+import { CardSwitcher } from '@/components/ui/CardSwitcher'
 import { readCache, getJson } from '@/lib/cache'
 import { MascotLoader } from '@/components/ui/MascotLoader'
 import React, { useState, useEffect } from 'react'
@@ -17,7 +18,6 @@ type CardType = 'stamp' | 'points' | 'membership'
 interface ActiveCard { id: string; name: string; type: CardType; isActive: boolean }
 interface Redemption { name: string; email: string | null; prize: string; at: number }
 
-const TYPE_ICONS: Record<CardType, string> = { stamp: '☕', points: '🪙', membership: '🎫' }
 
 function relTime(ms: number) {
   const min = Math.floor((Date.now() - ms) / 60000)
@@ -616,11 +616,7 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer }: 
       <div className="rw-shell">
         {activeCards.length > 1 && (
           <div className="rw-toolbar">
-            {activeCards.map(card => (
-              <button key={card.id} className={`rw-card-pill${selected?.id === card.id ? ' rw-card-pill--on' : ''}`} onClick={() => setSelectedId(card.id)}>
-                {TYPE_ICONS[card.type]} {card.name}
-              </button>
-            ))}
+            <CardSwitcher value={selected?.id || ''} onChange={setSelectedId} options={activeCards.map(c => ({ id: c.id, label: c.name }))} />
           </div>
         )}
         {!selected ? (

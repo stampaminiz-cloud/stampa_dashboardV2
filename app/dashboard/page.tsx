@@ -524,7 +524,6 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
                   <div className="ov-card-title">¿Tu programa retiene?</div>
                   <div className="ov-card-sub">{RANGE_SUBTITLES[granularity]} · clientes que volvieron vs clientes nuevos</div>
                 </div>
-                {fullAnalytics && <button className="ov-more-link" style={{ marginTop: 0 }} onClick={() => setActive('analytics')}>Ver por semana →</button>}
               </div>
               <RetentionRing data={rangeRetention} />
             </div>

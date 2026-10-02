@@ -12,6 +12,30 @@ export interface ProgressDist { kind: 'stamp' | 'points'; segments: { label: str
 export interface FormAnswer { fieldId: string; label: string; cardName: string; total: number; options: { value: string; count: number }[] }
 export interface CardRow { cardId: string; name: string; type: string; color: string; isActive: boolean; visits: number; redeems: number; signups: number; customers: number }
 
+// Estado vacío único (todas las secciones de Analítica): la mascota y un
+// título corto, mismo tamaño de letra en todos lados.
+export function EmptyState({ title, text, compact = false }: { title: string; text?: string; compact?: boolean }) {
+  return (
+    <div className={`ch-empty${compact ? ' ch-empty--sm' : ''}`}>
+      <style dangerouslySetInnerHTML={{ __html: EMPTY_CSS }} />
+      <span className="ch-empty-art">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/stampa-mascot-coral.png" alt="" width={34} height={32} />
+      </span>
+      <div className="ch-empty-title">{title}</div>
+      {text && <div className="ch-empty-text">{text}</div>}
+    </div>
+  )
+}
+const EMPTY_CSS = `
+  .ch-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;padding:26px 12px;}
+  .ch-empty--sm{padding:14px 8px;}
+  .ch-empty-art{width:58px;height:58px;border-radius:50%;background:#FBF1EC;display:flex;align-items:center;justify-content:center;margin-bottom:4px;}
+  .ch-empty-art img{opacity:.75;}
+  .ch-empty-title{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:#2B2620;}
+  .ch-empty-text{font-family:'Inter',sans-serif;font-size:12px;color:rgba(43,38,32,.5);max-width:300px;line-height:1.45;}
+`
+
 const CORAL = '#C75D3A'
 const BLUE = '#185FA5'
 const pct = (n: number, t: number) => (t > 0 ? Math.round((n / t) * 100) : 0)
@@ -81,20 +105,14 @@ export function RetentionRing({ data }: { data: Retention }) {
         <text x="60" y="58" textAnchor="middle" fontSize="24" fontWeight="800" fill="#2B2620" fontFamily="Plus Jakarta Sans, sans-serif">{share}%</text>
         <text x="60" y="76" textAnchor="middle" fontSize="10.5" fill="rgba(43,38,32,.55)" fontFamily="Inter, sans-serif">vuelven</text>
       </svg>
-      <div className="ch-ring-body">
-        <div className="ch-ring-head">
-          {total === 0 ? 'Todavía no hay movimientos en este período.'
-            : share >= 50 ? <><strong>{share}%</strong> de tu movimiento es gente que vuelve</>
-            : <>La mayoría de tu movimiento son <strong>clientes nuevos</strong></>}
-        </div>
-        {diff != null && total > 0 && (
-          <div className={`ch-ring-delta ${diff > 0 ? 'up' : diff < 0 ? 'down' : ''}`}>
-            {diff === 0 ? 'Igual que el período anterior' : `${diff > 0 ? '↑' : '↓'} ${Math.abs(diff)} puntos vs el período anterior`}
-          </div>
-        )}
-        <div className="ch-legend">
-          <span><i style={{ background: CORAL }} />Volvieron <strong>{r}</strong></span>
-          <span><i style={{ background: BLUE }} />Nuevos <strong>{n}</strong></span>
+      {/* Sin frase: el número ya está en el anillo; al costado, los datos. */}
+      <div className="ch-ring-tiles">
+        <div className="ch-tile"><div className="ch-tile-k"><i style={{ background: CORAL }} />Volvieron</div><div className="ch-tile-v">{r}</div><div className="ch-tile-s">ya eran clientes</div></div>
+        <div className="ch-tile"><div className="ch-tile-k"><i style={{ background: BLUE }} />Nuevos</div><div className="ch-tile-v">{n}</div><div className="ch-tile-s">se registraron</div></div>
+        <div className="ch-tile">
+          <div className="ch-tile-k">Vs período anterior</div>
+          <div className={`ch-tile-v ${diff == null || diff === 0 ? '' : diff > 0 ? 'up' : 'down'}`}>{diff == null ? '—' : diff === 0 ? '=' : `${diff > 0 ? '+' : '−'}${Math.abs(diff)} pts`}</div>
+          <div className="ch-tile-s">{prevShare == null ? 'sin datos para comparar' : `antes ${prevShare}%`}</div>
         </div>
       </div>
     </div>
@@ -107,7 +125,7 @@ const SEQ = ['#F3D6CB', '#E6AE98', '#D98565', '#C75D3A', '#8E3B20']
 export function ProgressDistribution({ data }: { data: ProgressDist }) {
   const total = data.segments.reduce((a, s) => a + s.count, 0)
   const shades = data.segments.length === 3 ? [SEQ[0], SEQ[2], SEQ[4]] : SEQ
-  if (!total) return <div className="ch-note">Todavía no hay clientes en tus tarjetas.</div>
+  if (!total) return <EmptyState title="Todavía sin clientes" text="Aparece cuando se registren en tus tarjetas." />
   return (
     <div className="ch">
       <style>{CSS}</style>
@@ -133,7 +151,7 @@ export function ProgressDistribution({ data }: { data: ProgressDist }) {
 // ── Respuestas del formulario: barras horizontales por pregunta ──────────────
 export function FormAnswers({ data }: { data: FormAnswer[] }) {
   const [idx, setIdx] = useState(0)
-  if (!data.length) return <div className="ch-note">Aparece cuando tus clientes respondan preguntas de lista del formulario (ej: talle, bebida favorita).</div>
+  if (!data.length) return <EmptyState title="Todavía sin respuestas" text="Aparece cuando respondan preguntas de lista del formulario, como talle o bebida favorita." />
   const f = data[Math.min(idx, data.length - 1)]
   const max = Math.max(1, ...f.options.map(o => o.count))
   return (
@@ -195,12 +213,15 @@ const CSS = `
   .ch{display:flex;flex-direction:column;gap:12px;}
   .ch-legend{display:flex;gap:16px;font-size:11.5px;color:rgba(43,38,32,.65);}
   .ch-ring{display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
-  .ch-ring-body{flex:1;min-width:180px;display:flex;flex-direction:column;gap:8px;}
-  .ch-ring-head{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:600;color:#2B2620;line-height:1.35;}
-  .ch-ring-head strong{font-weight:800;}
-  .ch-ring-delta{font-size:11.5px;font-weight:600;color:rgba(43,38,32,.55);}
-  .ch-ring-delta.up{color:#2E7D4F;}
-  .ch-ring-delta.down{color:#B4442A;}
+  .ch-ring-tiles{flex:1;min-width:240px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+  .ch-tile{background:#FBF6EE;border-radius:12px;padding:12px 14px;}
+  .ch-tile-k{display:flex;align-items:center;font-size:11.5px;color:rgba(43,38,32,.6);font-family:'Inter',sans-serif;}
+  .ch-tile-k i{display:inline-block;flex-shrink:0;width:9px;height:9px;border-radius:3px;margin-right:6px;}
+  .ch-tile-v{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#2B2620;margin-top:4px;}
+  .ch-tile-v.up{color:#2E7D4F;}
+  .ch-tile-v.down{color:#B4442A;}
+  .ch-tile-s{font-size:11px;color:rgba(43,38,32,.45);font-family:'Inter',sans-serif;}
+  @media(max-width:600px){.ch-ring-tiles{grid-template-columns:1fr 1fr;}}
   .ch-legend i,.ch-row i,.ch-card i{display:inline-block;flex-shrink:0;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:middle;}
   .ch-legend strong{color:#2B2620;}
   .ch-stack{display:flex;align-items:stretch;gap:6px;height:160px;}

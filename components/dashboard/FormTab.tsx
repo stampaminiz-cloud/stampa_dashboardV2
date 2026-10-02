@@ -1,4 +1,5 @@
 'use client'
+import { CardSwitcher } from '@/components/ui/CardSwitcher'
 import { readCache } from '@/lib/cache'
 import React, { useState, useEffect, useMemo } from 'react'
 import QRCode from 'qrcode'
@@ -33,7 +34,6 @@ interface CardInfo {
 
 const TYPE_LABEL: Record<FieldType, string> = { text: 'Texto', number: 'Número', date: 'Fecha', select: 'Lista de opciones', tel: 'Teléfono' }
 const TYPE_ICON: Record<FieldType, string> = { text: 'T', number: '#', date: '📅', select: '≡', tel: '📱' }
-const CARD_ICON: Record<string, string> = { stamp: '☕', points: '🪙', membership: '🎫' }
 const REWARD_QUESTION = '¿Qué premio querés cuando completes la tarjeta?'
 let fieldKey = 0
 
@@ -364,13 +364,8 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
         {loadError && <div className="fm-error">No pudimos cargar el formulario. <button className="fm-link-btn" onClick={load}>Reintentar</button></div>}
 
         {activeCards.length > 1 && (
-          <div className="fm-pills">
-            {activeCards.map(c => (
-              <button key={c.id} className={`fm-pill${card.id === c.id ? ' fm-pill--on' : ''}`} onClick={() => { if (dirty && !confirm('Tenés cambios sin guardar en este formulario. ¿Descartarlos?')) return; setSelectedId(c.id) }}>
-                {CARD_ICON[c.type]} {c.name}
-              </button>
-            ))}
-          </div>
+          <CardSwitcher value={card.id} options={activeCards.map(c => ({ id: c.id, label: c.name }))}
+            onChange={id => { if (dirty && !confirm('Tenés cambios sin guardar en este formulario. ¿Descartarlos?')) return; setSelectedId(id) }} />
         )}
 
         <div className="fm-grid">
