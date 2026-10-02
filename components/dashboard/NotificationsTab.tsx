@@ -1,4 +1,5 @@
 'use client'
+import { readCache, getJson } from '@/lib/cache'
 import React, { useState, useEffect, useRef } from 'react'
 import { usePlan } from '@/data/plans'
 import { BASE_URL, apiGetTiers } from '@/lib/api'
@@ -112,15 +113,19 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
 
   async function load() {
     if (!businessId) return
-    try {
-      const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/notifications`, { headers: authHeaders() })
-      const d = await res.json()
-      if (!res.ok) throw new Error()
+    const path = `/api/businesses/${businessId}/notifications`
+    const apply = (d: any) => {
       setHistory(d.history || []); setScheduled(d.scheduled || []); setFailedScheduled(d.failedScheduled || [])
       setReach(d.reach || {}); setAnswerFields(d.answerFields || []); setUsed(d.sentThisMonth || 0); setMonthlyLimit(d.monthlyLimit ?? limit('monthlyNotifs'))
+    }
+    // Lo guardado (o precargado por Inicio) aparece al instante (lib/cache).
+    const cached = readCache<any>(path)
+    if (cached) { apply(cached); setLoaded(true) }
+    try {
+      apply(await getJson<any>(path))
       setLoadError(false)
     } catch {
-      setLoadError(true)
+      if (!cached) setLoadError(true)
     } finally {
       setLoaded(true)
     }

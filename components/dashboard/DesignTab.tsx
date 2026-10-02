@@ -1,4 +1,5 @@
 'use client'
+import { readCache } from '@/lib/cache'
 import React, { useState, useRef, useEffect } from 'react'
 import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS } from '@/lib/colorPresets'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
@@ -1123,7 +1124,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
 
   // Clientes por tarjeta (para no eliminar tarjetas con clientes) y niveles
   // reales de las membresías (miniatura).
-  const [stats, setStats] = useState<Record<string, { customers: number; withWallet: number }>>({})
+  const [stats, setStats] = useState<Record<string, { customers: number; withWallet: number }>>(() => (businessId && readCache<Record<string, { customers: number; withWallet: number }>>(`/api/businesses/${businessId}/cards/stats`)) || {})
   const [tiersByCard, setTiersByCard] = useState<Record<string, MembershipTier[]>>({})
   const [confirmDeactivate, setConfirmDeactivate] = useState<string | null>(null)
   useEffect(() => {

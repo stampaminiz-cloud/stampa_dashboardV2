@@ -1,4 +1,6 @@
 'use client'
+import { readCache, getJson } from '@/lib/cache'
+import { MascotLoader } from '@/components/ui/MascotLoader'
 import React, { useState, useEffect } from 'react'
 import {
   BASE_URL, apiGetPointsCatalog, apiCreatePointsCatalogItem, apiUpdatePointsCatalogItem, apiDeletePointsCatalogItem,
@@ -142,7 +144,7 @@ function PointsRewards({ businessId, cardId, data, onOpenCustomer, onChanged }: 
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    setCatalog(null); setError(null)
+    setCatalog(readCache<any[]>(`/api/businesses/${businessId}/cards/${cardId}/points-catalog`) ?? null); setError(null)
     apiGetPointsCatalog(businessId, cardId)
       .then(items => setCatalog(items))
       .catch((err: any) => { setCatalog([]); setError(err?.error || 'No se pudo cargar el catálogo.') })
@@ -353,7 +355,9 @@ function MembershipRewards({ businessId, cardId, data, onChanged }: { businessId
 
   const toEdit = (items: any[]): EditTier[] => items.map(t => ({ key: `t${tierKey++}`, id: t._id, name: t.name, threshold: String(t.threshold ?? 0), perk: t.perk || '', color: t.color || '#854F0B', bg: t.bg || '#FAEEDA' }))
   useEffect(() => {
-    setSaved(null); setDraft(null); setError(null); setNotice(null)
+    const cachedTiers = readCache<any[]>(`/api/businesses/${businessId}/cards/${cardId}/tiers`)
+    if (cachedTiers) { const e = toEdit(cachedTiers); setSaved(e); setDraft(e) } else { setSaved(null); setDraft(null) }
+    setError(null); setNotice(null)
     apiGetTiers(businessId, cardId)
       .then(items => { const e = toEdit(items); setSaved(e); setDraft(e) })
       .catch((err: any) => { setSaved([]); setDraft([]); setError(err?.error || 'No se pudieron cargar los niveles.') })
@@ -493,12 +497,14 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer }: 
     if (!businessId || !selected) return
     let cancelled = false
     setError(false)
-    fetch(`${BASE_URL}/api/businesses/${businessId}/rewards-stats?cardId=${selected.id}`, {
-      headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') },
-    })
-      .then(async r => { const d = await r.json().catch(() => null); if (!r.ok || !d?.cardType) throw new Error(); return d })
+    // Lo guardado (o precargado por Inicio) se muestra al instante (lib/cache).
+    const path = `/api/businesses/${businessId}/rewards-stats?cardId=${selected.id}`
+    const cached = readCache<any>(path)
+    if (cached?.cardType) { setData(cached); setDataFor(selected.id) }
+    getJson<any>(path)
+      .then(d => { if (!d?.cardType) throw new Error(); return d })
       .then(d => { if (!cancelled) { setData(d); setDataFor(selected.id) } })
-      .catch(() => { if (!cancelled) { setError(true); setDataFor(selected.id) } })
+      .catch(() => { if (!cancelled && !cached?.cardType) { setError(true); setDataFor(selected.id) } })
     return () => { cancelled = true }
   }, [businessId, selected?.id, reload])
 
@@ -622,10 +628,7 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer }: 
         ) : error && dataFor === selected.id ? (
           <div className="rw-content"><div className="rw-error" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>No pudimos cargar los premios. <button className="rw-mini-btn" onClick={() => { setDataFor(null); setReload(n => n + 1) }}>Reintentar</button></div></div>
         ) : !ready ? (
-          <div className="rw-content">
-            <div className="rw-3col">{[0, 1, 2].map(i => <div key={i} className="rw-skel" style={{ height: 86 }} />)}</div>
-            <div className="rw-skel" style={{ height: 180 }} />
-          </div>
+          <div className="rw-content"><MascotLoader text="Buscando tus premios…" /></div>
         ) : selected.type === 'stamp' ? (
           <StampRewards data={data} onGoToDesign={onGoToDesign} onOpenCustomer={onOpenCustomer} />
         ) : selected.type === 'points' ? (

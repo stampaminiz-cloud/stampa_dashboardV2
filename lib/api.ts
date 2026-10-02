@@ -5,6 +5,8 @@
 // desde los componentes. Esto centraliza el manejo de tokens, errores
 // y la URL base.
 
+import { writeCache, clearCache } from './cache'
+
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
@@ -19,6 +21,7 @@ export function setToken(token: string) {
 
 export function clearToken() {
   localStorage.removeItem('stampa_token')
+  clearCache()
   localStorage.removeItem('stampa_business_id')
 }
 
@@ -87,6 +90,8 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     throw { status: res.status, ...(data || {}) }
   }
 
+  // Los GET quedan en caché para que las tabs abran al instante (lib/cache).
+  if (method === 'GET' && !noAuth) writeCache(path, data)
   return data as T
 }
 
