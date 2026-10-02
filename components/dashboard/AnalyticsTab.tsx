@@ -1,8 +1,9 @@
 'use client'
+import { CardSwitcher } from '@/components/ui/CardSwitcher'
 import React, { useState, useEffect } from 'react'
 import { readCache, getJson } from '@/lib/cache'
 import { MascotLoader } from '@/components/ui/MascotLoader'
-import { NewVsReturning, ProgressDistribution, FormAnswers, CardComparison, type NvrBucket, type ProgressDist, type FormAnswer as FormAnswerData, type CardRow } from './charts'
+import { EmptyState, RetentionRing, ProgressDistribution, FormAnswers, CardComparison, type NvrBucket, type Retention, type ProgressDist, type FormAnswer as FormAnswerData, type CardRow } from './charts'
 import { usePlan } from '@/data/plans'
 import { BASE_URL } from '@/lib/api'
 
@@ -33,6 +34,7 @@ interface Detailed {
   comparison: CompItem[]
   frequency: { avgDays: number; trend: number; distribution: FreqBucket[] }
   newVsReturning?: NvrBucket[]
+  retention?: Retention
   progressDistribution?: ProgressDist | null
   formAnswers?: FormAnswerData[]
   cardComparison?: CardRow[]
@@ -53,7 +55,6 @@ const CHART: Record<CardType | 'all', { title: string; unit: string; key: keyof 
   all:        { title: 'Actividad',           unit: 'movimientos', key: 'total' },
 }
 
-const TYPE_ICONS: Record<CardType, string> = { stamp: '☕', points: '🪙', membership: '🎫' }
 
 function pctChange(cur: number, prev: number) {
   if (prev === 0) return null
@@ -139,7 +140,7 @@ function WhenHeatmap({ hourly, mode, modes }: { hourly: Hourly; mode: HeatMode; 
         </div>
       </div>
       {empty
-        ? <div className="an-empty-note">Todavía no hay {unit[1]} en este período.</div>
+        ? <EmptyState title={`Todavía sin ${unit[1]}`} text="En este período." />
         : <>
             <div className="an-when-insights">
               <div><span className="an-when-dot an-when-dot--up" />{verb}: <strong>{DAYS_PLURAL[best.d]} de {slotLabel(best.s)} hs</strong> ({fmt1(best.v)} {best.v === 1 ? unit[0] : unit[1]} por día)</div>
@@ -177,6 +178,53 @@ function WhenHeatmap({ hourly, mode, modes }: { hourly: Hourly; mode: HeatMode; 
   )
 }
 
+// Íconos de los datos destacados (trazo, mismo estilo que el sidebar).
+function HlIcon({ name }: { name: 'repeat' | 'flame' | 'moon' }) {
+  const p = { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+  if (name === 'repeat') return <svg {...p}><path d="M17 2l4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" /><path d="M7 22l-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" /></svg>
+  if (name === 'flame') return <svg {...p}><path d="M12 22c4 0 7-3 7-7 0-4-3-6-4-9-1 3-3 4-4 4 0-3-1-5-3-6 0 4-3 6-3 11 0 4 3 7 7 7z" /></svg>
+  return <svg {...p}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
+}
+
+// Canjes y registros (Horarios): barras por día de la semana (promedio por
+// día) y una franja por horario. El mapa de calor queda solo para visitas.
+function DayHourBars({ hourly, mode }: { hourly: Hourly; mode: 'redeems' | 'signups' }) {
+  const { title, sub, unit, rgb } = HEAT_MODES[mode]
+  const grid = hourly[mode]
+  const total = grid.reduce((a, row) => a + row.reduce((b, v) => b + v, 0), 0)
+  const perDay = grid.map((row, di) => { const t = row.reduce((a, v) => a + v, 0); return hourly.weekdayCount[di] > 0 ? t / hourly.weekdayCount[di] : 0 })
+  const dayMax = Math.max(0.0001, ...perDay)
+  const slots = sharedSlots(hourly, ['visits', mode])
+  const perSlot = slots.map(sl => grid.reduce((a, row) => a + row[sl], 0))
+  const slotMax = Math.max(1, ...perSlot)
+  const bestDay = perDay.indexOf(Math.max(...perDay))
+  const bestSlot = slots[perSlot.indexOf(Math.max(...perSlot))]
+  return (
+    <div className="an-card">
+      <div className="an-ctitle">{title}</div>
+      <div className="an-csub">{sub}</div>
+      {!total ? <EmptyState title={`Todavía sin ${unit[1]}`} text="En este período." compact /> : <>
+        <div className="an-dh-lbl">Por día de la semana · más {DAYS_PLURAL[bestDay]}</div>
+        <div className="an-dh-days">
+          {perDay.map((v, di) => (
+            <div key={di} className="an-dh-col" title={`${DAYS_SINGULAR[di]}: ${fmt1(v)} ${v === 1 ? unit[0] : unit[1]} por día`}>
+              <div className="an-dh-track"><div style={{ height: `${Math.max(4, (v / dayMax) * 100)}%`, background: `rgb(${rgb})`, opacity: v > 0 ? 1 : 0.15 }} /></div>
+              <span>{DAYS_SHORT[di][0]}</span>
+            </div>
+          ))}
+        </div>
+        <div className="an-dh-lbl">Por horario · más de {slotLabel(bestSlot)} hs</div>
+        <div className="an-dh-hours">
+          {slots.map((sl, i) => (
+            <span key={sl} title={`${slotLabel(sl)} hs: ${perSlot[i]} ${perSlot[i] === 1 ? unit[0] : unit[1]}`} style={{ background: `rgba(${rgb},${perSlot[i] ? (0.15 + (perSlot[i] / slotMax) * 0.85).toFixed(2) : 0.06})` }} />
+          ))}
+        </div>
+        <div className="an-dh-ends"><span>{slots[0] * 2} hs</span><span>{slots[slots.length - 1] * 2 + 2} hs</span></div>
+      </>}
+    </div>
+  )
+}
+
 // ─── Funnel ───────────────────────────────────────────────────────────────────
 function Funnel({ data }: { data: FunnelStage[] }) {
   const max = data[0]?.value || 1
@@ -208,7 +256,7 @@ function Funnel({ data }: { data: FunnelStage[] }) {
 
 // ─── Clientes por nivel (membresía) ───────────────────────────────────────────
 function TierDistribution({ tiers }: { tiers: { name: string; color: string; bg: string; count: number }[] }) {
-  if (!tiers.length) return <div className="an-empty-note">Todavía no hay clientes en esta membresía.</div>
+  if (!tiers.length) return <EmptyState title="Todavía sin miembros" />
   const total = tiers.reduce((a, t) => a + t.count, 0) || 1
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -231,7 +279,7 @@ function Ranking<T extends Person>({ rows, value, unit, sub, onOpen, empty }: {
   rows: T[]; value: (r: T) => number; unit: (n: number) => string; sub?: (r: T) => string
   onOpen?: (email: string) => void; empty: string
 }) {
-  if (!rows.length) return <div className="an-empty-note">{empty}</div>
+  if (!rows.length) return <EmptyState title={empty} />
   const max = value(rows[0]) || 1
   return (
     <>
@@ -303,7 +351,6 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   })
   const pickSection = (sec: Section) => { setSection(sec); try { localStorage.setItem('stampa_analytics_section', sec) } catch { /* sin storage */ } }
   const [rankScope, setRankScope] = useState<'period' | 'all'>('period')
-  const [showMoreHours, setShowMoreHours] = useState(false)
   const activeCards: CardDesign[] = (cards || []).filter((c: any) => c.isActive)
   const [selectedCardId, setSelectedCardId] = useState<string>('all')
   const selectedCard = activeCards.find(c => c.id === selectedCardId) || null
@@ -426,7 +473,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
 
   const d = detailedLoading ? null : detailed
   const Loading = () => detailedError && !detailedLoading
-    ? <div className="an-empty-note">No se pudo cargar.</div>
+    ? <EmptyState title="No se pudo cargar" compact />
     : <div className="an-skel" style={{ height: 120 }} />
   const chartTip = (b: Bucket, v: number) => {
     if (!multiType) return `${b.label} · ${v} ${chart.unit}`
@@ -449,26 +496,27 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   ]
   const view = section === 'cards' && !showCards ? 'summary' : section
 
-  // Conclusiones en texto para el Resumen (máximo 3), así no hay que
-  // interpretar cada gráfico.
-  const insights: string[] = []
+  // Datos destacados del Resumen (ícono + dato grande), en vez de frases.
+  type Highlight = { icon: 'repeat' | 'flame' | 'moon'; k: string; v: string; sub: string; tone?: 'up' | 'down' }
+  const highlights: Highlight[] = []
   if (d) {
-    const nvr = d.newVsReturning || []
-    const ret = nvr.reduce((a, b) => a + b.returning, 0), neu = nvr.reduce((a, b) => a + b.newCustomers, 0)
-    if (ret + neu > 0) insights.push(ret >= neu
-      ? `${Math.round((ret / (ret + neu)) * 100)}% de tu movimiento es gente que vuelve: el programa está reteniendo.`
-      : 'Hay más clientes nuevos que gente que vuelve: probá una notificación a los inactivos o a los que están cerca del premio.')
+    const rc = d.retention?.current
+    if (rc && rc.returning + rc.newCustomers > 0) {
+      const share = Math.round((rc.returning / (rc.returning + rc.newCustomers)) * 100)
+      highlights.push({ icon: 'repeat', k: 'Gente que vuelve', v: `${share}%`, sub: 'del movimiento del período', tone: share >= 50 ? 'up' : 'down' })
+    }
     const avg = d.hourly.visits.map((row, di) => row.map(v => d.hourly.weekdayCount[di] > 0 ? v / d.hourly.weekdayCount[di] : 0))
     let best = { di: 0, sl: 0, v: 0 }
     avg.forEach((row, di) => row.forEach((v, sl) => { if (v > best.v) best = { di, sl, v } }))
-    if (best.v > 0) insights.push(`Tu momento más fuerte: ${DAYS_PLURAL[best.di]} de ${slotLabel(best.sl)} hs.`)
+    if (best.v > 0) highlights.push({ icon: 'flame', k: 'Momento más fuerte', v: `${DAYS_SHORT[best.di]} ${slotLabel(best.sl)} hs`, sub: `${fmt1(best.v)} visitas por día` })
     const dayTot = avg.map(row => row.reduce((a, b) => a + b, 0))
     const open = dayTot.map((v, di) => ({ v, di })).filter(x => x.v > 0)
     if (open.length >= 2) {
       const worst = open.reduce((a, b) => (b.v < a.v ? b : a))
-      if (worst.di !== best.di) insights.push(`El día más flojo es ${DAYS_SINGULAR[worst.di]}: buen momento para una promo o un día con sello doble.`)
+      if (worst.di !== best.di) highlights.push({ icon: 'moon', k: 'Día más flojo', v: DAYS_SINGULAR[worst.di][0].toUpperCase() + DAYS_SINGULAR[worst.di].slice(1), sub: 'ideal para un día con sello doble' })
     }
   }
+
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
   return (
@@ -569,12 +617,25 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-tabs{display:flex;gap:4px;background:rgba(43,38,32,.05);border-radius:12px;padding:4px;}
         .an-tab{border:none;background:transparent;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;}
         .an-tab--on{background:#fff;color:#2B2620;box-shadow:0 1px 4px rgba(43,38,32,.1);}
-        .an-insights{display:flex;flex-direction:column;gap:8px;background:#FFFBF5;border-color:rgba(199,93,58,.18);}
-        .an-insight{font-size:13px;color:#2B2620;line-height:1.5;display:flex;gap:10px;align-items:baseline;}
-        .an-insight-dot{flex:0 0 7px;height:7px;border-radius:50%;background:#C75D3A;transform:translateY(-1px);}
+        .an-highlights{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:12px;}
+        .an-hl{background:#FFFBF5;border-color:rgba(199,93,58,.16);}
+        .an-hl-k{display:flex;align-items:center;gap:7px;font-size:12px;color:rgba(43,38,32,.6);}
+        .an-hl-k svg{color:#C75D3A;flex-shrink:0;}
+        .an-hl-v{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#2B2620;margin-top:6px;}
+        .an-hl-v--up{color:#2E7D4F;}
+        .an-hl-v--down{color:#B4442A;}
+        .an-hl-s{font-size:11.5px;color:rgba(43,38,32,.45);margin-top:2px;}
+        @media(max-width:768px){.an-highlights{grid-template-columns:1fr;}}
         .an-subhead{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.45);margin:18px 0 10px;}
-        .an-more{align-self:center;border:1.5px dashed rgba(43,38,32,.2);background:#fff;border-radius:12px;padding:12px 18px;font-size:12.5px;font-weight:600;color:rgba(43,38,32,.7);cursor:pointer;font-family:inherit;}
-        .an-more:hover{border-color:#C75D3A;color:#C75D3A;}
+        .an-dh-lbl{font-size:11.5px;color:rgba(43,38,32,.55);margin:12px 0 8px;}
+        .an-dh-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;height:110px;}
+        .an-dh-col{display:flex;flex-direction:column;align-items:center;gap:5px;}
+        .an-dh-col span{font-size:11px;color:rgba(43,38,32,.5);}
+        .an-dh-track{flex:1;width:100%;display:flex;align-items:flex-end;}
+        .an-dh-track div{width:100%;border-radius:5px 5px 2px 2px;}
+        .an-dh-hours{display:flex;gap:3px;}
+        .an-dh-hours span{flex:1;height:20px;border-radius:4px;}
+        .an-dh-ends{display:flex;justify-content:space-between;font-size:10.5px;color:rgba(43,38,32,.4);margin-top:4px;}
         .an-skel{background:rgba(43,38,32,.06);border-radius:10px;animation:anPulse 1.2s ease-in-out infinite;}
         @keyframes anPulse{0%,100%{opacity:1}50%{opacity:.5}}
         .an-when-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
@@ -630,14 +691,8 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
 
         {/* ── Tarjeta ── */}
         {activeCards.length > 1 && (
-          <div className="an-card-selector">
-            <button className={`an-card-pill${!selectedCard ? ' an-card-pill--on' : ''}`} onClick={() => setSelectedCardId('all')}>Todas las tarjetas</button>
-            {activeCards.map(card => (
-              <button key={card.id} className={`an-card-pill${selectedCard?.id === card.id ? ' an-card-pill--on' : ''}`} onClick={() => setSelectedCardId(card.id)}>
-                {TYPE_ICONS[card.type]} {card.name}
-              </button>
-            ))}
-          </div>
+          <CardSwitcher value={selectedCard?.id || 'all'} onChange={setSelectedCardId}
+            options={[{ id: 'all', label: 'Todas las tarjetas' }, ...activeCards.map(c => ({ id: c.id, label: c.name }))]} />
         )}
 
         {detailedError && !detailedLoading && (
@@ -669,9 +724,15 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
 
         {/* ═══════════════ RESUMEN ═══════════════ */}
         {view === 'summary' && <>
-          {d && insights.length > 0 && (
-            <div className="an-card an-insights">
-              {insights.map((t, i) => <div key={i} className="an-insight"><span className="an-insight-dot" />{t}</div>)}
+          {d && highlights.length > 0 && (
+            <div className="an-highlights" style={{ ['--n' as any]: highlights.length }}>
+              {highlights.map(h => (
+                <div key={h.k} className="an-card an-hl">
+                  <div className="an-hl-k"><HlIcon name={h.icon} />{h.k}</div>
+                  <div className={`an-hl-v${h.tone ? ` an-hl-v--${h.tone}` : ''}`}>{h.v}</div>
+                  <div className="an-hl-s">{h.sub}</div>
+                </div>
+              ))}
             </div>
           )}
           <div className="an-program" style={{ ['--cols' as any]: PROGRAM.length <= 4 ? PROGRAM.length : 3 }}>
@@ -704,7 +765,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
               <div className="an-ctitle">{chart.title}</div>
               <div className="an-csub">{range === '90d' ? 'Por semana' : 'Por día'} · pasá el mouse por una barra para ver el detalle</div>
               {!d ? (detailedError && !detailedLoading ? <Loading /> : <MascotLoader text="Armando tus números…" size={44} minHeight={170} />) : chartEmpty
-                ? <div className="an-empty-note">Todavía no hay movimientos en este período. Aparecen cuando escaneás tarjetas con la app.</div>
+                ? <EmptyState title="Todavía sin movimientos" text="Aparecen cuando escaneás tarjetas con la app." />
                 : <BarChart data={d.visitsOverTime} valueKey={chart.key} tooltip={chartTip} />}
             </div>
             <div className="an-comp">
@@ -729,10 +790,13 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
               })}
             </div>
           </div>
+          {/* Mismo anillo que Inicio. */}
           <div className="an-card">
-            <div className="an-ctitle">Nuevos vs que vuelven</div>
-            <div className="an-csub">Clientes que se registraron y clientes que ya estaban y volvieron, en los últimos {range.replace('d', '')} días</div>
-            {!d ? <Loading /> : <NewVsReturning data={d.newVsReturning || []} />}
+            <div className="an-ctitle">¿Tu programa retiene?</div>
+            <div className="an-csub">Clientes que volvieron vs clientes nuevos, en los últimos {range.replace('d', '')} días</div>
+            {!d ? <Loading /> : d.retention && (d.retention.current.returning + d.retention.current.newCustomers) > 0
+              ? <RetentionRing data={d.retention} />
+              : <EmptyState title="Todavía sin movimientos" text="Aparece cuando tus clientes vuelvan o se registren." />}
           </div>
         </>}
 
@@ -743,11 +807,13 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
             <div className="an-card">
               <div className="an-ctitle">¿Hasta dónde llegan tus clientes?</div>
               <div className="an-csub">{d?.progressDistribution?.kind === 'points' ? 'Según sus puntos, hoy' : 'Según cuántos sellos tienen, hoy'}</div>
-              {!d ? <Loading /> : d.progressDistribution ? <ProgressDistribution data={d.progressDistribution} /> : null}
-              <div className="an-subhead">Desde que se registraron</div>
-              {!d ? <Loading /> : d.funnel.length > 0 && d.funnel[0].value > 0
-                ? <Funnel data={d.funnel} />
-                : <div className="an-empty-note">Todavía no hay clientes registrados.</div>}
+              {!d ? <Loading /> : !(d.funnel[0]?.value > 0)
+                ? <EmptyState title="Todavía sin clientes" text="Aparece cuando se registren en tus tarjetas." />
+                : <>
+                    {d.progressDistribution && <ProgressDistribution data={d.progressDistribution} />}
+                    <div className="an-subhead">Desde que se registraron</div>
+                    <Funnel data={d.funnel} />
+                  </>}
             </div>
             {types.includes('membership') && (
               <div className="an-card">
@@ -774,9 +840,9 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
               {!d ? <Loading /> : rankScope === 'period'
                 ? <Ranking rows={d.topCustomers} value={r => r.visits} unit={n => plural(n, 'visita', 'visitas')}
                     sub={r => `${activeCards.length > 1 ? `${r.cardName} · ` : ''}${r.progress} · última visita ${r.lastVisit}`}
-                    onOpen={onOpenCustomer} empty="Todavía no hay visitas en este período." />
+                    onOpen={onOpenCustomer} empty="Todavía sin visitas en el período" />
                 : <Ranking rows={d.mostLoyal} value={r => r.totalVisits} unit={n => plural(n, 'visita', 'visitas')}
-                    sub={r => `última visita ${r.lastVisit}`} onOpen={onOpenCustomer} empty="Todavía no hay visitas registradas." />}
+                    sub={r => `última visita ${r.lastVisit}`} onOpen={onOpenCustomer} empty="Todavía sin visitas" />}
             </div>
             <div className="an-card">
               <div className="an-ctitle">Frecuencia de visita</div>
@@ -802,7 +868,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
                   </div>
                 ))}
               </div>
-            </> : <div className="an-empty-note">Aparece cuando un mismo cliente vuelve al menos una vez en el período.</div>}
+            </> : <EmptyState title="Todavía sin datos" text="Aparece cuando un mismo cliente vuelve en el período." />}
             </div>
           </div>
 
@@ -811,9 +877,9 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
               <div className="an-ctitle">Los que más canjearon</div>
               <div className="an-csub">Premios entregados, desde que empezaste</div>
               {!d ? <Loading /> : types.every(t => t === 'membership')
-                ? <div className="an-empty-note">La membresía no tiene canjes: los beneficios se aplican por nivel.</div>
+                ? <EmptyState title="Sin canjes en membresía" text="Los beneficios se aplican por nivel." />
                 : <Ranking rows={d.topRedeemers} value={r => r.redemptions} unit={n => plural(n, 'canje', 'canjes')}
-                    onOpen={onOpenCustomer} empty="Todavía no hay premios entregados." />}
+                    onOpen={onOpenCustomer} empty="Todavía sin premios entregados" />}
             </div>
             <div className="an-card">
               <div className="an-ctitle">Respuestas del formulario</div>
@@ -826,13 +892,11 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         {/* ═══════════════ HORARIOS ═══════════════ */}
         {view === 'hours' && <>
           {!d ? <div className="an-card"><div className="an-ctitle">¿Cuándo viene tu gente?</div><Loading /></div> : <>
-            <WhenHeatmap hourly={d.hourly} mode="visits" modes={showMoreHours ? undefined : ['visits']} />
-            {showMoreHours
-              ? <div className="an-when-pair">
-                  <WhenHeatmap hourly={d.hourly} mode="redeems" />
-                  <WhenHeatmap hourly={d.hourly} mode="signups" />
-                </div>
-              : <button className="an-more" onClick={() => setShowMoreHours(true)}>Ver cuándo canjean y cuándo se registran</button>}
+            <WhenHeatmap hourly={d.hourly} mode="visits" modes={['visits']} />
+            <div className="an-when-pair">
+              <DayHourBars hourly={d.hourly} mode="redeems" />
+              <DayHourBars hourly={d.hourly} mode="signups" />
+            </div>
           </>}
         </>}
 
@@ -843,7 +907,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
             <div className="an-csub">En los últimos {range.replace('d', '')} días (clientes: total)</div>
             {!d ? <Loading /> : (d.cardComparison?.length || 0) >= 2
               ? <CardComparison data={d.cardComparison!} />
-              : <div className="an-empty-note">Aparece cuando tenés 2 o más tarjetas.</div>}
+              : <EmptyState title="Necesitás 2 o más tarjetas" />}
           </div>
         )}
 
