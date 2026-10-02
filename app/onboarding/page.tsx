@@ -1,6 +1,9 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react'
-import { apiOnboarding } from '@/lib/api'
+import { apiMe, apiOnboarding, getToken } from '@/lib/api'
+import { BrandLogo } from '@/components/brand/BrandLogo'
+import { NumberStepper } from '@/components/ui/NumberStepper'
+import { allowsFreeColor, darkenHex, DEFAULT_CARD_COLOR, presetsForPlan } from '@/lib/colorPresets'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CardType    = 'stamp' | 'points' | 'membership'
@@ -14,6 +17,7 @@ interface OBState {
   pointsPerVisit: number
   rewardMode:     RewardMode
   rewardValue:    string
+  rewardOptions:  string[]        // si el cliente elige: las opciones del negocio (2 a 6)
   brandColor:     string
   brandLogo:      string | null
 }
@@ -24,6 +28,29 @@ const SECTOR_CARD: Record<string, CardType> = {
   gym: 'points', bakery: 'stamp', spa: 'points',
   clothing: 'membership', bookstore: 'stamp', other: 'stamp',
 }
+
+// Sugerencias de premio por rubro para "El cliente elige su premio". Son un
+// punto de partida: el dueño las edita, saca o agrega (2 a 6).
+const SECTOR_REWARD_SUGGESTIONS: Record<string, string[]> = {
+  cafe:       ['Café gratis', 'Medialuna', 'Algo dulce'],
+  restaurant: ['Postre gratis', 'Bebida gratis', '10% de descuento'],
+  hair:       ['Corte gratis', 'Lavado y peinado', 'Tratamiento capilar'],
+  gym:        ['Clase gratis', 'Batido', 'Día de invitado'],
+  bakery:     ['Factura gratis', 'Café con medialuna', 'Porción de torta'],
+  spa:        ['Masaje de 30 min', 'Limpieza facial', 'Manicura'],
+  clothing:   ['10% de descuento', 'Accesorio de regalo', 'Envío gratis'],
+  bookstore:  ['Libro de regalo', 'Señalador', '10% de descuento'],
+  other:      ['10% de descuento', 'Producto de regalo', 'Servicio gratis'],
+}
+
+// Pasos según el programa: en puntos y membresía el paso 4 (premio) no
+// tiene nada que elegir, así que se saltea (antes era una pantalla de
+// "Entendido, seguir").
+function stepsFor(cardType: CardType): number[] {
+  return cardType === 'stamp' ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 5, 6]
+}
+
+const STORAGE_KEY = 'stampa_onboarding_v1'
 
 const SECTOR_STAMPS: Record<string, number> = {
   cafe: 8, restaurant: 8, bakery: 6, bookstore: 10,
@@ -72,12 +99,12 @@ const STEP_INFO: Record<number, { title: string; subtitle: string; tip: string }
   3: {
     title: 'Configurá tu programa',
     subtitle: 'Definí los parámetros del programa de fidelización.',
-    tip: '8 visitas es el número más popular. Suficiente para motivar sin que el cliente se canse de esperar.',
+    tip: 'Entre 6 y 8 visitas es lo más elegido: suficiente para motivar sin que el cliente se canse de esperar.',
   },
   4: {
     title: '¿Cómo se define el premio?',
     subtitle: 'Decidí quién elige el premio al completar la tarjeta.',
-    tip: 'Que el cliente elija su premio genera más expectativa — y más ganas de volver a completar la tarjeta.',
+    tip: 'Que el cliente elija su premio genera más expectativa y más ganas de volver. Vos definís entre qué opciones elige.',
   },
   5: {
     title: 'Dale identidad a tu tarjeta',
@@ -91,7 +118,7 @@ const STEP_INFO: Record<number, { title: string; subtitle: string; tip: string }
   },
 }
 
-const PRESET_COLORS = ['#1E3329','#C75D3A','#185FA5','#533FB7','#854F0B','#2C2C2A','#5B8C5A','#9C3030']
+// Colores: lib/colorPresets.ts (según el plan: 8, 16 o libre).
 
 function darken(hex: string): string {
   const c = hex.replace('#','')
@@ -108,7 +135,7 @@ function StampaFrog({ size = 28 }: { size?: number }) {
 
 // ─── Stampy icon (exact vector from Logo.ai, reused for tips/hints) ──────────
 const STAMPY_PATH = "M 611.515625 390.210938 C 631.171875 390.210938 631.203125 359.664062 611.515625 359.664062 C 591.859375 359.664062 591.828125 390.210938 611.515625 390.210938 M 518.382812 390.210938 C 538.035156 390.210938 538.070312 359.664062 518.382812 359.664062 C 498.726562 359.664062 498.695312 390.210938 518.382812 390.210938 M 662.726562 731.242188 L 662.902344 731.578125 C 667.019531 737.570312 674.152344 735.371094 680.445312 733.425781 C 682.566406 732.773438 684.730469 732.101562 686.734375 731.75 C 686.59375 731.800781 686.445312 731.847656 686.296875 731.898438 C 685.734375 732.085938 685.226562 732.257812 684.824219 732.421875 C 676.351562 735.894531 651.445312 743.265625 646.980469 742.019531 C 634.851562 710.550781 623.75 678.085938 613.011719 646.683594 C 604.890625 622.929688 596.492188 598.367188 587.703125 574.398438 L 587.625 574.191406 C 589.777344 574.199219 591.957031 574.289062 594.195312 574.554688 C 598.144531 575.023438 602.003906 575.820312 605.785156 576.878906 Z M 558.652344 741.957031 C 560.871094 742.039062 563.128906 742.117188 565.140625 742.445312 C 564.992188 742.445312 564.839844 742.441406 564.683594 742.441406 C 564.089844 742.433594 563.550781 742.425781 563.117188 742.449219 C 553.972656 742.941406 528.035156 741.703125 524.222656 739.054688 C 523.128906 705.347656 523.335938 671.039062 523.535156 637.855469 C 523.585938 629.144531 523.632812 620.316406 523.660156 611.453125 C 528.988281 605.730469 534.453125 600.175781 540.152344 595.175781 L 542.640625 734.058594 L 542.691406 734.433594 C 544.605469 741.453125 552.066406 741.71875 558.652344 741.957031 M 497.492188 343.71875 C 515.738281 342.460938 531.421875 349.605469 539.082031 366.675781 C 542.117188 373.445312 544.234375 380.605469 545.585938 387.929688 C 545.652344 392.914062 545.945312 397.925781 546.234375 402.929688 L 444.660156 402.929688 C 443.628906 373.03125 466.117188 345.878906 497.492188 343.71875 M 562.652344 368.59375 C 566.378906 354.457031 578.511719 342.34375 593.199219 340.039062 C 608.832031 337.582031 621.507812 348.765625 628.234375 361.847656 C 634.691406 374.390625 635.71875 388.820312 635.691406 402.929688 L 562.636719 402.929688 C 562.378906 396.796875 561.730469 390.628906 560.601562 384.570312 C 560.726562 379.171875 561.277344 373.828125 562.652344 368.59375 M 677.597656 616.0625 C 720.660156 637.035156 770.347656 603.078125 767.992188 555.238281 C 767.667969 548.640625 766.929688 543.941406 765.464844 542.988281 C 762.320312 540.949219 717.355469 534.675781 705.980469 530.402344 C 660.046875 513.140625 636.742188 476.59375 578.011719 470.703125 C 536.339844 466.523438 495.132812 487.578125 453.09375 486.78125 L 453.097656 486.792969 C 440.523438 487.160156 420.957031 481.453125 418.160156 477.183594 C 414.453125 471.523438 417.480469 469.023438 420.300781 467.464844 C 424.753906 465.007812 425.320312 470.195312 433.53125 474.738281 C 440.597656 478.644531 447.78125 479.105469 449.652344 479.15625 C 449.8125 479.160156 449.96875 479.160156 450.128906 479.164062 L 450.136719 479.164062 C 455.34375 479.289062 460.761719 479.691406 465.335938 479.003906 C 502.023438 473.5 540.414062 455.378906 578.699219 455.453125 C 609.699219 455.515625 643.351562 469.207031 673.074219 475.605469 C 691.507812 479.574219 709.628906 481.300781 727.964844 481.933594 C 749.882812 482.6875 767.820312 465.265625 767.820312 443.332031 C 767.820312 421.019531 749.734375 402.929688 727.421875 402.929688 L 650.886719 402.929688 C 650.777344 385.023438 649.019531 366.851562 639.804688 351.171875 C 630.171875 334.773438 612.832031 322.574219 593.191406 324.71875 C 575.253906 326.679688 558.976562 338.914062 551.359375 355.195312 C 551.210938 355.519531 551.074219 355.84375 550.929688 356.167969 C 550.460938 355.296875 550 354.417969 549.5 353.5625 C 538.289062 334.421875 516.644531 326.582031 495.171875 328.632812 C 456.214844 332.355469 428.496094 365.664062 429.425781 402.929688 L 376.089844 402.929688 C 340.652344 402.929688 311.925781 431.660156 311.925781 467.09375 C 311.925781 497.828125 333.699219 524.222656 363.855469 530.144531 C 386.542969 534.597656 409.207031 539.703125 431.207031 541.632812 C 470.019531 545.039062 491.863281 519.863281 524.886719 507.222656 C 554.234375 495.992188 585.917969 494.460938 612.328125 508.113281 C 616.191406 510.113281 614.082031 515.9375 609.816406 515.078125 C 579.984375 509.046875 553.902344 520.203125 526.445312 541.355469 C 484.707031 573.503906 476.902344 599.941406 417.648438 613.125 C 408.089844 615.253906 398.414062 616.972656 388.679688 618.511719 C 369.550781 618.671875 339.527344 620.273438 337.332031 643.148438 C 335.066406 666.742188 356.675781 676.75 376.058594 681.066406 C 399.160156 686.210938 423.71875 685.359375 446.300781 678.179688 C 460.238281 673.746094 470.859375 666.742188 479.578125 656.96875 C 482.753906 653.410156 486.25 650.15625 489.835938 647.003906 C 497.109375 640.613281 504.195312 632.921875 511.375 624.96875 C 511.3125 629 511.25 633.042969 511.183594 637.039062 C 510.6875 667.0625 510.179688 698.113281 511.296875 728.550781 C 511.332031 729.5625 511.339844 730.664062 511.347656 731.816406 C 511.386719 738.871094 511.4375 748.527344 519.035156 751.53125 C 526.300781 754.402344 544.078125 755.328125 557.171875 755.328125 C 561.96875 755.328125 566.136719 755.203125 568.933594 755.003906 C 577.652344 754.390625 598.292969 752.195312 601.625 745.15625 C 602.238281 743.863281 602.589844 741.789062 600.792969 739.25 C 598.71875 736.320312 590.195312 733.773438 572.289062 730.726562 L 571.132812 730.53125 C 569.894531 730.316406 568.167969 730.25 566.167969 730.171875 C 562.636719 730.03125 556.160156 729.777344 555.144531 728.09375 L 552.851562 585.398438 C 559.894531 580.773438 567.371094 577.292969 575.421875 575.503906 C 575.863281 576.738281 576.289062 577.910156 576.6875 578.988281 C 585.363281 602.402344 593.355469 626.589844 601.082031 649.984375 C 610.5 678.5 620.238281 707.984375 631.316406 736.359375 C 631.6875 737.300781 632.054688 738.339844 632.4375 739.425781 C 634.800781 746.074219 638.03125 755.175781 646.191406 755.511719 C 646.429688 755.519531 646.675781 755.523438 646.933594 755.523438 C 658.105469 755.523438 685.070312 746.402344 694.453125 742.367188 C 702.480469 738.90625 721.253906 730.03125 722.078125 722.296875 C 722.230469 720.875 721.878906 718.800781 719.34375 716.992188 C 716.421875 714.914062 707.53125 715.308594 689.609375 718.335938 L 688.46875 718.527344 C 687.230469 718.734375 685.578125 719.238281 683.664062 719.820312 C 680.523438 720.78125 674.097656 722.746094 672.570312 721.488281 L 621.75 582.933594 C 640.808594 591.925781 658.105469 605.78125 675.289062 614.886719 C 676.058594 615.296875 676.832031 615.6875 677.597656 616.0625"
-function StampyIcon({ size = 32, color = '#E46C31' }: { size?: number; color?: string }) {
+function StampyIcon({ size = 32, color = '#C75D3A' }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="300 310 480 455" style={{ flexShrink: 0 }}>
       <path d={STAMPY_PATH} fill={color} />
@@ -346,22 +373,25 @@ function Step2({ state, onChange, onNext, onBack }: { state: OBState; onChange: 
   )
 }
 
-function Step3({ state, onChange, onNext, onBack }: { state: OBState; onChange: (p: Partial<OBState>) => void; onNext: () => void; onBack: () => void }) {
-  const titles: Record<CardType, string> = {
-    stamp:      '¿Cuántas visitas para completar la tarjeta?',
-    points:     '¿Cuántos puntos suma el cliente por visita?',
-    membership: 'Tu programa tiene 4 niveles de membresía',
-  }
-  const subs: Record<CardType, string> = {
-    stamp:      'Es la cantidad de visitas necesarias para que el cliente gane su premio.',
-    points:     'Cada vez que el scanner registra la visita, el cliente acumula estos puntos.',
-    membership: 'Los clientes suben de nivel a medida que acumulan visitas. Podés editar los beneficios desde la sección Premios.',
-  }
+type StepProps = { state: OBState; onChange: (p: Partial<OBState>) => void; onNext: () => void; onBack: () => void }
+
+const MEMBERSHIP_TIERS = [
+  { name: 'Bronze', threshold: 0,  perk: 'Bienvenida',             color: '#854F0B', bg: '#FAEEDA' },
+  { name: 'Silver', threshold: 10, perk: '5% de descuento',        color: '#444441', bg: '#EAEAEA' },
+  { name: 'Gold',   threshold: 25, perk: 'Regalo de cumpleaños',   color: '#633806', bg: '#FAC775' },
+  { name: 'Black',  threshold: 50, perk: 'Beneficios exclusivos',  color: '#F7F0E4', bg: '#1A1A18' },
+]
+
+const POINTS_PRESETS = [5, 10, 20, 50]
+
+function Step3({ state, onChange, onNext, onBack }: StepProps) {
   const actionLabels: Record<CardType, string> = {
-    stamp: 'Elegí la cantidad de visitas para completar la tarjeta',
-    points: 'Definí cuántos puntos suma cada visita',
+    stamp: '¿Cuántas visitas para completar la tarjeta?',
+    points: '¿Cuántos puntos suma cada visita?',
     membership: 'Tu programa tiene 4 niveles automáticos',
   }
+  const pointsOk = Number.isInteger(state.pointsPerVisit) && state.pointsPerVisit >= 1 && state.pointsPerVisit <= 1000
+  const setPoints = (n: number) => onChange({ pointsPerVisit: Math.max(1, Math.min(1000, Math.round(n) || 1)) })
   return (
     <div className="ob-step">
       <div className="ob-action-label">{actionLabels[state.cardType]}</div>
@@ -376,76 +406,64 @@ function Step3({ state, onChange, onNext, onBack }: { state: OBState; onChange: 
               </button>
             ))}
           </div>
-          <div className="ob-hint"><StampyIcon size={24} />La mayoría elige entre 6 y 8 visitas.</div>
         </>
       )}
-
       {state.cardType === 'points' && (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <input type="number" className="ob-pts-input" min={1} max={1000}
-              value={state.pointsPerVisit} onChange={e => onChange({ pointsPerVisit: Number(e.target.value) })} />
-            <span className="ob-pts-lbl">puntos por visita</span>
+          <div className="ob-stamp-grid">
+            {POINTS_PRESETS.map(n => (
+              <button key={n} className={`ob-stamp-btn${state.pointsPerVisit === n ? ' ob-stamp-btn--on' : ''}`} onClick={() => setPoints(n)}>
+                <span className="ob-stamp-num">{n}</span>
+                <span className="ob-stamp-sub">puntos</span>
+              </button>
+            ))}
           </div>
-          <div className="ob-hint"><StampyIcon size={24} />Los premios y sus umbrales los configurás desde la sección Premios del dashboard.</div>
+          <div className="ob-stepper-row">
+            <span className="ob-stepper-lbl">Otro valor</span>
+            <NumberStepper value={state.pointsPerVisit} onChange={setPoints} min={1} max={1000} suffix="pts" ariaLabel="Puntos por visita" />
+          </div>
+          <div className="ob-hint"><StampyIcon size={24} />Los premios (ej: café gratis por 100 puntos) los cargás después en Premios.</div>
         </>
       )}
-
       {state.cardType === 'membership' && (
         <div className="ob-tiers">
-          {[
-            { name: 'Bronze', threshold: 0,  color: '#854F0B', bg: '#FAEEDA' },
-            { name: 'Silver', threshold: 10, color: '#444441', bg: '#EAEAEA' },
-            { name: 'Gold',   threshold: 25, color: '#633806', bg: '#FAC775' },
-            { name: 'Black',  threshold: 50, color: '#F7F0E4', bg: '#1A1A18' },
-          ].map(t => (
+          {MEMBERSHIP_TIERS.map(t => (
             <div key={t.name} className="ob-tier-row">
               <div className="ob-tier-badge" style={{ background: t.bg, color: t.color }}>★ {t.name}</div>
               <div className="ob-tier-info">
-                <span className="ob-tier-name">{t.name}</span>
+                <span className="ob-tier-name">{t.perk}</span>
                 <span className="ob-tier-threshold">{t.threshold === 0 ? 'Nivel inicial · automático' : `Desde ${t.threshold} visitas`}</span>
               </div>
             </div>
           ))}
-          <div className="ob-hint"><StampyIcon size={24} />Editá nombres y beneficios desde la sección Premios.</div>
+          <div className="ob-hint"><StampyIcon size={24} />Nombres, visitas y beneficios los podés cambiar después en Premios.</div>
         </div>
       )}
-
-      <Nav onBack={onBack} onNext={onNext} />
+      <Nav onBack={onBack} onNext={onNext} disabled={state.cardType === 'points' && !pointsOk} />
     </div>
   )
 }
 
-function Step4({ state, onChange, onNext, onBack }: { state: OBState; onChange: (p: Partial<OBState>) => void; onNext: () => void; onBack: () => void }) {
-  // Membership: skip automatically (no prize to define)
-  // Points: brief note
-  if (state.cardType === 'membership') {
-    return (
-      <div className="ob-step">
-        <div className="ob-action-label">Los beneficios van con cada nivel</div>
-        <div className="ob-info-box">
-          <StampyIcon size={40} />
-          <span>Bronze: bienvenida · Silver: 5% dto · Gold: regalo de cumpleaños · Black: beneficios exclusivos</span>
-        </div>
-        <Nav onBack={onBack} onNext={onNext} nextLabel="Entendido, seguir" />
-      </div>
-    )
-  }
+function Step4({ state, onChange, onNext, onBack }: StepProps) {
+  const [draft, setDraft] = useState('')
+  // Primera vez en "El cliente elige": arranca con las sugerencias del rubro.
+  useEffect(() => {
+    if (state.rewardMode === 'customer' && state.rewardOptions.length === 0) {
+      onChange({ rewardOptions: SECTOR_REWARD_SUGGESTIONS[state.sector] || SECTOR_REWARD_SUGGESTIONS.other })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.rewardMode])
 
-  if (state.cardType === 'points') {
-    return (
-      <div className="ob-step">
-        <div className="ob-action-label">Los premios se configuran desde el dashboard</div>
-        <div className="ob-info-box">
-          <StampyIcon size={40} />
-          <span>Ej: Clase gratis (500 pts) · Mes de descuento (1200 pts) · Producto gratis (800 pts)</span>
-        </div>
-        <Nav onBack={onBack} onNext={onNext} nextLabel="Entendido, seguir" />
-      </div>
-    )
+  const options = state.rewardOptions
+  const cleanDraft = draft.trim()
+  const canAdd = cleanDraft.length > 0 && cleanDraft.length <= 40 && options.length < 6 && !options.some(o => o.toLowerCase() === cleanDraft.toLowerCase())
+  function addOption() {
+    if (!canAdd) return
+    onChange({ rewardOptions: [...options, cleanDraft] })
+    setDraft('')
   }
+  const valid = state.rewardMode === 'customer' ? options.length >= 2 && options.length <= 6 : state.rewardValue.trim().length > 0
 
-  // Stamp: full prize config
   return (
     <div className="ob-step">
       <div className="ob-action-label">Al completar las {state.stampsRequired} visitas, ¿qué recibe el cliente?</div>
@@ -457,9 +475,29 @@ function Step4({ state, onChange, onNext, onBack }: { state: OBState; onChange: 
           </div>
           <div>
             <div className="ob-reward-title">El cliente elige su premio</div>
-            <div className="ob-reward-desc">Al registrarse, el cliente completa un campo con lo que quiere como premio. El scanner ve esa respuesta al momento del canje. Cada cliente tiene su propio premio.</div>
+            <div className="ob-reward-desc">Vos definís las opciones y el cliente elige una al registrarse. Al completar la tarjeta, el scanner ve cuál eligió.</div>
           </div>
         </div>
+        {state.rewardMode === 'customer' && (
+          <div className="ob-reward-options">
+            <div className="ob-chips">
+              {options.map(o => (
+                <span key={o} className="ob-chip">
+                  {o}
+                  <button type="button" aria-label={`Quitar ${o}`} onClick={() => onChange({ rewardOptions: options.filter(x => x !== o) })}>×</button>
+                </span>
+              ))}
+            </div>
+            {options.length < 6 && (
+              <div className="ob-chip-add">
+                <input className="ob-input" placeholder="Agregar otra opción…" value={draft} maxLength={40}
+                  onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOption() } }} />
+                <button type="button" className="ob-chip-add-btn" onClick={addOption} disabled={!canAdd}>Agregar</button>
+              </div>
+            )}
+            <div className="ob-chip-note">{options.length < 2 ? 'Cargá al menos 2 opciones.' : `${options.length} de 6 opciones.`}</div>
+          </div>
+        )}
         <div className={`ob-reward-opt${state.rewardMode === 'fixed' ? ' ob-reward-opt--on' : ''}`}
           onClick={() => onChange({ rewardMode: 'fixed' })}>
           <div className={`ob-radio${state.rewardMode === 'fixed' ? ' ob-radio--on' : ''}`}>
@@ -471,27 +509,64 @@ function Step4({ state, onChange, onNext, onBack }: { state: OBState; onChange: 
           </div>
         </div>
       </div>
-
       {state.rewardMode === 'fixed' && (
-        <input className="ob-input" style={{ marginTop: 12 }}
+        <input className="ob-input" style={{ marginTop: 12 }} maxLength={60}
           placeholder="Ej: Café gratis, 10% de descuento..."
           value={state.rewardValue} onChange={e => onChange({ rewardValue: e.target.value })} />
       )}
-
-      <Nav onBack={onBack} onNext={onNext}
-        disabled={state.rewardMode === 'fixed' && !state.rewardValue.trim()} />
+      <Nav onBack={onBack} onNext={onNext} disabled={!valid} />
     </div>
   )
 }
 
-function Step5({ state, onChange, onNext, onBack }: { state: OBState; onChange: (p: Partial<OBState>) => void; onNext: () => void; onBack: () => void }) {
-  const fileRef = useRef<HTMLInputElement>(null)
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file) return
-    const r = new FileReader()
-    r.onload = ev => onChange({ brandLogo: ev.target?.result as string })
-    r.readAsDataURL(file)
+// Achica el logo en el navegador antes de subirlo (máx. 512 px, PNG para
+// conservar la transparencia): una foto del celular de varios MB hacía
+// fallar el paso final.
+async function compressLogo(file: File): Promise<string> {
+  if (!file.type.startsWith('image/')) throw new Error('El archivo tiene que ser una imagen (PNG o JPG).')
+  const url = URL.createObjectURL(file)
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image()
+      i.onload = () => resolve(i)
+      i.onerror = () => reject(new Error('No pudimos leer esa imagen. Probá con otra.'))
+      i.src = url
+    })
+    const scale = Math.min(1, 512 / Math.max(img.width, img.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(img.width * scale)
+    canvas.height = Math.round(img.height * scale)
+    canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+    return canvas.toDataURL('image/png')
+  } finally {
+    URL.revokeObjectURL(url)
   }
+}
+
+function Step5({ state, onChange, onNext, onBack, plan }: StepProps & { plan: string }) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [logoError, setLogoError] = useState<string | null>(null)
+  const [hex, setHex] = useState(state.brandColor)
+  const presets = presetsForPlan(plan)
+  const free = allowsFreeColor(plan)
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return
+    setLogoError(null)
+    try { onChange({ brandLogo: await compressLogo(file) }) }
+    catch (err: any) { setLogoError(err.message) }
+    e.target.value = ''
+  }
+  function applyHex(v: string) {
+    setHex(v)
+    if (/^#[0-9A-Fa-f]{6}$/.test(v)) onChange({ brandColor: v })
+  }
+  const planNote = free
+    ? 'Tu plan incluye cualquier color: elegí uno de la paleta o el tuyo.'
+    : plan === 'Growth'
+      ? '16 colores incluidos en tu plan. En Pro podés elegir cualquier color.'
+      : '8 colores incluidos en tu plan. Growth suma 8 más y Pro permite cualquier color.'
+
   return (
     <div className="ob-step">
       <div className="ob-action-label">El logo y el color aparecen en la tarjeta digital</div>
@@ -506,37 +581,48 @@ function Step5({ state, onChange, onNext, onBack }: { state: OBState; onChange: 
                   <span className="ob-logo-hint">Subir logo</span>
                 </>
             }
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+            <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFile} style={{ display: 'none' }} />
           </div>
           {state.brandLogo && <button className="ob-logo-remove" onClick={() => onChange({ brandLogo: null })}>Quitar</button>}
+          {logoError && <div className="ob-field-error">{logoError}</div>}
+          <div className="ob-logo-note">PNG con fondo transparente se ve mejor.</div>
         </div>
-
         <div style={{ flex: 1 }}>
           <div className="ob-brand-label">Color de la tarjeta</div>
           <div className="ob-color-row">
-            {PRESET_COLORS.map(c => (
-              <button key={c} className={`ob-color-dot${state.brandColor === c ? ' ob-color-dot--on' : ''}`}
-                style={{ background: c }} onClick={() => onChange({ brandColor: c })} />
+            {presets.map(c => (
+              <button key={c.start} title={c.label} aria-label={c.label}
+                className={`ob-color-dot${state.brandColor.toLowerCase() === c.start.toLowerCase() ? ' ob-color-dot--on' : ''}`}
+                style={{ background: c.start }} onClick={() => { onChange({ brandColor: c.start }); setHex(c.start) }} />
             ))}
           </div>
-          <div className="ob-hint" style={{ marginTop: 16 }}><StampyIcon size={26} />8 colores incluidos en tu plan. Colores personalizados están disponibles en Pro y Enterprise.</div>
+          {free && (
+            <div className="ob-custom-color">
+              <label className="ob-custom-swatch" style={{ background: /^#[0-9A-Fa-f]{6}$/.test(hex) ? hex : state.brandColor }}>
+                <input type="color" value={state.brandColor} onChange={e => applyHex(e.target.value)} />
+              </label>
+              <input className="ob-hex-input" value={hex} maxLength={7} onChange={e => applyHex(e.target.value)} placeholder="#1B412F" />
+              <span className="ob-hex-label">Color propio</span>
+            </div>
+          )}
+          <div className="ob-hint" style={{ marginTop: 16 }}><StampyIcon size={26} />{planNote}</div>
         </div>
       </div>
-
-      <Nav onBack={onBack} onNext={onNext} nextLabel="Ver mi tarjeta" showSkip onSkip={onNext} />
+      <Nav onBack={onBack} onNext={onNext} nextLabel="Ver mi tarjeta" showSkip={!state.brandLogo} onSkip={onNext} />
     </div>
   )
 }
 
-function Step6({ state, onBack, onFinish }: { state: OBState; onBack: () => void; onFinish: () => void }) {
+function Step6({ state, onBack, onFinish, finishing, error }: { state: OBState; onBack: () => void; onFinish: () => void; finishing: boolean; error: string | null }) {
   const [platform, setPlatform] = useState<'apple' | 'google'>('apple')
   const sectorLabel = SECTORS.find(s => s.id === state.sector)?.label || ''
-
+  const premio = state.cardType === 'stamp'
+    ? (state.rewardMode === 'customer' ? `El cliente elige: ${state.rewardOptions.join(', ')}` : state.rewardValue || '—')
+    : state.cardType === 'points' ? 'Catálogo de premios (lo cargás en Premios)' : 'Beneficios por nivel'
   return (
     <div className="ob-step ob-step--wide">
-      <div className="ob-action-label">Esto es exactamente lo que van a ver tus clientes en su wallet</div>
+      <div className="ob-action-label">Así la van a ver tus clientes en su Wallet</div>
       <div className="ob-final-layout">
-        {/* Pass preview */}
         <div className="ob-final-pass">
           <div className="ob-platform-switch">
             <button className={`ob-platform-btn${platform === 'apple' ? ' ob-platform-btn--on' : ''}`} onClick={() => setPlatform('apple')}>Apple Wallet</button>
@@ -545,15 +631,13 @@ function Step6({ state, onBack, onFinish }: { state: OBState; onBack: () => void
           {platform === 'apple' ? <WalletPass state={state} /> : <GooglePass state={state} />}
           <div className="ob-preview-note">{platform === 'apple' ? 'Apple Wallet — formato real del pase' : 'Google Wallet — tarjeta Material'}</div>
         </div>
-
-        {/* Summary */}
         <div className="ob-summary">
           <div className="ob-summary-title">Resumen del programa</div>
           {[
             { label: 'Negocio',   val: state.businessName || '—' },
             { label: 'Rubro',     val: sectorLabel || '—' },
             { label: 'Programa',  val: state.cardType === 'stamp' ? `Sellos (${state.stampsRequired} visitas)` : state.cardType === 'points' ? `Puntos (${state.pointsPerVisit} por visita)` : 'Membresía (4 niveles)' },
-            { label: 'Premio',    val: state.cardType === 'stamp' ? (state.rewardMode === 'customer' ? 'El cliente elige' : state.rewardValue || '—') : state.cardType === 'points' ? 'Catálogo de premios' : 'Beneficios por nivel' },
+            { label: 'Premio',    val: premio },
           ].map(({ label, val }) => (
             <div key={label} className="ob-summary-row">
               <span className="ob-summary-label">{label}</span>
@@ -561,12 +645,14 @@ function Step6({ state, onBack, onFinish }: { state: OBState; onBack: () => void
             </div>
           ))}
           <div className="ob-summary-note">Todo esto se puede editar desde el dashboard en cualquier momento.</div>
-          <button className="ob-finish-btn" onClick={onFinish}>Ir a mi dashboard →</button>
+          {error && <div className="ob-finish-error">{error}</div>}
+          <button className="ob-finish-btn" onClick={onFinish} disabled={finishing}>
+            {finishing ? 'Creando tu negocio…' : 'Ir a mi dashboard →'}
+          </button>
         </div>
       </div>
-
       <div className="ob-nav" style={{ marginTop: 28 }}>
-        <button className="ob-btn-back" onClick={onBack}><IcoArrowL /> Atrás</button>
+        <button className="ob-btn-back" onClick={onBack} disabled={finishing}><IcoArrowL /> Atrás</button>
         <div />
       </div>
     </div>
@@ -584,14 +670,14 @@ const CSS = `
   button:focus-visible { outline:2px solid rgba(199,93,58,.35); outline-offset:2px; }
   .ob-shell { min-height:100vh; min-height:100dvh; display:flex; flex-direction:row; max-width:100vw; overflow-x:hidden; }
   /* Left panel */
-  .ob-left { width:380px; flex-shrink:0; background:#01231A; display:flex; flex-direction:column; padding:36px 32px; gap:32px; min-height:100vh; position:sticky; top:0; height:100vh; overflow:hidden; }
+  .ob-left { width:380px; flex-shrink:0; background:#1B412F; display:flex; flex-direction:column; padding:36px 32px; gap:32px; min-height:100vh; position:sticky; top:0; height:100vh; overflow:hidden; }
   .ob-left-logo { display:flex; align-items:center; }
   .ob-dots { display:flex; gap:8px; align-items:center; }
   .ob-dot { width:10px; height:10px; border-radius:50%; background:rgba(247,239,232,.2); transition:all .3s ease; }
-  .ob-dot--on { background:#E46C31; width:28px; border-radius:6px; }
+  .ob-dot--on { background:#C75D3A; width:28px; border-radius:6px; }
   .ob-step-label { font-size:11px; color:rgba(247,239,232,.35); letter-spacing:.06em; margin-top:4px; }
   .ob-left-title { font-family:var(--font-d); font-weight:800; font-size:30px; color:#F7EFE8; line-height:1.2; }
-  .ob-left-title em { color:#E46C31; font-style:normal; }
+  .ob-left-title em { color:#C75D3A; font-style:normal; }
   .ob-left-sub { font-size:14px; color:rgba(247,239,232,.55); line-height:1.7; margin-top:8px; }
   .ob-stampy-tip { background:rgba(247,239,232,.06); border:1px solid rgba(247,239,232,.1); border-radius:16px; padding:18px; display:flex; flex-direction:column; gap:12px; }
   .ob-stampy-head { display:flex; align-items:center; gap:10px; }
@@ -708,12 +794,43 @@ const CSS = `
   .ob-summary-label { font-size:12px; color:rgba(43,38,32,.45); flex-shrink:0; }
   .ob-summary-val { font-size:12.5px; font-weight:600; color:#2B2620; text-align:right; }
   .ob-summary-note { font-size:11px; color:rgba(43,38,32,.4); margin-top:14px; padding-top:12px; border-top:1px solid rgba(43,38,32,.07); line-height:1.5; }
-  .ob-finish-btn { width:100%; background:#5B8C5A; color:#fff; border:none; border-radius:12px; padding:14px; font-size:14px; font-weight:700; cursor:pointer; font-family:var(--font-d); margin-top:16px; transition:background .15s; }
-  .ob-finish-btn:hover { background:#4A7349; }
+  .ob-finish-btn { width:100%; background:#C75D3A; color:#fff; border:none; border-radius:12px; padding:14px; font-size:14px; font-weight:700; cursor:pointer; font-family:var(--font-d); margin-top:16px; transition:background .15s; }
+  .ob-finish-btn:hover:not(:disabled) { background:#B14F2F; }
+
+  .ob-header-step { font-size:12px; font-weight:600; color:rgba(247,240,228,.6); }
+  .ob-mobile-tip { display:flex; gap:8px; align-items:flex-start; margin-top:10px; font-size:12.5px; line-height:1.5; color:rgba(43,38,32,.6); background:rgba(199,93,58,.06); border-radius:10px; padding:10px 12px; }
+  .ob-mobile-tip img { flex-shrink:0; margin-top:1px; }
+  .ob-loading { padding:40px 0; color:rgba(43,38,32,.45); font-size:14px; }
+  .ob-stepper-row { display:flex; align-items:center; gap:14px; margin-top:14px; }
+  .ob-stepper-lbl { font-size:13px; color:rgba(43,38,32,.55); }
+  .ob-stepper { display:inline-flex; align-items:center; border:1.5px solid rgba(43,38,32,.12); border-radius:12px; overflow:hidden; background:#fff; }
+  .ob-stepper button { width:40px; height:40px; border:none; background:#FBF6EE; font-size:18px; font-weight:700; color:#2B2620; cursor:pointer; }
+  .ob-stepper button:disabled { opacity:.35; cursor:not-allowed; }
+  .ob-stepper input { width:64px; height:40px; border:none; text-align:center; font-size:15px; font-weight:700; color:#2B2620; font-family:var(--font-b); outline:none; -moz-appearance:textfield; }
+  .ob-stepper input::-webkit-outer-spin-button, .ob-stepper input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  .ob-reward-options { margin:-2px 0 10px 34px; }
+  .ob-chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  .ob-chip { display:inline-flex; align-items:center; gap:6px; background:rgba(199,93,58,.1); color:#9E4529; border-radius:999px; padding:7px 8px 7px 13px; font-size:13px; font-weight:600; }
+  .ob-chip button { border:none; background:rgba(158,69,41,.15); color:#9E4529; width:20px; height:20px; border-radius:50%; cursor:pointer; font-size:14px; line-height:1; }
+  .ob-chip-add { display:flex; gap:8px; }
+  .ob-chip-add .ob-input { margin:0; }
+  .ob-chip-add-btn { flex-shrink:0; border:1.5px solid rgba(43,38,32,.15); background:#fff; border-radius:12px; padding:0 16px; font-weight:700; font-size:13px; cursor:pointer; color:#2B2620; }
+  .ob-chip-add-btn:disabled { opacity:.4; cursor:not-allowed; }
+  .ob-chip-note { font-size:11.5px; color:rgba(43,38,32,.45); margin-top:6px; }
+  .ob-custom-color { display:flex; align-items:center; gap:10px; margin-top:14px; }
+  .ob-custom-swatch { position:relative; width:34px; height:34px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1.5px rgba(43,38,32,.15); cursor:pointer; overflow:hidden; }
+  .ob-custom-swatch input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .ob-hex-input { width:96px; padding:8px 10px; border:1.5px solid rgba(43,38,32,.12); border-radius:10px; font-family:monospace; font-size:13px; background:#FBF6EE; color:#2B2620; outline:none; }
+  .ob-hex-label { font-size:12px; color:rgba(43,38,32,.5); }
+  .ob-field-error { font-size:11.5px; color:#B23B3B; margin-top:6px; max-width:140px; line-height:1.4; }
+  .ob-logo-note { font-size:11px; color:rgba(43,38,32,.4); margin-top:6px; max-width:140px; line-height:1.4; }
+  .ob-finish-error { margin-top:14px; padding:10px 12px; border-radius:10px; background:rgba(178,59,59,.08); color:#B23B3B; font-size:12.5px; font-weight:600; line-height:1.5; }
+  .ob-finish-btn:disabled { opacity:.6; cursor:wait; }
+  .ob-btn-back:disabled { opacity:.4; cursor:not-allowed; }
   @media (max-width:768px) {
     .ob-shell { flex-direction:column; }
     .ob-left { display:none; }
-    .ob-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; background:#01231A; }
+    .ob-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; background:#1B412F; }
     .ob-right { align-items:flex-start; padding:0; min-height:calc(100dvh - 64px); overflow-x:hidden; }
     .ob-right-inner { max-width:100%; padding:24px 20px calc(40px + env(safe-area-inset-bottom)); }
     .ob-step-title { font-size:22px; }
@@ -726,31 +843,77 @@ const CSS = `
   }
 `
 
-function injectStyles() {
-  if (typeof document === 'undefined') return
-  if (document.getElementById('ob-css')) return
-  const s = document.createElement('style')
-  s.id = 'ob-css'
-  s.textContent = CSS
-  document.head.appendChild(s)
+// ─── Main ─────────────────────────────────────────────────────────────────────
+const INITIAL_STATE: OBState = {
+  businessName: '', sector: '', cardType: 'stamp',
+  stampsRequired: 8, pointsPerVisit: 10,
+  rewardMode: 'customer', rewardValue: '', rewardOptions: [],
+  brandColor: DEFAULT_CARD_COLOR.start, brandLogo: null,
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function OnboardingPage() {
-  const TOTAL = 6
   const [step, setStep] = useState(1)
-  const [state, setState] = useState<OBState>({
-    businessName: '', sector: '', cardType: 'stamp',
-    stampsRequired: 8, pointsPerVisit: 10,
-    rewardMode: 'customer', rewardValue: '',
-    brandColor: '#1E3329', brandLogo: null,
-  })
+  const [state, setState] = useState<OBState>(INITIAL_STATE)
+  const [plan, setPlan] = useState<string>('Starter')
+  const [ready, setReady] = useState(false)
+  const [finishing, setFinishing] = useState(false)
+  const [finishError, setFinishError] = useState<string | null>(null)
 
-  useEffect(() => { injectStyles() }, [])
+  // Entrada: sin sesión → login; si ya tiene negocio → dashboard (no hay
+  // que volver a hacer el onboarding). Si recargó a mitad de camino, se
+  // retoma donde estaba.
+  useEffect(() => {
+    if (!getToken()) { window.location.replace('/login'); return }
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null')
+      if (saved?.state) { setState({ ...INITIAL_STATE, ...saved.state }); setStep(saved.step || 1) }
+    } catch { /* sin progreso guardado */ }
+    apiMe()
+      .then(({ owner, businesses }) => {
+        if (businesses.length > 0 || owner?.role === 'manager') { window.location.replace('/dashboard'); return }
+        setPlan(owner?.plan || 'Starter')
+        setReady(true)
+      })
+      .catch(() => setReady(true))
+  }, [])
+
+  useEffect(() => {
+    if (!ready) return
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ state, step })) } catch { /* sin espacio (logo grande): no se guarda */ }
+  }, [state, step, ready])
+
+  const flow = stepsFor(state.cardType)
+  const position = Math.max(flow.indexOf(step), 0)
 
   function update(patch: Partial<OBState>) { setState(prev => ({ ...prev, ...patch })) }
-  function next() { setStep(s => Math.min(s + 1, TOTAL)) }
-  function back() { setStep(s => Math.max(s - 1, 1)) }
+  function next() { setStep(flow[Math.min(position + 1, flow.length - 1)]); window.scrollTo(0, 0) }
+  function back() { setStep(flow[Math.max(position - 1, 0)]); window.scrollTo(0, 0) }
+
+  async function finish() {
+    if (finishing) return
+    setFinishing(true)
+    setFinishError(null)
+    try {
+      await apiOnboarding({
+        businessName: state.businessName.trim(),
+        sector: state.sector,
+        cardType: state.cardType,
+        stampsRequired: state.stampsRequired,
+        pointsPerVisit: state.pointsPerVisit,
+        rewardMode: state.rewardMode === 'customer' ? 'dynamic' : 'fixed',
+        rewardFixedValue: state.rewardMode === 'fixed' ? state.rewardValue.trim() : undefined,
+        rewardOptions: state.cardType === 'stamp' && state.rewardMode === 'customer' ? state.rewardOptions : undefined,
+        brandColor: state.brandColor,
+        brandLogo: state.brandLogo,
+      })
+      localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem('stampa_active_tab')
+      window.location.href = '/dashboard'
+    } catch (err: any) {
+      setFinishError(err?.message || err?.error || 'No pudimos crear tu negocio. Probá de nuevo.')
+      setFinishing(false)
+    }
+  }
 
   const props = { state, onChange: update, onNext: next, onBack: back }
 
@@ -759,51 +922,39 @@ export default function OnboardingPage() {
     2: <Step2 {...props} />,
     3: <Step3 {...props} />,
     4: <Step4 {...props} />,
-    5: <Step5 {...props} />,
-    6: <Step6 state={state} onBack={back} onFinish={() => {
-      apiOnboarding({
-        businessName: state.businessName,
-        sector: state.sector,
-        cardType: state.cardType,
-        stampsRequired: state.stampsRequired,
-        pointsPerVisit: state.pointsPerVisit,
-        rewardMode: state.rewardMode === 'customer' ? 'dynamic' : 'fixed',
-        rewardFixedValue: state.rewardValue || undefined,
-        brandColor: state.brandColor,
-        brandLogo: state.brandLogo,
-      }).then((res) => {
-        console.log('Onboarding response:', res)
-        console.log('businessId guardado:', localStorage.getItem('stampa_business_id'))
-        localStorage.removeItem('stampa_active_tab')
-        window.location.href = '/dashboard'
-      })
-  }} />,
+    5: <Step5 {...props} plan={plan} />,
+    6: <Step6 state={state} onBack={back} onFinish={finish} finishing={finishing} error={finishError} />,
   }
 
-  const info = STEP_INFO[step]
+  // El tip del paso 3 depende del programa elegido.
+  const STEP3_TIPS: Record<CardType, string> = {
+    stamp: STEP_INFO[3].tip,
+    points: 'Entre 10 y 20 puntos por visita es lo más común: los premios quedan en números fáciles (100, 200, 500).',
+    membership: 'Los niveles premian a los clientes más fieles. Con beneficios claros, subir de nivel se vuelve un objetivo.',
+  }
+  const info = step === 3 ? { ...STEP_INFO[3], tip: STEP3_TIPS[state.cardType] } : STEP_INFO[step]
 
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+      {/* Estilos en el render (llegan con la página): antes se inyectaban
+          después de mostrarla y se veía un instante sin diseño. */}
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="ob-shell">
 
         {/* Left panel — desktop only */}
         <div className="ob-left">
-          {/* Logo */}
-          <div className="ob-left-logo">
-            <img src="/stampa-mascot.png" alt="Stampy" style={{ width: 72, height: 72, objectFit: 'contain', flexShrink: 0 }} />
-            <img src="/stampa-wordmark.png" alt="Stampa" style={{ height: 52, objectFit: 'contain', marginLeft: -18, filter: 'brightness(0) invert(1)' }} />
-          </div>
+          <div className="ob-left-logo"><BrandLogo height={44} tone="cream" /></div>
 
           {/* Progress dots */}
           <div>
             <div className="ob-dots">
-              {Array.from({ length: TOTAL }, (_, i) => (
-                <div key={i} className={`ob-dot${i + 1 === step ? ' ob-dot--on' : ''}`} />
+              {flow.map((id, i) => (
+                <div key={id} className={`ob-dot${i === position ? ' ob-dot--on' : ''}`} />
               ))}
             </div>
-            <div className="ob-step-label">PASO {step} DE {TOTAL}</div>
+            <div className="ob-step-label">PASO {position + 1} DE {flow.length}</div>
           </div>
 
           {/* Step title */}
@@ -812,24 +963,21 @@ export default function OnboardingPage() {
             <div className="ob-left-sub">{info.subtitle}</div>
           </div>
 
-          {/* Stampy tip — moved up, bigger mascot */}
           <div className="ob-stampy-tip">
             <div className="ob-stampy-head">
-              <img src="/stampa-mascot.png" alt="Stampy" style={{ width: 60, height: 60, objectFit: 'contain' }} />
+              <img src="/stampa-mascot-cream.png" alt="" style={{ width: 40, height: 38, objectFit: 'contain' }} />
               <span className="ob-stampy-name">Tip de Stampy</span>
             </div>
             <div className="ob-stampy-text">{info.tip}</div>
           </div>
-          
+
           <div style={{flex:1}} />
         </div>
 
         {/* Mobile header */}
         <div className="ob-header">
-          <div className="ob-left-logo">
-            <img src="/stampa-mascot.png" alt="Stampy" style={{ width: 40, height: 40, objectFit: 'contain' }} />
-            <img src="/stampa-wordmark.png" alt="Stampa" style={{ height: 28, objectFit: 'contain', marginLeft: -10, filter: 'brightness(0) invert(1)' }} />
-          </div>
+          <BrandLogo height={30} tone="cream" />
+          <span className="ob-header-step">Paso {position + 1} de {flow.length}</span>
         </div>
 
         {/* Right panel — form */}
@@ -838,14 +986,16 @@ export default function OnboardingPage() {
             {/* Mobile step title + dots — hidden on desktop */}
             <div className="ob-mobile-step-title">
               <div className="ob-mobile-dots">
-                {Array.from({ length: TOTAL }, (_, i) => (
-                  <div key={i} className={`ob-mobile-dot${i + 1 === step ? ' ob-mobile-dot--on' : ''}`} />
+                {flow.map((id, i) => (
+                  <div key={id} className={`ob-mobile-dot${i === position ? ' ob-mobile-dot--on' : ''}`} />
                 ))}
               </div>
               <h2>{info.title}</h2>
               <p>{info.subtitle}</p>
+              {/* En el celular el panel izquierdo no se ve: el tip va acá */}
+              <div className="ob-mobile-tip"><img src="/stampa-mascot-coral.png" alt="" width={22} height={21} />{info.tip}</div>
             </div>
-            {STEPS[step]}
+            {ready ? STEPS[step] : <div className="ob-loading">Cargando…</div>}
           </div>
         </div>
       </div>

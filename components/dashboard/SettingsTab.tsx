@@ -1,10 +1,13 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { apiUpdateBusiness, apiChangePassword, apiUpdateProfile, apiExportCustomers, apiRequestDeletion, apiCancelDeletion } from '@/lib/api'
+import type { BillingStatus } from '@/lib/api'
+import { apiUpdateBusiness, apiChangePassword, apiUpdateProfile, apiExportCustomers, apiRequestDeletion, apiCancelDeletion, apiChangeEmail } from '@/lib/api'
 import { useLang } from '@/data/i18n'
 import { InfoTooltip } from './InfoTooltip'
+import { NumberStepper } from '@/components/ui/NumberStepper'
+import { ProgramRules, type RulesCard, type BirthdayRule } from './ProgramRules'
 
-interface BusinessAlerts { newCustomer: boolean; nearPrize: boolean; weeklyDigest: boolean }
+interface BusinessAlerts { newCustomer?: boolean; nearPrize: boolean; weeklyDigest: boolean; suspicious?: boolean }
 interface BusinessSettings {
   name: string; sector: string; timezone: string; inactiveDays: number
   plan: string; planActiveCards: number; planMaxCards: number; alerts: BusinessAlerts
@@ -81,20 +84,40 @@ function FieldRow({ label, children }: { label: React.ReactNode; children: React
   )
 }
 
-function EditableText({ value, saveLabel, onSave }: { value: string; saveLabel: string; onSave?: (v: string) => void }) {
+// Texto editable: guarda al tocar "Guardar" (o Enter) y muestra el error si
+// el servidor lo rechaza (antes mostraba "guardado" igual).
+function EditableText({ value, maxLength = 60, onSave }: { value: string; maxLength?: number; onSave: (v: string) => Promise<string | null> }) {
   const [val, setVal] = useState(value)
+  const [shown, setShown] = useState(value)
   const [editing, setEditing] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [ok, setOk] = useState(false)
+  useEffect(() => { setShown(value); setVal(value) }, [value])
+  async function save() {
+    const v = val.trim()
+    if (!v) { setError('No puede quedar vacío.'); return }
+    if (v === shown) { setEditing(false); return }
+    setBusy(true); setError(null)
+    const err = await onSave(v)
+    setBusy(false)
+    if (err) { setError(err); return }
+    setShown(v); setEditing(false); setOk(true); setTimeout(() => setOk(false), 2000)
+  }
   if (editing) return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-      <input className="st-inline-input" value={val} onChange={e => setVal(e.target.value)} autoFocus />
-      <button className="st-btn-sm" onClick={() => { setEditing(false); onSave?.(val) }}>{saveLabel}</button>
+    <div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input className="st-inline-input" value={val} maxLength={maxLength} onChange={e => setVal(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setEditing(false); setVal(shown); setError(null) } }} autoFocus />
+        <button className="st-btn-sm" onClick={save} disabled={busy}>{busy ? '…' : 'Guardar'}</button>
+        <button className="st-edit-link" onClick={() => { setEditing(false); setVal(shown); setError(null) }}>Cancelar</button>
+      </div>
+      {error && <div className="st-inline-error">{error}</div>}
     </div>
   )
-  const t = useLang()
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-      <span className="st-field-val">{val}</span>
-      <button className="st-edit-link" onClick={() => setEditing(true)}>{t('edit')}</button>
+      <span className="st-field-val">{shown}</span>
+      {ok ? <span className="st-ok">✓ Guardado</span> : <button className="st-edit-link" onClick={() => setEditing(true)}>Editar</button>}
     </div>
   )
 }
@@ -149,32 +172,48 @@ function SectorField({ value, saving, saved, t, onSave }: { value: string; savin
   )
 }
 
-function MyAccountSection({ ownerName, ownerEmail }: { ownerName: string; ownerEmail: string }) {
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+function MyAccountSection({ ownerName, ownerEmail, isManager, pendingEmail }: { ownerName: string; ownerEmail: string; isManager: boolean; pendingEmail?: string | null }) {
+  const [changing, setChanging] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(pendingEmail ? { ok: true, text: `Tenés un cambio pendiente a ${pendingEmail}: confirmalo desde ese email.` } : null)
 
-  async function handleSaveName(v: string) {
-    setSaving(true)
+  async function requestChange(e: React.FormEvent) {
+    e.preventDefault()
+    setBusy(true); setMsg(null)
     try {
-      await apiUpdateProfile(v)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-    } catch (err) {
-      console.error('Error updating profile:', err)
-    } finally {
-      setSaving(false)
-    }
+      const r = await apiChangeEmail(newEmail.trim(), password)
+      setMsg({ ok: true, text: r.message }); setChanging(false); setNewEmail(''); setPassword('')
+    } catch (err: any) {
+      setMsg({ ok: false, text: err?.error || 'No se pudo pedir el cambio.' })
+    } finally { setBusy(false) }
   }
 
   return (
     <>
       <FieldRow label="Tu nombre">
-        <EditableText value={ownerName} saveLabel={saving ? '...' : saved ? '✓' : 'Guardar'} onSave={handleSaveName} />
+        <EditableText value={ownerName} maxLength={80} onSave={async v => { try { await apiUpdateProfile(v); return null } catch (err: any) { return err?.error || 'No se pudo guardar.' } }} />
       </FieldRow>
       <FieldRow label="Tu email">
-        <span className="st-field-val" style={{ opacity: .6 }}>{ownerEmail}</span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span className="st-field-val">{ownerEmail}</span>
+          {!isManager && !changing && <button className="st-edit-link" onClick={() => { setChanging(true); setMsg(null) }}>Cambiar</button>}
+        </div>
       </FieldRow>
-      <div className="st-timezone-note">Cambiar el email de acceso todavía no está disponible — escribinos si lo necesitás.</div>
+      {isManager && <div className="st-timezone-note">Tu email lo administra el dueño del negocio.</div>}
+      {changing && (
+        <form className="st-subform" onSubmit={requestChange}>
+          <input className="st-pw-input" type="email" placeholder="Email nuevo" value={newEmail} onChange={e => setNewEmail(e.target.value)} autoFocus />
+          <input className="st-pw-input" type="password" placeholder="Tu contraseña" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="st-btn-sm" type="submit" disabled={busy || !newEmail.trim() || !password}>{busy ? '…' : 'Mandar link de confirmación'}</button>
+            <button className="st-edit-link" type="button" onClick={() => setChanging(false)}>Cancelar</button>
+          </div>
+          <div className="st-timezone-note">Te mandamos un link al email nuevo. El cambio se aplica cuando lo confirmes.</div>
+        </form>
+      )}
+      {msg && <div className={msg.ok ? 'st-pw-success' : 'st-pw-error'}>{msg.text}</div>}
     </>
   )
 }
@@ -245,7 +284,7 @@ function CheckboxRow({ label, checked: init, description, onToggle }: { label: s
   )
 }
 
-export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', deletionRequestedAt = null, onSave }: { business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; deletionRequestedAt?: string | null; onSave?: () => void }) {
+export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', pendingEmail = null, deletionRequestedAt = null, onSave, isManager = false, billing = null, onChoosePlan, onCancelSubscription, cards = [], birthday = { enabled: false, gift: '' }, onCardsChanged }: { cards?: RulesCard[]; birthday?: BirthdayRule; onCardsChanged?: () => void; business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; pendingEmail?: string | null; deletionRequestedAt?: string | null; onSave?: () => void; isManager?: boolean; billing?: BillingStatus | null; onChoosePlan?: () => void; onCancelSubscription?: () => Promise<void> }) {
   const t = useLang()
   const [business, setBusiness]       = useState(mockBusiness)
   const [inactiveDays, setInactiveDays] = useState(mockBusiness.inactiveDays)
@@ -257,6 +296,9 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
   const [deletionState, setDeletionState] = useState<string | null>(deletionRequestedAt)
   const [deletionMsg, setDeletionMsg] = useState<string | null>(null)
   const [deletionLoading, setDeletionLoading] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [inactiveDraft, setInactiveDraft] = useState(String(mockBusiness.inactiveDays))
+  const [fieldMsg, setFieldMsg] = useState<{ field: string; ok: boolean; text: string } | null>(null)
   // businessId and real business data come from dashboard-page.tsx as props
 
   async function handleExport() {
@@ -275,10 +317,10 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
   async function handleConfirmDeletion() {
     setDeletionLoading(true)
     try {
-      const res = await apiRequestDeletion()
+      const res = await apiRequestDeletion(deletePassword)
       setDeletionState(new Date().toISOString())
       setDeletionMsg(res.message)
-      setShowDeleteConfirm(false)
+      setShowDeleteConfirm(false); setDeletePassword('')
     } catch (err: any) {
       setDeletionMsg(err?.error || 'No se pudo procesar la solicitud. Intentá de nuevo.')
     } finally {
@@ -299,21 +341,42 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
     }
   }
 
-  async function handleSave(field: string, value: any) {
-    console.log('handleSave:', { field, value, businessId })
-    if (!businessId) return
-    setSaving(true)
+  // Devuelve el mensaje de error (o null si se guardó).
+  async function handleSave(field: string, value: any): Promise<string | null> {
+    if (!businessId) return 'No se encontró el negocio.'
+    setSaving(true); setFieldMsg(null)
     try {
       await apiUpdateBusiness(businessId, { [field]: value })
       setBusiness((prev: any) => ({ ...prev, [field]: value }))
       onSave?.()
       setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-    } catch (err) {
-      console.error('Error saving:', err)
+      setFieldMsg({ field, ok: true, text: 'Guardado.' })
+      setTimeout(() => { setSaved(false); setFieldMsg(m => m?.field === field ? null : m) }, 2000)
+      return null
+    } catch (err: any) {
+      const text = err?.error || 'No se pudo guardar.'
+      setFieldMsg({ field, ok: false, text })
+      return text
     } finally {
       setSaving(false)
     }
+  }
+  const msgFor = (field: string) => fieldMsg?.field === field ? <span className={fieldMsg.ok ? 'st-ok' : 'st-inline-error'} style={{ marginLeft: 6 }}>{fieldMsg.ok ? '✓ Guardado' : fieldMsg.text}</span> : null
+
+  // El selector cambia de a uno (mantener apretado): se guarda cuando el
+  // valor queda quieto un momento, no en cada paso.
+  const [pendingInactive, setPendingInactive] = useState<number | null>(null)
+  useEffect(() => {
+    if (pendingInactive == null) return
+    const id = setTimeout(() => saveInactive(pendingInactive), 700)
+    return () => clearTimeout(id)
+  }, [pendingInactive]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function saveInactive(value?: number) {
+    const n = value ?? Number(inactiveDraft)
+    if (!Number.isInteger(n) || n < 7 || n > 365) { setFieldMsg({ field: 'inactiveDays', ok: false, text: 'Entre 7 y 365 días.' }); return }
+    if (n === inactiveDays) return
+    handleSave('inactiveDays', n).then(err => { if (!err) setInactiveDays(n) })
   }
 
   const planDots = Array.from({ length: business.planMaxCards }, (_: unknown, i: number) => i < business.planActiveCards)
@@ -326,6 +389,13 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         .st-card-head{display:flex;align-items:center;gap:8px;padding-bottom:14px;border-bottom:1px solid rgba(43,38,32,.07);margin-bottom:14px;}
         .st-card-head svg{color:rgba(43,38,32,.5);flex-shrink:0;}
         .st-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;color:#2B2620;}
+        .st-rule{display:flex;flex-direction:column;gap:8px;}
+        .st-rule-title{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:#2B2620;}
+        .st-rule-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+        .st-rule-text{font-size:12px;color:rgba(43,38,32,.75);min-width:130px;}
+        .st-rule-presets{display:flex;gap:6px;}
+        .st-rule-chip{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid rgba(43,38,32,.14);background:#fff;color:rgba(43,38,32,.7);cursor:pointer;font-family:'Inter',sans-serif;}
+        .st-rule-chip.is-on{background:rgba(199,93,58,.1);border-color:#C75D3A;color:#C75D3A;}
         .st-field-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(43,38,32,.05);min-height:42px;}
         .st-field-row:last-child{border-bottom:none;padding-bottom:0;}
         .st-field-label{font-size:12.5px;color:rgba(43,38,32,.6);}
@@ -374,6 +444,10 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         .st-sector-confirm p{font-size:12px;color:rgba(43,38,32,.7);margin-bottom:12px;line-height:1.55;}
         .st-sector-confirm-btn{background:#C75D3A;border:none;border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer;color:#fff;font-weight:700;}
         .st-alerts-note{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:12px;}
+        .st-inline-error{font-size:11px;color:#B23B3B;font-weight:600;margin-top:4px;}
+        .st-ok{font-size:11px;color:#5B8C5A;font-weight:600;}
+        .st-subform{display:flex;flex-direction:column;gap:8px;background:#FBF6EE;border-radius:10px;padding:12px;margin:8px 0;}
+        .st-subform .st-pw-input{width:100%;background:#fff;}
         @media(max-width:768px){
           .st-content{padding:14px 16px;}
           .st-plan-card{flex-direction:column;align-items:flex-start;gap:12px;}
@@ -386,23 +460,24 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
 
       <div className="st-content">
         <Section title="Mi cuenta" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}>
-          <MyAccountSection ownerName={ownerName} ownerEmail={ownerEmail} />
+          <MyAccountSection ownerName={ownerName} ownerEmail={ownerEmail} isManager={isManager} pendingEmail={pendingEmail} />
         </Section>
 
         <Section title={t('st_profile')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V8L3 4h18l-2 4v13"/><path d="M9 21v-6h6v6"/></svg>}>
-          <FieldRow label={t('st_name')}><EditableText value={business.name} saveLabel={saving ? '...' : saved ? '✓' : t('save')} onSave={v => handleSave('name', v)} /></FieldRow>
-          <FieldRow label={t('st_sector')}><SectorField value={business.sector} saving={saving} saved={saved} t={t} onSave={v => handleSave('sector', v)} /></FieldRow>
-          <FieldRow label={<>{t('st_timezone')}<InfoTooltip text="Afecta directamente el heatmap de horas pico en Analytics — sin esto bien seteado, esa sección mide en UTC, no en la hora real del local." /></>}>
+          <FieldRow label={t('st_name')}><EditableText value={business.name} maxLength={60} onSave={v => handleSave('name', v)} /></FieldRow>
+          <FieldRow label={t('st_sector')}><SectorField value={business.sector} saving={saving} saved={saved} t={t} onSave={v => { handleSave('sector', v) }} />{msgFor('sector')}</FieldRow>
+          <FieldRow label={<>{t('st_timezone')}<InfoTooltip text="Se usa para 'hoy', 'este mes', los horarios de Analítica y la hora de las alertas por email. Tiene que ser la del local." /></>}>
             <select
               className="st-timezone-select"
               value={business.timezone}
-              onChange={e => { setBusiness((prev: any) => ({ ...prev, timezone: e.target.value })); handleSave('timezone', e.target.value) }}
+              onChange={e => { const prev = business.timezone; setBusiness((b: any) => ({ ...b, timezone: e.target.value })); handleSave('timezone', e.target.value).then(err => { if (err) setBusiness((b: any) => ({ ...b, timezone: prev })) }) }}
             >
               {COUNTRY_TIMEZONES.map(({ country, tz }) => <option key={tz} value={tz}>{country}</option>)}
               {!COUNTRY_TIMEZONES.some(c => c.tz === business.timezone) && (
                 <option value={business.timezone}>{business.timezone} (actual)</option>
               )}
             </select>
+            {msgFor('timezone')}
           </FieldRow>
         </Section>
 
@@ -411,25 +486,42 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         </Section>
 
         <Section title={t('st_rules')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}>
-          <div className="st-rules-note">Este valor define cuándo un cliente pasa a considerarse <strong>inactivo</strong> — afecta el conteo de Analytics y qué clientes entran en el segmento "Inactivos" al enviar notificaciones.</div>
-          <FieldRow label={t('st_inactive_label')}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type="number" className="st-number-input" value={inactiveDays} min={1} max={365} onChange={e => { setInactiveDays(Number(e.target.value)); handleSave('inactiveDays', Number(e.target.value)) }} />
-              <span style={{ fontSize: 12, color: 'rgba(43,38,32,.45)' }}>{t('days')}</span>
+          {/* Mismo formato que las demás reglas (ProgramRules): título con ⓘ y el control debajo. */}
+          <div className="st-rule">
+            <div className="st-rule-title">
+              Cliente inactivo
+              <InfoTooltip text={'Se usa en Inicio, Clientes, Analítica y en la audiencia "Inactivos" de Notificaciones. No borra ni cambia nada del cliente.'} />
             </div>
-          </FieldRow>
-          <div className="st-rules-summary">
-            Con este valor, un cliente que no vuelve en <strong>{inactiveDays} días</strong> se marca como inactivo automáticamente.
+            <div className="st-rule-row">
+              <span className="st-rule-text">Pasa a inactivo si no vuelve en</span>
+              <NumberStepper value={Number(inactiveDraft) || inactiveDays} min={7} max={365} suffix="días" size="sm" ariaLabel="Días para considerar inactivo"
+                onChange={n => { setInactiveDraft(String(n)); setPendingInactive(n) }} />
+              <div className="st-rule-presets">
+                {[30, 60, 90].map(n => (
+                  <button key={n} type="button" className={`st-rule-chip${(Number(inactiveDraft) || inactiveDays) === n ? ' is-on' : ''}`} onClick={() => { setInactiveDraft(String(n)); setPendingInactive(n) }}>{n} días</button>
+                ))}
+              </div>
+              {msgFor('inactiveDays')}
+            </div>
           </div>
+          <ProgramRules businessId={businessId} cards={cards} birthday={birthday} onCardsChanged={onCardsChanged} onBusinessChanged={onSave} />
         </Section>
 
         <Section title={t('st_alerts')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}>
-          <div className="st-alerts-note">{t('st_alerts_note')}</div>
-          <CheckboxRow label={t('st_alert_new')} checked={business.alerts.newCustomer} description={t('st_alert_new_desc')} onToggle={v => handleSave('alerts', { ...business.alerts, newCustomer: v })} />
-          <CheckboxRow label={t('st_alert_prize')} checked={business.alerts.nearPrize} description={t('st_alert_prize_desc')} onToggle={v => handleSave('alerts', { ...business.alerts, nearPrize: v })} />
-          <CheckboxRow label={t('st_alert_weekly')} checked={business.alerts.weeklyDigest} description={t('st_alert_weekly_desc')} onToggle={v => handleSave('alerts', { ...business.alerts, weeklyDigest: v })} />
+          {isManager
+            ? <div className="st-alerts-note">Las alertas por email le llegan al dueño del negocio.</div>
+            : <>
+                <div className="st-alerts-note">Emails solo para vos ({ownerEmail}). Para mandarle mensajes a tus clientes usá Notificaciones.</div>
+                <CheckboxRow label="Resumen semanal" checked={business.alerts.weeklyDigest !== false} description="Los lunes a la mañana: clientes nuevos, visitas, premios entregados y lo que haya que revisar." onToggle={v => { const alerts = { ...business.alerts, weeklyDigest: v }; handleSave('alerts', alerts) }} />
+                <CheckboxRow label="Premios para entregar" checked={business.alerts.nearPrize !== false} description="Un mail por día (no uno por cliente) si hay tarjetas completas esperando su premio." onToggle={v => { const alerts = { ...business.alerts, nearPrize: v }; handleSave('alerts', alerts) }} />
+                <CheckboxRow label="Escaneos raros del equipo" checked={business.alerts.suspicious !== false} description="Te avisa si un Scanner le suma varios sellos seguidos al mismo cliente o hace muchos escaneos en poco tiempo." onToggle={v => { const alerts = { ...business.alerts, suspicious: v }; handleSave('alerts', alerts) }} />
+                {msgFor('alerts')}
+              </>}
         </Section>
 
+        {/* Plan y zona de peligro: solo el dueño (el manager tiene "todo el
+            dashboard, sin billing ni equipo, sin zona de peligro"). */}
+        {!isManager && <>
         <Section title={t('st_plan')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>}>
           <div className="st-plan-card">
             <div>
@@ -437,8 +529,9 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
               <div className="st-plan-sub">{business.planActiveCards} {t('st_active_cards')}</div>
               <div className="st-plan-dots">{planDots.map((on: boolean, i: number) => <div key={i} className={`st-plan-dot ${on ? 'st-plan-dot--on' : 'st-plan-dot--off'}`} />)}</div>
             </div>
-            <button className="st-upgrade-btn">{t('upgrade_plan')}</button>
+            <button className="st-upgrade-btn" onClick={onChoosePlan}>{billing?.access === 'active' ? 'Cambiar plan' : 'Elegir plan'}</button>
           </div>
+          <BillingDetails billing={billing} onCancel={onCancelSubscription} />
         </Section>
 
         <div className="st-danger-card">
@@ -478,17 +571,56 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
 
           {showDeleteConfirm && !deletionState && (
             <div className="st-delete-confirm">
-              <p>Tu cuenta va a quedar marcada para eliminar. Vas a tener <strong>30 días</strong> para cancelarlo volviendo a loguearte y tocando "Cancelar eliminación" acá mismo — después de eso, se borra todo de forma definitiva (negocio, tarjetas, clientes, todo).</p>
+              <p>Se cancela tu suscripción y tu cuenta queda marcada para eliminar. Tenés <strong>30 días</strong> para arrepentirte (entrando y tocando "Cancelar eliminación" acá). Después se borra todo de forma definitiva: negocio, tarjetas, clientes e historial. Te recomendamos exportar tus datos antes.</p>
+              <input className="st-pw-input" type="password" placeholder="Tu contraseña para confirmar" value={deletePassword} onChange={e => setDeletePassword(e.target.value)} style={{ width: '100%', marginBottom: 10 }} autoComplete="current-password" />
               <div className="st-delete-actions">
-                <button className="st-delete-btn-cancel" onClick={() => setShowDeleteConfirm(false)} disabled={deletionLoading}>{t('cancel')}</button>
-                <button className="st-delete-btn-confirm" onClick={handleConfirmDeletion} disabled={deletionLoading}>
+                <button className="st-delete-btn-cancel" onClick={() => { setShowDeleteConfirm(false); setDeletePassword('') }} disabled={deletionLoading}>{t('cancel')}</button>
+                <button className="st-delete-btn-confirm" onClick={handleConfirmDeletion} disabled={deletionLoading || !deletePassword}>
                   {deletionLoading ? '...' : t('st_delete_yes')}
                 </button>
               </div>
             </div>
           )}
         </div>
+        </>}
       </div>
     </>
+  )
+}
+
+// Estado de la suscripción debajo de la tarjeta del plan, con "Cancelar".
+function BillingDetails({ billing, onCancel }: { billing?: BillingStatus | null; onCancel?: () => Promise<void> }) {
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  if (!billing) return null
+  const date = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) : '')
+  const line =
+    billing.access === 'legacy' ? 'Cuenta sin cobro (acceso completo).'
+    : billing.access === 'trial' ? `Prueba gratis: termina el ${date(billing.trialEndsAt)}.`
+    : billing.status === 'cancelled' ? `Suscripción cancelada: tenés acceso hasta el ${date(billing.accessUntil)}.`
+    : billing.access === 'active' ? `Suscripción activa (${billing.period === 'annual' ? 'anual' : 'mensual'}, Mercado Pago).${billing.nextPaymentDate ? ` Próximo cobro: ${date(billing.nextPaymentDate)}.` : ''}`
+    : 'Cuenta en pausa: elegí un plan para reactivarla.'
+  const canCancel = billing.provider === 'mercadopago' && billing.access === 'active' && billing.status !== 'cancelled'
+  return (
+    <div style={{ marginTop: 10, fontSize: 12, color: 'rgba(43,38,32,.6)', lineHeight: 1.6 }}>
+      {line}
+      {canCancel && !confirming && (
+        <button onClick={() => setConfirming(true)} style={{ marginLeft: 8, background: 'none', border: 'none', color: '#B23B3B', fontWeight: 600, cursor: 'pointer', fontSize: 12, padding: 0 }}>Cancelar suscripción</button>
+      )}
+      {confirming && (
+        <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span>¿Cancelar? Vas a seguir teniendo acceso hasta el {date(billing.nextPaymentDate)}.</span>
+          <button disabled={busy} onClick={async () => { setBusy(true); setError(null); try { await onCancel?.(); setConfirming(false) } catch (e: any) { setError(e?.error || 'No se pudo cancelar.') } finally { setBusy(false) } }} style={{ background: '#B23B3B', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{busy ? '...' : 'Sí, cancelar'}</button>
+          <button onClick={() => setConfirming(false)} style={{ background: 'none', border: '1px solid rgba(43,38,32,.15)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12 }}>No</button>
+        </div>
+      )}
+      {error && <div style={{ color: '#B23B3B', marginTop: 6 }}>{error}</div>}
+      {billing.subscriptionId && (
+        <div style={{ marginTop: 6, fontSize: 11, color: 'rgba(43,38,32,.4)' }}>
+          ID de suscripción (Mercado Pago): <span style={{ fontFamily: 'monospace', userSelect: 'all' }}>{billing.subscriptionId}</span>
+        </div>
+      )}
+    </div>
   )
 }

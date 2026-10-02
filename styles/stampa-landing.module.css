@@ -67,3 +67,23 @@
   .faqRow {
     cursor: pointer;
   }
+
+  /* Botón flotante de WhatsApp (ventas) */
+  .whatsappFab {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 60;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: #25D366;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    transition: transform var(--dur-base) var(--ease-soft);
+  }
+  .whatsappFab:hover {
+    transform: scale(1.06);
+  }

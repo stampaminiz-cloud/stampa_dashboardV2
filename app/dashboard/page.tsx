@@ -2,8 +2,13 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { mockData } from '@/data/mockData'
 import { detectLang, createT, LangContext } from '@/data/i18n'
-import { PlanProvider, PLAN_LIMITS } from '@/data/plans'
-import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL } from '@/lib/api'
+import { PlanProvider, PLAN_LIMITS, usePlan } from '@/data/plans'
+import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL, apiBillingStatus, apiCancelSubscription, type BillingStatus } from '@/lib/api'
+import { BillingBanner, BillingStyles, PlanModal } from '@/components/dashboard/Billing'
+import { MascotLoader } from '@/components/ui/MascotLoader'
+import { getJson, prefetch } from '@/lib/cache'
+import { RetentionRing, EmptyState as EmptyNote, type Retention } from '@/components/dashboard/charts'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 import { SettingsTab }       from '@/components/dashboard/SettingsTab'
 import { CustomersTab }      from '@/components/dashboard/CustomersTab'
 import { AnalyticsTab }      from '@/components/dashboard/AnalyticsTab'
@@ -15,6 +20,7 @@ import { UsersTab }          from '@/components/dashboard/UsersTab'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TabId = 'overview' | 'customers' | 'analytics' | 'rewards' | 'notifications' | 'design' | 'form' | 'users' | 'settings'
+type CustomerStatusFilter = 'all' | 'active' | 'inactive' | 'near' | 'ready'
 
 // ─── Nav items ────────────────────────────────────────────────────────────────
 function NavIcon({ id }: { id: TabId }) {
@@ -87,18 +93,9 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
       <aside className={`db-sb${collapsed ? ' db-sb--collapsed' : ''}${mobileOpen ? ' db-sb--mobile-open' : ''}`}>
         {/* Logo */}
         <div className="sb-logo" onClick={() => setCollapsed(!collapsed)} style={{cursor:'pointer', justifyContent: collapsed ? 'center' : 'flex-start'}}>
-          <img 
-            src="/stampa-mascot.png" 
-            alt="Stampa" 
-            style={{ width: collapsed ? 44 : 72, height: collapsed ? 44 : 72, objectFit: 'contain', flexShrink: 0 }}
-          />
-          {!collapsed && (
-            <img 
-              src="/stampa-wordmark.png" 
-              alt="Stampa" 
-              style={{ height: 100, objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
-            />
-          )}
+          {collapsed
+            ? <img src="/stampa-mascot-cream.png" alt="Stampa" width={30} height={28} style={{ display: 'block' }} />
+            : <BrandLogo height={28} tone="cream" />}
         </div>
 
         {/* Business block */}
@@ -119,7 +116,8 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
 
         {/* Nav */}
         <nav className="sb-nav">
-          {NAV_IDS.map(id => (
+          {/* Managers: sin Equipo (lo gestiona el dueño) */}
+          {NAV_IDS.filter(id => !(owner?.role === 'manager' && id === 'users')).map(id => (
             <button
               key={id}
               className={`sb-item${active === id ? ' sb-item--on' : ''}`}
@@ -182,6 +180,22 @@ function Header({ title, t, setMobileOpen, setActive, recentActivity: realActivi
 
   const recentActivity = (realActivity || []).slice(0, 4)
 
+  // Punto rojo solo si hay actividad posterior a la última vez que se abrió
+  // la campanita (antes estaba siempre prendido).
+  const [seenAt, setSeenAt] = useState<number>(() => {
+    try { return Number(localStorage.getItem('stampa_activity_seen') || 0) } catch { return 0 }
+  })
+  const newestAt = Math.max(0, ...(realActivity || []).map((a: any) => a.at || 0))
+  const hasUnseen = newestAt > seenAt
+  function toggleNotif() {
+    const opening = !showNotif
+    setShowNotif(opening)
+    if (opening && newestAt) {
+      setSeenAt(newestAt)
+      try { localStorage.setItem('stampa_activity_seen', String(newestAt)) } catch { /* sin storage */ }
+    }
+  }
+
   return (
     <header className="db-header">
       {/* Mobile hamburger */}
@@ -194,21 +208,21 @@ function Header({ title, t, setMobileOpen, setActive, recentActivity: realActivi
       <div className="hd-right">
         {/* Notifications */}
         <div className="hd-icon-wrap" ref={notifRef}>
-          <button className="hd-icon-btn" onClick={() => { setShowNotif(!showNotif) }}>
+          <button className="hd-icon-btn" onClick={toggleNotif} aria-label="Actividad reciente">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span className="hd-notif-dot" />
+            {hasUnseen && <span className="hd-notif-dot" />}
           </button>
           {showNotif && (
             <div className="hd-dropdown hd-notif-dropdown">
               <div className="hd-drop-head">
-                <span className="hd-drop-title">{t('notifications_title' as any)}</span>
-                <button className="hd-mark-read" onClick={() => { setShowNotif(false); setActive?.('notifications') }}>Ver campañas →</button>
+                <span className="hd-drop-title">Actividad reciente</span>
+                <button className="hd-mark-read" onClick={() => { setShowNotif(false); setActive?.('customers') }}>Ver clientes →</button>
               </div>
               {recentActivity.length === 0 ? (
                 <div style={{padding:'20px 16px',fontSize:12,color:'rgba(43,38,32,.4)',textAlign:'center'}}>Todavía no hay actividad reciente.</div>
               ) : recentActivity.map((a: any, i: number) => (
                 <div key={i} className="hd-notif-row">
-                  <div className={`hd-notif-av hd-notif-av--${a.action === 'canjeó su premio' ? 'redeem' : a.action === 'se registró' ? 'signup' : 'login'}`}>
+                  <div className={`hd-notif-av hd-notif-av--${a.type === 'redeem' ? 'redeem' : a.type === 'signup' ? 'signup' : 'login'}`}>
                     {a.name.split(' ').map((w: string) => w[0]).join('').slice(0,2)}
                   </div>
                   <div className="hd-notif-info">
@@ -228,44 +242,53 @@ function Header({ title, t, setMobileOpen, setActive, recentActivity: realActivi
 }
 
 // ─── Overview ─────────────────────────────────────────────────────────────────
-function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }: { 
+// Todo lo que muestra Inicio sale de /analytics y /analytics/detailed (datos
+// reales). Antes había números fijos de ejemplo (niveles 111/89/52/15,
+// flechas "↑ 0%", "9 visitas al premio") que veían todos los negocios.
+const ACTIVITY_AV: Record<string, string> = { redeem: 'redeem', signup: 'signup', points: 'login', visit: 'login', tier_change: 'login', stamp: 'stamp' }
+
+function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, isManager, onChoosePlan }: {
   t: (k: any) => string
   analyticsData?: any
-  rewardsData?: any
   detailedAnalytics?: any
   cards?: any[]
+  setActive: (tab: TabId) => void
+  isManager: boolean
+  onChoosePlan: () => void
 }) {
-  const activeCards = (cards && cards.length > 0)
-    ? cards.filter((c: any) => c.isActive)
-    : mockData.cardDesigns.filter((c: any) => c.isActive)
-
-  // Use real data when available
-  const totalUsers    = analyticsData?.total          ?? 0
-  const activeUsers   = analyticsData?.active         ?? 0
-  const newSignUps    = analyticsData?.newThisMonth   ?? 0
-  const inactiveUsers = analyticsData?.inactive       ?? 0
-  const nearPrize     = rewardsData?.nearPrize ?? 0
-  const newDelta      = analyticsData?.newDelta       ?? 0
-  const hasStamp      = activeCards.some((c: any) => c.type === 'stamp')
-  const hasMembership = activeCards.some((c: any) => c.type === 'membership')
-  const hasPoints     = activeCards.some((c: any) => c.type === 'points')
-  const initials = (n: string) => n.split(' ').map((w: string) => w[0]).join('')
-
+  const a = analyticsData
+  // Growth+ tiene Analítica: Inicio queda como lectura rápida y el detalle
+  // vive allá. Starter ve lo básico y el resto con candado.
+  const fullAnalytics = usePlan().can('analyticsLevel')
+  const loadingData = !a
+  const activeCards = (cards || []).filter((c: any) => c.isActive)
+  const types: string[] = a?.cardTypes?.length ? a.cardTypes : [...new Set(activeCards.map((c: any) => c.type))] as string[]
+  const hasStamp = types.includes('stamp')
+  const hasPoints = types.includes('points')
+  const hasMembership = types.includes('membership')
   const stampCard = activeCards.find((c: any) => c.type === 'stamp')
-  const primaryCardType = activeCards[0]?.type || 'stamp'
-  const CHART_LABELS: Record<string, { title: string; unit: string }> = {
-    stamp:      { title: 'Sellos otorgados',     unit: 'sellos otorgados' },
-    points:     { title: 'Puntos acumulados',    unit: 'puntos otorgados' },
-    membership: { title: 'Visitas registradas',  unit: 'visitas' },
-  }
-  const chartCfg = CHART_LABELS[primaryCardType] || CHART_LABELS.stamp
+  const showChosen = hasStamp && stampCard?.rewardMode === 'dynamic'
+  const pointsCard = activeCards.find((c: any) => c.type === 'points')
+  const initials = (n: string) => n.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
 
-  const [granularity, setGranularity] = useState<'7d' | '30d' | '90d'>('7d')
+  // ── Gráfico ──
+  // Con un solo tipo de tarjeta, el gráfico cuenta ese tipo; con varios,
+  // es "Actividad" (todo junto) con el desglose en el tooltip.
+  const single = types.length === 1 ? types[0] : null
+  const CHART: Record<string, { title: string; unit: string; key: string }> = {
+    stamp:      { title: 'Sellos otorgados',    unit: 'sellos',     key: 'stamp' },
+    points:     { title: 'Visitas con puntos',  unit: 'visitas',    key: 'points' },
+    membership: { title: 'Visitas registradas', unit: 'visitas',    key: 'visit' },
+  }
+  const chartCfg = single ? CHART[single] : { title: 'Actividad', unit: 'movimientos', key: 'total' }
+
+  const [granularity, setGranularity] = useState<'7d' | '30d'>('7d')
   const [hoveredBar, setHoveredBar] = useState<string | null>(null)
   const [rangeVisits, setRangeVisits] = useState<any[] | null>(null)
-  const [chartLoading, setChartLoading] = useState(false)
+  const [rangeRetention, setRangeRetention] = useState<Retention | null>(null)
+  const [chartLoading, setChartLoading] = useState(true)
 
-  async function loadRange(g: '7d' | '30d' | '90d') {
+  async function loadRange(g: '7d' | '30d') {
     setGranularity(g)
     const businessId = localStorage.getItem('stampa_business_id')
     if (!businessId) return
@@ -275,73 +298,149 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
         headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
       })
       const data = await res.json()
-      setRangeVisits((data.visitsOverTime || []).map((v: any) => ({ label: v.day, visits: v.stamps })))
+      setRangeVisits(data.visitsOverTime || [])
+      setRangeRetention(data.retention || null)
     } catch (err) {
       console.error('Error loading chart:', err)
+      setRangeVisits([])
     } finally {
       setChartLoading(false)
     }
   }
   useEffect(() => { loadRange('7d') }, [])
 
-  const RANGE_SUBTITLES: Record<string, string> = {
-    '7d': 'Últimos 7 días', '30d': 'Últimos 30 días', '90d': 'Últimos 90 días',
-  }
-  const weeklyVisits = rangeVisits
-  const chartMax = weeklyVisits ? Math.max(...weeklyVisits.map((w: any) => w.visits), 1) : 5000
+  const bars = (rangeVisits || []).map((v: any) => ({ label: v.day, value: v[chartCfg.key] ?? v.stamps ?? 0, raw: v }))
+  const chartMax = Math.max(...bars.map(b => b.value), 1)
   const axisSteps = [1, 0.75, 0.5, 0.25, 0].map(f => Math.round(chartMax * f))
+  const chartEmpty = bars.every(b => b.value === 0)
+  const RANGE_SUBTITLES: Record<string, string> = { '7d': 'Últimos 7 días', '30d': 'Últimos 30 días' }
+  function tooltip(b: { label: string; value: number; raw: any }) {
+    if (single) return `${b.label} · ${b.value} ${chartCfg.unit}`
+    const parts = [
+      b.raw.stamp ? `${b.raw.stamp} sello${b.raw.stamp === 1 ? '' : 's'}` : null,
+      b.raw.points ? `${b.raw.points} con puntos` : null,
+      b.raw.visit ? `${b.raw.visit} visita${b.raw.visit === 1 ? '' : 's'}` : null,
+      b.raw.redeem ? `${b.raw.redeem} canje${b.raw.redeem === 1 ? '' : 's'}` : null,
+    ].filter(Boolean)
+    return `${b.label} · ${parts.length ? parts.join(' · ') : 'sin movimientos'}`
+  }
 
-  const ADVANCED = [
-    { v: `${analyticsData?.recurringRate ?? 0}%`, l: t('recurring' as any), color: '#5B8C5A', bg: 'rgba(91,140,90,.1)' },
-    { v: analyticsData?.total > 0 ? `${Math.round((analyticsData?.active / analyticsData?.total) * 100)}%` : '0%', l: t('avg_progress' as any), color: '#185FA5', bg: 'rgba(24,95,165,.1)' },
-    { v: `${analyticsData?.redemptionRate ?? 0}%`, l: t('redemption_rate' as any), color: '#C75D3A', bg: 'rgba(199,93,58,.1)' },
-    { v: `${stampCard?.stampsRequired ?? 9}`, l: t('visits_to_prize' as any), color: '#9C7530', bg: 'rgba(212,162,76,.15)' },
+  // ── Resumen: 4 tarjetas, cada flecha compara contra un período real ──
+  const fmt = (n: number | undefined) => (n ?? 0).toLocaleString('es-AR')
+  const METRICS: { label: string; value?: number; color: string; delta: number | null; deltaTitle?: string; sub: string }[] = [
+    { label: 'Clientes', value: a?.total, color: '#C75D3A', delta: null,
+      sub: `${fmt(a?.active)} activos · ${fmt(a?.inactive)} inactivos` },
+    { label: 'Nuevos este mes', value: a?.newThisMonth, color: '#185FA5', delta: a?.newLastMonth > 0 ? a.newDelta : null, deltaTitle: 'Respecto al mismo período del mes pasado',
+      sub: `mes pasado a esta fecha: ${fmt(a?.newLastMonth)}` },
+    { label: 'Visitas · 7 días', value: a?.visitsThisWeek, color: '#5B8C5A', delta: a?.visitsWeekDelta ?? null, deltaTitle: 'Respecto a los 7 días anteriores',
+      sub: `hoy: ${fmt(a?.visitsToday)} · ${new Date().toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', '')}. pasado: ${fmt(a?.visitsSameDayLastWeek)}` },
+    { label: 'Premios entregados este mes', value: a?.rewardsThisMonth, color: '#9C7530', delta: a?.rewardsDelta ?? null, deltaTitle: 'Respecto al mismo período del mes pasado',
+      sub: `mes pasado a esta fecha: ${fmt(a?.rewardsLastMonth)}` },
   ]
 
-  const TIER_MEMBERS: Record<string, number> = { '1': 111, '2': 89, '3': 52, '4': 15 }
+  // ── Para atender (según los tipos de tarjeta) ──
+  const ATTENTION = [
+    hasStamp && { key: 'deliver', value: a?.toDeliver ?? 0, label: 'Premios para entregar', hint: 'Tarjetas completas: el premio se entrega desde la app de escaneo.', strong: true },
+    hasStamp && { key: 'near', value: a?.nearPrize ?? 0, label: 'A 1–2 sellos del premio', hint: 'Buen momento para una notificación.' },
+    hasPoints && { key: 'redeem', value: a?.canRedeem ?? 0, label: 'Pueden canjear un premio', hint: 'Ya les alcanzan los puntos.' },
+    hasMembership && { key: 'level', value: a?.nearLevel ?? 0, label: 'Cerca de subir de nivel', hint: 'A 2 visitas o menos.' },
+  ].filter(Boolean) as { key: string; value: number; label: string; hint: string; strong?: boolean }[]
+
+  // ── Métricas avanzadas (solo las que aplican) ──
+  const ADVANCED = [
+    { v: `${a?.recurringRate ?? 0}%`, l: 'Clientes que volvieron', sub: '2 visitas o más', color: '#5B8C5A' },
+    { v: `${a?.redemptionRate ?? 0}%`, l: 'Tasa de canje', sub: 'canjearon al menos una vez', color: '#C75D3A' },
+    hasStamp && a?.avgStampProgress != null && { v: `${a.avgStampProgress}%`, l: 'Progreso promedio', sub: 'de la tarjeta de sellos', color: '#185FA5' },
+    hasStamp && stampCard && { v: `${stampCard.stampsRequired}`, l: 'Visitas al premio', sub: 'sellos para completar', color: '#9C7530' },
+    !hasStamp && hasPoints && pointsCard?.pointsPerVisit && { v: `${pointsCard.pointsPerVisit}`, l: 'Puntos por visita', sub: 'suma cada escaneo', color: '#9C7530' },
+  ].filter(Boolean) as { v: string; l: string; sub: string; color: string }[]
+
+  // ── Primeros pasos (se tildan solos) ──
+  const setup = a?.setup
+  const STEPS = setup ? [
+    { done: setup.hasCustomers, title: 'Compartí el link de tu formulario', body: 'Tus clientes se registran y se llevan la tarjeta a su Wallet.', cta: 'Ver mi formulario', tab: 'form' as TabId },
+    !isManager && { done: setup.hasScanner, title: 'Creá un empleado para la app de escaneo', body: 'Cada empleado entra con su propio PIN.', cta: 'Ir a Equipo', tab: 'users' as TabId },
+    !isManager && { done: setup.scannerUsed, title: 'Activá el celular del local', body: 'Equipo → "Activar dispositivo de escaneo" y escaneá el QR con la app.', cta: 'Ir a Equipo', tab: 'users' as TabId },
+    { done: setup.hasVisits, title: 'Escaneá la tarjeta de tu primer cliente', body: 'Con la app, sumale su primer sello, puntos o visita.', cta: null, tab: null },
+  ].filter(Boolean) as { done: boolean; title: string; body: string; cta: string | null; tab: TabId | null }[] : []
+  const stepsDone = STEPS.filter(s => s.done).length
+  const showSetup = STEPS.length > 0 && stepsDone < STEPS.length
+
+  // ── Insights ──
+  const insights: { type: string; text: string }[] = []
+  if (a?.toDeliver > 0) insights.push({ type: 'info', text: `${a.toDeliver} cliente${a.toDeliver === 1 ? ' completó su tarjeta y espera' : 's completaron su tarjeta y esperan'} el premio.` })
+  if (a?.nearPrize > 0) insights.push({ type: 'positive', text: `${a.nearPrize} cliente${a.nearPrize === 1 ? ' está' : 's están'} a 1–2 sellos del premio: es un buen momento para mandarles una notificación.` })
+  if (a?.newLastMonth > 0 && a?.newDelta) insights.push({ type: a.newDelta > 0 ? 'positive' : 'warning', text: a.newDelta > 0 ? `Los registros nuevos crecieron ${a.newDelta}% respecto al mismo período del mes pasado.` : `Los registros nuevos bajaron ${Math.abs(a.newDelta)}% respecto al mismo período del mes pasado.` })
+  if (a?.visitsWeekDelta != null && Math.abs(a.visitsWeekDelta) >= 10) insights.push({ type: a.visitsWeekDelta > 0 ? 'positive' : 'warning', text: a.visitsWeekDelta > 0 ? `Esta semana hubo ${a.visitsWeekDelta}% más visitas que la anterior.` : `Esta semana las visitas bajaron ${Math.abs(a.visitsWeekDelta)}% respecto a la anterior: una notificación puede ayudar.` })
+  if (a?.topChosenRewards?.length > 0) insights.push({ type: 'info', text: `"${a.topChosenRewards[0].prize}" es el premio más elegido: tenelo bien abastecido.` })
+  if (a?.inactive > 0 && a?.total > 0 && a.inactive / a.total >= 0.3) insights.push({ type: 'warning', text: `${Math.round(a.inactive / a.total * 100)}% de tus clientes no vuelve hace tiempo. Probá una notificación a "Inactivos".` })
+
+  const Sk = ({ w = '60%', h = 12 }: { w?: string | number; h?: number }) => <div className="ov-skel" style={{ width: w, height: h }} />
 
   return (
     <div className="db-content">
+      {showSetup && (
+        <div className="db-card ov-setup">
+          <div className="ov-setup-head">
+            <div>
+              <div className="ov-card-title">Primeros pasos</div>
+              <div className="ov-card-sub">{stepsDone} de {STEPS.length} listos · con esto ya podés sumar tu primer cliente</div>
+            </div>
+            <div className="ov-setup-bar"><div style={{ width: `${(stepsDone / STEPS.length) * 100}%` }} /></div>
+          </div>
+          <div className="ov-setup-list">
+            {STEPS.map(step => (
+              <div key={step.title} className={`ov-setup-step${step.done ? ' ov-setup-step--done' : ''}`}>
+                <div className="ov-setup-check">{step.done ? '✓' : ''}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="ov-setup-title">{step.title}</div>
+                  {!step.done && <div className="ov-setup-body">{step.body}</div>}
+                </div>
+                {!step.done && step.cta && step.tab && <button className="ov-setup-cta" onClick={() => setActive(step.tab!)}>{step.cta}</button>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="ov-section-label">{t('section_summary' as any)}</div>
       <div className="ov-metric-grid">
-        {[
-          { label: t('total_customers' as any), value: totalUsers,    delta: 0,    color: '#C75D3A' },
-          { label: t('active' as any),          value: activeUsers,   delta: 0,   color: '#5B8C5A' },
-          { label: t('new_signups' as any),     value: newSignUps,    delta: newDelta,              color: '#185FA5' },
-          { label: t('inactive' as any),        value: inactiveUsers, delta: 0, color: '#B23B3B' },
-        ].map(({ label, value, delta, color }) => (
+        {METRICS.map(({ label, value, delta, deltaTitle, color, sub }) => (
           <div key={label} className="ov-metric-card">
             <div className="ov-metric-top">
               <div className="ov-metric-dot" style={{ background: `${color}20` }}>
                 <div style={{ width: 9, height: 9, borderRadius: '50%', background: color }} />
               </div>
-              <span className={`ov-delta ${delta >= 0 ? 'ov-delta--up' : 'ov-delta--down'}`}>
-                {delta >= 0 ? '↑' : '↓'} {Math.abs(delta)}%
-              </span>
+              {delta != null && (
+                <span className={`ov-delta ${delta >= 0 ? 'ov-delta--up' : 'ov-delta--down'}`} title={deltaTitle}>
+                  {delta >= 0 ? '↑' : '↓'} {Math.abs(delta)}%
+                </span>
+              )}
             </div>
-            <div className="ov-metric-value">{value.toLocaleString()}</div>
+            <div className="ov-metric-value">{loadingData ? <Sk w={48} h={26} /> : fmt(value)}</div>
             <div className="ov-metric-label">{label}</div>
+            <div className="ov-metric-sub">{loadingData ? <Sk w="80%" h={10} /> : sub}</div>
           </div>
         ))}
       </div>
 
       <div className="ov-two-col">
-        <div className="db-card">
+        <div className="db-card ov-chart-card">
           <div className="ov-card-title-row">
             <div>
               <div className="ov-card-title">{chartCfg.title}</div>
               <div className="ov-card-sub">{RANGE_SUBTITLES[granularity]}</div>
             </div>
             <div className="ov-granularity-toggle">
-              <button className={`ov-gran-btn${granularity === '7d' ? ' ov-gran-btn--on' : ''}`} onClick={() => loadRange('7d')}>7 días</button>
-              <button className={`ov-gran-btn${granularity === '30d' ? ' ov-gran-btn--on' : ''}`} onClick={() => loadRange('30d')}>30 días</button>
-              <button className={`ov-gran-btn${granularity === '90d' ? ' ov-gran-btn--on' : ''}`} onClick={() => loadRange('90d')}>90 días</button>
+              {(['7d', '30d'] as const).map(g => (
+                <button key={g} className={`ov-gran-btn${granularity === g ? ' ov-gran-btn--on' : ''}`} onClick={() => loadRange(g)}>{g.replace('d', ' días')}</button>
+              ))}
             </div>
           </div>
           {chartLoading
-            ? <div className="ov-chart-loading">Cargando...</div>
-            : !weeklyVisits || weeklyVisits.length === 0
-            ? <div className="ov-chart-loading">Todavía no hay suficientes datos.</div>
+            ? <div className="ov-chart-skel">{Array.from({ length: 7 }).map((_, i) => <div key={i} style={{ height: `${30 + ((i * 37) % 60)}%` }} />)}</div>
+            : chartEmpty
+            ? <div className="ov-chart-loading">Todavía no hay movimientos en este período. Aparecen cuando escaneás tarjetas con la app.</div>
             : <div className="ov-chart-wrap">
                 <div className="ov-chart-axis">
                   {axisSteps.map((v, i) => <span key={i}>{v}</span>)}
@@ -351,169 +450,149 @@ function OverviewTab({ t, analyticsData, rewardsData, detailedAnalytics, cards }
                     {axisSteps.map((_, i) => <div key={i} className="ov-chart-gridline" />)}
                   </div>
                   <div className="ov-bars">
-                    {(weeklyVisits || []).map(({ label, visits }: any) => (
-                      <div
-                        key={label}
-                        className="ov-bar-col"
-                        onMouseEnter={() => setHoveredBar(label)}
-                        onMouseLeave={() => setHoveredBar(null)}
-                      >
-                        {hoveredBar === label && (
-                          <div className="ov-bar-tooltip">
-                            {label} · {visits} {chartCfg.unit}
-                            <div className="ov-bar-tooltip-arrow" />
-                          </div>
+                    {bars.map((b, i) => (
+                      <div key={i} className="ov-bar-col" onMouseEnter={() => setHoveredBar(b.label)} onMouseLeave={() => setHoveredBar(null)}>
+                        {hoveredBar === b.label && (
+                          <div className="ov-bar-tooltip">{tooltip(b)}<div className="ov-bar-tooltip-arrow" /></div>
                         )}
-                        <div
-                          className={`ov-bar-fill${hoveredBar === label ? ' ov-bar-fill--active' : ''}`}
-                          style={{ height: `${(visits / chartMax) * 100}%` }}
-                        />
-                        <div className="ov-bar-label">{label}</div>
+                        <div className={`ov-bar-fill${hoveredBar === b.label ? ' ov-bar-fill--active' : ''}`} style={{ height: `${(b.value / chartMax) * 100}%` }} />
+                        <div className="ov-bar-label">{bars.length <= 10 || i % 5 === 0 || i === bars.length - 1 ? b.label : '\u00a0'}</div>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
           }
+          {fullAnalytics && (
+            <button className="ov-more-link" onClick={() => setActive('analytics')}>Ver analítica completa →</button>
+          )}
         </div>
-        <div className="db-card ov-near-card">
-          <div className="ov-card-title">{t('near_prize' as any)}</div>
-          <div className="ov-card-sub">{t('near_prize_sub' as any)}</div>
-          <div className="ov-near-num">{nearPrize}</div>
-          <div className="ov-near-label">{t('customers_label' as any)}</div>
-        </div>
-      </div>
-
-      {analyticsData !== null && analyticsData?.total > 0 ? (
-        <>
-      <div className="ov-section-label">{t('section_advanced' as any)}</div>
-      <div className="ov-adv-grid">
-        {ADVANCED.map(({ v, l, color, bg }) => (
-          <div key={l} className="ov-adv-card" style={{ borderTop: `3px solid ${color}` }}>
-            <div className="ov-adv-val" style={{ color }}>{v}</div>
-            <div className="ov-adv-label">{l}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="ov-section-label">{t('section_engagement' as any)}</div>
-      <div className="ov-three-col">
-        {(hasStamp || hasPoints) && (
-          <div className="db-card ov-card--fill">
-            <div className="ov-card-title-row">
-              <span className="ov-card-title">{t('top_rewards' as any)}</span>
-            </div>
-            {rewardsData?.topPrizes?.length > 0
-              ? <div className="ov-reward-list">
-                  {rewardsData.topPrizes.map((r: any, i: number) => {
-                    const max = rewardsData.topPrizes[0]?.count || 1
-                    return (
-                      <div key={r.prize} className="ov-reward-row">
-                        <span className={`ov-reward-rank${i === 0 ? ' ov-reward-rank--first' : ''}`}>{i + 1}</span>
-                        <div className="ov-reward-info">
-                          <div className="ov-reward-name">{r.prize}</div>
-                          <div className="ov-reward-bar"><div className="ov-reward-fill" style={{ width: `${(r.count / max) * 100}%` }} /></div>
-                        </div>
-                        <span className="ov-reward-count">{r.count}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              : <div className="ov-empty-note">Todavía no hay premios canjeados.</div>
-            }
-          </div>
-        )}
-
-        {hasMembership && (
-          <div className="db-card">
-            <div className="ov-card-title">{t('tier_distribution' as any)}</div>
-            {mockData.membershipTiers.map((tier: any) => {
-              const count = TIER_MEMBERS[tier.id] || 0
-              const total = Object.values(TIER_MEMBERS).reduce((a: number, b: number) => a + b, 0)
-              return (
-                <div key={tier.id} className="ov-tier-row">
-                  <div className="ov-tier-dot" style={{ background: tier.bg, border: `2px solid ${tier.color}` }} />
-                  <span className="ov-tier-name">{tier.name}</span>
-                  <div className="ov-tier-bar-wrap">
-                    <div className="ov-tier-bar" style={{ width: `${(count / total) * 100}%`, background: tier.bg, border: `1px solid ${tier.color}40` }} />
-                  </div>
-                  <span className="ov-tier-count">{count}</span>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
         <div className="db-card">
-          <div className="ov-card-title-row">
-            <span className="ov-card-title">{t('recent_activity' as any)}</span>
-            <span className="ov-live"><span className="ov-live-dot" />{t('live' as any)}</span>
+          <div className="ov-card-title">Para atender</div>
+          <div className="ov-card-sub">Lo que conviene mirar hoy</div>
+          <div className="ov-attention">
+            {loadingData
+              ? [0, 1].map(i => <div key={i} className="ov-attention-row"><Sk w={32} h={22} /><Sk w="70%" /></div>)
+              : ATTENTION.length === 0
+              ? <div className="ov-empty-note">Activá una tarjeta en Diseño para ver esto.</div>
+              : ATTENTION.map(item => (
+                  <div key={item.key} className={`ov-attention-row${item.strong && item.value > 0 ? ' ov-attention-row--strong' : ''}`}>
+                    <div className="ov-attention-num">{item.value}</div>
+                    <div>
+                      <div className="ov-attention-label">{item.label}</div>
+                      <div className="ov-attention-hint">{item.hint}</div>
+                    </div>
+                  </div>
+                ))
+            }
           </div>
-          {detailedAnalytics?.recentActivity?.length > 0
-            ? detailedAnalytics.recentActivity.map((a: any, i: number) => (
-                <div key={i} className="ov-activity-row">
-                  <div className={`ov-av ov-av--${a.action === 'canjeó su premio' ? 'redeem' : a.action === 'se registró' ? 'signup' : 'stamp'}`}>{initials(a.name)}</div>
-                  <div className="ov-activity-text"><strong>{a.name}</strong> {a.action}</div>
-                  <div className="ov-activity-time">{a.time}</div>
-                </div>
-              ))
-            : <div className="ov-empty-note">Todavía no hay actividad registrada.</div>
-          }
-        </div>
-
-        <div className="db-card ov-card--fill">
-          <div className="ov-card-title">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C75D3A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: 'middle' }}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            {t('smart_insights' as any)}
-          </div>
-          {(() => {
-            const insights: { type: string; text: string }[] = []
-            if (hasStamp && nearPrize > 0) {
-              insights.push({
-                type: 'positive',
-                text: `${nearPrize} cliente${nearPrize === 1 ? ' está' : 's están'} a 1-2 sellos de completar su premio — es un buen momento para mandarles una notificación.`,
-              })
-            }
-            if (newDelta !== 0) {
-              insights.push({
-                type: newDelta >= 0 ? 'positive' : 'warning',
-                text: newDelta >= 0
-                  ? `Los nuevos registros crecieron ${newDelta}% este mes.`
-                  : `Los nuevos registros bajaron ${Math.abs(newDelta)}% este mes.`,
-              })
-            }
-            if (hasStamp && rewardsData?.topPrize && rewardsData.topPrize !== '—') {
-              insights.push({ type: 'info', text: `${rewardsData.topPrize} es tu premio más popular — considerá tenerlo bien abastecido.` })
-            }
-            const vot = detailedAnalytics?.visitsOverTime || []
-            if (vot.length >= 2) {
-              const last = vot[vot.length - 1].stamps
-              const prev = vot[vot.length - 2].stamps
-              if (prev > 0) {
-                const changePct = Math.round(((last - prev) / prev) * 100)
-                if (Math.abs(changePct) >= 10) {
-                  insights.push({
-                    type: changePct < 0 ? 'warning' : 'positive',
-                    text: changePct < 0
-                      ? `La actividad bajó ${Math.abs(changePct)}% en el último período. Considerá una notificación push.`
-                      : `La actividad subió ${changePct}% en el último período.`,
-                  })
-                }
-              }
-            }
-            return insights.length > 0
-              ? <div className="ov-insight-list">{insights.map((ins, i) => <div key={i} className={`ov-insight ov-insight--${ins.type}`}>{ins.text}</div>)}</div>
-              : <div className="ov-empty-note">Todavía no hay suficientes datos para generar insights.</div>
-          })()}
         </div>
       </div>
+
+      {!loadingData && a.total > 0 ? (
+        <>
+          {!fullAnalytics && (
+            <>
+              <div className="ov-section-label">{t('section_advanced' as any)}</div>
+              <div className="ov-adv-grid">
+                {ADVANCED.slice(0, 1).map(({ v, l, sub, color }) => (
+                  <div key={l} className="ov-adv-card" style={{ borderTop: `3px solid ${color}` }}>
+                    <div className="ov-adv-val" style={{ color }}>{v}</div>
+                    <div className="ov-adv-label">{l}</div>
+                    <div className="ov-adv-sub">{sub}</div>
+                  </div>
+                ))}
+                <div className="ov-adv-card ov-locked">
+                  <div className="ov-locked-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="ov-adv-label">{['Tasa de canje', hasStamp && 'progreso promedio', hasMembership && 'clientes por nivel', 'horarios pico'].filter(Boolean).join(', ')} y más</div>
+                    <div className="ov-adv-sub">Disponible desde el plan Growth</div>
+                  </div>
+                  {isManager
+                    ? <span className="ov-adv-sub">Pedile al dueño que mejore el plan</span>
+                    : <button className="ov-setup-cta" onClick={onChoosePlan}>Ver planes</button>}
+                </div>
+              </div>
+            </>
+          )}
+
+          {rangeRetention && (rangeRetention.current.returning + rangeRetention.current.newCustomers) > 0 && (
+            <div className="db-card" style={{ marginTop: 12 }}>
+              <div className="ov-card-title-row">
+                <div>
+                  <div className="ov-card-title">¿Tu programa retiene?</div>
+                  <div className="ov-card-sub">{RANGE_SUBTITLES[granularity]} · clientes que volvieron vs clientes nuevos</div>
+                </div>
+              </div>
+              <RetentionRing data={rangeRetention} />
+            </div>
+          )}
+
+          <div className="ov-section-label">{t('section_engagement' as any)}</div>
+          {/* "Premios más elegidos" solo si el cliente elige el premio; si no, la
+              fila queda en dos columnas (sin tarjetas con hueco). */}
+          <div className="ov-three-col" style={{ gridTemplateColumns: showChosen ? undefined : 'repeat(2, minmax(0, 1fr))' }}>
+            {showChosen && (
+              <div className="db-card ov-card--fill">
+                <div className="ov-card-title-row"><span className="ov-card-title">Premios más elegidos</span></div>
+                {a.topChosenRewards?.length > 0
+                  ? <div className="ov-reward-list">
+                      {a.topChosenRewards.map((r: any, i: number) => {
+                        const max = a.topChosenRewards[0]?.count || 1
+                        return (
+                          <div key={r.prize} className="ov-reward-row">
+                            <span className={`ov-reward-rank${i === 0 ? ' ov-reward-rank--first' : ''}`}>{i + 1}</span>
+                            <div className="ov-reward-info">
+                              <div className="ov-reward-name">{r.prize}</div>
+                              <div className="ov-reward-bar"><div className="ov-reward-fill" style={{ width: `${(r.count / max) * 100}%` }} /></div>
+                            </div>
+                            <span className="ov-reward-count">{r.count}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  : <EmptyNote title="Todavía sin elecciones" text="Aparece cuando tus clientes elijan su premio al registrarse." />
+                }
+              </div>
+            )}
+
+            <div className="db-card">
+              <div className="ov-card-title-row">
+                <span className="ov-card-title">{t('recent_activity' as any)}</span>
+              </div>
+              {detailedAnalytics?.recentActivity?.length > 0
+                ? detailedAnalytics.recentActivity.map((act: any, i: number) => (
+                    <div key={i} className="ov-activity-row">
+                      <div className={`ov-av ov-av--${ACTIVITY_AV[act.type] || 'stamp'}`}>{initials(act.name)}</div>
+                      <div className="ov-activity-text"><strong>{act.name}</strong> {act.action}</div>
+                      <div className="ov-activity-time">{act.time}</div>
+                    </div>
+                  ))
+                : <div className="ov-empty-note">Todavía no hay actividad registrada.</div>
+              }
+            </div>
+
+            <div className="db-card ov-card--fill">
+              <div className="ov-card-title">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C75D3A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: 'middle' }}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                {t('smart_insights' as any)}
+              </div>
+              {insights.length > 0
+                ? <div className="ov-insight-list">{insights.map((ins, i) => <div key={i} className={`ov-insight ov-insight--${ins.type}`}>{ins.text}</div>)}</div>
+                : <div className="ov-empty-note">Todavía no hay suficientes datos para generar insights.</div>}
+            </div>
+          </div>
         </>
-      ) : analyticsData !== null ? (
-        <div className="db-card" style={{display:'flex',flex:1}}>
+      ) : !loadingData && !showSetup ? (
+        <div className="db-card" style={{ display: 'flex', flex: 1 }}>
           <EmptyState
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}
             title="Los datos van a aparecer acá"
-            body="Cuando tus primeros clientes se registren vas a ver métricas de retención, crecimiento y engagement en tiempo real."
+            body="Cuando tus primeros clientes se registren vas a ver métricas de retención, crecimiento y engagement."
+            cta="Ver mi formulario"
+            onCta={() => setActive('form')}
           />
         </div>
       ) : null}
@@ -545,16 +624,17 @@ function ComingSoon({ label }: { label: string }) {
 }
 
 // ─── Mapeo de clientes: API cruda → shape que espera CustomersTab ─────────────
+// "hace 5 min", "hace 3 h", "hace 2 días" — antes salía en inglés ("5m ago").
 function formatRelativeTime(timestamp: number): string {
-  if (!timestamp) return '—'
-  const diffMs = Date.now() - timestamp
-  const diffMin = Math.floor(diffMs / 60000)
-  if (diffMin < 1) return 'ahora'
-  if (diffMin < 60) return `${diffMin}m ago`
+  if (!timestamp) return 'Sin visitas aún'
+  const diffMin = Math.floor((Date.now() - timestamp) / 60000)
+  if (diffMin < 1) return 'Ahora'
+  if (diffMin < 60) return `Hace ${diffMin} min`
   const diffH = Math.floor(diffMin / 60)
-  if (diffH < 24) return `${diffH}h ago`
+  if (diffH < 24) return `Hace ${diffH} h`
   const diffDays = Math.floor(diffH / 24)
-  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
+  if (diffDays < 60) return `Hace ${diffDays} día${diffDays === 1 ? '' : 's'}`
+  return new Date(timestamp).toLocaleDateString('es-AR')
 }
 
 function mapCustomersForTab(rawCustomers: any[]) {
@@ -563,7 +643,10 @@ function mapCustomersForTab(rawCustomers: any[]) {
     name: c.name,
     email: c.email,
     status: c.status,
-    joined: c.joinedAt,
+    near: !!c.near,
+    ready: !!c.ready,
+    joined: c.createdAt ? new Date(c.createdAt).toLocaleDateString('es-AR') : '—',
+    lastUpdate: c.lastUpdate || 0,
     lastActivity: formatRelativeTime(c.lastUpdate),
     cards: (c.cards || []).map((card: any) => ({
       customerId: card.customerId,
@@ -594,7 +677,7 @@ const CSS = `
   .db-sb{width:230px;flex-shrink:0;background:#1B412F;display:flex;flex-direction:column;padding:6px 12px;transition:width .25s ease;}
   .db-sb--collapsed{width:68px;}
   .sb-overlay{display:none;}
-  .sb-logo{display:flex;align-items:center;gap:10px;padding:0px 8px 16px;}
+  .sb-logo{display:flex;align-items:center;gap:10px;padding:6px 10px 18px;}
   .sb-logo-mark{width:36px;height:36px;border-radius:10px;background:#C75D3A;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .sb-wordmark{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:20px;color:#F7F0E4;letter-spacing:-.01em;white-space:nowrap;}
   .sb-nav{display:flex;flex-direction:column;gap:2px;flex:1;}
@@ -688,6 +771,11 @@ const CSS = `
   .ov-delta--up{color:#5B8C5A;}.ov-delta--down{color:#B23B3B;}
   .ov-metric-value{font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:800;color:#2B2620;line-height:1;margin-bottom:4px;}
   .ov-metric-label{font-size:12px;color:rgba(43,38,32,.5);}
+  .ov-metric-sub{font-size:10.5px;color:rgba(43,38,32,.4);margin-top:4px;line-height:1.35;}
+  .ov-more-link{display:block;margin:10px 0 0 auto;background:none;border:none;padding:0;font-size:12px;font-weight:600;color:#C75D3A;cursor:pointer;font-family:inherit;}
+  .ov-more-link:hover{text-decoration:underline;}
+  .ov-locked{grid-column:span 3;display:flex;align-items:center;gap:14px;background:rgba(43,38,32,.025);border-style:dashed;}
+  .ov-locked-icon{width:34px;height:34px;border-radius:10px;background:rgba(43,38,32,.06);color:rgba(43,38,32,.45);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .ov-two-col{display:grid;grid-template-columns:1.8fr 1fr;gap:12px;}
   .ov-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;color:#2B2620;margin-bottom:2px;}
   .ov-card-sub{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:12px;}
@@ -695,13 +783,14 @@ const CSS = `
   .ov-granularity-toggle{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:200px;}
   .ov-gran-btn{font-size:11px;padding:5px 11px;border-radius:20px;border:1.5px solid rgba(43,38,32,.15);background:none;color:rgba(43,38,32,.5);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap;}
   .ov-gran-btn--on{border-color:#C75D3A;background:rgba(199,93,58,.08);color:#C75D3A;font-weight:600;}
-  .ov-chart-loading{font-size:12px;color:rgba(43,38,32,.4);padding:32px 0;text-align:center;}
-  .ov-chart-wrap{display:flex;gap:8px;margin-top:8px;}
-  .ov-chart-axis{display:flex;flex-direction:column;justify-content:space-between;height:90px;font-size:9.5px;color:rgba(43,38,32,.35);text-align:right;flex-shrink:0;padding-bottom:16px;}
-  .ov-chart-plot{position:relative;flex:1;}
-  .ov-chart-gridlines{position:absolute;top:0;left:0;right:0;height:90px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none;}
+  .ov-chart-card{display:flex;flex-direction:column;}
+  .ov-chart-loading{font-size:12px;color:rgba(43,38,32,.4);padding:32px 0;text-align:center;flex:1;display:flex;align-items:center;justify-content:center;}
+  .ov-chart-wrap{display:flex;gap:8px;margin-top:8px;flex:1;min-height:170px;}
+  .ov-chart-axis{display:flex;flex-direction:column;justify-content:space-between;font-size:9.5px;color:rgba(43,38,32,.35);text-align:right;flex-shrink:0;padding-bottom:20px;}
+  .ov-chart-plot{position:relative;flex:1;display:flex;}
+  .ov-chart-gridlines{position:absolute;top:6px;left:0;right:0;bottom:20px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none;}
   .ov-chart-gridline{border-top:1px solid rgba(43,38,32,.07);}
-  .ov-bars{display:flex;align-items:flex-end;gap:8px;height:90px;position:relative;z-index:1;}
+  .ov-bars{display:flex;align-items:flex-end;gap:clamp(2px,0.6vw,8px);flex:1;position:relative;z-index:1;}
   .ov-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end;position:relative;}
   .ov-bar-fill{width:100%;background:#C75D3A;border-radius:4px 4px 0 0;min-height:4px;cursor:default;transition:opacity .15s;}
   .ov-bar-fill:hover{opacity:.8;}
@@ -729,13 +818,6 @@ const CSS = `
   .ov-reward-bar{height:5px;background:rgba(43,38,32,.07);border-radius:3px;overflow:hidden;}
   .ov-reward-fill{height:100%;background:linear-gradient(90deg,#C75D3A,#D4A24C);border-radius:3px;}
   .ov-reward-count{font-size:11px;font-weight:600;color:rgba(43,38,32,.5);flex-shrink:0;}
-  .ov-tier-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid rgba(43,38,32,.05);}
-  .ov-tier-row:last-child{border-bottom:none;}
-  .ov-tier-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
-  .ov-tier-name{font-size:12px;color:#2B2620;width:52px;flex-shrink:0;}
-  .ov-tier-bar-wrap{flex:1;height:8px;background:rgba(43,38,32,.06);border-radius:4px;overflow:hidden;}
-  .ov-tier-bar{height:100%;border-radius:4px;}
-  .ov-tier-count{font-size:11px;font-weight:700;color:#2B2620;width:28px;text-align:right;}
   .ov-activity-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid rgba(43,38,32,.06);}
   .ov-activity-row:last-child{border-bottom:none;}
   .ov-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
@@ -743,6 +825,32 @@ const CSS = `
   .ov-av--signup{background:rgba(91,140,90,.15);color:#5B8C5A;}
   .ov-av--login{background:rgba(24,95,165,.12);color:#185FA5;}
   .ov-av--stamp{background:rgba(83,63,183,.12);color:#533FB7;}
+  .ov-skel{border-radius:6px;background:linear-gradient(90deg,rgba(43,38,32,.06) 25%,rgba(43,38,32,.11) 50%,rgba(43,38,32,.06) 75%);background-size:200% 100%;animation:ov-shimmer 1.2s ease-in-out infinite;}
+  @keyframes ov-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .ov-chart-skel{display:flex;align-items:flex-end;gap:10px;height:150px;padding:10px 4px 22px;}
+  .ov-chart-skel div{flex:1;border-radius:6px 6px 0 0;background:rgba(43,38,32,.07);animation:ov-pulse 1.2s ease-in-out infinite;}
+  @keyframes ov-pulse{0%,100%{opacity:.6}50%{opacity:1}}
+  .ov-attention{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
+  .ov-attention-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:rgba(43,38,32,.03);}
+  .ov-attention-row--strong{background:rgba(199,93,58,.08);}
+  .ov-attention-num{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:22px;color:#2B2620;min-width:34px;text-align:center;}
+  .ov-attention-row--strong .ov-attention-num{color:#C75D3A;}
+  .ov-attention-label{font-size:13px;font-weight:600;color:#2B2620;}
+  .ov-attention-hint{font-size:11px;color:rgba(43,38,32,.45);margin-top:2px;}
+  .ov-adv-sub{font-size:10.5px;color:rgba(43,38,32,.4);margin-top:2px;}
+  .ov-setup{margin-bottom:6px;border:1px solid rgba(199,93,58,.22);}
+  .ov-setup-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:12px;}
+  .ov-setup-bar{width:160px;height:6px;border-radius:999px;background:rgba(43,38,32,.08);overflow:hidden;}
+  .ov-setup-bar div{height:100%;background:#C75D3A;border-radius:999px;transition:width .3s;}
+  .ov-setup-list{display:flex;flex-direction:column;gap:6px;}
+  .ov-setup-step{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:#FBF6EE;}
+  .ov-setup-step--done{background:transparent;}
+  .ov-setup-check{width:22px;height:22px;border-radius:50%;border:2px solid rgba(43,38,32,.2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;}
+  .ov-setup-step--done .ov-setup-check{background:#5B8C5A;border-color:#5B8C5A;}
+  .ov-setup-title{font-size:13px;font-weight:600;color:#2B2620;}
+  .ov-setup-step--done .ov-setup-title{color:rgba(43,38,32,.45);text-decoration:line-through;}
+  .ov-setup-body{font-size:11.5px;color:rgba(43,38,32,.5);margin-top:2px;}
+  .ov-setup-cta{flex-shrink:0;background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;}
   .ov-empty-note{font-size:12px;color:rgba(43,38,32,.4);padding:16px 0;text-align:center;}
   .ov-activity-text{flex:1;font-size:12px;color:rgba(43,38,32,.65);}
   .ov-activity-text strong{color:#2B2620;font-weight:600;}
@@ -768,6 +876,7 @@ const CSS = `
     .hd-hamburger{display:flex;}
     .ov-metric-grid{grid-template-columns:repeat(2,1fr);}
     .ov-adv-grid{grid-template-columns:repeat(2,1fr);}
+    .ov-locked{grid-column:1 / -1;flex-wrap:wrap;}
     .ov-three-col{grid-template-columns:1fr;}
     .ov-two-col{grid-template-columns:1fr;}
     .db-content{padding:16px;}
@@ -781,38 +890,69 @@ const CSS = `
 
 
 // ─── Main page ────────────────────────────────────────────────────────────────
+// Aviso de límite de clientes (Starter), visible en todas las tabs desde el
+// 80%. El detalle está en Clientes (CustomerLimit).
+function LimitBanner({ usage, isManager, onChoosePlan, onOpen }: { usage?: { used: number | null; max: number; grace: number; state: string } | null; isManager: boolean; onChoosePlan: () => void; onOpen: () => void }) {
+  if (!usage || !['warn', 'over', 'blocked'].includes(usage.state) || usage.used == null) return null
+  const extra = Math.max(0, usage.max + usage.grace - usage.used)
+  const text = usage.state === 'warn' ? <>Tenés <strong>{usage.used} de {usage.max} clientes</strong> del plan Starter.</>
+    : usage.state === 'over' ? <>Llegaste a los <strong>{usage.max} clientes</strong> del plan Starter. Te quedan {extra} lugares extra antes de que el formulario deje de sumar clientes nuevos.</>
+    : <><strong>Tu formulario ya no suma clientes nuevos:</strong> usaste los {usage.max} clientes del plan Starter y los lugares extra. Los que ya tenés siguen sumando.</>
+  return (
+    <div className={`lim-banner lim-banner--${usage.state}`}>
+      <style dangerouslySetInnerHTML={{ __html: `.lim-banner{display:flex;align-items:center;gap:12px;margin:10px 24px 0;padding:10px 14px;border-radius:12px;font-size:12.5px;color:#2B2620;line-height:1.45;flex-wrap:wrap}.lim-banner--warn{background:#FBF1DE;border:1px solid rgba(212,162,76,.45)}.lim-banner--over,.lim-banner--blocked{background:#FBE7E1;border:1px solid rgba(199,93,58,.4)}.lim-banner span{flex:1;min-width:200px}.lim-banner button{border:none;border-radius:8px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}.lim-btn-main{background:#C75D3A;color:#fff}.lim-btn-sec{background:transparent;color:#2B2620;text-decoration:underline}@media(max-width:768px){.lim-banner{margin:10px 16px 0}}` }} />
+      <span>{text}</span>
+      <button className="lim-btn-sec" onClick={onOpen}>Ver clientes</button>
+      {isManager ? <span style={{ flex: '0 0 auto', minWidth: 0, color: 'rgba(43,38,32,.6)' }}>Avisale al dueño.</span> : <button className="lim-btn-main" onClick={onChoosePlan}>Clientes ilimitados con Growth</button>}
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const [active, setActive]         = useState<TabId>('overview')
   const [collapsed, setCollapsed]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [t, setT]                   = useState(() => createT('es'))
   const [owner, setOwner]           = useState<any>(null)
+  // Suscripción del dueño: banner de prueba/pausa y ventana de planes.
+  const [billing, setBilling]       = useState<BillingStatus | null>(null)
+  const [showPlans, setShowPlans]   = useState(false)
   const [business, setBusiness]     = useState<any>(null)
   const [businessId, setBusinessIdState] = useState<string | null>(null)
   const [team, setTeam]             = useState<any[]>([])
   const [cards, setCards]           = useState<any[]>([])
-  const [notifHistory, setNotifHistory]             = useState<any[]>([])
-  const [notifSentThisMonth, setNotifSentThisMonth] = useState(0)
   const [customers, setCustomers]                   = useState<any[]>([])
   const [customersPage, setCustomersPage]           = useState(1)
   const [customersTotalPages, setCustomersTotalPages] = useState(1)
   const [customersTotal, setCustomersTotal]         = useState(0)
   const [customersSearch, setCustomersSearch]       = useState('')
-  const [customersStatus, setCustomersStatus]       = useState<'all' | 'active' | 'inactive'>('all')
+  const [customersStatus, setCustomersStatus]       = useState<CustomerStatusFilter>('all')
+  const [customersCounts, setCustomersCounts]       = useState<{ all: number; active: number; inactive: number; near: number; ready: number } | null>(null)
+  const [customersInactiveDays, setCustomersInactiveDays] = useState(60)
   const [customersCardFilter, setCustomersCardFilter] = useState<string>('all')
   const [customersSortKey, setCustomersSortKey]     = useState<'name' | 'progress' | 'status' | 'lastActivity' | 'card'>('progress')
   const [customersSortDir, setCustomersSortDir]     = useState<'asc' | 'desc'>('desc')
   const [customersLoading, setCustomersLoading]     = useState(false)
+  // Email del cliente a abrir al llegar a Clientes (desde los rankings de Analítica)
+  const [customerToOpen, setCustomerToOpen]         = useState<string | null>(null)
   const customersCacheRef = useRef<Map<string, any>>(new Map())
   const [analyticsData, setAnalyticsData]           = useState<any>(null)
   const [detailedAnalytics, setDetailedAnalytics]   = useState<any>(null)
-  const [rewardsData, setRewardsData]               = useState<any>(null)
   const [loading, setLoading]       = useState(true)
 
   async function loadBusiness() {
     try {
       const { owner: o, businesses } = await apiMe()
       setOwner(o)
+      apiBillingStatus().then(setBilling).catch(() => setBilling(null))
+      if (o?.role === 'manager') setActive(prev => (prev === 'users' ? 'overview' : prev))
+      // Cuenta sin negocio = no terminó el onboarding (cerró la ventana a
+      // mitad de camino): va a terminarlo. Antes entraba a un dashboard de
+      // "Mi negocio" vacío donde nada funcionaba.
+      if (businesses.length === 0 && o?.role !== 'manager') {
+        window.location.replace('/onboarding')
+        return
+      }
       if (businesses.length > 0) {
         const bid = businesses[0]._id
         setBusinessId(bid)
@@ -825,46 +965,14 @@ export default function DashboardPage() {
         }
 
         const cardsPromise      = apiGetCards(bid)
-        const teamPromise       = apiGetTeam(bid)
-        const analyticsPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/analytics`, { headers: authHeaders }).then(r => r.json())
-        const detailedPromise   = fetch(`${BASE_URL}/api/businesses/${bid}/analytics/detailed?range=30d`, { headers: authHeaders }).then(r => r.json())
+        // Equipo es solo del dueño: el backend le responde 403 a un manager.
+        const teamPromise       = o?.role === 'manager' ? Promise.resolve([]) : apiGetTeam(bid)
+        // getJson deja la respuesta en caché: Analítica abre con esto al instante.
+        const analyticsPromise  = getJson<any>(`/api/businesses/${bid}/analytics`)
+        const detailedPromise   = getJson<any>(`/api/businesses/${bid}/analytics/detailed?range=30d`)
         const customersPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/customers?page=1&limit=50&sortBy=progress&sortDir=desc`, { headers: authHeaders }).then(r => r.json())
-        const notifPromise      = fetch(`${BASE_URL}/api/businesses/${bid}/notifications`, { headers: authHeaders }).then(r => r.json())
-        const rewardsPromise    = cardsPromise.then(async (cardsData) => {
-          const cards = cardsData as any[]
-          const activeCards = cards.filter(c => c.isActive)
-          if (activeCards.length === 0) return null
-
-          // "Near prize" solo tiene sentido sumado entre TODAS las tarjetas
-          // activas de tipo sello — un negocio puede tener más de una.
-          // Points/membership no tienen un concepto lineal de "cerca de
-          // completar", así que quedan afuera de esta suma.
-          const activeStampCards = activeCards.filter(c => c.type === 'stamp')
-          const stampResults = await Promise.all(activeStampCards.map(c =>
-            fetch(
-              `${BASE_URL}/api/businesses/${bid}/rewards-stats?cardType=stamp&stampsRequired=${c.stampsRequired || 8}&cardId=${c._id}`,
-              { headers: authHeaders }
-            ).then(r => r.json())
-          ))
-          const nearPrize = stampResults.reduce((sum, r) => sum + (r?.nearPrize || 0), 0)
-
-          // Precargamos las stats de la PRIMERA tarjeta activa — es la
-          // misma que el tab Premios muestra por default. Pasárselas ya
-          // resueltas evita que Premios tenga que volver a pedirlas al
-          // montar (elimina el segundo "Cargando..." que se veía ahí).
-          const primaryCard = activeCards[0]
-          const primaryParams = new URLSearchParams({ cardType: primaryCard.type, cardId: primaryCard._id })
-          if (primaryCard.type === 'stamp') primaryParams.set('stampsRequired', String(primaryCard.stampsRequired || 8))
-          const primaryStats = await fetch(
-            `${BASE_URL}/api/businesses/${bid}/rewards-stats?${primaryParams.toString()}`,
-            { headers: authHeaders }
-          ).then(r => r.json()).catch(() => null)
-
-          return primaryStats ? { ...primaryStats, nearPrize } : null
-        })
-
-        const [teamRes, cardsRes, analyticsRes, customersRes, notifRes, rewardsRes, detailedRes] = await Promise.allSettled([
-          teamPromise, cardsPromise, analyticsPromise, customersPromise, notifPromise, rewardsPromise, detailedPromise,
+        const [teamRes, cardsRes, analyticsRes, customersRes, detailedRes] = await Promise.allSettled([
+          teamPromise, cardsPromise, analyticsPromise, customersPromise, detailedPromise,
         ])
 
         if (teamRes.status === 'fulfilled') {
@@ -900,6 +1008,8 @@ export default function DashboardPage() {
             pointsPerVisit: c.pointsPerVisit || null,
             textColor: c.textColor || null,
             publicDescription: c.publicDescription || null,
+            expiryMonths: c.expiryMonths || 0,
+            doubleDays: c.doubleDays || [],
           })))
         } else console.error('cards load error:', cardsRes.reason)
 
@@ -908,21 +1018,32 @@ export default function DashboardPage() {
 
         if (customersRes.status === 'fulfilled') {
           setCustomers(customersRes.value.customers || [])
+          setCustomersCounts(customersRes.value.counts || null)
           setCustomersTotal(customersRes.value.total || 0)
           setCustomersTotalPages(customersRes.value.pages || 1)
           customersCacheRef.current.set('1||all|progress|desc', customersRes.value)
         } else console.error('customers load error:', customersRes.reason)
 
-        if (notifRes.status === 'fulfilled') {
-          setNotifHistory(notifRes.value.history || [])
-          setNotifSentThisMonth(notifRes.value.sentThisMonth || 0)
-        } else console.error('notif load error:', notifRes.reason)
 
-        if (rewardsRes.status === 'fulfilled' && rewardsRes.value) setRewardsData(rewardsRes.value)
-        else if (rewardsRes.status === 'rejected') console.error('rewards load error:', rewardsRes.reason)
 
         if (detailedRes.status === 'fulfilled') setDetailedAnalytics(detailedRes.value)
         else console.error('detailed analytics load error:', detailedRes.reason)
+
+        // Con Inicio ya cargado, se precargan en segundo plano los datos de
+        // las demás tabs, así la primera vez que se abren no hay espera.
+        if (cardsRes.status === 'fulfilled') {
+          const active = (cardsRes.value as any[]).filter(c => c.isActive)
+          const first = active[0]
+          const B = `/api/businesses/${bid}`
+          prefetch([
+            ...(first ? [`${B}/rewards-stats?cardId=${first._id}`] : []),
+            ...(first?.type === 'points' ? [`${B}/cards/${first._id}/points-catalog`] : []),
+            ...(first?.type === 'membership' ? [`${B}/cards/${first._id}/tiers`] : []),
+            `${B}/notifications`,
+            ...active.map(c => `${B}/cards/${c._id}/fields`),
+            `${B}/cards/stats`,
+          ])
+        }
       }
     } catch (err) {
       console.error(err)
@@ -955,6 +1076,8 @@ export default function DashboardPage() {
             pointsPerVisit: c.pointsPerVisit || null,
             textColor: c.textColor || null,
             publicDescription: c.publicDescription || null,
+            expiryMonths: c.expiryMonths || 0,
+            doubleDays: c.doubleDays || [],
       })))
     } catch (err) {
       console.error('Error refreshing cards:', err)
@@ -964,7 +1087,7 @@ export default function DashboardPage() {
   async function loadCustomers(
     page: number,
     search: string,
-    status: 'all' | 'active' | 'inactive',
+    status: CustomerStatusFilter,
     sortKey: 'name' | 'progress' | 'status' | 'lastActivity' | 'card' = customersSortKey,
     sortDir: 'asc' | 'desc' = customersSortDir,
     cardFilter: string = customersCardFilter,
@@ -976,6 +1099,7 @@ export default function DashboardPage() {
     const cached = customersCacheRef.current.get(cacheKey)
     if (cached && !opts.bypassCache) {
       setCustomers(cached.customers || [])
+      setCustomersCounts(cached.counts || null)
       setCustomersTotal(cached.total || 0)
       setCustomersTotalPages(cached.pages || 1)
       setCustomersPage(page)
@@ -997,8 +1121,11 @@ export default function DashboardPage() {
         }
       })
       const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
       customersCacheRef.current.set(cacheKey, data)
       setCustomers(data.customers || [])
+      setCustomersCounts(data.counts || null)
+      if (data.inactiveDays) setCustomersInactiveDays(data.inactiveDays)
       setCustomersTotal(data.total || 0)
       setCustomersTotalPages(data.pages || 1)
       setCustomersPage(page)
@@ -1011,9 +1138,19 @@ export default function DashboardPage() {
     }
   }
 
+  // Al entrar a Clientes se vuelve a pedir la página actual: los escaneos
+  // de la app cambian sellos/puntos y la lista guardada quedaba vieja.
+  useEffect(() => {
+    if (active !== 'customers' || !businessId) return
+    customersCacheRef.current.clear()
+    loadCustomers(customersPage, customersSearch, customersStatus, customersSortKey, customersSortDir, customersCardFilter, { bypassCache: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, businessId])
+
   useLayoutEffect(() => {
     const saved = localStorage.getItem('stampa_active_tab') as TabId | null
     if (saved) setActive(saved)
+    // (si era 'users' y entra un manager, el efecto de abajo lo corrige)
   }, [])
 
   const loadedRef = useRef(false)
@@ -1030,10 +1167,19 @@ export default function DashboardPage() {
     form:'nav_form', users:'nav_users', settings:'nav_settings',
   } as any
 
+  // Abre Clientes filtrado por ese email, con la ficha abierta (desde los
+  // rankings de Analítica y los canjes de Premios).
+  function openCustomerByEmail(email: string) {
+    setCustomersSearch(email); setCustomersStatus('all'); setCustomersCardFilter('all')
+    loadCustomers(1, email, 'all', customersSortKey, customersSortDir, 'all')
+    setCustomerToOpen(email)
+    setActive('customers'); localStorage.setItem('stampa_active_tab', 'customers')
+  }
+
   function renderTab() {
     switch (active) {
-      case 'overview':      return <OverviewTab t={t} analyticsData={analyticsData} rewardsData={rewardsData} detailedAnalytics={detailedAnalytics} cards={cards} />
-      case 'customers': return customersTotal > 0
+      case 'overview':      return <OverviewTab t={t} analyticsData={analyticsData} detailedAnalytics={detailedAnalytics} cards={cards} setActive={tab => { setActive(tab); localStorage.setItem('stampa_active_tab', tab) }} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
+      case 'customers': return (analyticsData?.total ?? customersCounts?.all ?? customersTotal) > 0 || customersSearch
         ? <CustomersTab
             customers={mapCustomersForTab(customers)}
             cards={cards.filter((c: any) => c.isActive)}
@@ -1041,16 +1187,22 @@ export default function DashboardPage() {
             page={customersPage}
             totalPages={customersTotalPages}
             total={customersTotal}
-            activeCount={analyticsData?.active ?? 0}
-            inactiveCount={analyticsData?.inactive ?? 0}
-            nearCount={rewardsData?.nearPrize ?? 0}
+            counts={customersCounts}
+            inactiveDays={customersInactiveDays}
             search={customersSearch}
+            autoOpenEmail={customerToOpen}
+            onAutoOpened={() => setCustomerToOpen(null)}
             statusFilter={customersStatus}
             sortKey={customersSortKey}
             sortDir={customersSortDir}
             loading={customersLoading}
+            isManager={owner?.role === 'manager'}
+            plan={(owner?.plan || 'Starter') as any}
+            businessTotal={analyticsData?.total ?? null}
+            customerUsage={analyticsData?.customerUsage ?? null}
+            onChoosePlan={() => setShowPlans(true)}
             onSearchChange={(q: string) => { setCustomersSearch(q); loadCustomers(1, q, customersStatus) }}
-            onStatusFilterChange={(s: any) => { setCustomersStatus(s); loadCustomers(1, customersSearch, s) }}
+            onStatusFilterChange={(s: CustomerStatusFilter) => { setCustomersStatus(s); loadCustomers(1, customersSearch, s) }}
             onSortChange={(key: any, dir: any) => loadCustomers(1, customersSearch, customersStatus, key, dir)}
             onPageChange={(p: number) => loadCustomers(p, customersSearch, customersStatus)}
             onCardFilterChange={(cid: string) => { setCustomersCardFilter(cid); loadCustomers(1, customersSearch, customersStatus, customersSortKey, customersSortDir, cid) }}
@@ -1063,8 +1215,9 @@ export default function DashboardPage() {
             cta="Ver formulario"
             onCta={() => { setActive('form'); localStorage.setItem('stampa_active_tab', 'form') }}
           /></div>
-      case 'analytics': return analyticsData?.total > 0
-        ? <AnalyticsTab key={cards.length > 0 ? cards[0].id : 'loading'} data={mockData} analyticsData={analyticsData} cards={cards} />
+      case 'analytics': return analyticsData?.total > 0 || PLAN_LIMITS[(owner?.plan || 'Starter') as keyof typeof PLAN_LIMITS]?.analyticsLevel !== 'full'
+        ? <AnalyticsTab analyticsData={analyticsData} cards={cards} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)}
+            onOpenCustomer={openCustomerByEmail} />
         : <div className="db-content"><EmptyState
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}
             title="Las métricas aparecen cuando tenés clientes"
@@ -1072,26 +1225,24 @@ export default function DashboardPage() {
             cta="Ver formulario"
             onCta={() => { setActive('form'); localStorage.setItem('stampa_active_tab', 'form') }}
           /></div>
-      case 'rewards': return <RewardsTab data={mockData} cards={cards} businessId={businessId} initialRewardsData={rewardsData} />
+      case 'rewards': return <RewardsTab cards={cards} businessId={businessId} onGoToDesign={() => { setActive('design'); localStorage.setItem('stampa_active_tab', 'design') }} onOpenCustomer={openCustomerByEmail} />
           case 'notifications': return <NotificationsTab
           businessId={businessId}
-          analyticsData={analyticsData}
-          rewardsData={rewardsData}
-          data={{
-            ...mockData,
-            sentNotifications: notifHistory.map((n: any) => ({
-              id: n._id || n.sentAt,
-              message: n.message,
-              audience: n.audience,
-              sentCount: n.sentCount,
-              sentAt: new Date(n.sentAt).toLocaleDateString('es-AR'),
-            })),
-            scheduledNotifications: [],
-          }}
+          cards={cards}
+          businessName={business?.name || 'Tu negocio'}
+          inactiveDays={customersInactiveDays}
+          isManager={owner?.role === 'manager'}
+          onChoosePlan={() => setShowPlans(true)}
         />
-      case 'form':          return <FormTab businessName={business?.name || mockData.business.name} businessSlug={business?.slug || 'mi-negocio'} cardDesigns={cards.length > 0 ? cards : mockData.cardDesigns} businessId={businessId} />
-      case 'design':        return <DesignTab key={businessId ?? 'loading'} data={mockData} cards={cards} businessId={businessId} onSaved={refreshCards} />
-      case 'users':         return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} onRefresh={loadBusiness} owner={owner} />
+      case 'form':          return <FormTab businessName={business?.name || 'Tu negocio'} businessSlug={business?.slug} cards={cards} businessId={businessId}
+          isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)}
+          onGoToDesign={() => { setActive('design'); localStorage.setItem('stampa_active_tab', 'design') }} />
+      case 'design':        return <DesignTab key={businessId ?? 'loading'} cards={cards} businessId={businessId} businessName={business?.name} onSaved={refreshCards}
+          onChoosePlan={() => setShowPlans(true)}
+          onGoTo={(tab) => { setActive(tab); localStorage.setItem('stampa_active_tab', tab) }} />
+      case 'users':         if (owner?.role === 'manager') return null
+                            return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} owner={owner}
+                              onChoosePlan={() => setShowPlans(true)} onOpenCustomer={openCustomerByEmail} />
       case 'settings':      return (
         <SettingsTab
           key={businessId ?? 'loading'}
@@ -1099,14 +1250,26 @@ export default function DashboardPage() {
           onSave={loadBusiness}
           ownerName={owner?.fullName || ''}
           ownerEmail={owner?.email || ''}
+          isManager={owner?.role === 'manager'}
+          billing={billing}
+          onChoosePlan={() => setShowPlans(true)}
+          onCancelSubscription={async () => {
+            const res = await apiCancelSubscription()
+            setBilling(res)
+          }}
           deletionRequestedAt={owner?.deletionRequestedAt || null}
+          pendingEmail={owner?.pendingEmail || null}
+          cards={cards as any}
+          birthday={{ enabled: !!business?.birthday?.enabled, gift: business?.birthday?.gift || '' }}
+          onCardsChanged={refreshCards}
           business={business ? {
             ...mockData.business,
             name: business.name,
             sector: business.sector,
-            timezone: business.timezone || mockData.business.timezone,
-            inactiveDays: business.inactiveDays || mockData.business.inactiveDays,
-            alerts: business.alerts || mockData.business.alerts,
+            // Valores reales del negocio (vienen en /me); si faltan, los defaults del backend.
+            timezone: business.timezone || 'America/Argentina/Buenos_Aires',
+            inactiveDays: business.inactiveDays || 60,
+            alerts: { nearPrize: true, weeklyDigest: true, suspicious: true, ...(business.alerts || {}) },
             plan: owner?.plan || mockData.business.plan,
             planActiveCards: cards.filter((c: any) => c.isActive).length,
             planMaxCards: PLAN_LIMITS[(owner?.plan || 'Starter') as keyof typeof PLAN_LIMITS]?.maxActiveCards ?? mockData.business.planMaxCards,
@@ -1136,17 +1299,25 @@ export default function DashboardPage() {
       />
       <div className="db-main">
         <Header title={t(TITLES[active] as any)} t={t} setMobileOpen={setMobileOpen} setActive={setActive} recentActivity={detailedAnalytics?.recentActivity} />
+        <BillingStyles />
+        <BillingBanner billing={billing} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
+        {active !== 'customers' && <LimitBanner usage={analyticsData?.customerUsage} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} onOpen={() => { setActive('customers'); localStorage.setItem('stampa_active_tab', 'customers') }} />}
         {loading
           ? <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 32, height: 32, border: '3px solid rgba(43,38,32,.1)', borderTopColor: '#C75D3A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                <div style={{ fontSize: 12, color: 'rgba(43,38,32,.35)' }}>Cargando...</div>
-              </div>
+              <MascotLoader text="Preparando tu negocio…" size={64} />
             </div>
           : renderTab()
         }
       </div>
     </div>
+    {showPlans && (
+      <PlanModal
+        billing={billing}
+        ownerEmail={owner?.email || ''}
+        onClose={() => setShowPlans(false)}
+        onDone={b => { setBilling(b); setOwner((o: any) => (o ? { ...o, plan: b.plan } : o)) }}
+      />
+    )}
     </LangContext.Provider>
     </PlanProvider>
   )

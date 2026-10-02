@@ -5,6 +5,8 @@
 // desde los componentes. Esto centraliza el manejo de tokens, errores
 // y la URL base.
 
+import { writeCache, clearCache } from './cache'
+
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
@@ -19,6 +21,7 @@ export function setToken(token: string) {
 
 export function clearToken() {
   localStorage.removeItem('stampa_token')
+  clearCache()
   localStorage.removeItem('stampa_business_id')
 }
 
@@ -51,11 +54,18 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     headers['Authorization'] = `Bearer ${token}`
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  })
+  let res: Response
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    })
+  } catch {
+    // Sin conexión o servidor caído: antes cada pantalla mostraba su error
+    // genérico ("Error al crear la cuenta") sin decir que era la conexión.
+    throw { status: 0, error: 'No pudimos conectarnos con Stampa. Revisá tu conexión a internet y probá de nuevo.' }
+  }
 
   // Token expirado o inválido → limpiar sesión y redirigir al login.
   // OJO: nunca en una llamada noAuth (páginas públicas como el registro de
@@ -80,6 +90,8 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     throw { status: res.status, ...(data || {}) }
   }
 
+  // Los GET quedan en caché para que las tabs abran al instante (lib/cache).
+  if (method === 'GET' && !noAuth) writeCache(path, data)
   return data as T
 }
 
@@ -90,6 +102,9 @@ export interface Owner {
   fullName: string
   plan: 'Starter' | 'Growth' | 'Pro' | 'Enterprise'
   maxLocations: number
+  // 'manager' = miembro del equipo invitado por el dueño: ve un solo
+  // negocio, sin Equipo, plan ni zona de peligro.
+  role?: 'owner' | 'manager'
 }
 
 export interface Business {
@@ -150,6 +165,8 @@ export interface FormField {
   isLocked: boolean
   isActive: boolean
   isRewardSource: boolean
+  isRequired?: boolean
+  isDefaultOptional?: boolean
   isCustom: boolean
   order: number
 }
@@ -161,6 +178,15 @@ export interface TeamMember {
   role: 'manager' | 'scanner'
   status: 'active' | 'invited' | 'disabled'
   lastActivityAt: string | null
+  scans30?: number
+  lastScanAt?: string | null
+}
+
+export interface TeamActivity {
+  name: string
+  totals: { stamp: number; points: number; visit: number; redeem: number; total: number }
+  alerts: Array<{ kind: 'repeat' | 'burst'; at: number; text: string; customer?: string; email?: string | null }>
+  recent: Array<{ customer: string; email: string | null; type: string; text: string; detail: string | null; at: number }>
 }
 
 export interface NotificationHistory {
@@ -244,6 +270,18 @@ export async function apiCreateTier(businessId: string, cardId: string, data: Pa
   })
 }
 
+// Guarda la escalera completa (el editor de Premios). Devuelve cuántos
+// clientes cambiaron de nivel y cuántos subieron.
+export async function apiSaveTiers(businessId: string, cardId: string, tiers: Array<{ id?: string; name: string; threshold: number; perk: string; color: string; bg: string }>) {
+  return request<{ tiers: MembershipTier[]; updatedCustomers: number; promoted: number }>(`/api/businesses/${businessId}/cards/${cardId}/tiers`, {
+    method: 'PUT', body: { tiers },
+  })
+}
+
+export async function apiCreateDefaultTiers(businessId: string, cardId: string) {
+  return request<MembershipTier[]>(`/api/businesses/${businessId}/cards/${cardId}/tiers/defaults`, { method: 'POST' })
+}
+
 export async function apiUpdateTier(businessId: string, cardId: string, tierId: string, data: Partial<MembershipTier>) {
   return request<MembershipTier>(`/api/businesses/${businessId}/cards/${cardId}/tiers/${tierId}`, {
     method: 'PATCH', body: data,
@@ -283,9 +321,22 @@ export async function apiExportCustomers(businessId: string) {
   window.URL.revokeObjectURL(url)
 }
 
-export async function apiRequestDeletion() {
+export async function apiRequestDeletion(password: string) {
   return request<{ success: boolean; message: string; purgeDate: string }>('/api/auth/request-deletion', {
-    method: 'POST',
+    method: 'POST', body: { password },
+  })
+}
+
+// Cambio de email: manda un link al email nuevo; se aplica al confirmarlo.
+export async function apiChangeEmail(newEmail: string, password: string) {
+  return request<{ success: boolean; message: string }>('/api/auth/change-email', {
+    method: 'POST', body: { newEmail, password },
+  })
+}
+
+export async function apiConfirmEmail(token: string) {
+  return request<{ success: boolean; email: string }>('/api/auth/confirm-email', {
+    method: 'POST', body: { token }, noAuth: true,
   })
 }
 
@@ -300,14 +351,21 @@ export async function apiGetPublicBusiness(businessId: string) {
     business: { id: string; name: string; slug: string }
     whiteLabel?: boolean
     cards: Array<{ id: string; name: string; type: string; description?: string; color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null }>
-    fields: Array<{ label: string; fieldType: string; isLocked: boolean; options?: string[]; placeholder?: string }>
+    fields: Array<{ _id?: string; label: string; fieldType: string; isLocked: boolean; builtIn?: boolean; isRewardSource?: boolean; isRequired?: boolean; options?: string[]; placeholder?: string }>
   }>(`/api/businesses/${businessId}/public`, { noAuth: true })
 }
 
 export async function apiGetPublicCardFields(businessId: string, cardId: string) {
-  return request<{ fields: Array<{ label: string; fieldType: string; isLocked: boolean; options?: string[] }> }>(
+  return request<{ fields: Array<{ _id?: string; label: string; fieldType: string; isLocked: boolean; builtIn?: boolean; isRewardSource?: boolean; isRequired?: boolean; options?: string[]; placeholder?: string }> }>(
     `/api/businesses/${businessId}/cards/${cardId}/public-fields`, { noAuth: true }
   )
+}
+
+// "Ya estoy registrado": le manda al cliente su tarjeta por email.
+export async function apiResendCard(businessIdOrSlug: string, email: string) {
+  return request<{ success: boolean; message: string }>(`/api/businesses/${businessIdOrSlug}/resend-card`, {
+    method: 'POST', body: { email }, noAuth: true,
+  })
 }
 
 export async function apiRegisterCustomer(businessId: string, data: {
@@ -358,6 +416,7 @@ export async function apiOnboarding(data: {
   pointsPerVisit?: number
   rewardMode?: 'dynamic' | 'fixed'
   rewardFixedValue?: string
+  rewardOptions?: string[]   // "El cliente elige su premio": 2 a 6 opciones
   brandColor?: string
   brandLogo?: string | null
   flipMessage?: string
@@ -394,11 +453,21 @@ export async function apiCreateCard(businessId: string, data: Partial<Card>) {
   })
 }
 
-export async function apiUpdateCard(businessId: string, cardId: string, data: Partial<Card>) {
-  return request<Card>(`/api/businesses/${businessId}/cards/${cardId}`, {
+export async function apiUpdateCard(businessId: string, cardId: string, data: Partial<Card> | Record<string, any>) {
+  return request<Card & { passUpdates?: number }>(`/api/businesses/${businessId}/cards/${cardId}`, {
     method: 'PATCH',
     body: data,
   })
+}
+
+// Clientes por tarjeta: { [cardId]: { customers, withWallet } }
+export async function apiCardStats(businessId: string) {
+  return request<Record<string, { customers: number; withWallet: number }>>(`/api/businesses/${businessId}/cards/stats`)
+}
+
+// Cuántos clientes completarían la tarjeta si se bajan los sellos a `stampsRequired`.
+export async function apiCardImpact(businessId: string, cardId: string, stampsRequired: number) {
+  return request<{ wouldComplete: number }>(`/api/businesses/${businessId}/cards/${cardId}/impact?stampsRequired=${stampsRequired}`)
 }
 
 export async function apiDeleteCard(businessId: string, cardId: string) {
@@ -450,7 +519,7 @@ export async function apiCreateTeamMember(businessId: string, data: {
   email?: string
   pin?: string
 }) {
-  return request<TeamMember>(`/api/businesses/${businessId}/team`, {
+  return request<TeamMember & { id?: string; inviteSent?: boolean }>(`/api/businesses/${businessId}/team`, {
     method: 'POST',
     body: data,
   })
@@ -467,10 +536,77 @@ export async function apiUpdateTeamMember(businessId: string, userId: string, da
   })
 }
 
+export async function apiResendInvite(businessId: string, userId: string) {
+  return request<{ success: boolean; message: string }>(`/api/businesses/${businessId}/team/${userId}/resend-invite`, {
+    method: 'POST',
+  })
+}
+
+export async function apiGetInvite(token: string) {
+  return request<{ fullName: string; email: string; businessName: string }>(`/api/auth/invite/${encodeURIComponent(token)}`, { noAuth: true })
+}
+
+export async function apiAcceptInvite(token: string, password: string) {
+  const res = await request<{ token: string; role: 'manager' }>('/api/auth/accept-invite', {
+    method: 'POST',
+    body: { token, password },
+    noAuth: true,
+  })
+  setToken(res.token)
+  return res
+}
+
+// Actividad de un Scanner en los últimos 30 días (con alertas).
+export async function apiTeamActivity(businessId: string, userId: string) {
+  return request<TeamActivity>(`/api/businesses/${businessId}/team/${userId}/activity`)
+}
+
 export async function apiDeleteTeamMember(businessId: string, userId: string) {
   return request<void>(`/api/businesses/${businessId}/team/${userId}`, {
     method: 'DELETE',
   })
+}
+
+// ─── Cobro (suscripción del dueño) ───────────────────────────────────────────
+export type BillingAccess = 'legacy' | 'trial' | 'active' | 'paused'
+
+export interface BillingStatus {
+  access: BillingAccess
+  plan: string
+  status: string | null
+  provider: 'mercadopago' | 'stripe' | null
+  period: 'monthly' | 'annual' | null
+  trialEndsAt: string | null
+  trialDaysLeft: number
+  nextPaymentDate: string | null
+  accessUntil: string | null
+  subscriptionId: string | null
+}
+
+export interface BillingPlan {
+  plan: 'starter' | 'growth' | 'pro' | 'enterprise'
+  name: string
+  period: 'monthly' | 'annual'
+  amount: number | null
+  currency: string | null
+  active: boolean
+  error?: boolean
+}
+
+export async function apiBillingStatus() {
+  return request<BillingStatus>('/api/billing')
+}
+
+export async function apiBillingPlans() {
+  return request<{ provider: 'mercadopago'; plans: BillingPlan[] }>('/api/billing/plans')
+}
+
+export async function apiSubscribeMercadoPago(data: { plan: string; period: string; cardTokenId: string; payerEmail?: string }) {
+  return request<BillingStatus>('/api/billing/mercadopago/subscribe', { method: 'POST', body: data })
+}
+
+export async function apiCancelSubscription() {
+  return request<BillingStatus>('/api/billing/cancel', { method: 'POST' })
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

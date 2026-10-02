@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
-import { apiGetPublicBusiness, apiGetPublicCardFields, apiRegisterCustomer, BASE_URL } from '@/lib/api'
+import { apiGetPublicBusiness, apiGetPublicCardFields, apiRegisterCustomer, apiResendCard, BASE_URL } from '@/lib/api'
 
 const CSS = `
   :root { --font-display: 'Plus Jakarta Sans', sans-serif; --font-body: 'Inter', sans-serif; --brand-color: #C75D3A; --brand-second: #993C1D; --brand-text: #FFFFFF; }
@@ -42,16 +42,13 @@ const CSS = `
   .rg-footer-badge { text-align: center; font-size: 10.5px; color: rgba(43,38,32,.3); padding: 14px 0 4px; font-weight: 600; letter-spacing: .02em; }
 
   .rg-loading, .rg-fatal { text-align: center; font-size: 13px; color: rgba(43,38,32,.5); padding: 60px 26px; }
+  .rg-legal { font-size: 11px; color: rgba(43,38,32,.5); text-align: center; line-height: 1.5; margin-top: 12px; }
+  .rg-legal a, .rg-link { color: var(--brand-color); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-body); font-size: inherit; }
+  .rg-back { display: inline-block; margin-bottom: 14px; font-size: 12px; }
+  .rg-recover { text-align: center; margin-top: 14px; font-size: 12px; color: rgba(43,38,32,.55); }
+  .rg-info { font-size: 12px; color: #3F6E3E; background: rgba(91,140,90,.1); border: 1px solid rgba(91,140,90,.25); border-radius: 9px; padding: 10px 14px; margin-bottom: 16px; line-height: 1.5; }
+  .rg-btn--ghost { background: #fff; color: var(--brand-color); border: 1.5px solid var(--brand-color); box-shadow: none; }
 `
-
-function injectStyles() {
-  if (typeof document === 'undefined') return
-  if (document.getElementById('rg-public-css')) return
-  const s = document.createElement('style')
-  s.id = 'rg-public-css'
-  s.textContent = CSS
-  document.head.appendChild(s)
-}
 
 // Una vez que se conoce la tarjeta elegida, el color de marca de esa tarjeta
 // pasa a ser el acento de toda la página (botón, foco de inputs, hover de
@@ -64,7 +61,11 @@ function applyBrandColor(card?: { color?: string; secondColor?: string; textColo
   document.documentElement.style.setProperty('--brand-text', card.textColor || '#FFFFFF')
 }
 
-interface PublicField { _id?: string; label: string; fieldType: string; isLocked: boolean; options?: string[]; placeholder?: string }
+interface PublicField { _id?: string; label: string; fieldType: string; isLocked: boolean; builtIn?: boolean; isRewardSource?: boolean; isRequired?: boolean; options?: string[]; placeholder?: string }
+
+// Nombre y email se dibujan aparte; el resto (incluida la pregunta de
+// premio, que está bloqueada pero hay que contestarla) va en el formulario.
+const askable = (f: PublicField) => f.builtIn !== undefined ? !f.builtIn : (!f.isLocked || !!f.isRewardSource)
 interface PublicCard { id: string; name: string; type: string; description?: string; color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null }
 
 export default function PublicRegisterPage() {
@@ -86,8 +87,12 @@ export default function PublicRegisterPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<{ qrValue: string; cardName: string; customerId: string } | null>(null)
-
-  useEffect(() => { injectStyles() }, [])
+  // El link puede ser /r/<slug> o /r/<id>: para armar links (Wallet) se usa el id real.
+  const [realBusinessId, setRealBusinessId] = useState('')
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false)
+  const [recoverMode, setRecoverMode] = useState(false)
+  const [info, setInfo] = useState('')
+  const [resending, setResending] = useState(false)
   useEffect(() => { if (result) window.scrollTo(0, 0) }, [result])
 
   useEffect(() => {
@@ -95,6 +100,8 @@ export default function PublicRegisterPage() {
     apiGetPublicBusiness(businessId)
       .then(res => {
         setBusinessName(res.business.name)
+        setRealBusinessId(String(res.business.id))
+        document.title = `${res.business.name} · Tarjeta de beneficios`
         setWhiteLabel(!!res.whiteLabel)
         setCards(res.cards)
         if (res.cards.length === 1) {
@@ -124,11 +131,13 @@ export default function PublicRegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!fullName.trim() || !email.trim()) { setError('Completá tu nombre y email.'); return }
+    const missing = fields.filter(f => askable(f) && f.isRequired && !(answers[f._id as string] || '').trim())
+    if (missing.length) { setError(`Completá: ${missing.map(f => f.label).join(', ')}.`); return }
     setSubmitting(true)
-    setError('')
+    setError(''); setInfo(''); setAlreadyRegistered(false)
     try {
       const formResponses = fields
-        .filter(f => !f.isLocked && f._id)
+        .filter(f => askable(f) && f._id)
         .map(f => ({ fieldId: f._id as string, value: answers[f._id as string] || '' }))
       const res = await apiRegisterCustomer(businessId, {
         cardId: selectedCard?.id,
@@ -138,9 +147,25 @@ export default function PublicRegisterPage() {
       })
       setResult({ qrValue: res.qrValue, cardName: res.card.name, customerId: res.customerId })
     } catch (err: any) {
-      setError(err?.error || 'No pudimos completar el registro. Intentá de nuevo.')
+      if (err?.error === 'already_registered') setAlreadyRegistered(true)
+      setError(err?.error === 'already_registered'
+        ? 'Ya estás registrado con ese email.'
+        : err?.message || (err?.error && !/^[a-z_]+$/.test(err.error) ? err.error : '') || 'No pudimos completar el registro. Intentá de nuevo.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function resend() {
+    if (!email.trim()) { setError('Escribí tu email.'); return }
+    setResending(true); setError('')
+    try {
+      const res = await apiResendCard(businessId, email.trim())
+      setInfo(res.message); setAlreadyRegistered(false); setRecoverMode(false)
+    } catch (err: any) {
+      setError(err?.error || 'No pudimos mandarte la tarjeta. Probá de nuevo.')
+    } finally {
+      setResending(false)
     }
   }
 
@@ -148,6 +173,7 @@ export default function PublicRegisterPage() {
 
   return (
     <>
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
@@ -181,7 +207,7 @@ export default function PublicRegisterPage() {
                     <div className="rg-success-note">Ya estás registrado en {businessName} — {result.cardName}.</div>
                     <a
                       className="rg-wallet-btn"
-                      href={`${BASE_URL}/api/businesses/${businessId}/customers/${result.customerId}/wallet/apple`}
+                      href={`${BASE_URL}/api/businesses/${realBusinessId || businessId}/customers/${result.customerId}/wallet/apple`}
                     >
                       Agregar a Apple Wallet
                     </a>
@@ -203,8 +229,20 @@ export default function PublicRegisterPage() {
                   </div>
                 ) : (
                   <>
+                    {cards.length > 1 && !recoverMode && <button className="rg-link rg-back" onClick={() => { setSelectedCard(null); setError(''); setAlreadyRegistered(false) }}>← Cambiar de tarjeta</button>}
+                    {info && <div className="rg-info">{info}</div>}
                     {error && <div className="rg-error">{error}</div>}
-                    {fieldsLoading ? (
+                    {recoverMode ? (
+                      <div>
+                        <div className="rg-success-note" style={{ marginBottom: 14 }}>Te mandamos tu tarjeta al email con el que te registraste.</div>
+                        <div className="rg-field">
+                          <label className="rg-label">Email</label>
+                          <input className="rg-input" type="email" placeholder="tu@email.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
+                        </div>
+                        <button className="rg-btn" onClick={resend} disabled={resending}>{resending ? 'Enviando…' : 'Mandarme mi tarjeta'}</button>
+                        <div className="rg-recover"><button className="rg-link" onClick={() => { setRecoverMode(false); setError('') }}>Volver al registro</button></div>
+                      </div>
+                    ) : fieldsLoading ? (
                       <div className="rg-loading">Cargando formulario...</div>
                     ) : (
                       <form onSubmit={handleSubmit}>
@@ -216,9 +254,9 @@ export default function PublicRegisterPage() {
                           <label className="rg-label">Email</label>
                           <input className="rg-input" type="email" placeholder="tu@email.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
                         </div>
-                        {fields.filter(f => !f.isLocked).map(f => (
+                        {fields.filter(askable).map(f => (
                           <div className="rg-field" key={f._id}>
-                            <label className="rg-label">{f.label}</label>
+                            <label className="rg-label">{f.label}{f.isRequired && <span style={{ color: 'var(--brand-color)' }}> *</span>}</label>
                             {f.fieldType === 'select' ? (
                               <select className="rg-select" value={answers[f._id as string] || ''} onChange={e => setAnswers({ ...answers, [f._id as string]: e.target.value })}>
                                 <option value="">Elegir...</option>
@@ -235,9 +273,19 @@ export default function PublicRegisterPage() {
                             )}
                           </div>
                         ))}
-                        <button className="rg-btn" type="submit" disabled={submitting}>
-                          {submitting ? 'Registrando...' : 'Obtener mi tarjeta →'}
-                        </button>
+                        {alreadyRegistered ? (
+                          <button className="rg-btn" type="button" onClick={resend} disabled={resending}>
+                            {resending ? 'Enviando…' : 'Mandarme mi tarjeta por email'}
+                          </button>
+                        ) : (
+                          <button className="rg-btn" type="submit" disabled={submitting}>
+                            {submitting ? 'Registrando…' : 'Obtener mi tarjeta →'}
+                          </button>
+                        )}
+                        <div className="rg-legal">
+                          Al registrarte aceptás que {businessName} guarde tus datos para usar tu tarjeta de beneficios y mandarte novedades. Podés pedir que los borren cuando quieras. <a href="/privacy" target="_blank" rel="noreferrer">Política de privacidad</a>
+                        </div>
+                        {!alreadyRegistered && <div className="rg-recover">¿Ya te registraste y perdiste tu tarjeta? <button type="button" className="rg-link" onClick={() => { setRecoverMode(true); setError(''); setInfo('') }}>Recuperala</button></div>}
                       </form>
                     )}
                   </>

@@ -9,12 +9,15 @@ export type Plan = 'Starter' | 'Growth' | 'Pro' | 'Enterprise'
 
 export interface PlanLimits {
   maxActiveCards:   number        // active card types allowed
+  maxCustomers:     number        // clientes registrados (0 = sin límite) — hoy solo se muestra, no se bloquea
   customColors:     boolean       // hex + color picker (color 100% libre)
   extraColorPresets:boolean       // los 3 presets extra (8 en vez de 5) — escalón intermedio antes del hex libre
-  customTextColor:  boolean       // color de texto sobre la tarjeta — desde Growth (afecta el pase real, no solo el preview)
+  customTextColor:  boolean       // color de texto sobre la tarjeta — desde Pro (afecta el pase real, no solo el preview)
   maxCustomFields:  number        // form builder custom fields
   maxTeamMembers:   number        // managers + scanners
-  monthlyNotifs:    number        // push notifications per month
+  monthlyNotifs:    number        // envíos (campañas) por mes, no destinatarios
+  notifTargeting:   boolean       // notificaciones por tarjeta / por nivel
+  notifIndividual:  boolean       // notificaciones a clientes puntuales
   analyticsLevel:   'basic' | 'full'
   multiLocation:    boolean       // multiple branches
   whiteLabel:       boolean       // remove Stampa branding
@@ -23,32 +26,39 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   Starter: {
+    maxCustomers:    200,
     maxActiveCards:  1,
     customColors:    false,
     extraColorPresets:false,
     customTextColor: false,
     maxCustomFields: 0,
     maxTeamMembers:  1,
-    monthlyNotifs:   100,
+    monthlyNotifs:   4,
+    notifTargeting:  false,
+    notifIndividual: false,
     analyticsLevel:  'basic',
     multiLocation:   false,
     whiteLabel:      false,
     formBranding:    false,
   },
   Growth: {
+    maxCustomers:    0,
     maxActiveCards:  3,
     customColors:    false,       // color libre queda reservado para Pro+ — acá se sube a 8 presets curados
     extraColorPresets:true,
-    customTextColor: true,
+    customTextColor: false,     // colores de texto y etiquetas: desde Pro
     maxCustomFields: 3,
     maxTeamMembers:  5,
-    monthlyNotifs:   1000,
+    monthlyNotifs:   20,
+    notifTargeting:  true,
+    notifIndividual: false,
     analyticsLevel:  'full',
     multiLocation:   false,
     whiteLabel:      false,
     formBranding:    true,
   },
   Pro: {
+    maxCustomers:    0,
     maxActiveCards:  999,
     customColors:    true,
     extraColorPresets:true,
@@ -56,12 +66,15 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     maxCustomFields: 3,
     maxTeamMembers:  999,
     monthlyNotifs:   999999,
+    notifTargeting:  true,
+    notifIndividual: true,
     analyticsLevel:  'full',
     multiLocation:   false,
     whiteLabel:      false,
     formBranding:    true,
   },
   Enterprise: {
+    maxCustomers:    0,
     maxActiveCards:  999,
     customColors:    true,
     extraColorPresets:true,
@@ -69,6 +82,8 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     maxCustomFields: 10,
     maxTeamMembers:  999,
     monthlyNotifs:   999999,
+    notifTargeting:  true,
+    notifIndividual: true,
     analyticsLevel:  'full',
     multiLocation:   true,
     whiteLabel:      true,
@@ -76,23 +91,18 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   },
 }
 
-// ─── Plan pricing (for upgrade prompts) ──────────────────────────────────────
-export const PLAN_PRICE: Record<Plan, string> = {
-  Starter:    'Gratis',
-  Growth:     '$29/mes',
-  Pro:        '$79/mes',
-  Enterprise: 'A consultar',
-}
-
 // ─── Feature descriptions (for upgrade prompts) ───────────────────────────────
 export const FEATURE_LABELS: Record<keyof PlanLimits, string> = {
   maxActiveCards:  'Tipos de tarjeta activos',
+  maxCustomers:    'Clientes registrados',
   customColors:    'Color 100% libre',
   extraColorPresets:'Paleta ampliada (8 colores)',
   customTextColor: 'Color de texto personalizado',
   maxCustomFields: 'Campos personalizados en el formulario',
   maxTeamMembers:  'Miembros del equipo',
-  monthlyNotifs:   'Notificaciones push por mes',
+  monthlyNotifs:   'Envíos de notificaciones por mes',
+  notifTargeting:  'Notificaciones por tarjeta y por nivel',
+  notifIndividual: 'Notificaciones a clientes puntuales',
   analyticsLevel:  'Analítica avanzada',
   multiLocation:   'Multi-sucursal',
   whiteLabel:      'White label (sin marca Stampa)',

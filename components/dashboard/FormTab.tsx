@@ -1,349 +1,220 @@
 'use client'
-import React, { useState, useRef, useEffect } from 'react'
-import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields, apiUpdateCard } from '@/lib/api'
+import { CardSwitcher } from '@/components/ui/CardSwitcher'
+import { readCache } from '@/lib/cache'
+import React, { useState, useEffect, useMemo } from 'react'
+import QRCode from 'qrcode'
+import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields } from '@/lib/api'
 import { usePlan } from '@/data/plans'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-type FieldType = 'text' | 'email' | 'date' | 'select' | 'tel' | 'number'
+// Formulario de registro, por tarjeta. Nombre y email son fijos; el resto
+// (preguntas del rubro, pregunta de premio y campos propios) se edita acá y
+// se guarda todo junto con "Guardar cambios". El color y el logo del
+// formulario son los de la tarjeta (se editan en Diseño).
 
-interface FormField {
-  id: string
+type FieldType = 'text' | 'date' | 'select' | 'tel' | 'number'
+interface EditField {
+  key: string
+  id?: string
   label: string
   type: FieldType
-  isLocked: boolean
+  options: string[]
+  placeholder: string
   isActive: boolean
+  isRequired: boolean
   isRewardSource: boolean
-  order: number
-  placeholder?: string
-  options?: string[]
-  isCustom?: boolean
+  isLocked: boolean
+  isCustom: boolean
+  isBirthday?: boolean
+}
+interface CardInfo {
+  id: string; name: string; type: 'stamp' | 'points' | 'membership'; isActive: boolean
+  color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null
+  rewardMode?: string | null; rewardField?: string | null
 }
 
-interface CardDesign {
-  id: string
-  name: string
-  type: 'stamp' | 'points' | 'membership'
-  isActive: boolean
-  color: string
+const TYPE_LABEL: Record<FieldType, string> = { text: 'Texto', number: 'Número', date: 'Fecha', select: 'Lista de opciones', tel: 'Teléfono' }
+const TYPE_ICON: Record<FieldType, string> = { text: 'T', number: '#', date: '📅', select: '≡', tel: '📱' }
+const REWARD_QUESTION = '¿Qué premio querés cuando completes la tarjeta?'
+let fieldKey = 0
+
+function toEdit(f: any): EditField {
+  return {
+    key: `f${fieldKey++}`, id: f._id, label: f.label, type: (f.fieldType || 'text') as FieldType,
+    options: f.options || [], placeholder: f.placeholder || '', isActive: f.isActive !== false,
+    isRequired: !!f.isRequired, isRewardSource: !!f.isRewardSource, isLocked: !!f.isLocked, isCustom: !!f.isCustom, isBirthday: !!f.isBirthday,
+  }
+}
+const comparable = (f: EditField) => JSON.stringify([f.id, f.label, f.type, f.options, f.placeholder, f.isActive, f.isRequired, f.isRewardSource])
+
+function validate(fields: EditField[]): string | null {
+  for (const f of fields) {
+    const name = f.label.trim() || 'Un campo'
+    if (!f.label.trim()) return 'Hay un campo sin nombre.'
+    if (f.label.trim().length > 80) return `"${name}": el nombre puede tener hasta 80 caracteres.`
+    if (f.type === 'select') {
+      const opts = f.options.map(o => o.trim()).filter(Boolean)
+      if (opts.length < 2) return `"${name}" necesita al menos 2 opciones.`
+      if (new Set(opts.map(o => o.toLowerCase())).size !== opts.length) return `"${name}" tiene opciones repetidas.`
+      if (opts.some(o => o.length > 40)) return `"${name}": cada opción puede tener hasta 40 caracteres.`
+    }
+  }
+  return null
 }
 
-interface FormTabProps {
-  businessName: string
-  businessSlug: string
-  cardDesigns: CardDesign[]
-  businessId?: string | null
-}
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const FIXED_FIELDS: FormField[] = [
-  { id: 'name',  label: 'Nombre completo', type: 'text',  isLocked: true, isActive: true, isRewardSource: false, order: 1, placeholder: 'Tu nombre y apellido' },
-  { id: 'email', label: 'Email',           type: 'email', isLocked: true, isActive: true, isRewardSource: false, order: 2, placeholder: 'tu@email.com' },
-]
-
-const FIELD_TYPE_OPTIONS = [
-  { value: 'text',   label: 'Texto libre' },
-  { value: 'number', label: 'Número' },
-  { value: 'date',   label: 'Fecha' },
-  { value: 'select', label: 'Lista de opciones' },
-  { value: 'tel',    label: 'Teléfono' },
-]
-
-const TYPE_ICONS: Record<FieldType, string> = {
-  text: 'T', email: '@', date: '📅', select: '≡', tel: '📱', number: '#',
-}
-
-const TYPE_CARD_ICONS: Record<string, string> = { stamp: '☕', points: '🪙', membership: '🎫' }
-
-// ─── QR Placeholder ───────────────────────────────────────────────────────────
-function QRCode({ size = 120 }: { size?: number }) {
+// ─── Opciones de una lista ────────────────────────────────────────────────────
+function OptionsEditor({ options, onChange }: { options: string[]; onChange: (o: string[]) => void }) {
+  const [draft, setDraft] = useState('')
+  function add() {
+    const v = draft.trim()
+    if (!v || options.some(o => o.toLowerCase() === v.toLowerCase()) || options.length >= 10) return
+    onChange([...options.filter(o => o.trim()), v]); setDraft('')
+  }
+  const real = options.filter(o => o.trim())
   return (
-    <svg width={size} height={size} viewBox="0 0 21 21" fill="none">
-      <rect x="0" y="0" width="7" height="7" fill="#2B2620"/><rect x="1" y="1" width="5" height="5" fill="#FBF6EE"/><rect x="2" y="2" width="3" height="3" fill="#2B2620"/>
-      <rect x="14" y="0" width="7" height="7" fill="#2B2620"/><rect x="15" y="1" width="5" height="5" fill="#FBF6EE"/><rect x="16" y="2" width="3" height="3" fill="#2B2620"/>
-      <rect x="0" y="14" width="7" height="7" fill="#2B2620"/><rect x="1" y="15" width="5" height="5" fill="#FBF6EE"/><rect x="2" y="16" width="3" height="3" fill="#2B2620"/>
-      <rect x="9" y="0" width="1" height="1" fill="#2B2620"/><rect x="11" y="1" width="2" height="1" fill="#2B2620"/>
-      <rect x="8" y="8" width="2" height="4" fill="#2B2620"/><rect x="11" y="8" width="3" height="1" fill="#2B2620"/>
-      <rect x="9" y="13" width="3" height="1" fill="#2B2620"/><rect x="9" y="15" width="1" height="3" fill="#2B2620"/>
-      <rect x="11" y="15" width="2" height="2" fill="#2B2620"/><rect x="15" y="15" width="4" height="1" fill="#2B2620"/>
-      <rect x="14" y="17" width="3" height="1" fill="#2B2620"/><rect x="18" y="16" width="2" height="2" fill="#2B2620"/>
-    </svg>
+    <div className="fm-opts">
+      {real.map(o => (
+        <span key={o} className="fm-opt">
+          {o}
+          <button onClick={() => onChange(real.filter(x => x !== o))} aria-label={`Quitar ${o}`} title="Quitar opción">×</button>
+        </span>
+      ))}
+      {real.length < 10 && (
+        <input className="fm-opt-input" placeholder={real.length < 2 ? 'Escribí una opción y Enter' : '+ Opción'} value={draft} maxLength={40}
+          onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }} onBlur={add} />
+      )}
+      {real.length < 2 && <span className="fm-opt-hint">Mínimo 2 opciones</span>}
+    </div>
   )
 }
 
-// ─── Mobile Preview ───────────────────────────────────────────────────────────
-function MobilePreview({ fields, businessName, brandColor, brandLogo }: {
-  fields: FormField[]
-  businessName: string
-  brandColor: string
-  brandLogo: string | null
-}) {
-  const activeFields = fields.filter(f => f.isActive)
-  const rewardField  = fields.find(f => f.isRewardSource)
-
+// ─── Vista previa ─────────────────────────────────────────────────────────────
+function Preview({ card, businessName, fields, askReward, whiteLabel }: { card?: CardInfo; businessName: string; fields: EditField[]; askReward: boolean; whiteLabel: boolean }) {
+  const color = card?.color || '#1B412F'
+  const second = card?.secondColor || color
+  const shown = fields.filter(f => f.isActive && (!f.isRewardSource || askReward))
   return (
     <div className="fm-phone">
-      <div className="fm-phone-top"><div className="fm-phone-notch" /></div>
       <div className="fm-phone-screen">
-        <div className="fm-form-header" style={{ background: `linear-gradient(160deg, ${brandColor}, ${brandColor}cc)` }}>
-          <div className="fm-form-logo">
-            {brandLogo
-              ? <img src={brandLogo} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 10 }} alt="" />
-              : <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>S</span>
-            }
-          </div>
-          <div className="fm-form-biz">{businessName}</div>
-          <div className="fm-form-sub">Completá tus datos para obtener tu tarjeta</div>
+        <div className="fm-pv-head" style={{ background: `linear-gradient(165deg, ${color}, ${second})`, color: card?.textColor || '#fff' }}>
+          <div className="fm-pv-logo">{card?.logoUrl ? <img src={card.logoUrl} alt="" /> : businessName.charAt(0).toUpperCase()}</div>
+          <div className="fm-pv-name">{businessName}</div>
+          <div className="fm-pv-sub">Completá tus datos para obtener tu tarjeta</div>
+          {card && <div className="fm-pv-badge">{card.name}</div>}
         </div>
-        <div className="fm-form-fields">
-          {activeFields.slice(0, 5).map((f: FormField) => (
-            <div key={f.id} className="fm-form-field">
-              <div className="fm-form-label">
-                {f.label}
-                {f.isRewardSource && <span className="fm-reward-dot" />}
-              </div>
-              {f.type === 'select' && f.options
-                ? <div className="fm-form-select"><span>{f.options[0]}</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg></div>
-                : <div className="fm-form-input">{f.placeholder || ''}</div>
-              }
+        <div className="fm-pv-body">
+          {[{ label: 'Nombre completo', ph: 'Tu nombre y apellido' }, { label: 'Email', ph: 'tu@email.com' }].map(f => (
+            <div key={f.label} className="fm-pv-field"><div className="fm-pv-label">{f.label}</div><div className="fm-pv-input">{f.ph}</div></div>
+          ))}
+          {shown.map(f => (
+            <div key={f.key} className="fm-pv-field">
+              <div className="fm-pv-label">{f.label || 'Sin nombre'}{(f.isRequired || f.isRewardSource) && <span style={{ color }}> *</span>}</div>
+              <div className="fm-pv-input">{f.type === 'select' ? <>Elegir…<span>▾</span></> : f.type === 'date' ? 'dd/mm/aaaa' : f.placeholder}</div>
             </div>
           ))}
-          {activeFields.length > 5 && <div className="fm-form-more">+{activeFields.length - 5} campos más</div>}
+          <div className="fm-pv-btn" style={{ background: color }}>Obtener mi tarjeta →</div>
+          <div className="fm-pv-legal">Al registrarte aceptás que {businessName} use tus datos para tu tarjeta. <u>Privacidad</u></div>
+          {!whiteLabel && <div className="fm-pv-legal" style={{ opacity: .6 }}>Powered by Stampa</div>}
         </div>
-        <button className="fm-form-submit" style={{ background: brandColor }}>Obtener mi tarjeta →</button>
-        {rewardField && <div className="fm-reward-hint">Tu "{rewardField.label}" será tu premio</div>}
-      </div>
-      <div className="fm-phone-bottom"><div className="fm-phone-home" /></div>
-    </div>
-  )
-}
-
-// ─── Editable optional field row ──────────────────────────────────────────────
-function OptionalFieldRow({ field, onUpdate, onUpdateOptions, onToggle, onSetReward, onDragStart, onDragEnter, onDragEnd, showReward }: {
-  field: FormField
-  onUpdate: (id: string, label: string) => void
-  onUpdateOptions: (id: string, options: string[]) => void
-  onToggle: (id: string) => void
-  onSetReward: (id: string) => void
-  onDragStart: () => void
-  onDragEnter: () => void
-  onDragEnd: () => void
-  showReward: boolean
-}) {
-  const [editing, setEditing] = useState(false)
-  const [label, setLabel]     = useState(field.label)
-  const [addingOption, setAddingOption] = useState(false)
-  const [newOption, setNewOption] = useState('')
-
-  function saveLabel() {
-    onUpdate(field.id, label)
-    setEditing(false)
-  }
-
-  function removeOption(opt: string) {
-    const current = field.options || []
-    if (current.length <= 2) return // mínimo 2 opciones — un select de una sola no tiene sentido
-    onUpdateOptions(field.id, current.filter(o => o !== opt))
-  }
-
-  function confirmAddOption() {
-    const trimmed = newOption.trim()
-    const current = field.options || []
-    if (trimmed && !current.includes(trimmed)) {
-      onUpdateOptions(field.id, [...current, trimmed])
-    }
-    setNewOption('')
-    setAddingOption(false)
-  }
-
-  return (
-    <div
-      className={`fm-field-row${!field.isActive ? ' fm-field-row--inactive' : ''}${field.isRewardSource ? ' fm-field-row--reward' : ''}`}
-      draggable
-      onDragStart={onDragStart}
-      onDragEnter={onDragEnter}
-      onDragEnd={onDragEnd}
-      onDragOver={e => e.preventDefault()}
-    >
-      <div className="fm-grip">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-          <circle cx="9"  cy="5"  r="1.5" fill="currentColor"/><circle cx="9"  cy="12" r="1.5" fill="currentColor"/><circle cx="9"  cy="19" r="1.5" fill="currentColor"/>
-          <circle cx="15" cy="5"  r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="19" r="1.5" fill="currentColor"/>
-        </svg>
-      </div>
-      <div className="fm-field-type-tag">{TYPE_ICONS[field.type]}</div>
-
-      {editing
-        ? <input
-            className="fm-label-edit-input"
-            value={label}
-            onChange={e => setLabel(e.target.value)}
-            onBlur={saveLabel}
-            onKeyDown={e => e.key === 'Enter' && saveLabel()}
-            autoFocus
-            onClick={e => e.stopPropagation()}
-          />
-        : <div className="fm-field-label-col">
-            <span className="fm-field-label" onDoubleClick={() => setEditing(true)}>{field.label}</span>
-            {field.type === 'select' && field.options && field.options.length > 0 && (
-              <div className="fm-options-chips" onClick={e => e.stopPropagation()} draggable={false}>
-                {field.options.map(opt => (
-                  <span key={opt} className="fm-option-chip">
-                    {opt}
-                    {(field.options?.length || 0) > 2 && (
-                      <button className="fm-option-chip-x" onClick={() => removeOption(opt)} title="Quitar opción">✕</button>
-                    )}
-                  </span>
-                ))}
-                {addingOption ? (
-                  <input
-                    className="fm-option-add-input"
-                    value={newOption}
-                    onChange={e => setNewOption(e.target.value)}
-                    onBlur={confirmAddOption}
-                    onKeyDown={e => { if (e.key === 'Enter') confirmAddOption(); if (e.key === 'Escape') { setNewOption(''); setAddingOption(false) } }}
-                    placeholder="Nueva opción"
-                    autoFocus
-                  />
-                ) : (
-                  <button className="fm-option-add-btn" onClick={() => setAddingOption(true)}>+ Agregar</button>
-                )}
-              </div>
-            )}
-          </div>
-      }
-
-      <div className="fm-field-actions">
-        {showReward && field.isRewardSource && <span className="fm-reward-badge">★ Premio</span>}
-        {showReward && !field.isRewardSource && field.isActive && (
-          <button className="fm-set-reward-btn" onClick={() => onSetReward(field.id)} title="Usar como campo de premio">★</button>
-        )}
-        <button className="fm-edit-label-btn" onClick={() => setEditing(true)} title="Renombrar campo">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-        </button>
-        <button className="fm-toggle-btn" onClick={() => onToggle(field.id)} title={field.isActive ? 'Ocultar' : 'Mostrar'}>
-          {field.isActive
-            ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-          }
-        </button>
       </div>
     </div>
   )
 }
 
-// ─── Custom field builder ─────────────────────────────────────────────────────
-function CustomFieldBuilder({ fields, onChange, maxCustom, businessId, cardId, showReward }: { fields: FormField[]; onChange: (f: FormField[]) => void; maxCustom: number; businessId?: string | null; cardId?: string; showReward: boolean }) {
-  function add() {
-    if (fields.length >= maxCustom) return
-    onChange([...fields, { id: `c-${Date.now()}`, label: '', type: 'text', isLocked: false, isActive: true, isRewardSource: false, order: 100 + fields.length, isCustom: true }])
-  }
-  function update(id: string, patch: Partial<FormField>) {
-    onChange(fields.map((f: FormField) => f.id === id ? { ...f, ...patch } : f))
-  }
-  async function remove(id: string) {
-    onChange(fields.filter((f: FormField) => f.id !== id))
-    // Los campos con id temporal (c-...) todavía no se guardaron en el
-    // backend — sacarlos del estado local alcanza. Los que ya tienen un
-    // _id real de Mongo hay que borrarlos de verdad, o si no reaparecen
-    // solos la próxima vez que se recargue la página (quedaban huérfanos
-    // en la base, la eliminación nunca llegaba a persistir).
-    if (!id.startsWith('c-') && businessId && cardId) {
-      try {
-        await apiDeleteField(businessId, cardId, id)
-      } catch (err) {
-        console.error('Error eliminando campo:', err)
-      }
-    }
-  }
-
-  return (
-    <div className="fm-custom-section">
-      {fields.map((f: FormField, i: number) => (
-        <div key={f.id} className="fm-custom-row">
-          <div className="fm-custom-num">{i + 1}</div>
-          <input className="fm-custom-input" placeholder="Nombre del campo" value={f.label} onChange={e => update(f.id, { label: e.target.value })} />
-          <select className="fm-custom-select" value={f.type} onChange={e => update(f.id, { type: e.target.value as FieldType })}>
-            {FIELD_TYPE_OPTIONS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
-          </select>
-          {showReward && (
-            <button className={`fm-reward-toggle${f.isRewardSource ? ' fm-reward-toggle--on' : ''}`} onClick={() => update(f.id, { isRewardSource: !f.isRewardSource })} title="Usar como campo de premio">★</button>
-          )}
-          <button className="fm-remove-btn" onClick={() => remove(f.id)}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-      ))}
-      {maxCustom === 0
-        ? <div className="fm-max-note">Los campos personalizados están disponibles desde el plan Growth.</div>
-        : fields.length < maxCustom
-        ? <button className="fm-add-field-btn" onClick={add}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Agregar campo personalizado ({fields.length}/{maxCustom})
-          </button>
-        : <div className="fm-max-note">Límite de {maxCustom} campos personalizados alcanzado</div>
-      }
-    </div>
-  )
+// ─── Compartir: link corto, QR y cartel ───────────────────────────────────────
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise(resolve => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = () => resolve(null)
+    img.src = src
+  })
+}
+function download(url: string, name: string) {
+  const a = document.createElement('a'); a.href = url; a.download = name
+  document.body.appendChild(a); a.click(); a.remove()
 }
 
-// ─── Share section (Link + QR only) ──────────────────────────────────────────
-function ShareSection({ businessName, slug, businessId }: { businessName: string; slug: string; businessId?: string | null }) {
-  const [copied, setCopied] = useState(false)
-  // Usa el dominio donde esté corriendo el dashboard en este momento
-  // (staging o producción, lo que sea) — antes esto apuntaba a stampa.app,
-  // un dominio que ni siquiera confirmamos que exista todavía.
+function Share({ businessName, slug, card, whiteLabel }: { businessName: string; slug?: string; card?: CardInfo; whiteLabel: boolean }) {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const link = businessId ? `${origin}/r/${businessId}` : ''
+  const link = slug ? `${origin}/r/${slug}` : ''
+  const shortLink = link.replace(/^https?:\/\//, '')
+  const [qr, setQr] = useState<string>('')
+  const [copied, setCopied] = useState(false)
+  const [making, setMaking] = useState(false)
 
-  function copyLink() {
-    navigator.clipboard?.writeText(link).catch(() => {})
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2500)
+  useEffect(() => {
+    if (!link) return
+    QRCode.toDataURL(link, { width: 480, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#2B2620', light: '#FFFFFF' } }).then(setQr).catch(() => setQr(''))
+  }, [link])
+
+  async function copy() {
+    try { await navigator.clipboard.writeText(link) } catch { /* sin permiso: igual queda seleccionable */ }
+    setCopied(true); setTimeout(() => setCopied(false), 2200)
+  }
+
+  // Cartel A5 (1240×1748 px) listo para imprimir.
+  async function poster() {
+    if (!link) return
+    setMaking(true)
+    try {
+      const W = 1240, H = 1748
+      const c = document.createElement('canvas'); c.width = W; c.height = H
+      const g = c.getContext('2d')!
+      const color = card?.color || '#1B412F', second = card?.secondColor || color, text = card?.textColor || '#FFFFFF'
+      g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, W, H)
+      const grad = g.createLinearGradient(0, 0, W, 620); grad.addColorStop(0, color); grad.addColorStop(1, second)
+      g.fillStyle = grad; g.fillRect(0, 0, W, 620)
+      // logo o inicial
+      const logo = card?.logoUrl ? await loadImage(card.logoUrl) : null
+      g.fillStyle = 'rgba(255,255,255,.18)'
+      g.beginPath(); (g as any).roundRect ? (g as any).roundRect(W / 2 - 90, 90, 180, 180, 40) : g.rect(W / 2 - 90, 90, 180, 180); g.fill()
+      if (logo) {
+        const s = Math.min(160 / logo.width, 160 / logo.height)
+        g.drawImage(logo, W / 2 - (logo.width * s) / 2, 180 - (logo.height * s) / 2, logo.width * s, logo.height * s)
+      } else {
+        g.fillStyle = text; g.font = '800 96px "Plus Jakarta Sans", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'
+        g.fillText(businessName.charAt(0).toUpperCase(), W / 2, 184)
+      }
+      g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillStyle = text
+      g.font = '800 76px "Plus Jakarta Sans", sans-serif'; g.fillText(businessName.slice(0, 26), W / 2, 400)
+      g.font = '600 44px Inter, sans-serif'; g.globalAlpha = .85
+      g.fillText(card?.type === 'points' ? 'Sumá puntos y canjealos por premios' : card?.type === 'membership' ? 'Sumate y subí de nivel con cada visita' : 'Juntá sellos y ganá tu premio', W / 2, 480)
+      g.globalAlpha = 1
+      g.fillStyle = '#2B2620'; g.font = '800 88px "Plus Jakarta Sans", sans-serif'
+      g.fillText('¡Sumate a nuestra tarjeta!', W / 2, 760)
+      const qrImg = await loadImage(await QRCode.toDataURL(link, { width: 720, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#2B2620', light: '#FFFFFF' } }))
+      if (qrImg) g.drawImage(qrImg, W / 2 - 330, 830, 660, 660)
+      g.fillStyle = 'rgba(43,38,32,.75)'; g.font = '500 42px Inter, sans-serif'
+      g.fillText('Escaneá con la cámara de tu celular', W / 2, 1570)
+      g.fillStyle = color; g.font = '700 40px Inter, sans-serif'; g.fillText(shortLink, W / 2, 1635)
+      if (!whiteLabel) { g.fillStyle = 'rgba(43,38,32,.35)'; g.font = '600 28px Inter, sans-serif'; g.fillText('Powered by Stampa', W / 2, 1712) }
+      download(c.toDataURL('image/png'), `cartel-${slug}.png`)
+    } finally {
+      setMaking(false)
+    }
   }
 
   return (
-    <div className="fm-share-grid">
+    <div className="fm-share">
       <div className="fm-card">
         <div className="fm-card-title">Link del formulario</div>
-        <div className="fm-card-sub">Compartilo por WhatsApp, redes sociales o donde quieras</div>
+        <div className="fm-card-sub">Compartilo por WhatsApp, en la bio de Instagram o donde quieras</div>
         <div className="fm-link-row">
-          <div className="fm-link-box">{link}</div>
-          <button className={`fm-copy-btn${copied ? ' fm-copy-btn--done' : ''}`} onClick={copyLink}>
-            {copied
-              ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copiado</>
-              : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar link</>
-            }
-          </button>
+          <div className="fm-link-box" title={link}>{shortLink || '—'}</div>
+          <button className={`fm-copy${copied ? ' fm-copy--done' : ''}`} onClick={copy} disabled={!link}>{copied ? '✓ Copiado' : 'Copiar'}</button>
         </div>
-        <div className="fm-link-hint">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-          Ideal para WhatsApp, bio de Instagram o un cartel en el local
-        </div>
+        {link && <a className="fm-open" href={link} target="_blank" rel="noreferrer">Abrir el formulario ↗</a>}
       </div>
-
-      <div className="fm-card">
-        <div className="fm-card-title">Código QR</div>
-        <div className="fm-card-sub">Imprimilo y ponelo en el mostrador o la mesa</div>
-        <div className="fm-qr-wrap">
-          <div className="fm-qr-box">
-            {link
-              ? <img src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(link)}`} width={120} height={120} alt="QR de registro" />
-              : <QRCode size={120} />
-            }
-            <div className="fm-qr-label">{businessName}</div>
+      <div className="fm-card fm-qr-card">
+        <div className="fm-qr">{qr ? <img src={qr} alt="QR del formulario" /> : <div className="fm-skel" style={{ width: 132, height: 132 }} />}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="fm-card-title">QR y cartel</div>
+          <div className="fm-card-sub">Para el mostrador, la vidriera o las mesas</div>
+          <div className="fm-share-btns">
+            <button className="fm-primary" onClick={poster} disabled={!link || making}>{making ? 'Armando…' : 'Descargar cartel (A5)'}</button>
+            <button className="fm-secondary" onClick={() => qr && download(qr, `qr-${slug}.png`)} disabled={!qr}>Solo el QR</button>
           </div>
-          <button className="fm-download-btn" disabled={!link} onClick={() => {
-            if (!link) return
-            const a = document.createElement('a')
-            a.href = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(link)}`
-            a.download = `qr-${businessName.toLowerCase().replace(/\s+/g, '-')}.png`
-            a.target = '_blank'
-            a.click()
-          }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Descargar QR
-          </button>
         </div>
       </div>
     </div>
@@ -351,532 +222,362 @@ function ShareSection({ businessName, slug, businessId }: { businessName: string
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function FormTab({ businessName, businessSlug, cardDesigns, businessId }: FormTabProps) {
-  const { can, limit } = usePlan()
-  const MAX_CUSTOM = limit('maxCustomFields')
-  const activeCards = cardDesigns.filter((c: CardDesign) => c.isActive)
-  const [selectedCardId, setSelectedCardId] = useState<string>(activeCards[0]?.id || '')
-  const [loadingFields, setLoadingFields] = useState(false)
-  const selectedCard = activeCards.find((c: CardDesign) => c.id === selectedCardId) || activeCards[0]
+export function FormTab({ businessName, businessSlug, cards, businessId, onGoToDesign, onChoosePlan, isManager = false }: {
+  businessName: string
+  businessSlug?: string
+  cards: CardInfo[]
+  businessId?: string | null
+  onGoToDesign: () => void
+  onChoosePlan: () => void
+  isManager?: boolean
+}) {
+  const { limit, can } = usePlan()
+  const maxCustom = limit('maxCustomFields')
+  const whiteLabel = can('whiteLabel')
+  const activeCards = cards.filter(c => c.isActive)
+  const [selectedId, setSelectedId] = useState<string>(activeCards[0]?.id || '')
+  const card = activeCards.find(c => c.id === selectedId) || activeCards[0]
+  const isStamp = card?.type === 'stamp'
+  const askReward = isStamp && card?.rewardMode === 'dynamic'
 
-  // Per-card form state — arranca vacío, se llena con datos reales del
-  // backend en el useEffect de abajo (antes arrancaba con relleno local
-  // que nunca existió en la base, causando los 500 al intentar guardarlo).
-  const [cardForms, setCardForms] = useState<Record<string, FormField[]>>({})
-  const [cardCustom, setCardCustom] = useState<Record<string, FormField[]>>({})
-  // Load real fields from backend when card or businessId changes
-  useEffect(() => {
-    if (!businessId || !selectedCardId) return
-    setLoadingFields(true)
-    apiGetFields(businessId, selectedCardId).then(fields => {
-      // Los campos locked (Nombre completo, Email) ya están representados
-      // por FIXED_FIELDS acá arriba (hardcodeado, siempre visible) —
-      // guardarlos también acá los duplicaba en la lista, y como sí tienen
-      // un _id real de Mongo, intentar apagarlos disparaba un 400 genuino
-      // del backend (los campos locked no se pueden desactivar). Se
-      // descartan, no hace falta guardarlos en ningún lado.
-      //
-      // El resto se separa en dos grupos reales que vienen del backend
-      // (antes "opcionales" era relleno 100% local que nunca existió en la
-      // base — por eso apagarlos/editarlos tiraba 500, el ID no era un
-      // ObjectId real):
-      const mapField = (f: any) => ({
-        id: f._id, label: f.label, type: f.fieldType, isLocked: false,
-        isActive: f.isActive, isRewardSource: f.isRewardSource, order: f.order,
-        placeholder: f.placeholder || '', options: f.options,
-      })
-      const defaultOptional = fields.filter((f: any) => !f.isLocked && f.isDefaultOptional).map(mapField)
-      const trulyCustom     = fields.filter((f: any) => !f.isLocked && !f.isDefaultOptional).map(mapField)
-      setCardForms(prev => ({ ...prev, [selectedCardId]: defaultOptional }))
-      setCardCustom(prev => ({ ...prev, [selectedCardId]: trulyCustom }))
-    }).catch(console.error).finally(() => setLoadingFields(false))
-  }, [businessId, selectedCardId])
-
-
-  // Branding state — arranca con el color/logo de la tarjeta activa, y se
-  // resetea cada vez que se cambia de tarjeta en el selector (antes se leía
-  // una sola vez con useState() y quedaba pegado al color de la primera
-  // tarjeta aunque cambiaras de selección).
-  const [brandColor, setBrandColor] = useState(selectedCard?.color || '#1B412F')
-  const [brandLogo, setBrandLogo]   = useState<string | null>(null)
-  const logoRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    setBrandColor(selectedCard?.color || '#1B412F')
-    // El tipo CardDesign de este archivo no trae logoUrl (solo id/name/type/
-    // isActive/color) — si el padre empieza a pasarlo, sumarlo acá también.
-    setBrandLogo(null)
-  }, [selectedCardId])
-
-  const [saved, setSaved] = useState(false)
+  const [saved, setSaved] = useState<EditField[] | null>(null)
+  const [draft, setDraft] = useState<EditField[] | null>(null)
+  const [removed, setRemoved] = useState<EditField[]>([])
+  const [loadError, setLoadError] = useState(false)
   const [saving, setSaving] = useState(false)
-  const dragIndex = useRef<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [confirmDel, setConfirmDel] = useState<string | null>(null)
 
-  const optional = cardForms[selectedCardId] || []
-  const custom   = cardCustom[selectedCardId] || []
-  const allFields = [...FIXED_FIELDS, ...optional, ...custom]
-
-  function setOptional(fields: FormField[]) {
-    setCardForms({ ...cardForms, [selectedCardId]: fields })
-  }
-  function setCustom(fields: FormField[]) {
-    setCardCustom({ ...cardCustom, [selectedCardId]: fields })
-  }
-
-  function toggleOptional(id: string) {
-    setOptional(optional.map((f: FormField) => f.id === id ? { ...f, isActive: !f.isActive } : f))
-  }
-
-  function updateLabel(id: string, label: string) {
-    setOptional(optional.map((f: FormField) => f.id === id ? { ...f, label } : f))
-  }
-
-  function updateOptions(id: string, options: string[]) {
-    setOptional(optional.map((f: FormField) => f.id === id ? { ...f, options } : f))
-  }
-
-  function setRewardSource(id: string) {
-    const clearAll = (arr: FormField[]) => arr.map((f: FormField) => ({ ...f, isRewardSource: false }))
-    const newOpt = clearAll(optional)
-    const newCst = clearAll(custom)
-    const inOpt = newOpt.findIndex((f: FormField) => f.id === id)
-    const inCst = newCst.findIndex((f: FormField) => f.id === id)
-    if (inOpt >= 0) newOpt[inOpt] = { ...newOpt[inOpt], isRewardSource: true }
-    if (inCst >= 0) newCst[inCst] = { ...newCst[inCst], isRewardSource: true }
-    setOptional(newOpt)
-    setCustom(newCst)
-  }
-
-  function handleDragStart(i: number) { dragIndex.current = i }
-  function handleDragEnter(i: number) {
-    if (dragIndex.current === null || dragIndex.current === i) return
-    const arr = [...optional]
-    const dragged = arr.splice(dragIndex.current, 1)[0]
-    arr.splice(i, 0, dragged)
-    dragIndex.current = i
-    setOptional(arr)
-  }
-  function handleDragEnd() { dragIndex.current = null }
-
-  function handleLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => setBrandLogo(ev.target?.result as string)
-    reader.readAsDataURL(file)
-  }
-
-  const [saveError, setSaveError] = useState<string | null>(null)
-
-  async function handleSave() {
-    if (!businessId || !selectedCardId) {
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-      return
-    }
-    setSaveError(null)
+  async function load() {
+    if (!businessId || !card) return
+    // Lo guardado aparece al instante y se actualiza con la consulta (lib/cache).
+    const cachedList = readCache<any[]>(`/api/businesses/${businessId}/cards/${card.id}/fields`)
+    const toEditable = (list: any[]) => list.filter((f: any) => !(f.isLocked && !f.isRewardSource)).sort((a: any, b: any) => a.order - b.order).map(toEdit)
+    if (cachedList) { const e = toEditable(cachedList); setSaved(e); setDraft(e) } else { setSaved(null); setDraft(null) }
+    setRemoved([]); setLoadError(false); setError(null)
     try {
-      // Persistir la identidad visual del formulario (color/logo) en la
-      // Card — antes esto no se guardaba en ningún lado, por eso el
-      // formulario público nunca reflejaba lo que se elegía acá.
-      // apiUpdateCard tira una excepción en vez de devolver res.ok, por
-      // eso el try/catch en vez de chequear .ok.
-      try {
-        await apiUpdateCard(businessId, selectedCardId, {
-          color: brandColor,
-          ...(brandLogo ? { logoUrl: brandLogo } : {}),
-        })
-      } catch (err: any) {
-        setSaveError(err?.error || `Error ${err?.status || ''} al guardar el color/logo.`.trim())
-        return
-      }
+      const list = await apiGetFields(businessId, card.id)
+      // Nombre y email (bloqueados y no-premio) se muestran aparte.
+      const editable = list.filter((f: any) => !(f.isLocked && !f.isRewardSource)).sort((a: any, b: any) => a.order - b.order).map(toEdit)
+      setSaved(editable); setDraft(editable)
+    } catch {
+      setLoadError(true); setSaved([]); setDraft([])
+    }
+  }
+  useEffect(() => { load(); setNotice(null) }, [businessId, card?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-      const allCustomFields = [...optional, ...custom]
+  // Hay cambios si cambió algo de algún campo, el orden, o se agregó/borró uno.
+  const dirty = useMemo(() => !!saved && !!draft && JSON.stringify(draft.map(comparable)) !== JSON.stringify(saved.map(comparable)), [saved, draft])
 
-      // Update each field that has a real MongoDB _id — cada llamada va
-      // envuelta en su propio try/catch para que un campo fallando no
-      // tumbe Promise.all ni quede en silencio (antes se chequeaba
-      // res.ok a mano porque se usaba fetch() directo; apiUpdateField ya
-      // lanza excepción sola, pero igual hay que atajarla por request).
-      const patchResults = await Promise.all(allCustomFields
-        .filter((f: FormField) => !f.id.startsWith('c-') && !['name','email'].includes(f.id))
-        .map(async (f: FormField) => {
-          try {
-            await apiUpdateField(businessId, selectedCardId, f.id, {
-              label: f.label,
-              isActive: f.isActive,
-              isRewardSource: f.isRewardSource,
-              order: f.order,
-            })
-            return { ok: true }
-          } catch (err: any) {
-            return { ok: false, label: f.label, error: err?.error || `Error ${err?.status || ''}`.trim() }
+  const customCount = (draft || []).filter(f => f.isCustom || !f.id).filter(f => !f.isRewardSource).length
+  const rewardField = (draft || []).find(f => f.isRewardSource)
+
+  function patch(key: string, p: Partial<EditField>) { setDraft(d => (d || []).map(f => f.key === key ? { ...f, ...p } : f)); setNotice(null); setError(null) }
+  function move(key: string, dir: -1 | 1) {
+    setDraft(d => {
+      const list = [...(d || [])]; const i = list.findIndex(f => f.key === key); const j = i + dir
+      if (i < 0 || j < 0 || j >= list.length) return list
+      ;[list[i], list[j]] = [list[j], list[i]]; return list
+    }); setNotice(null)
+  }
+  function remove(f: EditField) {
+    setDraft(d => (d || []).filter(x => x.key !== f.key))
+    if (f.id) setRemoved(r => [...r, f])
+    setConfirmDel(null); setNotice(null)
+  }
+  function addField(reward = false) {
+    setDraft(d => [...(d || []), {
+      key: `f${fieldKey++}`, label: reward ? REWARD_QUESTION : '', type: reward ? 'select' : 'text', options: [], placeholder: '',
+      isActive: true, isRequired: reward, isRewardSource: reward, isLocked: false, isCustom: !reward,
+    }])
+    setNotice(null)
+  }
+  function discard() { setDraft(saved); setRemoved([]); setError(null) }
+
+  async function save() {
+    if (!businessId || !card || !draft || !saved) return
+    const v = validate(draft)
+    if (v) { setError(v); return }
+    setSaving(true); setError(null); setNotice(null)
+    try {
+      for (const f of removed) await apiDeleteField(businessId, card.id, f.id!)
+      const ids: string[] = []
+      for (const f of draft) {
+        const options = f.type === 'select' ? f.options.map(o => o.trim()).filter(Boolean) : undefined
+        if (!f.id) {
+          const created: any = await apiCreateField(businessId, card.id, { label: f.label.trim(), fieldType: f.type, options, placeholder: f.placeholder, isRewardSource: f.isRewardSource, isRequired: f.isRequired } as any)
+          ids.push(created._id)
+        } else {
+          const before = saved.find(s => s.id === f.id)
+          if (before && comparable(before) !== comparable(f)) {
+            const body: any = {}
+            if (before.label !== f.label) body.label = f.label.trim()
+            if (!f.isLocked && before.type !== f.type) body.fieldType = f.type
+            if (JSON.stringify(before.options) !== JSON.stringify(f.options) || (before.type !== f.type && f.type === 'select')) body.options = options
+            if (before.placeholder !== f.placeholder) body.placeholder = f.placeholder
+            if (before.isActive !== f.isActive) body.isActive = f.isActive
+            if (before.isRequired !== f.isRequired) body.isRequired = f.isRequired
+            if (before.isRewardSource !== f.isRewardSource) body.isRewardSource = f.isRewardSource
+            await apiUpdateField(businessId, card.id, f.id, body)
           }
-        })
-      )
-
-      // Create new custom fields (those with temp id starting with 'c-')
-      const createResults = await Promise.all(custom
-        .filter((f: FormField) => f.id.startsWith('c-') && f.label.trim())
-        .map(async (f: FormField) => {
-          try {
-            await apiCreateField(businessId, selectedCardId, {
-              label: f.label,
-              fieldType: f.type || 'text',
-              isRewardSource: f.isRewardSource,
-              order: f.order,
-            })
-            return { ok: true }
-          } catch (err: any) {
-            return { ok: false, label: f.label, error: err?.error || `Error ${err?.status || ''}`.trim() }
-          }
-        })
-      )
-
-      const failed = [...patchResults, ...createResults].filter(r => !r.ok)
-      if (failed.length > 0) {
-        setSaveError(failed.map((f: any) => `${f.label ? f.label + ': ' : ''}${f.error}`).join(' · '))
-        return
+          ids.push(f.id)
+        }
       }
-
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-    } catch (err) {
-      console.error('Error saving form fields:', err)
-      setSaveError('No se pudo guardar. Revisá tu conexión e intentá de nuevo.')
+      // Orden: nombre y email son 1 y 2; el resto a continuación.
+      await apiReorderFields(businessId, card.id, ids.map((id, i) => ({ id, order: i + 3 })))
+      await load()
+      setNotice('Guardado. El formulario ya muestra los cambios.')
+    } catch (err: any) {
+      setError(err?.error || err?.message || 'No se pudo guardar. Probá de nuevo.')
+      await load().catch(() => {})
+    } finally {
+      setSaving(false)
     }
   }
 
-  const rewardField = allFields.find((f: FormField) => f.isRewardSource)
+  if (!card) {
+    return (
+      <div className="fm-shell">
+        <style>{CSS}</style>
+        <div className="fm-card"><div className="fm-card-title">Todavía no tenés una tarjeta activa</div><div className="fm-card-sub">Activá una tarjeta en Diseño para armar su formulario.</div><button className="fm-secondary" onClick={onGoToDesign}>Ir a Diseño</button></div>
+      </div>
+    )
+  }
 
   return (
     <>
-      <style>{`
-        .fm-shell{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
-        .fm-top-bar{display:flex;align-items:center;justify-content:space-between;}
-        .fm-top-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:17px;color:#2B2620;}
-        .fm-top-sub{font-size:12px;color:rgba(43,38,32,.45);margin-top:2px;}
-        .fm-save-btn{background:#C75D3A;color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;}
-        .fm-save-btn:hover{background:#B14F2F;}
-        .fm-save-btn:disabled{opacity:.6;cursor:not-allowed;}
-        .fm-save-error{background:rgba(178,59,59,.08);border:1px solid rgba(178,59,59,.25);color:#B23B3B;border-radius:10px;padding:10px 14px;font-size:12.5px;}
-        .fm-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(43,38,32,.38);font-weight:600;display:flex;align-items:center;gap:10px;}
-        .fm-lbl::after{content:'';flex:1;height:1px;background:rgba(43,38,32,.1);}
-        .fm-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(43,38,32,.04);}
-        .fm-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
-        .fm-card-sub{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:14px;}
-        .fm-main-grid{display:grid;grid-template-columns:1fr 240px;gap:16px;align-items:start;}
-
-        /* ── Card selector ── */
-        .fm-card-selector{display:flex;gap:6px;}
-        .fm-card-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
-        .fm-card-pill--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;font-weight:600;}
-
-        /* ── Branding ── */
-        .fm-brand-grid{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;}
-        .fm-brand-logo-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;}
-        .fm-brand-logo-zone{width:72px;height:72px;border:1.5px dashed rgba(43,38,32,.2);border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;overflow:hidden;background:#FBF6EE;}
-        .fm-brand-logo-zone:hover{border-color:#C75D3A;}
-        .fm-brand-logo-zone--filled{border-style:solid;border-color:rgba(43,38,32,.12);}
-        .fm-brand-logo-img{width:100%;height:100%;object-fit:contain;padding:6px;}
-        .fm-brand-logo-hint{font-size:9.5px;color:rgba(43,38,32,.45);text-align:center;}
-        .fm-brand-logo-remove{font-size:9.5px;color:#B23B3B;background:none;border:none;cursor:pointer;}
-        .fm-brand-fields{display:flex;flex-direction:column;gap:12px;}
-        .fm-brand-field-label{font-size:10px;font-weight:700;color:rgba(43,38,32,.45);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
-        .fm-color-row{display:flex;align-items:center;gap:10px;}
-        .fm-color-swatch{width:32px;height:32px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:all .15s;flex-shrink:0;}
-        .fm-color-swatch--on{border-color:#2B2620;transform:scale(1.1);}
-        .fm-custom-color-swatch{width:32px;height:32px;border-radius:50%;border:2px solid rgba(43,38,32,.2);cursor:pointer;flex-shrink:0;overflow:hidden;display:block;}
-        .fm-color-native{opacity:0;width:1px;height:1px;}
-        .fm-hex-input{width:88px;padding:6px 9px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:8px;background:#FBF6EE;color:#2B2620;font-family:monospace;outline:none;}
-        .fm-hex-input:focus{border-color:#C75D3A;}
-
-        /* ── Fixed fields ── */
-        .fm-fixed-list{display:flex;flex-direction:column;gap:4px;}
-        .fm-fixed-row{display:flex;align-items:center;gap:8px;padding:9px 12px;background:#FBF6EE;border:1px solid rgba(43,38,32,.07);border-radius:9px;font-size:12px;color:rgba(43,38,32,.6);}
-        .fm-fixed-type{width:22px;height:22px;border-radius:6px;background:rgba(43,38,32,.08);display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(43,38,32,.5);flex-shrink:0;}
-        .fm-fixed-name{flex:1;}
-        .fm-fixed-badge{font-size:9px;padding:2px 8px;border-radius:20px;background:rgba(43,38,32,.08);color:rgba(43,38,32,.5);}
-
-        /* ── Optional fields ── */
-        .fm-fields-list{display:flex;flex-direction:column;gap:4px;}
-        .fm-field-row{display:flex;align-items:center;gap:8px;padding:9px 11px;background:#FBF6EE;border:1px solid rgba(43,38,32,.07);border-radius:9px;font-size:12px;color:#2B2620;cursor:grab;transition:background .1s;}
-        .fm-field-row:hover{background:#F5EFE6;}
-        .fm-field-row--inactive{opacity:.4;}
-        .fm-field-row--reward{border-color:#C75D3A;background:rgba(199,93,58,.06);}
-        .fm-grip{color:rgba(43,38,32,.3);flex-shrink:0;display:flex;align-items:center;}
-        .fm-field-type-tag{width:22px;height:22px;border-radius:6px;background:rgba(43,38,32,.08);display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(43,38,32,.5);flex-shrink:0;}
-        .fm-field-label{flex:1;cursor:default;}
-        .fm-field-label-col{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;}
-        .fm-options-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
-        .fm-option-chip{display:flex;align-items:center;gap:5px;background:#FBF6EE;border:1px solid rgba(43,38,32,.15);border-radius:20px;padding:3px 6px 3px 10px;font-size:11.5px;color:#2B2620;}
-        .fm-option-chip-x{width:14px;height:14px;border-radius:50%;border:none;background:rgba(43,38,32,.1);color:#2B2620;font-size:9px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
-        .fm-option-chip-x:hover{background:rgba(178,59,59,.2);color:#B23B3B;}
-        .fm-option-add-btn{background:none;border:1px dashed rgba(199,93,58,.5);color:#C75D3A;border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:600;cursor:pointer;}
-        .fm-option-add-input{border:1px solid rgba(199,93,58,.4);border-radius:20px;padding:3px 10px;font-size:11.5px;font-family:'Inter',sans-serif;outline:none;width:110px;}
-        .fm-label-edit-input{flex:1;padding:3px 7px;font-size:12px;border:1.5px solid #C75D3A;border-radius:7px;background:#FFFFFF;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
-        .fm-field-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;}
-        .fm-reward-badge{font-size:9px;padding:2px 9px;border-radius:20px;background:rgba(199,93,58,.15);color:#C75D3A;font-weight:700;}
-        .fm-set-reward-btn{background:none;border:none;cursor:pointer;color:rgba(43,38,32,.2);font-size:13px;padding:2px 4px;border-radius:4px;transition:color .15s;}
-        .fm-set-reward-btn:hover{color:#C75D3A;}
-        .fm-edit-label-btn{background:none;border:none;cursor:pointer;color:rgba(43,38,32,.3);display:flex;align-items:center;padding:2px;border-radius:4px;}
-        .fm-edit-label-btn:hover{color:#185FA5;}
-        .fm-toggle-btn{background:none;border:none;cursor:pointer;color:rgba(43,38,32,.4);display:flex;align-items:center;padding:2px;border-radius:4px;}
-        .fm-toggle-btn:hover{color:#C75D3A;}
-
-        /* ── Custom fields ── */
-        .fm-custom-section{display:flex;flex-direction:column;gap:8px;}
-        .fm-custom-row{display:flex;align-items:center;gap:8px;}
-        .fm-custom-num{width:20px;height:20px;border-radius:6px;background:rgba(43,38,32,.08);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(43,38,32,.5);flex-shrink:0;}
-        .fm-custom-input{flex:1;padding:8px 11px;font-size:12px;border:1px solid rgba(43,38,32,.12);border-radius:9px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
-        .fm-custom-input:focus{border-color:#C75D3A;}
-        .fm-custom-select{padding:8px 10px;font-size:12px;border:1px solid rgba(43,38,32,.12);border-radius:9px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
-        .fm-reward-toggle{background:none;border:1.5px solid rgba(43,38,32,.12);border-radius:7px;cursor:pointer;color:rgba(43,38,32,.3);font-size:14px;padding:5px 8px;transition:all .15s;}
-        .fm-reward-toggle--on{border-color:#C75D3A;color:#C75D3A;background:rgba(199,93,58,.08);}
-        .fm-remove-btn{background:none;border:none;cursor:pointer;color:rgba(43,38,32,.3);display:flex;align-items:center;padding:4px;border-radius:6px;}
-        .fm-remove-btn:hover{color:#B23B3B;}
-        .fm-add-field-btn{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#C75D3A;font-weight:700;background:none;border:1.5px dashed rgba(199,93,58,.3);border-radius:10px;padding:10px 14px;cursor:pointer;transition:all .15s;width:100%;}
-        .fm-add-field-btn:hover{background:rgba(199,93,58,.04);}
-        .fm-max-note{font-size:11px;color:rgba(43,38,32,.4);text-align:center;padding:8px 0;}
-
-        /* ── Reward info ── */
-        .fm-reward-info{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;background:rgba(199,93,58,.07);border:1px solid rgba(199,93,58,.2);border-radius:11px;font-size:11.5px;color:#2B2620;line-height:1.5;}
-        .fm-reward-info svg{color:#C75D3A;flex-shrink:0;margin-top:1px;}
-        .fm-reward-field-name{font-weight:700;color:#C75D3A;}
-        .fm-no-reward{font-size:11px;color:rgba(43,38,32,.4);padding:8px 0;}
-        .fm-field-hint{font-size:10.5px;color:rgba(43,38,32,.45);padding:6px 0;}
-
-        /* ── Mobile preview ── */
-        .fm-phone{width:220px;border-radius:28px;background:#1A1A18;padding:10px;box-shadow:0 20px 60px rgba(43,38,32,.25);flex-shrink:0;}
-        .fm-phone-top{display:flex;justify-content:center;padding-bottom:8px;}
-        .fm-phone-notch{width:60px;height:6px;background:#2C2C2A;border-radius:3px;}
-        .fm-phone-screen{background:#FFFFFF;border-radius:20px;overflow:hidden;min-height:380px;display:flex;flex-direction:column;}
-        .fm-form-header{padding:20px 16px 16px;text-align:center;}
-        .fm-form-logo{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;overflow:hidden;}
-        .fm-form-biz{font-size:13px;font-weight:700;color:#F7F0E4;margin-bottom:2px;}
-        .fm-form-sub{font-size:9px;color:rgba(247,240,228,.55);line-height:1.4;}
-        .fm-form-fields{padding:12px 14px;display:flex;flex-direction:column;gap:8px;flex:1;}
-        .fm-form-field{}
-        .fm-form-label{font-size:9px;font-weight:600;color:rgba(43,38,32,.55);margin-bottom:3px;display:flex;align-items:center;gap:4px;}
-        .fm-reward-dot{width:6px;height:6px;border-radius:50%;background:#C75D3A;flex-shrink:0;}
-        .fm-form-input{font-size:10px;color:rgba(43,38,32,.3);background:#FBF6EE;border:1px solid rgba(43,38,32,.1);border-radius:6px;padding:6px 8px;}
-        .fm-form-select{font-size:10px;color:rgba(43,38,32,.6);background:#FBF6EE;border:1px solid rgba(43,38,32,.1);border-radius:6px;padding:6px 8px;display:flex;align-items:center;justify-content:space-between;}
-        .fm-form-more{font-size:9px;color:rgba(43,38,32,.35);text-align:center;padding:4px 0;}
-        .fm-form-submit{margin:12px 14px;color:#fff;border:none;border-radius:9px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;}
-        .fm-reward-hint{font-size:8.5px;color:rgba(43,38,32,.4);text-align:center;padding:0 14px 12px;line-height:1.4;}
-        .fm-phone-bottom{display:flex;justify-content:center;padding-top:8px;}
-        .fm-phone-home{width:40px;height:5px;background:#2C2C2A;border-radius:3px;}
-
-        /* ── Share ── */
-        .fm-share-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;}
-        .fm-link-row{display:flex;gap:8px;align-items:center;margin-bottom:12px;}
-        .fm-link-box{flex:1;background:#FBF6EE;border:1px solid rgba(43,38,32,.1);border-radius:9px;padding:9px 12px;font-size:11.5px;color:rgba(43,38,32,.7);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-        .fm-copy-btn{display:flex;align-items:center;gap:6px;background:#2B2620;color:#F7F0E4;border:none;border-radius:9px;padding:9px 14px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;}
-        .fm-copy-btn--done{background:#5B8C5A;}
-        .fm-link-hint{display:flex;align-items:flex-start;gap:7px;font-size:11px;color:rgba(43,38,32,.5);line-height:1.4;}
-        .fm-link-hint svg{color:rgba(43,38,32,.4);flex-shrink:0;margin-top:1px;}
-        .fm-qr-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;}
-        .fm-qr-box{background:#FBF6EE;border:1px solid rgba(43,38,32,.1);border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;}
-        .fm-qr-label{font-size:9px;color:rgba(43,38,32,.5);font-weight:600;}
-        .fm-download-btn{display:flex;align-items:center;gap:6px;background:#FFFFFF;border:1.5px solid rgba(43,38,32,.15);border-radius:9px;padding:8px 16px;font-size:12px;font-weight:600;color:rgba(43,38,32,.7);cursor:pointer;transition:all .15s;}
-        .fm-download-btn:hover{border-color:#C75D3A;color:#C75D3A;}
-
-        @media(max-width:900px){
-          .fm-main-grid{grid-template-columns:1fr;}
-          .fm-phone{display:none;}
-          .fm-share-grid{grid-template-columns:1fr;}
-          .fm-brand-grid{grid-template-columns:auto 1fr;}
-        }
-        @media(max-width:768px){
-          .fm-shell{padding:14px 16px;}
-          .fm-card-selector{flex-wrap:wrap;}
-          .fm-custom-row{flex-wrap:wrap;}
-          .fm-custom-select{width:100%;}
-          .fm-top-bar{flex-direction:column;align-items:flex-start;gap:10px;}
-          .fm-save-btn{width:100%;}
-        }
-        @media(max-width:480px){
-          .fm-brand-grid{grid-template-columns:1fr;}
-          .fm-color-row{flex-wrap:wrap;}
-        }
-      `}</style>
-
+      <style>{CSS}</style>
       <div className="fm-shell">
-        {/* Top bar */}
-        <div className="fm-top-bar">
+        <div className="fm-top">
           <div>
-            <div className="fm-top-title">Formulario de registro</div>
-            <div className="fm-top-sub">Configurá los campos que ve el cliente al registrarse</div>
+            <div className="fm-title">Formulario de registro</div>
+            <div className="fm-sub">Lo que completa tu cliente para obtener la tarjeta</div>
           </div>
-          <button className="fm-save-btn" onClick={async () => { setSaving(true); await handleSave(); setSaving(false) }} disabled={saving}>
-            {saving ? 'Guardando...' : saved ? '✓ Guardado' : 'Guardar cambios'}
-          </button>
+          <div className="fm-top-actions">
+            {dirty && <button className="fm-secondary" onClick={discard} disabled={saving}>Descartar</button>}
+            <button className="fm-primary" onClick={save} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button>
+          </div>
         </div>
-        {saveError && <div className="fm-save-error">{saveError}</div>}
+        {error && <div className="fm-error">{error}</div>}
+        {notice && <div className="fm-notice">{notice}</div>}
+        {loadError && <div className="fm-error">No pudimos cargar el formulario. <button className="fm-link-btn" onClick={load}>Reintentar</button></div>}
 
-        {/* Card selector */}
         {activeCards.length > 1 && (
-          <>
-            <div className="fm-lbl">Tarjeta</div>
-            <div className="fm-card-selector">
-              {activeCards.map((card: CardDesign) => (
-                <button
-                  key={card.id}
-                  className={`fm-card-pill${selectedCardId === card.id ? ' fm-card-pill--on' : ''}`}
-                  onClick={() => setSelectedCardId(card.id)}
-                >
-                  {TYPE_CARD_ICONS[card.type]} {card.name}
-                </button>
-              ))}
-            </div>
-          </>
+          <CardSwitcher value={card.id} options={activeCards.map(c => ({ id: c.id, label: c.name }))}
+            onChange={id => { if (dirty && !confirm('Tenés cambios sin guardar en este formulario. ¿Descartarlos?')) return; setSelectedId(id) }} />
         )}
 
-        {/* Branding */}
-        <div className="fm-lbl">Identidad visual del formulario</div>
-        {can('formBranding')
-          ? <div className="fm-card">
-              <div className="fm-card-title">Logo y color</div>
-              <div className="fm-card-sub">Así va a verse la cabecera del formulario para tus clientes</div>
-              <div className="fm-brand-grid">
-                <div className="fm-brand-logo-wrap">
-                  <div
-                    className={`fm-brand-logo-zone${brandLogo ? ' fm-brand-logo-zone--filled' : ''}`}
-                    onClick={() => logoRef.current?.click()}
-                  >
-                    {brandLogo
-                      ? <img src={brandLogo} className="fm-brand-logo-img" alt="logo" />
-                      : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(43,38,32,.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    }
-                    <input ref={logoRef} type="file" accept="image/*" onChange={handleLogoFile} style={{ display: 'none' }} />
+        <div className="fm-grid">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+            <div className="fm-card fm-design-note">
+              <span className="fm-swatch" style={{ background: `linear-gradient(135deg, ${card.color || '#1B412F'}, ${card.secondColor || card.color || '#1B412F'})` }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="fm-card-title">Usa el diseño de tu tarjeta</div>
+                <div className="fm-card-sub" style={{ margin: 0 }}>El color y el logo del formulario son los de "{card.name}".</div>
+              </div>
+              <button className="fm-secondary" onClick={onGoToDesign}>Editar en Diseño</button>
+            </div>
+
+            {isStamp && (
+              <div className={`fm-card fm-reward${askReward && !rewardField ? ' fm-reward--warn' : ''}`}>
+                <div className="fm-card-title">★ Premio</div>
+                {!askReward ? (
+                  <div className="fm-card-sub" style={{ margin: 0 }}>
+                    Tu premio es fijo{card.rewardField ? <>: <strong>{card.rewardField}</strong></> : ''}. Al cliente no se le pregunta nada.{' '}
+                    <button className="fm-link-btn" onClick={onGoToDesign}>Cambiar en Diseño</button>
                   </div>
-                  {brandLogo
-                    ? <button className="fm-brand-logo-remove" onClick={() => setBrandLogo(null)}>Quitar</button>
-                    : <span className="fm-brand-logo-hint">Subir logo</span>
-                  }
-                </div>
-                <div className="fm-brand-fields">
-                  <div>
-                    <div className="fm-brand-field-label">Color principal</div>
-                    <div className="fm-color-row">
-                      {['#1B412F','#C75D3A','#185FA5','#533FB7','#2C2C2A','#854F0B'].map(col => (
-                        <button key={col} className={`fm-color-swatch${brandColor === col ? ' fm-color-swatch--on' : ''}`}
-                          style={{ background: col }} onClick={() => setBrandColor(col)} />
-                      ))}
-                      <label className="fm-custom-color-swatch" style={{ background: brandColor }}>
-                        <input type="color" value={brandColor} onChange={e => setBrandColor(e.target.value)} className="fm-color-native" />
-                      </label>
-                      <input type="text" className="fm-hex-input" value={brandColor}
-                        onChange={e => /^#[0-9A-Fa-f]{0,6}$/.test(e.target.value) && setBrandColor(e.target.value)}
-                        placeholder="#1B412F" maxLength={7} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          : <div style={{ padding: '16px 20px', background: 'rgba(43,38,32,.04)', border: '1px solid rgba(43,38,32,.08)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#2B2620', marginBottom: 3 }}>Logo y color en el formulario</div>
-                <div style={{ fontSize: 12, color: 'rgba(43,38,32,.5)' }}>Disponible desde el plan Growth</div>
-              </div>
-              <button style={{ background: '#C75D3A', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 16px', cursor: 'pointer', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>Mejorar plan →</button>
-            </div>
-        }
-
-        {/* Builder + Preview */}
-        <div className="fm-lbl">Campos del formulario</div>
-        <div className="fm-main-grid">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-            {/* Fixed */}
-            <div className="fm-card">
-              <div className="fm-card-title">Campos fijos</div>
-              <div className="fm-card-sub">Siempre presentes, no se pueden quitar ni renombrar</div>
-              <div className="fm-fixed-list">
-                {FIXED_FIELDS.map((f: FormField) => (
-                  <div key={f.id} className="fm-fixed-row">
-                    <div className="fm-fixed-type">{TYPE_ICONS[f.type]}</div>
-                    <span className="fm-fixed-name">{f.label}</span>
-                    <span className="fm-fixed-badge">Fijo</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Optional — editable */}
-            <div className="fm-card">
-              <div className="fm-card-title">Campos opcionales</div>
-              <div className="fm-card-sub">Arrastrá para reordenar · lápiz para renombrar · ojo para mostrar/ocultar{selectedCard?.type === 'stamp' ? ' · ★ para el campo de premio' : ''}</div>
-              {loadingFields ? (
-                <div className="fm-max-note">Cargando...</div>
-              ) : (
-                <div className="fm-fields-list">
-                  {optional.map((f: FormField, i: number) => (
-                    <OptionalFieldRow
-                      key={f.id}
-                      field={f}
-                      onUpdate={updateLabel}
-                      onUpdateOptions={updateOptions}
-                      onToggle={toggleOptional}
-                      onSetReward={setRewardSource}
-                      onDragStart={() => handleDragStart(i)}
-                      onDragEnter={() => handleDragEnter(i)}
-                      onDragEnd={handleDragEnd}
-                      showReward={selectedCard?.type === 'stamp'}
-                    />
-                  ))}
-                </div>
-              )}
-              <div className="fm-field-hint">
-                💡 Doble click o el lápiz para renombrar cualquier campo. Ej: "Preferencia principal" → "Corte de cabello favorito"
-              </div>
-            </div>
-
-            {/* Custom */}
-            <div className="fm-card">
-              <div className="fm-card-title">Campos personalizados</div>
-              <div className="fm-card-sub">{MAX_CUSTOM > 0 ? `Hasta ${MAX_CUSTOM} campos propios de tu negocio` : 'Función exclusiva de planes pagos'}</div>
-              <CustomFieldBuilder fields={custom} onChange={setCustom} maxCustom={MAX_CUSTOM} businessId={businessId} cardId={selectedCardId} showReward={selectedCard?.type === 'stamp'} />
-            </div>
-
-            {/* Reward source — el mecanismo de "campo que se revela como
-                premio" solo tiene sentido para sellos. Puntos ya usa un
-                catálogo real donde el cliente elige a la vista
-                (PointsCatalogItem), y membership define el premio por
-                nivel (tier.perk) sin que el cliente elija nada — ninguno
-                de los dos necesita esta sección. */}
-            {selectedCard?.type === 'stamp' && (
-              <div className="fm-card">
-                <div className="fm-card-title">Campo de premio activo</div>
-                <div className="fm-card-sub">Esto es lo que el scanner le va a mostrar como premio a entregar</div>
-                {rewardField
-                  ? <div className="fm-reward-info">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                      <div>
-                        Al completar la tarjeta, el scanner verá la respuesta del cliente en <span className="fm-reward-field-name">"{rewardField.label}"</span> como el premio a entregar.
-                      </div>
-                    </div>
-                  : <div className="fm-no-reward">Ningún campo marcado con ★. Hacé ★ en el campo que querés usar como premio.</div>
-                }
+                ) : rewardField ? (
+                  <div className="fm-card-sub" style={{ margin: 0 }}>El cliente elige su premio al registrarse en <strong>"{rewardField.label}"</strong>. Las opciones se editan en <button className="fm-link-btn" onClick={onGoToDesign}>Diseño</button>.</div>
+                ) : (
+                  <>
+                    <div className="fm-card-sub">El cliente elige el premio, pero todavía no cargaste las opciones.</div>
+                    <button className="fm-primary" onClick={onGoToDesign}>Cargar opciones en Diseño</button>
+                  </>
+                )}
               </div>
             )}
+
+            <div className="fm-card">
+              <div className="fm-card-title">Campos</div>
+              <div className="fm-card-sub">Usá las flechas para ordenar. Los cambios se aplican al tocar "Guardar cambios".</div>
+              <div className="fm-list">
+                {['Nombre completo', 'Email'].map(l => (
+                  <div key={l} className="fm-row fm-row--fixed">
+                    <div className="fm-row-main"><span className="fm-type">{l === 'Email' ? '@' : 'T'}</span><span className="fm-fixed-label">{l}</span><span className="fm-badge">Fijo · obligatorio</span></div>
+                  </div>
+                ))}
+                {draft === null ? [0, 1].map(i => <div key={i} className="fm-skel" style={{ height: 56 }} />) : draft.map((f, i) => {
+                  const hiddenReward = f.isRewardSource && !askReward
+                  return (
+                    <div key={f.key} className={`fm-row${!f.isActive || hiddenReward ? ' fm-row--off' : ''}${f.isRewardSource && askReward ? ' fm-row--reward' : ''}`}>
+                      <div className="fm-row-main">
+                        <div className="fm-move">
+                          <button onClick={() => move(f.key, -1)} disabled={i === 0} aria-label="Subir">▲</button>
+                          <button onClick={() => move(f.key, 1)} disabled={i === draft.length - 1} aria-label="Bajar">▼</button>
+                        </div>
+                        <span className="fm-type" title={TYPE_LABEL[f.type]}>{TYPE_ICON[f.type]}</span>
+                        <input className="fm-label-input" value={f.label} placeholder="Nombre del campo (ej: Fecha de cumpleaños)" maxLength={80} onChange={e => patch(f.key, { label: e.target.value })} />
+                        {!f.id && !f.isLocked && !f.isRewardSource ? (
+                          <select className="fm-type-select" value={f.type} onChange={e => patch(f.key, { type: e.target.value as FieldType })}>
+                            {(Object.keys(TYPE_LABEL) as FieldType[]).map(t => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
+                          </select>
+                        ) : null}
+                      </div>
+                      {f.isRewardSource
+                        ? <div className="fm-hint" style={{ margin: '6px 0 0' }}>Opciones: {f.options.filter(Boolean).join(' · ') || '—'}. Se editan en <button className="fm-link-btn" onClick={onGoToDesign}>Diseño</button>.</div>
+                        : f.type === 'select' && <OptionsEditor options={f.options} onChange={o => patch(f.key, { options: o })} />}
+                      {['text', 'tel', 'number'].includes(f.type) && (
+                        <input className="fm-ph-input" value={f.placeholder} maxLength={80} placeholder="Texto de ayuda dentro del campo (opcional)" onChange={e => patch(f.key, { placeholder: e.target.value })} />
+                      )}
+                      <div className="fm-row-foot">
+                        {f.isRewardSource ? (
+                          <span className="fm-badge fm-badge--reward">{askReward ? '★ Pregunta de premio · obligatoria' : 'No se muestra: premio fijo'}</span>
+                        ) : (
+                          <>
+                            <label className="fm-switch"><input type="checkbox" checked={f.isActive} onChange={e => patch(f.key, { isActive: e.target.checked })} /><span />Visible</label>
+                            <label className="fm-switch"><input type="checkbox" checked={f.isRequired} disabled={!f.isActive} onChange={e => patch(f.key, { isRequired: e.target.checked })} /><span />Obligatorio</label>
+                          </>
+                        )}
+                        {f.isBirthday && <span className="fm-badge" title="La usa la regla Cumpleaños (Configuración)">🎂 Regla de cumpleaños</span>}
+                        <div style={{ flex: 1 }} />
+                        {(f.isCustom || !f.id) && !f.isLocked && !f.isBirthday && (
+                          confirmDel === f.key
+                            ? <span className="fm-confirm">¿Borrar? Las respuestas que ya dieron tus clientes se dejan de mostrar. <button className="fm-link-btn" onClick={() => setConfirmDel(null)}>No</button> <button className="fm-link-btn fm-danger" onClick={() => remove(f)}>Sí, borrar</button></span>
+                            : <button className="fm-link-btn fm-danger" onClick={() => f.id ? setConfirmDel(f.key) : remove(f)}>Borrar</button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              {draft !== null && (maxCustom > 0 ? (
+                customCount < maxCustom
+                  ? <button className="fm-add" onClick={() => addField(false)}>+ Agregar campo propio ({customCount}/{maxCustom})</button>
+                  : <div className="fm-hint">Llegaste al máximo de {maxCustom} campos propios de tu plan.</div>
+              ) : (
+                <div className="fm-locked">
+                  <span>🔒 Campos propios (ej: cumpleaños, teléfono) desde el plan Growth.</span>
+                  {!isManager && <button className="fm-link-btn" onClick={onChoosePlan}>Ver planes</button>}
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Mobile preview */}
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 4 }}>
-            <MobilePreview
-              fields={allFields}
-              businessName={businessName}
-              brandColor={brandColor}
-              brandLogo={brandLogo}
-            />
+          <div className="fm-preview-col">
+            <div className="fm-preview-title">Así lo ve tu cliente</div>
+            <Preview card={card} businessName={businessName} fields={draft || []} askReward={askReward} whiteLabel={whiteLabel} />
           </div>
         </div>
 
-        {/* Share */}
         <div className="fm-lbl">Compartir</div>
-        <ShareSection businessName={businessName} slug={businessSlug} businessId={businessId} />
+        <Share businessName={businessName} slug={businessSlug} card={card} whiteLabel={whiteLabel} />
       </div>
     </>
   )
 }
+
+const CSS = `
+  .fm-shell{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
+  .fm-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .fm-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:17px;color:#2B2620;}
+  .fm-sub{font-size:12px;color:rgba(43,38,32,.5);margin-top:2px;}
+  .fm-top-actions{display:flex;gap:8px;}
+  .fm-primary{background:#C75D3A;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;white-space:nowrap;}
+  .fm-primary:disabled{opacity:.45;cursor:not-allowed;}
+  .fm-secondary{background:#fff;color:#2B2620;border:1px solid rgba(43,38,32,.18);border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .fm-secondary:disabled{opacity:.45;cursor:not-allowed;}
+  .fm-link-btn{background:none;border:none;padding:0;color:#C75D3A;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit;}
+  .fm-danger{color:#B23B3B;}
+  .fm-error{font-size:12.5px;color:#8E2F2F;background:rgba(178,59,59,.07);border:1px solid rgba(178,59,59,.2);border-radius:10px;padding:9px 12px;}
+  .fm-notice{font-size:12.5px;color:#3F6E3E;background:rgba(91,140,90,.1);border:1px solid rgba(91,140,90,.25);border-radius:10px;padding:9px 12px;}
+  .fm-pills{display:flex;gap:6px;flex-wrap:wrap;}
+  .fm-pill{font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(43,38,32,.12);background:#fff;color:rgba(43,38,32,.6);cursor:pointer;font-family:'Inter',sans-serif;}
+  .fm-pill--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;font-weight:600;}
+  .fm-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start;}
+  .fm-card{background:#fff;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:16px 18px;box-shadow:0 1px 8px rgba(43,38,32,.04);min-width:0;}
+  .fm-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
+  .fm-card-sub{font-size:11.5px;color:rgba(43,38,32,.5);margin-bottom:12px;line-height:1.5;}
+  .fm-design-note{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .fm-swatch{width:34px;height:34px;border-radius:10px;flex-shrink:0;}
+  .fm-reward{border-color:rgba(212,162,76,.35);background:rgba(212,162,76,.05);}
+  .fm-reward--warn{border-color:rgba(178,59,59,.3);background:rgba(178,59,59,.04);}
+  .fm-list{display:flex;flex-direction:column;gap:8px;}
+  .fm-row{border:1px solid rgba(43,38,32,.1);border-radius:11px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:#fff;}
+  .fm-row--fixed{background:rgba(43,38,32,.025);}
+  .fm-row--off{opacity:.6;}
+  .fm-row--reward{border-color:rgba(212,162,76,.5);background:rgba(212,162,76,.05);}
+  .fm-row-main{display:flex;align-items:center;gap:8px;min-width:0;}
+  .fm-move{display:flex;flex-direction:column;gap:1px;}
+  .fm-move button{background:none;border:none;color:rgba(43,38,32,.4);font-size:9px;line-height:1;padding:2px 4px;cursor:pointer;border-radius:4px;}
+  .fm-move button:hover:not(:disabled){color:#2B2620;background:rgba(43,38,32,.06);}
+  .fm-move button:disabled{opacity:.25;cursor:default;}
+  .fm-type{width:26px;height:26px;border-radius:7px;background:rgba(43,38,32,.06);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:rgba(43,38,32,.55);flex-shrink:0;}
+  .fm-fixed-label{flex:1;font-size:12.5px;font-weight:600;color:#2B2620;}
+  .fm-label-input{flex:1;min-width:0;border:1px solid transparent;border-radius:7px;padding:6px 8px;font-size:12.5px;font-weight:600;color:#2B2620;font-family:'Inter',sans-serif;background:transparent;outline:none;}
+  .fm-label-input:hover{border-color:rgba(43,38,32,.12);}
+  .fm-label-input:focus{border-color:#C75D3A;background:#fff;}
+  .fm-type-select{border:1px solid rgba(43,38,32,.15);border-radius:7px;padding:6px 8px;font-size:12px;background:#fff;color:#2B2620;font-family:inherit;}
+  .fm-ph-input{border:1px dashed rgba(43,38,32,.15);border-radius:7px;padding:6px 9px;font-size:11.5px;color:rgba(43,38,32,.7);font-family:'Inter',sans-serif;outline:none;margin-left:34px;}
+  .fm-ph-input:focus{border-color:#C75D3A;border-style:solid;}
+  .fm-opts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:34px;}
+  .fm-opt{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;background:rgba(199,93,58,.08);color:#9E4529;border-radius:20px;padding:3px 5px 3px 10px;}
+  .fm-opt button{border:none;background:rgba(199,93,58,.15);color:#9E4529;width:16px;height:16px;border-radius:50%;font-size:11px;line-height:14px;cursor:pointer;padding:0;}
+  .fm-opt-input{border:1px dashed rgba(43,38,32,.2);border-radius:20px;padding:4px 10px;font-size:11.5px;font-family:inherit;outline:none;min-width:150px;}
+  .fm-opt-input:focus{border-color:#C75D3A;border-style:solid;}
+  .fm-opt-hint{font-size:10.5px;color:#B23B3B;}
+  .fm-row-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-left:34px;}
+  .fm-switch{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:rgba(43,38,32,.7);cursor:pointer;user-select:none;}
+  .fm-switch input{display:none;}
+  .fm-switch span{width:28px;height:16px;border-radius:10px;background:rgba(43,38,32,.18);position:relative;transition:background .15s;}
+  .fm-switch span::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:left .15s;}
+  .fm-switch input:checked + span{background:#5B8C5A;}
+  .fm-switch input:checked + span::after{left:14px;}
+  .fm-switch input:disabled + span{opacity:.4;}
+  .fm-badge{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:rgba(43,38,32,.07);color:rgba(43,38,32,.55);white-space:nowrap;}
+  .fm-badge--reward{background:rgba(212,162,76,.18);color:#7A5A12;}
+  .fm-confirm{font-size:11.5px;color:#8E2F2F;}
+  .fm-add{margin-top:10px;width:100%;border:1.5px dashed rgba(43,38,32,.2);background:none;border-radius:10px;padding:10px;font-size:12.5px;font-weight:600;color:rgba(43,38,32,.65);cursor:pointer;font-family:inherit;}
+  .fm-add:hover{border-color:#C75D3A;color:#C75D3A;}
+  .fm-locked{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;color:rgba(43,38,32,.6);background:rgba(43,38,32,.03);border-radius:10px;padding:10px 12px;}
+  .fm-hint{font-size:11.5px;color:rgba(43,38,32,.5);margin-top:10px;}
+  .fm-preview-col{position:sticky;top:0;display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .fm-preview-title{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(43,38,32,.4);font-weight:700;}
+  .fm-phone{width:280px;border-radius:34px;background:#1a1a18;padding:10px;box-shadow:0 12px 40px rgba(43,38,32,.2);}
+  .fm-phone-screen{border-radius:26px;overflow:hidden;background:#FBF6EE;max-height:560px;overflow-y:auto;}
+  .fm-pv-head{padding:24px 18px 18px;text-align:center;}
+  .fm-pv-logo{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;overflow:hidden;}
+  .fm-pv-logo img{width:100%;height:100%;object-fit:contain;}
+  .fm-pv-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;}
+  .fm-pv-sub{font-size:10.5px;opacity:.8;margin-top:2px;}
+  .fm-pv-badge{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:rgba(255,255,255,.18);padding:3px 8px;border-radius:20px;margin-top:8px;}
+  .fm-pv-body{background:#fff;padding:16px 16px 14px;}
+  .fm-pv-field{margin-bottom:10px;}
+  .fm-pv-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.5);margin-bottom:4px;}
+  .fm-pv-input{border:1px solid rgba(43,38,32,.12);border-radius:9px;background:#FBF6EE;padding:8px 10px;font-size:11px;color:rgba(43,38,32,.4);min-height:30px;display:flex;justify-content:space-between;}
+  .fm-pv-btn{border-radius:10px;color:#fff;text-align:center;font-size:12px;font-weight:700;padding:10px;margin-top:4px;}
+  .fm-pv-legal{font-size:9px;color:rgba(43,38,32,.45);text-align:center;margin-top:8px;line-height:1.4;}
+  .fm-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(43,38,32,.38);font-weight:600;display:flex;align-items:center;gap:10px;margin-top:4px;}
+  .fm-lbl::after{content:'';flex:1;height:1px;background:rgba(43,38,32,.1);}
+  .fm-share{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .fm-link-row{display:flex;gap:8px;}
+  .fm-link-box{flex:1;min-width:0;font-size:13px;font-weight:600;color:#2B2620;background:#FBF6EE;border:1px solid rgba(43,38,32,.1);border-radius:9px;padding:9px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .fm-copy{background:#1B412F;color:#F7F0E4;border:none;border-radius:9px;padding:0 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .fm-copy--done{background:#5B8C5A;}
+  .fm-open{display:inline-block;margin-top:10px;font-size:12px;font-weight:600;color:#C75D3A;text-decoration:none;}
+  .fm-qr-card{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+  .fm-qr img{width:132px;height:132px;border-radius:10px;border:1px solid rgba(43,38,32,.08);display:block;}
+  .fm-share-btns{display:flex;gap:8px;flex-wrap:wrap;}
+  .fm-skel{background:rgba(43,38,32,.07);border-radius:10px;animation:fmPulse 1.2s ease-in-out infinite;}
+  @keyframes fmPulse{0%,100%{opacity:.45}50%{opacity:1}}
+  @media(max-width:1000px){.fm-grid{grid-template-columns:1fr;}.fm-preview-col{position:static;}}
+  @media(max-width:768px){
+    .fm-shell{padding:14px 16px;}
+    .fm-share{grid-template-columns:1fr;}
+    .fm-ph-input,.fm-opts,.fm-row-foot{margin-left:0;}
+    .fm-row-main{flex-wrap:wrap;}
+    .fm-label-input{flex-basis:calc(100% - 70px);}
+    .fm-top-actions{width:100%;}
+    .fm-top-actions .fm-primary{flex:1;}
+  }
+`

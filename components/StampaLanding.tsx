@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from 'react';
 import styles from '../styles/stampa-landing.module.css';
+import { annualSavingsPct, formatPrice, usePlanPrices, type PlanSlug } from '@/lib/pricing';
 
 /* ────────────────────────────────────────────────────────────────
    Static content
@@ -29,29 +30,29 @@ const STAMPA_PROS = ['Vive en el wallet que ya usa', 'Lista para usar en minutos
 const PROGRAM_TYPES = [
   { name: 'Sellos', desc: 'Acumulá visitas y elegí un premio al completar la tarjeta.', fit: 'Cafeterías y panaderías' },
   { name: 'Puntos', desc: 'Cada visita suma puntos canjeables por lo que quieras ofrecer.', fit: 'Restaurantes y spas' },
-  { name: 'Membresía', desc: 'Niveles Bronze, Silver, Gold y Black con beneficios exclusivos.', fit: 'Gimnasios y peluquerías premium' },
+  { name: 'Membresía', desc: 'Niveles (Bronce, Plata, Oro, Black o los que armes) que suben solos con las visitas.', fit: 'Gimnasios y peluquerías premium' },
 ];
 
 const STEPS = [
   { n: '01', title: 'Creás tu tarjeta', desc: 'Elegís el formato — sellos, puntos o membresía — y la personalizás con tu marca en minutos, sin saber programar.' },
-  { n: '02', title: 'El cliente la guarda en su wallet', desc: 'Con un link o un QR, la tarjeta queda guardada en Apple Wallet o Google Wallet. No hay que descargar ninguna app.' },
+  { n: '02', title: 'El cliente la guarda en su wallet', desc: 'Con un link o un QR, la tarjeta queda guardada en Apple Wallet (Google Wallet, muy pronto). No hay que descargar ninguna app.' },
   { n: '03', title: 'Cada visita suma', desc: 'Escaneás con la app de Stampa y el sello, punto o beneficio se actualiza al instante en el teléfono del cliente.' },
 ];
 
 const HERO_FEATURE = {
-  title: 'Dashboard con analytics',
-  desc: 'Visitas, clientes nuevos y tasa de retorno, todo en un solo vistazo — sin planillas ni adivinar qué está funcionando.',
+  title: 'Analítica que se entiende',
+  desc: 'Cuándo viene tu gente, quién vuelve y quién no, en qué parte de la tarjeta está cada cliente y qué premios eligen — sin planillas ni adivinar qué está funcionando.',
 };
 
 const LIST_FEATURES = [
   { mark: 'S/P', title: 'Sellos, puntos o membresía', desc: 'Elegí el formato que mejor se adapta a tu negocio.' },
-  { mark: 'W', title: 'Apple & Google Wallet', desc: 'Tu tarjeta vive donde tu cliente ya vive.' },
-  { mark: 'N', title: 'Notificaciones push', desc: 'Avisale sin depender de redes sociales.' },
+  { mark: 'W', title: 'En Apple Wallet', desc: 'Tu tarjeta vive donde tu cliente ya vive. Google Wallet, muy pronto.' },
+  { mark: 'N', title: 'Notificaciones segmentadas', desc: 'A todos, a los inactivos, a los que están cerca del premio o según lo que respondieron.' },
+  { mark: 'R', title: 'Reglas automáticas', desc: 'Días con sello doble, regalo de cumpleaños y vencimiento por inactividad, con aviso.' },
   { mark: '0', title: 'Sin app para el cliente', desc: 'Cero fricción, cero descarga.' },
-  { mark: 'SC', title: 'Scanner app para el equipo', desc: 'Suma sellos y puntos desde el celular, en segundos.' },
-  { mark: 'EQ', title: 'Gestión de equipo', desc: 'Managers con acceso completo, scanners solo para escanear.' },
-  { mark: 'F', title: 'Formulario personalizable', desc: 'Elegí qué datos pedirle a tu cliente al sumarse.' },
-  { mark: 'M', title: 'Multi-local (plan Pro)', desc: 'Gestioná todos tus locales desde un mismo dashboard.' },
+  { mark: 'SC', title: 'App de escaneo', desc: 'Tu equipo entra con PIN; vos, con tu email. Suma, canjea y busca clientes en segundos.' },
+  { mark: 'EQ', title: 'Gestión de equipo', desc: 'Administradores y scanners, con historial de quién escaneó y alertas de escaneos raros.' },
+  { mark: 'F', title: 'Formulario personalizable', desc: 'Elegí qué datos pedirle a tu cliente al sumarse y usalos para segmentar.' },
 ];
 
 const TESTIMONIAL = {
@@ -70,10 +71,10 @@ const VERTICALS = [
   { name: 'Cafeterías', example: 'Sello por cada café — el décimo, gratis.', tag: 'Sellos', initial: 'CA' },
   { name: 'Restaurantes', example: 'Puntos por consumo, canjeables por platos.', tag: 'Puntos', initial: 'RE' },
   { name: 'Peluquerías', example: 'Membresía por niveles con beneficios exclusivos.', tag: 'Membresía', initial: 'PE' },
-  { name: 'Gimnasios', example: 'Puntos por asistencia y por traer amigos.', tag: 'Membresía', initial: 'GI' },
+  { name: 'Gimnasios', example: 'Membresía por asistencia: más visitas, mejor nivel.', tag: 'Membresía', initial: 'GI' },
   { name: 'Panaderías', example: 'Sello por compra, premio a la décima visita.', tag: 'Sellos', initial: 'PA' },
   { name: 'Spas', example: 'Puntos canjeables por tratamientos y upgrades.', tag: 'Puntos', initial: 'SP' },
-  { name: 'Ropa', example: 'Puntos por compra, descuentos según tu nivel.', tag: 'Puntos', initial: 'RO' },
+  { name: 'Ropa', example: 'Puntos por compra, canjeables por descuentos.', tag: 'Puntos', initial: 'RO' },
   { name: 'Librerías', example: 'Sello por compra, un libro de regalo al completar.', tag: 'Sellos', initial: 'LI' },
 ].map((v) => ({
   ...v,
@@ -81,27 +82,41 @@ const VERTICALS = [
   accentSoft: v.tag === 'Sellos' ? 'var(--ember-soft)' : v.tag === 'Puntos' ? 'var(--blue-soft)' : 'var(--green-soft)',
 }));
 
+// Montos: salen de Mercado Pago (lib/pricing.ts → usePlanPrices). Acá solo
+// hay nombre, descripción y features; monthly/annual en 0 = "tiene precio",
+// null = "A consultar" (Enterprise, solo por contacto).
 const RAW_PLANS = [
-  { name: 'Starter', slug: 'starter', desc: 'Para arrancar con un local y una tarjeta.', monthly: 29, annual: 23, features: ['1 local', '1 tarjeta de fidelización', 'Hasta 200 clientes', 'Analytics básico'], cta: 'Empezar gratis', highlight: false },
-  { name: 'Growth', slug: 'growth', desc: 'Para crecer con marca propia y equipo.', monthly: 49, annual: 39, features: ['1 local', '3 tarjetas de fidelización', 'Clientes ilimitados', 'Branding propio', '5 usuarios de equipo'], cta: 'Empezar gratis', highlight: true },
-  { name: 'Pro', slug: 'pro', desc: 'Para negocios con varios locales.', monthly: 89, annual: 71, features: ['3 locales', 'Todo ilimitado', 'Soporte prioritario'], cta: 'Empezar gratis', highlight: false },
+  { name: 'Starter', slug: 'starter', desc: 'Para arrancar con un local y una tarjeta.', monthly: 0, annual: 0, features: ['1 local', '1 tarjeta de fidelización', 'Hasta 200 clientes', 'Métricas clave en Inicio', '4 notificaciones por mes'], cta: 'Empezar gratis', highlight: false },
+  { name: 'Growth', slug: 'growth', desc: 'Para crecer con marca propia y equipo.', monthly: 0, annual: 0, features: ['1 local', '3 tarjetas de fidelización', 'Clientes ilimitados', 'Analítica completa', '20 notificaciones por mes, segmentadas', '5 usuarios de equipo'], cta: 'Empezar gratis', highlight: true },
+  { name: 'Pro', slug: 'pro', desc: 'Para negocios con varios locales.', monthly: 0, annual: 0, features: ['3 locales', 'Tarjetas, equipo y notificaciones ilimitados', 'Color 100% libre', 'Notificaciones a clientes puntuales', 'Soporte prioritario'], cta: 'Empezar gratis', highlight: false },
   { name: 'Enterprise', slug: 'enterprise', desc: 'Para cadenas y franquicias.', monthly: null as number | null, annual: null as number | null, features: ['Locales ilimitados', 'White label', 'Soporte dedicado'], cta: 'Hablar con ventas', highlight: false },
 ];
 
 const FAQ_DATA = [
-  { q: '¿Mis clientes necesitan descargar una app?', a: 'No. La tarjeta de fidelización vive directamente en Apple Wallet o Google Wallet, que ya vienen instalados en su teléfono. Nada que descargar, nada que crear cuenta.' },
-  { q: '¿Cómo escaneo la tarjeta de mis clientes?', a: 'Con la app de Stampa para tu negocio. Escaneás el código de la tarjeta y el sello, punto o beneficio se actualiza al instante en el wallet del cliente.' },
+  { q: '¿Mis clientes necesitan descargar una app?', a: 'No. La tarjeta de fidelización vive directamente en Apple Wallet, que ya viene instalada en el iPhone. Nada que descargar, nada que crear cuenta. Google Wallet llega muy pronto.' },
+  { q: '¿Cómo escaneo la tarjeta de mis clientes?', a: 'Con la app de escaneo de Stampa. Tu equipo entra con un PIN y vos con tu email. Escaneás el código de la tarjeta (o buscás al cliente por nombre) y el sello, punto o visita se actualiza al instante en su Wallet.' },
   { q: '¿Cuánto tarda en configurarse?', a: 'Menos de 15 minutos. Elegís el formato de tu tarjeta (sellos, puntos o membresía), la personalizás con tu marca y ya podés compartirla con tus clientes.' },
   { q: '¿Necesito tarjeta de crédito para probar?', a: 'No. Los 14 días de prueba gratuita no piden tarjeta de crédito. Solo pagás si decidís continuar con un plan pago.' },
   { q: '¿Puedo cambiar de plan o cancelar cuando quiera?', a: 'Sí, no hay permanencia. Podés subir, bajar o cancelar tu plan en cualquier momento desde el dashboard.' },
-  { q: '¿Funciona para más de un local?', a: 'Sí. Los planes Pro y Enterprise permiten gestionar varios locales desde un mismo dashboard, cada uno con sus propias tarjetas y analytics.' },
+  { q: '¿Puedo premiar cumpleaños o hacer días con sello doble?', a: 'Sí. En Configuración activás el regalo de cumpleaños, elegís qué días de la semana cada visita vale doble y si los sellos o puntos vencen cuando un cliente deja de venir. Los avisos salen solos y no cuentan para tus notificaciones del mes.' },
 ];
 
 const SOCIAL_LINKS = [
   { name: 'Instagram', href: 'https://instagram.com/stampa.app' },
-  { name: 'LinkedIn', href: 'https://linkedin.com/company/stampa-app' },
-  { name: 'X', href: 'https://x.com/stampa_app' },
 ];
+
+// Ventas por WhatsApp — en el mercado de comercios es el canal que más
+// convierte. El texto llega pre-cargado en el chat.
+const WHATSAPP_NUMBER = '5493512638999';
+const whatsappLink = (text: string) => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+const WHATSAPP_SALES = whatsappLink('Hola! Quiero saber más sobre Stampa para mi negocio.');
+const WHATSAPP_ENTERPRISE = whatsappLink('Hola! Me interesa el plan Enterprise de Stampa.');
+
+// Negocio de demo ("Stampa") para la sección "Probala en tu celular": el
+// visitante escanea el QR, se registra y recibe una tarjeta real en su
+// Wallet. Se configura con NEXT_PUBLIC_DEMO_BUSINESS_ID (el _id del
+// negocio demo en esa base) — si no está, la sección no se muestra.
+const DEMO_BUSINESS_ID = process.env.NEXT_PUBLIC_DEMO_BUSINESS_ID || '';
 
 const STAMP_PATTERN = [true, true, true, true, false, false];
 const HERO_STAMPS = STAMP_PATTERN.map((filled) => ({
@@ -126,6 +141,9 @@ export default function StampaLanding() {
   const [openFaq, setOpenFaq] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [origin, setOrigin] = useState('');
+  useEffect(() => { setOrigin(window.location.origin); }, []);
+  const demoUrl = DEMO_BUSINESS_ID && origin ? `${origin}/r/${DEMO_BUSINESS_ID}` : '';
 
   useEffect(() => {
     const updateIsMobile = () => setIsMobile(window.innerWidth < 860);
@@ -135,20 +153,35 @@ export default function StampaLanding() {
   }, []);
 
   const isMonthly = period === 'monthly';
-  const plans = RAW_PLANS.map((p) => ({
+  const prices = usePlanPrices();
+  // El badge del toggle muestra el ahorro mínimo entre planes ("hasta -X%"
+  // sería engañoso si alguno ahorra menos).
+  const savings = (['starter', 'growth', 'pro'] as PlanSlug[]).map((k) => annualSavingsPct(prices[k])).filter((x): x is number => x != null);
+  const annualBadge = savings.length ? `-${Math.min(...savings)}%` : null;
+  const plans = RAW_PLANS.map((p) => {
+    const pr = p.monthly === null ? null : prices[p.slug as PlanSlug];
+    // Anual: se muestra el equivalente por mes y abajo el total del año.
+    const monthlyEquivalent = pr?.annual ? Math.round(pr.annual / 12) : null;
+    return {
     ...p,
     hasPrice: p.monthly !== null,
-    price: p.monthly === null ? null : isMonthly ? p.monthly : p.annual,
+    price: pr ? formatPrice(isMonthly ? pr.monthly : monthlyEquivalent, pr.currency) : null,
+    annualTotal: pr && !isMonthly && pr.annual ? formatPrice(pr.annual, pr.currency) : null,
     cardBg: p.highlight ? 'linear-gradient(155deg, var(--ember-500), var(--ember-700))' : 'var(--surface-card)',
     cardBorder: p.highlight ? '1px solid var(--ember-glow)' : '1px solid var(--border)',
     btnBg: p.highlight ? '#fff' : 'var(--ember-soft)',
     btnColor: p.highlight ? 'var(--ember-600)' : 'var(--ember-400)',
-  }));
+    };
+  });
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
   return (
-    <div className={styles.page} style={{ background: 'var(--stampa-ink)', minHeight: '100vh' }}>
+    <div className={styles.page} style={{ background: 'var(--stampa-ink)', minHeight: '100vh', fontFamily: 'var(--font-sans)' }}>
+      {/* Mismas fuentes que el dashboard (ver app/login/page.tsx) */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       {/* HEADER */}
       <header
         style={{
@@ -671,6 +704,48 @@ export default function StampaLanding() {
         </div>
       </section>
 
+      {/* DEMO — probá la tarjeta en tu propio celular */}
+      {demoUrl && (
+        <section id="demo" className="stampa-bg" style={{ padding: '88px 32px', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 1000, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: isMobile ? 32 : 64 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 'var(--text-2xs)', fontWeight: 700, letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase', color: 'var(--ember-400)', marginBottom: 14 }}>
+                Probala en 10 segundos
+              </div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: isMobile ? 28 : 36, color: 'var(--text-strong)', lineHeight: 'var(--leading-tight)', marginBottom: 16 }}>
+                Llevate una tarjeta Stampa a tu Wallet
+              </h2>
+              <p style={{ fontSize: 17, color: 'var(--text-body)', lineHeight: 'var(--leading-body)', marginBottom: 24 }}>
+                {isMobile
+                  ? 'Tocá el botón, dejá tu nombre y agregá la tarjeta a tu Wallet. Así la van a ver tus clientes.'
+                  : 'Escaneá el código con la cámara de tu celular, dejá tu nombre y agregá la tarjeta a tu Wallet. Así la van a ver tus clientes.'}
+              </p>
+              {isMobile && (
+                <a
+                  href={demoUrl}
+                  className={styles.ctaEmber}
+                  style={{ display: 'inline-block', fontWeight: 700, fontSize: 'var(--text-md)', padding: '14px 22px', borderRadius: 'var(--radius-lg)' }}
+                >
+                  Probar la tarjeta
+                </a>
+              )}
+            </div>
+            {!isMobile && (
+              <div style={{ background: 'var(--stampa-cream)', borderRadius: 24, padding: 22, boxShadow: 'var(--shadow-lg)', textAlign: 'center' }}>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=440x440&margin=0&color=1B412F&bgcolor=FBF6EE&data=${encodeURIComponent(demoUrl)}`}
+                  alt="QR para probar una tarjeta Stampa"
+                  width={220}
+                  height={220}
+                  style={{ display: 'block' }}
+                />
+                <div style={{ marginTop: 12, fontSize: 'var(--text-xs)', fontWeight: 700, color: '#2B2620' }}>Apuntá la cámara acá</div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* FEATURES */}
       <section id="features" className="stampa-bg" style={{ padding: '96px 32px', display: 'flex', justifyContent: 'center' }}>
         <div style={{ width: '100%', maxWidth: 1160 }}>
@@ -888,7 +963,7 @@ export default function StampaLanding() {
                   gap: 8,
                 }}
               >
-                Anual <span style={{ background: 'var(--green-soft)', color: 'var(--green)', fontSize: 'var(--text-2xs)', padding: '2px 8px', borderRadius: 'var(--radius-full)' }}>-20%</span>
+                Anual {annualBadge && <span style={{ background: 'var(--green-soft)', color: 'var(--green)', fontSize: 'var(--text-2xs)', padding: '2px 8px', borderRadius: 'var(--radius-full)' }}>{annualBadge}</span>}
               </button>
             </div>
           </div>
@@ -930,8 +1005,11 @@ export default function StampaLanding() {
                 <div style={{ marginBottom: 24 }}>
                   {plan.hasPrice ? (
                     <>
-                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 38, color: 'var(--text-strong)' }}>€{plan.price}</span>
+                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, color: 'var(--text-strong)' }}>{plan.price}</span>
                       <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>/mes</span>
+                      {plan.annualTotal && (
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 4 }}>{plan.annualTotal} facturado por año</div>
+                      )}
                     </>
                   ) : (
                     <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 30, color: 'var(--text-strong)' }}>A consultar</span>
@@ -946,7 +1024,8 @@ export default function StampaLanding() {
                   ))}
                 </div>
                 <a
-                  href={plan.slug === 'enterprise' ? 'mailto:hola@stampa.app' : `/register?plan=${plan.slug}`}
+                  href={plan.slug === 'enterprise' ? WHATSAPP_ENTERPRISE : `/register?plan=${plan.slug}`}
+                  {...(plan.slug === 'enterprise' ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                   style={{ textAlign: 'center', background: plan.btnBg, color: plan.btnColor, fontWeight: 700, fontSize: 'var(--text-sm)', padding: 13, borderRadius: 'var(--radius-lg)', display: 'block' }}
                 >
                   {plan.cta}
@@ -1088,7 +1167,7 @@ export default function StampaLanding() {
                 >
                   stampa.miniz@gmail.com
                 </a>
-                <a href="mailto:hola@stampa.app" style={{ color: 'var(--text-body)', fontSize: 'var(--text-sm)' }}>Hablar con ventas</a>
+                <a href={WHATSAPP_SALES} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-body)', fontSize: 'var(--text-sm)' }}>Hablar con ventas por WhatsApp</a>
               </div>
             </div>
             <div>
@@ -1107,13 +1186,23 @@ export default function StampaLanding() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, borderTop: '1px solid var(--border)', paddingTop: 24 }}>
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>© 2026 Stampa. Hecho con cariño en España y Argentina.</span>
             <div style={{ display: 'flex', gap: 24 }}>
-              <a href="/privacidad" style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>Privacidad</a>
-              <a href="/terminos" style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>Términos</a>
+              <a href="/privacy" style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>Privacidad</a>
+              <a href="/terms" style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>Términos</a>
             </div>
           </div>
           <div style={{ height: 32 }} />
         </div>
       </footer>
+
+      <a
+        href={WHATSAPP_SALES}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Escribinos por WhatsApp"
+        className={styles.whatsappFab}
+      >
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#FFFFFF" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35zM12.05 21.5h-.01a9.4 9.4 0 0 1-4.8-1.31l-.34-.2-3.57.94.95-3.48-.22-.36a9.43 9.43 0 1 1 7.99 4.41zm8.02-17.45A11.27 11.27 0 0 0 12.05.72C5.8.72.72 5.8.72 12.05c0 2 .52 3.95 1.52 5.66L.62 23.28l5.7-1.5a11.3 11.3 0 0 0 5.73 1.46h.01c6.25 0 11.33-5.08 11.33-11.33 0-3.03-1.18-5.87-3.32-8.01z"/></svg>
+      </a>
     </div>
   );
 }
