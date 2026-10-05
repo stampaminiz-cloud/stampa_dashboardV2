@@ -347,13 +347,15 @@ export async function apiCancelDeletion() {
   })
 }
 
-export async function apiGetPublicBusiness(businessId: string) {
+export async function apiGetPublicBusiness(businessId: string, locationId?: string | null) {
   return request<{
     business: { id: string; name: string; slug: string }
+    // Horarios de la sucursal del QR (o de la principal), desde Growth.
+    location?: { name: string | null; hours: string; openNow: boolean | null } | null
     whiteLabel?: boolean
     cards: Array<{ id: string; name: string; type: string; description?: string; color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null }>
     fields: Array<{ _id?: string; label: string; fieldType: string; isLocked: boolean; builtIn?: boolean; isRewardSource?: boolean; isRequired?: boolean; options?: string[]; placeholder?: string }>
-  }>(`/api/businesses/${businessId}/public`, { noAuth: true })
+  }>(`/api/businesses/${businessId}/public${locationId ? `?s=${encodeURIComponent(locationId)}` : ''}`, { noAuth: true })
 }
 
 export async function apiGetPublicCardFields(businessId: string, cardId: string) {
@@ -519,7 +521,7 @@ export async function apiCreateLocation(businessId: string, data: { name: string
   return request<import('./location').LocationsResponse>(`/api/businesses/${businessId}/locations`, { method: 'POST', body: data })
 }
 
-export async function apiUpdateLocation(businessId: string, locationId: string, data: Partial<{ name: string; address: string; mapsUrl: string; isActive: boolean }>) {
+export async function apiUpdateLocation(businessId: string, locationId: string, data: Partial<{ name: string; address: string; mapsUrl: string; hours: import('./location').DayHours[]; isActive: boolean }>) {
   return request<import('./location').LocationsResponse>(`/api/businesses/${businessId}/locations/${locationId}`, { method: 'PATCH', body: data })
 }
 

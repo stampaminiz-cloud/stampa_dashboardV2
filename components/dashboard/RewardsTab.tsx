@@ -1,5 +1,5 @@
 'use client'
-import { CardSwitcher } from '@/components/ui/CardSwitcher'
+import { PillSelect } from '@/components/ui/PillSelect'
 import { readCache, getJson } from '@/lib/cache'
 import { MascotLoader } from '@/components/ui/MascotLoader'
 import React, { useState, useEffect } from 'react'
@@ -617,7 +617,7 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer }: 
       <div className="rw-shell">
         {activeCards.length > 1 && (
           <div className="rw-toolbar">
-            <CardSwitcher value={selected?.id || ''} onChange={setSelectedId} options={activeCards.map(c => ({ id: c.id, label: c.name }))} />
+            <PillSelect ariaLabel="Tarjeta" value={selected?.id || ''} onChange={setSelectedId} options={activeCards.map(c => ({ id: c.id, label: c.name }))} />
           </div>
         )}
         {!selected ? (

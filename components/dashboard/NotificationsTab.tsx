@@ -85,7 +85,8 @@ function Lock() {
   return <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
 }
 
-export function NotificationsTab({ businessId, cards = [], businessName, inactiveDays = 60, isManager = false, onChoosePlan }: {
+export function NotificationsTab({ businessId, cards = [], businessName, inactiveDays = 60, isManager = false, onChoosePlan, selectedLocationId = null }: {
+  selectedLocationId?: string | null
   businessId?: string | null
   cards?: any[]
   businessName: string
@@ -310,6 +311,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
         .nt-char{text-align:right;font-size:10.5px;color:rgba(43,38,32,.4);margin:4px 0 14px;}
         .nt-char--warn{color:#C75D3A;font-weight:600;}
         .nt-field{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.45);font-weight:700;margin-bottom:8px;}
+        .nt-loc-hint{display:block;width:100%;text-align:left;font-size:12.5px;font-weight:600;color:#A9472A;background:rgba(199,93,58,.08);border:1px dashed rgba(199,93,58,.4);border-radius:10px;padding:9px 12px;margin-bottom:8px;cursor:pointer;font-family:'Inter',sans-serif;}
         .nt-auds{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
         .nt-aud{border:1.5px solid rgba(43,38,32,.1);border-radius:11px;transition:border-color .15s;}
         .nt-aud--on{border-color:#C75D3A;background:rgba(199,93,58,.04);}
@@ -407,6 +409,17 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
             <div className={`nt-char${message.length > MAX_CHARS * 0.8 ? ' nt-char--warn' : ''}`}>{message.length} / {MAX_CHARS}</div>
 
             <div className="nt-field">A quién</div>
+            {/* Parado en una sucursal: la audiencia sigue en "Todos" (para no
+                mandar sin querer a un solo local), con un atajo a esa sucursal. */}
+            {(() => {
+              const here = locationOpts.find(l => l.id === selectedLocationId)
+              if (!loaded || !here || (audience === 'location' && locPick?.id === here.id)) return null
+              return (
+                <button type="button" className="nt-loc-hint" onClick={() => { setLocId(here.id); setAudience('location') }}>
+                  Estás viendo {here.name}. ¿Mandar solo a clientes de {here.name}? →
+                </button>
+              )
+            })()}
             <div className="nt-auds">
               {!loaded
                 ? [0, 1, 2].map(i => <div key={i} className="nt-skel" style={{ height: 50 }} />)

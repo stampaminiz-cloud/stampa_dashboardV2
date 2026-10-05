@@ -18,9 +18,10 @@ import { NotificationsTab }  from '@/components/dashboard/NotificationsTab'
 import { FormTab }           from '@/components/dashboard/FormTab'
 import { DesignTab }         from '@/components/dashboard/DesignTab'
 import { UsersTab }          from '@/components/dashboard/UsersTab'
+import { LocationsTab }      from '@/components/dashboard/LocationsTab'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type TabId = 'overview' | 'customers' | 'analytics' | 'rewards' | 'notifications' | 'design' | 'form' | 'users' | 'settings'
+type TabId = 'overview' | 'customers' | 'analytics' | 'rewards' | 'notifications' | 'design' | 'form' | 'users' | 'locations' | 'settings'
 type CustomerStatusFilter = 'all' | 'active' | 'inactive' | 'near' | 'ready'
 
 // ─── Nav items ────────────────────────────────────────────────────────────────
@@ -34,15 +35,19 @@ function NavIcon({ id }: { id: TabId }) {
     design:        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.4-.3-.4-.5-.8-.5-1.4 0-1.1.9-2 2-2h2.4c2.3 0 4.1-1.8 4.1-4.1C21.5 6 17.2 2 12 2z"/><circle cx="6.5" cy="11.5" r="1.5" fill="currentColor"/><circle cx="9.5" cy="7.5" r="1.5" fill="currentColor"/><circle cx="14.5" cy="7.5" r="1.5" fill="currentColor"/><circle cx="17.5" cy="11.5" r="1.5" fill="currentColor"/></svg>,
     form:          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
     users:         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+    locations:     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
     settings:      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
   }
   return icons[id]
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-const NAV_IDS: TabId[] = ['overview','customers','analytics','rewards','notifications','form','design','users','settings']
+const NAV_IDS: TabId[] = ['overview','customers','analytics','rewards','notifications','form','design','users','locations','settings']
 
-function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, setMobileOpen, owner, business, loading }: {
+function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, setMobileOpen, owner, business, loading, locations = [], locationId = null, onLocation }: {
+  locations?: Location[]
+  locationId?: string | null
+  onLocation?: (id: string | null) => void
   active: TabId
   setActive: (t: TabId) => void
   collapsed: boolean
@@ -56,11 +61,25 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
 }) {
   const [showUserMenu, setShowUserMenu] = React.useState(false)
   const userMenuRef = React.useRef<HTMLDivElement>(null)
+  // Multilocal (opción A): la sucursal se elige acá, debajo del negocio, y
+  // vale para todo el dashboard. Con una sola sucursal no aparece. Un
+  // administrador limitado a una la ve fija.
+  const [showLocMenu, setShowLocMenu] = React.useState(false)
+  const locMenuRef = React.useRef<HTMLDivElement>(null)
+  const shownLocs = locations.filter(l => l.status !== 'off')
+  const fixedLoc = owner?.role === 'manager' && !!owner?.locationId
+  const canPickLoc = !fixedLoc && shownLocs.length >= 2
+  const currentLoc = shownLocs.find(l => l.id === locationId) || null
+  React.useEffect(() => {
+    function handler(e: MouseEvent) { if (locMenuRef.current && !locMenuRef.current.contains(e.target as Node)) setShowLocMenu(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const NAV_KEYS: Record<TabId, string> = {
     overview:'nav_overview', customers:'nav_customers', analytics:'nav_analytics',
     rewards:'nav_rewards', notifications:'nav_notifications', form:'nav_form',
-    design:'nav_design', users:'nav_users', settings:'nav_settings',
+    design:'nav_design', users:'nav_users', locations:'nav_locations', settings:'nav_settings',
   }
 
   // Close menu on outside click
@@ -100,7 +119,12 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
         </div>
 
         {/* Business block */}
-        <div className="sb-business" style={{justifyContent: collapsed ? 'center' : 'flex-start'}}>
+        <div ref={locMenuRef} style={{ position: 'relative' }}>
+        <div className={`sb-business${canPickLoc ? ' sb-business--pick' : ''}`} style={{justifyContent: collapsed ? 'center' : 'flex-start'}}
+          role={canPickLoc ? 'button' : undefined} tabIndex={canPickLoc ? 0 : undefined} aria-haspopup={canPickLoc ? 'listbox' : undefined} aria-expanded={canPickLoc ? showLocMenu : undefined}
+          title={collapsed && canPickLoc ? (currentLoc ? currentLoc.name : 'Todas las sucursales') : undefined}
+          onClick={() => canPickLoc && setShowLocMenu(v => !v)}
+          onKeyDown={e => { if (canPickLoc && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setShowLocMenu(v => !v) } }}>
           {loading
             ? <div className="sb-skel-av" />
             : <div className="sb-business-av">{businessInitials}</div>
@@ -109,10 +133,26 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
             <div className="sb-business-info" style={{minWidth:0,flex:1,overflow:'hidden'}}>
               {loading
                 ? <><div className="sb-skel-line" style={{ width: '70%' }} /><div className="sb-skel-line" style={{ width: '40%', marginTop: 6 }} /></>
-                : <><div className="sb-business-name">{businessName}</div><div className="sb-business-plan">Plan {plan}</div></>
+                : <><div className="sb-business-name">{businessName}</div>
+                    {canPickLoc
+                      ? <div className="sb-business-loc">{currentLoc ? currentLoc.name : 'Todas las sucursales'} <span aria-hidden="true">▾</span></div>
+                      : fixedLoc && currentLoc
+                        ? <div className="sb-business-loc">Sucursal {currentLoc.name}</div>
+                        : <div className="sb-business-plan">Plan {plan}</div>}</>
               }
             </div>
           )}
+        </div>
+        {showLocMenu && canPickLoc && (
+          <div className="sb-loc-menu" role="listbox" aria-label="Sucursal">
+            {[{ id: null as string | null, name: 'Todas las sucursales', note: '' }, ...shownLocs.map(l => ({ id: l.id as string | null, name: l.name, note: l.isPrimary ? 'principal' : l.status === 'paused' ? 'pausada' : '' }))].map(o => (
+              <button key={o.id ?? 'all'} role="option" aria-selected={locationId === o.id} className={`sb-loc-opt${locationId === o.id ? ' is-on' : ''}`}
+                onClick={() => { onLocation?.(o.id); setShowLocMenu(false) }}>
+                <span>{o.name}{o.note && <em> · {o.note}</em>}</span>{locationId === o.id && <span aria-hidden="true">✓</span>}
+              </button>
+            ))}
+          </div>
+        )}
         </div>
 
         {/* Nav */}
@@ -668,14 +708,8 @@ function mapCustomersForTab(rawCustomers: any[]) {
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
-  .lf-bar{display:flex;align-items:center;gap:10px;padding:12px 24px 0;flex-wrap:wrap;}
-  .lf-label{font-size:11.5px;font-weight:600;color:rgba(43,38,32,.5);}
-  .lf-seg{display:inline-flex;flex-wrap:wrap;gap:4px;background:rgba(43,38,32,.05);border-radius:10px;padding:3px;}
-  .lf-opt{font-size:12px;font-weight:600;color:rgba(43,38,32,.6);background:none;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-family:'Inter',sans-serif;}
-  .lf-opt.is-on{background:#fff;color:#2B2620;box-shadow:0 1px 3px rgba(43,38,32,.12);}
-  .lf-opt:focus-visible{outline:2px solid #C75D3A;outline-offset:1px;}
-  .lf-fixed{font-size:12px;font-weight:700;color:#2B2620;background:rgba(43,38,32,.05);border-radius:8px;padding:5px 11px;}
-  @media(max-width:768px){.lf-bar{padding:10px 16px 0;}}
+  .lf-note{margin:12px 24px 0;font-size:12.5px;color:#7A5A12;background:rgba(212,162,76,.14);border:1px solid rgba(212,162,76,.3);border-radius:10px;padding:9px 14px;}
+  @media(max-width:768px){.lf-note{margin:10px 16px 0;}}
 
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -710,6 +744,14 @@ const CSS = `
   .sb-business-info{min-width:0;}
   .sb-business-name{font-size:13px;color:#F7F0E4;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .sb-business-plan{font-size:10px;color:rgba(247,240,228,.4);}
+  .sb-business--pick{cursor:pointer;}
+  .sb-business--pick:hover,.sb-business--pick:focus-visible{background:rgba(255,255,255,.1);outline:none;}
+  .sb-business-loc{font-size:11px;color:rgba(247,240,228,.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sb-loc-menu{position:absolute;left:0;right:0;top:calc(100% - 4px);z-index:40;background:#fff;border-radius:10px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.25);min-width:190px;}
+  .sb-loc-opt{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;font-size:12.5px;color:#2B2620;background:none;border:none;border-radius:7px;padding:8px 10px;cursor:pointer;font-family:'Inter',sans-serif;}
+  .sb-loc-opt em{font-style:normal;color:rgba(43,38,32,.45);font-size:11px;}
+  .sb-loc-opt:hover,.sb-loc-opt:focus-visible{background:rgba(43,38,32,.05);outline:none;}
+  .sb-loc-opt.is-on{background:rgba(199,93,58,.1);font-weight:600;}
   .sb-skel-av{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.1);flex-shrink:0;animation:pulse 1.5s infinite;}
   .sb-skel-line{height:9px;border-radius:4px;background:rgba(255,255,255,.1);animation:pulse 1.5s infinite;}
   .sb-user-wrap{position:relative;width:100%;}
@@ -919,31 +961,9 @@ function LimitBanner({ usage, isManager, onChoosePlan, onOpen }: { usage?: { use
   )
 }
 
-// Filtro de sucursal (multilocal): arriba de Inicio, Analítica, Clientes y
-// Premios cuando hay 2+ sucursales. Un administrador limitado a una
-// sucursal ve solo el nombre de la suya.
-const LOC_TABS: TabId[] = ['overview', 'analytics', 'customers', 'rewards']
-function LocationFilter({ locations, value, fixed, onChange }: { locations: Location[]; value: string | null; fixed: boolean; onChange: (id: string | null) => void }) {
-  const shown = locations.filter(l => l.status !== 'off')
-  if (fixed) {
-    const mine = shown.find(l => l.id === value)
-    return mine ? <div className="lf-bar"><span className="lf-label">Sucursal</span><span className="lf-fixed">{mine.name}</span></div> : null
-  }
-  if (shown.length < 2) return null
-  const opts: { id: string | null; name: string; paused?: boolean }[] = [{ id: null, name: 'Todas' }, ...shown.map(l => ({ id: l.id, name: l.name, paused: l.status === 'paused' }))]
-  return (
-    <div className="lf-bar" role="group" aria-label="Sucursal">
-      <span className="lf-label">Sucursal</span>
-      <div className="lf-seg">
-        {opts.map(o => (
-          <button key={o.id ?? 'all'} type="button" className={`lf-opt${value === o.id ? ' is-on' : ''}`} aria-pressed={value === o.id} onClick={() => onChange(o.id)} title={o.paused ? 'Pausada por el plan: solo historial' : undefined}>
-            {o.name}{o.paused ? ' · pausada' : ''}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
+// Pestañas que son de toda la marca: si estás parado en una sucursal, un
+// aviso arriba recuerda que lo que se cambie ahí vale para todas.
+const BRAND_TABS: TabId[] = ['design', 'form', 'settings']
 
 export default function DashboardPage() {
   const [active, setActive]         = useState<TabId>('overview')
@@ -1233,7 +1253,7 @@ export default function DashboardPage() {
   const TITLES: Record<TabId, string> = {
     overview:'nav_overview', customers:'nav_customers', analytics:'nav_analytics',
     rewards:'nav_rewards', notifications:'nav_notifications', design:'nav_design',
-    form:'nav_form', users:'nav_users', settings:'nav_settings',
+    form:'nav_form', users:'nav_users', locations:'nav_locations', settings:'nav_settings',
   } as any
 
   // Abre Clientes filtrado por ese email, con la ficha abierta (desde los
@@ -1302,16 +1322,19 @@ export default function DashboardPage() {
           inactiveDays={customersInactiveDays}
           isManager={owner?.role === 'manager'}
           onChoosePlan={() => setShowPlans(true)}
+          selectedLocationId={locationId}
         />
       case 'form':          return <FormTab businessName={business?.name || 'Tu negocio'} businessSlug={business?.slug} cards={cards} businessId={businessId}
-          isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)}
+          isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} locations={locations} selectedLocationId={locationId}
           onGoToDesign={() => { setActive('design'); localStorage.setItem('stampa_active_tab', 'design') }} />
       case 'design':        return <DesignTab key={businessId ?? 'loading'} cards={cards} businessId={businessId} businessName={business?.name} onSaved={refreshCards}
           onChoosePlan={() => setShowPlans(true)}
           onGoTo={(tab) => { setActive(tab); localStorage.setItem('stampa_active_tab', tab) }} />
       case 'users':         if (owner?.role === 'manager') return null
                             return <UsersTab key={businessId ?? 'loading'} users={team} businessId={businessId} owner={owner}
-                              onChoosePlan={() => setShowPlans(true)} onOpenCustomer={openCustomerByEmail} />
+                              onChoosePlan={() => setShowPlans(true)} onOpenCustomer={openCustomerByEmail} selectedLocationId={locationId} />
+      case 'locations':     return <LocationsTab key={businessId ?? 'loading'} businessId={businessId} businessName={business?.name || 'Tu negocio'}
+                              isManager={owner?.role === 'manager'} selectedId={locationId} onChoosePlan={() => setShowPlans(true)} onChanged={applyLocations} />
       case 'settings':      return (
         <SettingsTab
           key={businessId ?? 'loading'}
@@ -1331,7 +1354,8 @@ export default function DashboardPage() {
           cards={cards as any}
           birthday={{ enabled: !!business?.birthday?.enabled, gift: business?.birthday?.gift || '' }}
           onCardsChanged={refreshCards}
-          onLocationsChanged={applyLocations}
+          locations={locations}
+          onOpenLocations={() => { setActive('locations'); localStorage.setItem('stampa_active_tab', 'locations') }}
           business={business ? {
             ...mockData.business,
             name: business.name,
@@ -1346,7 +1370,7 @@ export default function DashboardPage() {
           } : mockData.business}
         />
       )
-      default: return <ComingSoon label={t(TITLES[active])} />
+      default: return <ComingSoon label={t(TITLES[active] as any)} />
     }
   }
 
@@ -1366,14 +1390,28 @@ export default function DashboardPage() {
         owner={owner}
         business={business}
         loading={loading}
+        locations={locations}
+        locationId={locationId}
+        onLocation={changeLocation}
       />
       <div className="db-main">
         <Header title={t(TITLES[active] as any)} t={t} setMobileOpen={setMobileOpen} setActive={setActive} recentActivity={detailedAnalytics?.recentActivity} />
         <BillingStyles />
         <BillingBanner billing={billing} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
-        {LOC_TABS.includes(active) && !loading && (
-          <LocationFilter locations={locations} value={locationId} fixed={owner?.role === 'manager' && !!owner?.locationId} onChange={changeLocation} />
-        )}
+        {/* Estás parado en una sucursal y esta pestaña es de toda la marca. */}
+        {(() => {
+          const shown = locations.filter(l => l.status !== 'off')
+          const here = shown.find(l => l.id === locationId)
+          if (loading || !here || shown.length < 2 || !(BRAND_TABS.includes(active) || active === 'rewards')) return null
+          const all = `las ${shown.length} sucursales`
+          return (
+            <div className="lf-note" role="note">
+              {active === 'rewards'
+                ? <>Los números son de {here.name}. Los premios que edites acá valen para {all}.</>
+                : <>Estás viendo {here.name}, pero lo que cambies acá vale para {all}.</>}
+            </div>
+          )
+        })()}
         {active !== 'customers' && <LimitBanner usage={analyticsData?.customerUsage} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} onOpen={() => { setActive('customers'); localStorage.setItem('stampa_active_tab', 'customers') }} />}
         {loading
           ? <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

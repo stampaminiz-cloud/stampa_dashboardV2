@@ -21,6 +21,8 @@ export function withLoc(path: string): string {
 }
 
 export type LocationStatus = 'active' | 'paused' | 'off'
+// Horarios: 7 días, lunes primero; [] = sin cargar. Hora del negocio.
+export interface DayHours { closed: boolean; shifts: { open: string; close: string }[] }
 export interface Location {
   id: string
   name: string
@@ -31,7 +33,10 @@ export interface Location {
   hasCoords: boolean
   isPrimary: boolean
   status: LocationStatus
+  hours: DayHours[]
+  hoursSummary: string
+  openNow: boolean | null
   deviceCode: string
   signupUrl: string
 }
-export interface LocationsResponse { locations: Location[]; max: number | null; activeCount: number; plan: string }
+export interface LocationsResponse { locations: Location[]; max: number | null; activeCount: number; plan: string; tools: boolean }

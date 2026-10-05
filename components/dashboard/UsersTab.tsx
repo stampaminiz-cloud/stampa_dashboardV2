@@ -162,9 +162,9 @@ function InviteModal({ businessId, locs, onClose, onAdd }: { businessId: string;
 }
 
 // ─── Activar dispositivo ──────────────────────────────────────────────────────
-function ActivateDeviceModal({ businessId, locs, onClose }: { businessId: string; locs: Location[]; onClose: () => void }) {
+function ActivateDeviceModal({ businessId, locs, selectedId, onClose }: { businessId: string; locs: Location[]; selectedId?: string | null; onClose: () => void }) {
   const [qr, setQr] = useState('')
-  const [locId, setLocId] = useState(locs[0]?.id || '')
+  const [locId, setLocId] = useState((locs.find(l => l.id === selectedId) || locs.find(l => l.isPrimary) || locs[0])?.id || '')
   const loc = locs.find(l => l.id === locId)
   // La principal usa el código de siempre (lo leen también las versiones
   // viejas de la app); las demás llevan la sucursal.
@@ -261,7 +261,8 @@ function ActivityPanel({ businessId, user, onClose, onOpenCustomer }: { business
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, onOpenCustomer }: {
+export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, onOpenCustomer, selectedLocationId = null }: {
+  selectedLocationId?: string | null
   users: any[]; businessId?: string | null
   owner?: { fullName: string; email: string; plan: string } | null
   onChoosePlan?: () => void
@@ -446,7 +447,7 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
         </div>
       </div>
 
-      {showActivate && businessId && <ActivateDeviceModal businessId={businessId} locs={locs} onClose={() => setShowActivate(false)} />}
+      {showActivate && businessId && <ActivateDeviceModal businessId={businessId} locs={locs} selectedId={selectedLocationId} onClose={() => setShowActivate(false)} />}
       {showInvite && businessId && <InviteModal businessId={businessId} locs={locs} onClose={() => { setShowInvite(false); load() }} onAdd={u => setUsers(prev => [...prev, u])} />}
       {activityOf && businessId && <ActivityPanel businessId={businessId} user={activityOf} onClose={() => setActivityOf(null)} onOpenCustomer={onOpenCustomer} />}
       {confirmDelete && (
@@ -553,7 +554,7 @@ const CSS = `
   .us-recent-row:last-child{border-bottom:none;}
   .us-skel{background:rgba(43,38,32,.07);border-radius:10px;animation:usPulse 1.2s ease-in-out infinite;}
   @keyframes usPulse{0%,100%{opacity:.45}50%{opacity:1}}
-  @media(max-width:900px){
+  @media(max-width:1180px){
     .us-row{grid-template-columns:1fr auto;grid-template-areas:"person badges" "activity activity" "actions actions";}
     .us-person{grid-area:person;} .us-badges{grid-area:badges;justify-content:flex-end;} .us-activity{grid-area:activity;} .us-actions{grid-area:actions;justify-content:flex-start;}
     .us-3col{grid-template-columns:1fr;}
