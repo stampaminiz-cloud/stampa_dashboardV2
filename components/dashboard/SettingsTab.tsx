@@ -6,6 +6,8 @@ import { useLang } from '@/data/i18n'
 import { InfoTooltip } from './InfoTooltip'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { ProgramRules, type RulesCard, type BirthdayRule } from './ProgramRules'
+import { LocationsSection } from './LocationsSection'
+import type { LocationsResponse } from '@/lib/location'
 
 interface BusinessAlerts { newCustomer?: boolean; nearPrize: boolean; weeklyDigest: boolean; suspicious?: boolean }
 interface BusinessSettings {
@@ -284,7 +286,7 @@ function CheckboxRow({ label, checked: init, description, onToggle }: { label: s
   )
 }
 
-export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', pendingEmail = null, deletionRequestedAt = null, onSave, isManager = false, billing = null, onChoosePlan, onCancelSubscription, cards = [], birthday = { enabled: false, gift: '' }, onCardsChanged }: { cards?: RulesCard[]; birthday?: BirthdayRule; onCardsChanged?: () => void; business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; pendingEmail?: string | null; deletionRequestedAt?: string | null; onSave?: () => void; isManager?: boolean; billing?: BillingStatus | null; onChoosePlan?: () => void; onCancelSubscription?: () => Promise<void> }) {
+export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', pendingEmail = null, deletionRequestedAt = null, onSave, isManager = false, billing = null, onChoosePlan, onCancelSubscription, cards = [], birthday = { enabled: false, gift: '' }, onCardsChanged, onLocationsChanged }: { onLocationsChanged?: (r: LocationsResponse) => void; cards?: RulesCard[]; birthday?: BirthdayRule; onCardsChanged?: () => void; business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; pendingEmail?: string | null; deletionRequestedAt?: string | null; onSave?: () => void; isManager?: boolean; billing?: BillingStatus | null; onChoosePlan?: () => void; onCancelSubscription?: () => Promise<void> }) {
   const t = useLang()
   const [business, setBusiness]       = useState(mockBusiness)
   const [inactiveDays, setInactiveDays] = useState(mockBusiness.inactiveDays)
@@ -379,7 +381,8 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
     handleSave('inactiveDays', n).then(err => { if (!err) setInactiveDays(n) })
   }
 
-  const planDots = Array.from({ length: business.planMaxCards }, (_: unknown, i: number) => i < business.planActiveCards)
+  // Sin límite (999 en Pro/Enterprise): sin puntitos. Antes dibujaba 999 y la página quedaba de 15.000 px de ancho.
+  const planDots = business.planMaxCards >= 999 ? [] : Array.from({ length: business.planMaxCards }, (_: unknown, i: number) => i < business.planActiveCards)
 
   return (
     <>
@@ -481,6 +484,10 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           </FieldRow>
         </Section>
 
+        <Section title="Sucursales" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>}>
+          <LocationsSection businessId={businessId} plan={business.plan} isManager={isManager} onChoosePlan={onChoosePlan} onChanged={onLocationsChanged} />
+        </Section>
+
         <Section title="Seguridad" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}>
           <PasswordSection />
         </Section>
@@ -526,8 +533,8 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           <div className="st-plan-card">
             <div>
               <div className="st-plan-name">Plan {business.plan}</div>
-              <div className="st-plan-sub">{business.planActiveCards} {t('st_active_cards')}</div>
-              <div className="st-plan-dots">{planDots.map((on: boolean, i: number) => <div key={i} className={`st-plan-dot ${on ? 'st-plan-dot--on' : 'st-plan-dot--off'}`} />)}</div>
+              <div className="st-plan-sub">{business.planActiveCards} {t('st_active_cards')}{business.planMaxCards >= 999 ? ' · sin límite' : ''}</div>
+              {planDots.length > 0 && <div className="st-plan-dots">{planDots.map((on: boolean, i: number) => <div key={i} className={`st-plan-dot ${on ? 'st-plan-dot--on' : 'st-plan-dot--off'}`} />)}</div>}
             </div>
             <button className="st-upgrade-btn" onClick={onChoosePlan}>{billing?.access === 'active' ? 'Cambiar plan' : 'Elegir plan'}</button>
           </div>

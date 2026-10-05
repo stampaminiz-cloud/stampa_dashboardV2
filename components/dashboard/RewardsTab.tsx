@@ -8,6 +8,7 @@ import {
   apiGetTiers, apiSaveTiers, apiCreateDefaultTiers,
 } from '@/lib/api'
 import { NumberStepper } from '@/components/ui/NumberStepper'
+import { withLoc } from '@/lib/location'
 
 // Premios, por tarjeta. Todo sale de /rewards-stats (canjes reales que
 // registra la app de escaneo o el dashboard) y de los editores de catálogo
@@ -498,7 +499,7 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer }: 
     let cancelled = false
     setError(false)
     // Lo guardado (o precargado por Inicio) se muestra al instante (lib/cache).
-    const path = `/api/businesses/${businessId}/rewards-stats?cardId=${selected.id}`
+    const path = withLoc(`/api/businesses/${businessId}/rewards-stats?cardId=${selected.id}`)
     const cached = readCache<any>(path)
     if (cached?.cardType) { setData(cached); setDataFor(selected.id) }
     getJson<any>(path)

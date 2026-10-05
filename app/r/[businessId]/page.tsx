@@ -139,11 +139,14 @@ export default function PublicRegisterPage() {
       const formResponses = fields
         .filter(f => askable(f) && f._id)
         .map(f => ({ fieldId: f._id as string, value: answers[f._id as string] || '' }))
+      // QR de registro de una sucursal: el link trae ?s=<sucursal>.
+      const locationId = new URLSearchParams(window.location.search).get('s') || undefined
       const res = await apiRegisterCustomer(businessId, {
         cardId: selectedCard?.id,
         fullName: fullName.trim(),
         email: email.trim(),
         formResponses,
+        locationId,
       })
       setResult({ qrValue: res.qrValue, cardName: res.card.name, customerId: res.customerId })
     } catch (err: any) {

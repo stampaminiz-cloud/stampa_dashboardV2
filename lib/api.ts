@@ -102,6 +102,7 @@ export interface Owner {
   fullName: string
   plan: 'Starter' | 'Growth' | 'Pro' | 'Enterprise'
   maxLocations: number
+  locationId?: string | null // administrador limitado a una sucursal
   // 'manager' = miembro del equipo invitado por el dueño: ve un solo
   // negocio, sin Equipo, plan ni zona de peligro.
   role?: 'owner' | 'manager'
@@ -373,6 +374,7 @@ export async function apiRegisterCustomer(businessId: string, data: {
   fullName: string
   email: string
   formResponses?: Array<{ fieldId: string; value: string }>
+  locationId?: string
 }) {
   return request<{ customerId: string; qrValue: string; card: { id: string; name: string; type: string } }>(
     `/api/businesses/${businessId}/register`, { method: 'POST', body: data, noAuth: true }
@@ -508,6 +510,19 @@ export async function apiReorderFields(businessId: string, cardId: string, order
   })
 }
 
+// ─── Sucursales ───────────────────────────────────────────────────────────────
+export async function apiGetLocations(businessId: string) {
+  return request<import('./location').LocationsResponse>(`/api/businesses/${businessId}/locations`)
+}
+
+export async function apiCreateLocation(businessId: string, data: { name: string; address?: string; mapsUrl?: string }) {
+  return request<import('./location').LocationsResponse>(`/api/businesses/${businessId}/locations`, { method: 'POST', body: data })
+}
+
+export async function apiUpdateLocation(businessId: string, locationId: string, data: Partial<{ name: string; address: string; mapsUrl: string; isActive: boolean }>) {
+  return request<import('./location').LocationsResponse>(`/api/businesses/${businessId}/locations/${locationId}`, { method: 'PATCH', body: data })
+}
+
 // ─── Team ─────────────────────────────────────────────────────────────────────
 export async function apiGetTeam(businessId: string) {
   return request<TeamMember[]>(`/api/businesses/${businessId}/team`)
@@ -518,6 +533,7 @@ export async function apiCreateTeamMember(businessId: string, data: {
   role: 'manager' | 'scanner'
   email?: string
   pin?: string
+  locationId?: string | null
 }) {
   return request<TeamMember & { id?: string; inviteSent?: boolean }>(`/api/businesses/${businessId}/team`, {
     method: 'POST',
@@ -529,6 +545,7 @@ export async function apiUpdateTeamMember(businessId: string, userId: string, da
   fullName?: string
   status?: 'active' | 'disabled'
   pin?: string
+  locationId?: string | null
 }) {
   return request<TeamMember>(`/api/businesses/${businessId}/team/${userId}`, {
     method: 'PATCH',

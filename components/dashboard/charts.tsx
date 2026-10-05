@@ -252,3 +252,35 @@ const CSS = `
   .ch-cell-track{height:6px;background:rgba(43,38,32,.05);border-radius:3px;overflow:hidden;}
   .ch-cell-track div{height:100%;background:#C75D3A;border-radius:0 3px 3px 0;}
 `
+
+// ── Comparación entre sucursales (multilocal, con "Todas"): misma tabla ──────
+export interface LocationRow { locationId: string; name: string; status: 'active' | 'paused' | 'off'; visits: number; redeems: number; signups: number }
+const LOC_METRICS: { key: 'visits' | 'redeems' | 'signups'; label: string }[] = [
+  { key: 'visits', label: 'Visitas' }, { key: 'redeems', label: 'Canjes' }, { key: 'signups', label: 'Nuevos' },
+]
+export function LocationComparison({ data }: { data: LocationRow[] }) {
+  const max = Object.fromEntries(LOC_METRICS.map(m => [m.key, Math.max(1, ...data.map(r => r[m.key] || 0))]))
+  return (
+    <div className="ch">
+      <style>{CSS}</style>
+      <div className="ch-table" style={{ gridTemplateColumns: `minmax(120px,1.2fr) repeat(${LOC_METRICS.length}, minmax(70px,1fr))` }}>
+        <div className="ch-th" />
+        {LOC_METRICS.map(m => <div key={m.key} className="ch-th">{m.label}</div>)}
+        {data.map(r => (
+          <React.Fragment key={r.locationId}>
+            <div className="ch-card">{r.name}{r.status === 'paused' && <em>pausada</em>}</div>
+            {LOC_METRICS.map(m => {
+              const v = r[m.key] || 0
+              return (
+                <div key={m.key} className="ch-cell" title={`${r.name} · ${m.label}: ${v}`}>
+                  <span>{v}</span>
+                  <div className="ch-cell-track"><div style={{ width: `${(v / max[m.key]) * 100}%` }} /></div>
+                </div>
+              )
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  )
+}

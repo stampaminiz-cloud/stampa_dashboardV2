@@ -2,8 +2,9 @@
 import { CardSwitcher } from '@/components/ui/CardSwitcher'
 import React, { useState, useEffect } from 'react'
 import { readCache, getJson } from '@/lib/cache'
+import { withLoc } from '@/lib/location'
 import { MascotLoader } from '@/components/ui/MascotLoader'
-import { EmptyState, RetentionRing, ProgressDistribution, FormAnswers, CardComparison, type NvrBucket, type Retention, type ProgressDist, type FormAnswer as FormAnswerData, type CardRow } from './charts'
+import { EmptyState, RetentionRing, ProgressDistribution, FormAnswers, CardComparison, LocationComparison, type LocationRow, type NvrBucket, type Retention, type ProgressDist, type FormAnswer as FormAnswerData, type CardRow } from './charts'
 import { usePlan } from '@/data/plans'
 import { BASE_URL } from '@/lib/api'
 
@@ -39,6 +40,7 @@ interface Detailed {
   progressDistribution?: ProgressDist | null
   formAnswers?: FormAnswerData[]
   cardComparison?: CardRow[]
+  locationComparison?: LocationRow[]
 }
 
 type Range = '7d' | '30d' | '90d'
@@ -380,7 +382,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   const detailedPath = (r: string, c: string) => {
     const params = new URLSearchParams({ range: r })
     if (c) params.set('cardId', c)
-    return `/api/businesses/${typeof window !== 'undefined' ? localStorage.getItem('stampa_business_id') : ''}/analytics/detailed?${params.toString()}`
+    return withLoc(`/api/businesses/${typeof window !== 'undefined' ? localStorage.getItem('stampa_business_id') : ''}/analytics/detailed?${params.toString()}`)
   }
   // Si la respuesta no trae lo esperado (error del servidor, o un backend
   // viejo durante un deploy) se muestra el error en vez de romper la pantalla.
@@ -417,7 +419,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
     const businessId = localStorage.getItem('stampa_business_id')
     if (!businessId || !cardQuery || !fullAnalytics) return
     let cancelled = false
-    const path = `/api/businesses/${businessId}/analytics?cardId=${cardQuery}`
+    const path = withLoc(`/api/businesses/${businessId}/analytics?cardId=${cardQuery}`)
     const cached = readCache(path)
     if (cached) setCardMetrics({ id: cardQuery, data: cached })
     getJson(path)
@@ -438,7 +440,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
     try {
       const params = new URLSearchParams({ range })
       if (cardQuery) params.set('cardId', cardQuery)
-      const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/analytics/export?${params.toString()}`, {
+      const res = await fetch(`${BASE_URL}${withLoc(`/api/businesses/${businessId}/analytics/export?${params.toString()}`)}`, {
         headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
       })
       if (!res.ok) throw new Error()
@@ -831,6 +833,14 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
               ? <RetentionRing data={d.retention} />
               : <EmptyState title="Todavía sin movimientos" text="Aparece cuando tus clientes vuelvan o se registren." />}
           </div>
+          {/* Multilocal: con "Todas" y 2+ sucursales, cómo le va a cada una. */}
+          {(d?.locationComparison?.length || 0) >= 2 && (
+            <div className="an-card">
+              <div className="an-ctitle">Comparación entre sucursales</div>
+              <div className="an-csub">En los últimos {range.replace('d', '')} días · nuevos: según el QR de sucursal con el que se registraron (el link general cuenta en la principal)</div>
+              <LocationComparison data={d!.locationComparison!} />
+            </div>
+          )}
         </>}
 
         {/* ═══════════════ CLIENTES ═══════════════ */}

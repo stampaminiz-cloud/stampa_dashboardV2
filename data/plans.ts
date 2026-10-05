@@ -69,7 +69,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     notifTargeting:  true,
     notifIndividual: true,
     analyticsLevel:  'full',
-    multiLocation:   false,
+    multiLocation:   true,        // hasta 3 sucursales (backend: maxLocations)
     whiteLabel:      false,
     formBranding:    true,
   },
