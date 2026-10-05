@@ -237,6 +237,13 @@ export async function apiChangePassword(currentPassword: string, newPassword: st
   })
 }
 
+// Vista previa de Diseño: las imágenes reales del pase (Apple y Google) con
+// los cambios sin guardar.
+export async function apiWalletPreview(businessId: string, cardId: string, body: { design: Record<string, any>; side: 'front' | 'prize'; tierIndex: number }) {
+  return request<{ apple: { logo: string | null; strip: string | null }; google: { logo: string | null; hero: string | null }; meta: Record<string, any> }>(
+    `/api/businesses/${businessId}/cards/${cardId}/wallet-preview`, { method: 'POST', body })
+}
+
 export async function apiGetPointsCatalog(businessId: string, cardId: string) {
   return request<Array<{ _id: string; name: string; pointsCost: number; isActive: boolean }>>(
     `/api/businesses/${businessId}/cards/${cardId}/points-catalog`
