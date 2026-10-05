@@ -3,7 +3,8 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { mockData } from '@/data/mockData'
 import { detectLang, createT, LangContext } from '@/data/i18n'
 import { PlanProvider, PLAN_LIMITS, usePlan } from '@/data/plans'
-import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL, apiBillingStatus, apiCancelSubscription, type BillingStatus } from '@/lib/api'
+import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL, apiBillingStatus, apiCancelSubscription, apiGetLocations, type BillingStatus } from '@/lib/api'
+import { getLocationId, setLocationId, withLoc, type Location, type LocationsResponse } from '@/lib/location'
 import { BillingBanner, BillingStyles, PlanModal } from '@/components/dashboard/Billing'
 import { MascotLoader } from '@/components/ui/MascotLoader'
 import { getJson, prefetch } from '@/lib/cache'
@@ -294,7 +295,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
     if (!businessId) return
     setChartLoading(true)
     try {
-      const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/analytics/detailed?range=${g}`, {
+      const res = await fetch(`${BASE_URL}${withLoc(`/api/businesses/${businessId}/analytics/detailed?range=${g}`)}`, {
         headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
       })
       const data = await res.json()
@@ -648,6 +649,7 @@ function mapCustomersForTab(rawCustomers: any[]) {
     joined: c.createdAt ? new Date(c.createdAt).toLocaleDateString('es-AR') : '—',
     lastUpdate: c.lastUpdate || 0,
     lastActivity: formatRelativeTime(c.lastUpdate),
+    location: c.location || null,
     cards: (c.cards || []).map((card: any) => ({
       customerId: card.customerId,
       cardId: card.cardId,
@@ -666,6 +668,15 @@ function mapCustomersForTab(rawCustomers: any[]) {
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
+  .lf-bar{display:flex;align-items:center;gap:10px;padding:12px 24px 0;flex-wrap:wrap;}
+  .lf-label{font-size:11.5px;font-weight:600;color:rgba(43,38,32,.5);}
+  .lf-seg{display:inline-flex;flex-wrap:wrap;gap:4px;background:rgba(43,38,32,.05);border-radius:10px;padding:3px;}
+  .lf-opt{font-size:12px;font-weight:600;color:rgba(43,38,32,.6);background:none;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-family:'Inter',sans-serif;}
+  .lf-opt.is-on{background:#fff;color:#2B2620;box-shadow:0 1px 3px rgba(43,38,32,.12);}
+  .lf-opt:focus-visible{outline:2px solid #C75D3A;outline-offset:1px;}
+  .lf-fixed{font-size:12px;font-weight:700;color:#2B2620;background:rgba(43,38,32,.05);border-radius:8px;padding:5px 11px;}
+  @media(max-width:768px){.lf-bar{padding:10px 16px 0;}}
+
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   html, body { overflow-x: hidden; }
@@ -908,6 +919,32 @@ function LimitBanner({ usage, isManager, onChoosePlan, onOpen }: { usage?: { use
   )
 }
 
+// Filtro de sucursal (multilocal): arriba de Inicio, Analítica, Clientes y
+// Premios cuando hay 2+ sucursales. Un administrador limitado a una
+// sucursal ve solo el nombre de la suya.
+const LOC_TABS: TabId[] = ['overview', 'analytics', 'customers', 'rewards']
+function LocationFilter({ locations, value, fixed, onChange }: { locations: Location[]; value: string | null; fixed: boolean; onChange: (id: string | null) => void }) {
+  const shown = locations.filter(l => l.status !== 'off')
+  if (fixed) {
+    const mine = shown.find(l => l.id === value)
+    return mine ? <div className="lf-bar"><span className="lf-label">Sucursal</span><span className="lf-fixed">{mine.name}</span></div> : null
+  }
+  if (shown.length < 2) return null
+  const opts: { id: string | null; name: string; paused?: boolean }[] = [{ id: null, name: 'Todas' }, ...shown.map(l => ({ id: l.id, name: l.name, paused: l.status === 'paused' }))]
+  return (
+    <div className="lf-bar" role="group" aria-label="Sucursal">
+      <span className="lf-label">Sucursal</span>
+      <div className="lf-seg">
+        {opts.map(o => (
+          <button key={o.id ?? 'all'} type="button" className={`lf-opt${value === o.id ? ' is-on' : ''}`} aria-pressed={value === o.id} onClick={() => onChange(o.id)} title={o.paused ? 'Pausada por el plan: solo historial' : undefined}>
+            {o.name}{o.paused ? ' · pausada' : ''}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const [active, setActive]         = useState<TabId>('overview')
   const [collapsed, setCollapsed]   = useState(false)
@@ -939,6 +976,9 @@ export default function DashboardPage() {
   const [analyticsData, setAnalyticsData]           = useState<any>(null)
   const [detailedAnalytics, setDetailedAnalytics]   = useState<any>(null)
   const [loading, setLoading]       = useState(true)
+  // Multilocal: sucursales del negocio y la elegida en el filtro (null = todas).
+  const [locations, setLocations]   = useState<Location[]>([])
+  const [locationId, setLocState]   = useState<string | null>(null)
 
   async function loadBusiness() {
     try {
@@ -958,6 +998,10 @@ export default function DashboardPage() {
         setBusinessId(bid)
         setBusinessIdState(bid)
         setBusiness(businesses[0])
+        // Administrador de una sola sucursal: filtro fijo en la suya.
+        if (o?.role === 'manager' && o.locationId) setLocationId(o.locationId)
+        setLocState(getLocationId())
+        apiGetLocations(bid).then(r => applyLocations(r)).catch(() => {})
 
         const authHeaders = {
           'Content-Type': 'application/json',
@@ -968,9 +1012,9 @@ export default function DashboardPage() {
         // Equipo es solo del dueño: el backend le responde 403 a un manager.
         const teamPromise       = o?.role === 'manager' ? Promise.resolve([]) : apiGetTeam(bid)
         // getJson deja la respuesta en caché: Analítica abre con esto al instante.
-        const analyticsPromise  = getJson<any>(`/api/businesses/${bid}/analytics`)
-        const detailedPromise   = getJson<any>(`/api/businesses/${bid}/analytics/detailed?range=30d`)
-        const customersPromise  = fetch(`${BASE_URL}/api/businesses/${bid}/customers?page=1&limit=50&sortBy=progress&sortDir=desc`, { headers: authHeaders }).then(r => r.json())
+        const analyticsPromise  = getJson<any>(withLoc(`/api/businesses/${bid}/analytics`))
+        const detailedPromise   = getJson<any>(withLoc(`/api/businesses/${bid}/analytics/detailed?range=30d`))
+        const customersPromise  = fetch(`${BASE_URL}${withLoc(`/api/businesses/${bid}/customers?page=1&limit=50&sortBy=progress&sortDir=desc`)}`, { headers: authHeaders }).then(r => r.json())
         const [teamRes, cardsRes, analyticsRes, customersRes, detailedRes] = await Promise.allSettled([
           teamPromise, cardsPromise, analyticsPromise, customersPromise, detailedPromise,
         ])
@@ -1036,7 +1080,7 @@ export default function DashboardPage() {
           const first = active[0]
           const B = `/api/businesses/${bid}`
           prefetch([
-            ...(first ? [`${B}/rewards-stats?cardId=${first._id}`] : []),
+            ...(first ? [withLoc(`${B}/rewards-stats?cardId=${first._id}`)] : []),
             ...(first?.type === 'points' ? [`${B}/cards/${first._id}/points-catalog`] : []),
             ...(first?.type === 'membership' ? [`${B}/cards/${first._id}/tiers`] : []),
             `${B}/notifications`,
@@ -1050,6 +1094,31 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  function applyLocations(r: LocationsResponse) {
+    setLocations(r.locations)
+    // La elegida ya no existe o quedó desactivada → todas.
+    const cur = getLocationId()
+    if (cur && !r.locations.some(l => l.id === cur && l.status !== 'off')) {
+      setLocationId(null); setLocState(null); reloadForLocation()
+    }
+  }
+
+  // Cambió la sucursal: se vuelven a pedir Inicio, Analítica y Clientes.
+  function reloadForLocation() {
+    const bid = getBusinessId()
+    if (!bid) return
+    customersCacheRef.current.clear()
+    getJson<any>(withLoc(`/api/businesses/${bid}/analytics`)).then(setAnalyticsData).catch(() => {})
+    getJson<any>(withLoc(`/api/businesses/${bid}/analytics/detailed?range=30d`)).then(setDetailedAnalytics).catch(() => {})
+    loadCustomers(1, customersSearch, customersStatus, customersSortKey, customersSortDir, customersCardFilter, { bypassCache: true })
+  }
+
+  function changeLocation(id: string | null) {
+    setLocationId(id)
+    setLocState(id)
+    reloadForLocation()
   }
 
   async function refreshCards() {
@@ -1114,7 +1183,7 @@ export default function DashboardPage() {
       if (search) params.set('search', search)
       if (status !== 'all') params.set('status', status)
       if (cardFilter !== 'all') params.set('cardId', cardFilter)
-      const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/customers?${params.toString()}`, {
+      const res = await fetch(`${BASE_URL}${withLoc(`/api/businesses/${businessId}/customers?${params.toString()}`)}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + localStorage.getItem('stampa_token'),
@@ -1178,7 +1247,7 @@ export default function DashboardPage() {
 
   function renderTab() {
     switch (active) {
-      case 'overview':      return <OverviewTab t={t} analyticsData={analyticsData} detailedAnalytics={detailedAnalytics} cards={cards} setActive={tab => { setActive(tab); localStorage.setItem('stampa_active_tab', tab) }} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
+      case 'overview':      return <OverviewTab key={locationId ?? 'all'} t={t} analyticsData={analyticsData} detailedAnalytics={detailedAnalytics} cards={cards} setActive={tab => { setActive(tab); localStorage.setItem('stampa_active_tab', tab) }} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
       case 'customers': return (analyticsData?.total ?? customersCounts?.all ?? customersTotal) > 0 || customersSearch
         ? <CustomersTab
             customers={mapCustomersForTab(customers)}
@@ -1216,7 +1285,7 @@ export default function DashboardPage() {
             onCta={() => { setActive('form'); localStorage.setItem('stampa_active_tab', 'form') }}
           /></div>
       case 'analytics': return analyticsData?.total > 0 || PLAN_LIMITS[(owner?.plan || 'Starter') as keyof typeof PLAN_LIMITS]?.analyticsLevel !== 'full'
-        ? <AnalyticsTab analyticsData={analyticsData} cards={cards} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)}
+        ? <AnalyticsTab key={locationId ?? 'all'} analyticsData={analyticsData} cards={cards} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)}
             onOpenCustomer={openCustomerByEmail} />
         : <div className="db-content"><EmptyState
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}
@@ -1225,7 +1294,7 @@ export default function DashboardPage() {
             cta="Ver formulario"
             onCta={() => { setActive('form'); localStorage.setItem('stampa_active_tab', 'form') }}
           /></div>
-      case 'rewards': return <RewardsTab cards={cards} businessId={businessId} onGoToDesign={() => { setActive('design'); localStorage.setItem('stampa_active_tab', 'design') }} onOpenCustomer={openCustomerByEmail} />
+      case 'rewards': return <RewardsTab key={locationId ?? 'all'} cards={cards} businessId={businessId} onGoToDesign={() => { setActive('design'); localStorage.setItem('stampa_active_tab', 'design') }} onOpenCustomer={openCustomerByEmail} />
           case 'notifications': return <NotificationsTab
           businessId={businessId}
           cards={cards}
@@ -1262,6 +1331,7 @@ export default function DashboardPage() {
           cards={cards as any}
           birthday={{ enabled: !!business?.birthday?.enabled, gift: business?.birthday?.gift || '' }}
           onCardsChanged={refreshCards}
+          onLocationsChanged={applyLocations}
           business={business ? {
             ...mockData.business,
             name: business.name,
@@ -1301,6 +1371,9 @@ export default function DashboardPage() {
         <Header title={t(TITLES[active] as any)} t={t} setMobileOpen={setMobileOpen} setActive={setActive} recentActivity={detailedAnalytics?.recentActivity} />
         <BillingStyles />
         <BillingBanner billing={billing} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
+        {LOC_TABS.includes(active) && !loading && (
+          <LocationFilter locations={locations} value={locationId} fixed={owner?.role === 'manager' && !!owner?.locationId} onChange={changeLocation} />
+        )}
         {active !== 'customers' && <LimitBanner usage={analyticsData?.customerUsage} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} onOpen={() => { setActive('customers'); localStorage.setItem('stampa_active_tab', 'customers') }} />}
         {loading
           ? <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

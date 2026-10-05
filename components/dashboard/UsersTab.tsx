@@ -1,7 +1,8 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import QRCode from 'qrcode'
-import { apiGetTeam, apiCreateTeamMember, apiUpdateTeamMember, apiDeleteTeamMember, apiResendInvite, apiTeamActivity, type TeamActivity } from '@/lib/api'
+import { apiGetTeam, apiCreateTeamMember, apiUpdateTeamMember, apiDeleteTeamMember, apiResendInvite, apiTeamActivity, apiGetLocations, type TeamActivity } from '@/lib/api'
+import type { Location } from '@/lib/location'
 import { usePlan } from '@/data/plans'
 
 // Equipo: el dueño, los Administradores (entran al dashboard con email y
@@ -14,6 +15,7 @@ type Status = 'active' | 'invited' | 'disabled'
 interface StaffUser {
   id: string; name: string; email: string; role: Role; status: Status
   lastActivityAt: string | null; scans30: number; lastScanAt: string | null
+  locationId: string | null // administrador: null = todas las sucursales
 }
 
 // URL de la app de escaneo (TestFlight / App Store). Se carga como variable
@@ -47,6 +49,7 @@ const fmtAt = (ms: number) => new Date(ms).toLocaleString('es-AR', { day: 'numer
 const mapUser = (u: any): StaffUser => ({
   id: String(u._id || u.id), name: u.fullName, email: u.email || '', role: u.role, status: u.status,
   lastActivityAt: u.lastActivityAt || null, scans30: u.scans30 || 0, lastScanAt: u.lastScanAt || null,
+  locationId: u.locationId ? String(u.locationId) : null,
 })
 const newPin = () => Math.floor(1000 + Math.random() * 9000).toString()
 
@@ -55,10 +58,11 @@ function AppleIcon() {
 }
 
 // ─── Invitar ──────────────────────────────────────────────────────────────────
-function InviteModal({ businessId, onClose, onAdd }: { businessId: string; onClose: () => void; onAdd: (u: StaffUser) => void }) {
+function InviteModal({ businessId, locs, onClose, onAdd }: { businessId: string; locs: Location[]; onClose: () => void; onAdd: (u: StaffUser) => void }) {
   const [role, setRole] = useState<'manager' | 'scanner'>('scanner')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [access, setAccess] = useState('') // '' = todas las sucursales
   const [pin, setPin] = useState(newPin)
   const [done, setDone] = useState<{ inviteFailed?: boolean } | null>(null)
   const [saving, setSaving] = useState(false)
@@ -74,7 +78,7 @@ function InviteModal({ businessId, onClose, onAdd }: { businessId: string; onClo
       // Si el PIN sorteado ya lo usa otro Scanner, se sortea otro.
       for (let attempt = 0; attempt < 6 && !created; attempt++) {
         try {
-          created = await apiCreateTeamMember(businessId, { fullName: name.trim(), role, ...(role === 'manager' ? { email: email.trim() } : { pin: tryPin }) })
+          created = await apiCreateTeamMember(businessId, { fullName: name.trim(), role, ...(role === 'manager' ? { email: email.trim(), locationId: access || null } : { pin: tryPin }) })
         } catch (err: any) {
           if (err?.error === 'pin_taken' && role === 'scanner') { tryPin = newPin(); setPin(tryPin); continue }
           throw err
@@ -114,6 +118,16 @@ function InviteModal({ businessId, onClose, onAdd }: { businessId: string; onClo
                 <div className="us-label">Email</div>
                 <input className="us-input" type="email" placeholder="email@ejemplo.com" value={email} onChange={e => setEmail(e.target.value)} />
                 <div className="us-hint">Le llega un link para crear su contraseña y entrar al dashboard.</div>
+                {locs.length >= 2 && (
+                  <>
+                    <div className="us-label">¿Qué sucursales ve?</div>
+                    <select className="us-input" value={access} onChange={e => setAccess(e.target.value)} aria-label="Sucursales que ve">
+                      <option value="">Todas</option>
+                      {locs.map(l => <option key={l.id} value={l.id}>Solo {l.name}</option>)}
+                    </select>
+                    <div className="us-hint">Con una sola, Inicio, Analítica, Clientes y Premios le muestran solo esa sucursal.</div>
+                  </>
+                )}
               </>
             ) : (
               <>
@@ -148,11 +162,16 @@ function InviteModal({ businessId, onClose, onAdd }: { businessId: string; onClo
 }
 
 // ─── Activar dispositivo ──────────────────────────────────────────────────────
-function ActivateDeviceModal({ businessId, onClose }: { businessId: string; onClose: () => void }) {
+function ActivateDeviceModal({ businessId, locs, onClose }: { businessId: string; locs: Location[]; onClose: () => void }) {
   const [qr, setQr] = useState('')
+  const [locId, setLocId] = useState(locs[0]?.id || '')
+  const loc = locs.find(l => l.id === locId)
+  // La principal usa el código de siempre (lo leen también las versiones
+  // viejas de la app); las demás llevan la sucursal.
+  const code = loc && !loc.isPrimary ? loc.deviceCode : `stampa-device:${businessId}`
   useEffect(() => {
-    QRCode.toDataURL(`stampa-device:${businessId}`, { width: 440, margin: 1, color: { dark: '#2B2620', light: '#FFFFFF' } }).then(setQr).catch(() => setQr(''))
-  }, [businessId])
+    QRCode.toDataURL(code, { width: 440, margin: 1, color: { dark: '#2B2620', light: '#FFFFFF' } }).then(setQr).catch(() => setQr(''))
+  }, [code])
   return (
     <div className="us-overlay" onClick={onClose}>
       <div className="us-modal" onClick={e => e.stopPropagation()}>
@@ -160,11 +179,19 @@ function ActivateDeviceModal({ businessId, onClose }: { businessId: string; onCl
           <div className="us-modal-title">Activar dispositivo de escaneo</div>
           <button className="us-x" onClick={onClose} aria-label="Cerrar">×</button>
         </div>
+        {locs.length >= 2 && (
+          <>
+            <div className="us-label">Sucursal de este dispositivo</div>
+            <select className="us-input" value={locId} onChange={e => setLocId(e.target.value)} aria-label="Sucursal del dispositivo">
+              {locs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          </>
+        )}
         <div className="us-qr">{qr ? <img src={qr} width={220} height={220} alt="QR de activación" /> : <div className="us-skel" style={{ width: 220, height: 220 }} />}</div>
         <ol className="us-steps">
           <li>Instalá la app de escaneo de Stampa en el celular o tablet del local.</li>
           <li>Abrila y apuntá la cámara a este código.</li>
-          <li>Listo: ese dispositivo queda vinculado a este negocio. Cada Scanner entra con su PIN.</li>
+          <li>Listo: ese dispositivo queda vinculado {locs.length >= 2 && loc ? `a ${loc.name}` : 'a este negocio'}. Cada Scanner entra con su PIN{locs.length >= 2 ? ' y sus escaneos quedan en esa sucursal' : ''}.</li>
         </ol>
         <div className="us-hint">Se hace una sola vez por dispositivo. Sin un PIN válido, nadie puede sumar sellos ni ver clientes.</div>
       </div>
@@ -251,6 +278,12 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
   const [confirmDelete, setConfirmDelete] = useState<StaffUser | null>(null)
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  // Sucursales habilitadas (multilocal): QR por sucursal y acceso de administradores.
+  const [locs, setLocs] = useState<Location[]>([])
+  useEffect(() => {
+    if (!businessId) return
+    apiGetLocations(businessId).then(r => setLocs(r.locations.filter(l => l.status === 'active'))).catch(() => setLocs([]))
+  }, [businessId])
 
   // Siempre datos frescos al entrar (escaneos de los últimos 30 días).
   async function load() {
@@ -262,6 +295,17 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
   const occupying = users.filter(u => u.status !== 'disabled').length
   const atLimit = teamLimit < 999 && occupying >= teamLimit
   const shown = filter === 'all' ? users : users.filter(u => u.role === filter)
+
+  async function changeAccess(u: StaffUser, locationId: string | null) {
+    if (!businessId) return
+    setBusyId(u.id); setNotice(null)
+    try {
+      await apiUpdateTeamMember(businessId, u.id, { locationId })
+      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, locationId } : x))
+    } catch (err: any) {
+      setNotice({ ok: false, text: err?.error || 'No pudimos cambiar el acceso. Probá de nuevo.' })
+    } finally { setBusyId(null) }
+  }
 
   async function toggleDisable(u: StaffUser) {
     if (!businessId) return
@@ -358,6 +402,12 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
                     <div style={{ minWidth: 0 }}>
                       <div className="us-name">{u.name}</div>
                       <div className="us-sub">{u.role === 'manager' ? u.email : 'Entra con PIN'}</div>
+                      {u.role === 'manager' && locs.length >= 2 && (
+                        <select className="us-access" value={u.locationId || ''} disabled={busyId === u.id} onChange={e => changeAccess(u, e.target.value || null)} aria-label={`Sucursales que ve ${u.name}`}>
+                          <option value="">Ve todas las sucursales</option>
+                          {locs.map(l => <option key={l.id} value={l.id}>Ve solo {l.name}</option>)}
+                        </select>
+                      )}
                     </div>
                   </div>
                   <span className="us-badges">
@@ -396,8 +446,8 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
         </div>
       </div>
 
-      {showActivate && businessId && <ActivateDeviceModal businessId={businessId} onClose={() => setShowActivate(false)} />}
-      {showInvite && businessId && <InviteModal businessId={businessId} onClose={() => { setShowInvite(false); load() }} onAdd={u => setUsers(prev => [...prev, u])} />}
+      {showActivate && businessId && <ActivateDeviceModal businessId={businessId} locs={locs} onClose={() => setShowActivate(false)} />}
+      {showInvite && businessId && <InviteModal businessId={businessId} locs={locs} onClose={() => { setShowInvite(false); load() }} onAdd={u => setUsers(prev => [...prev, u])} />}
       {activityOf && businessId && <ActivityPanel businessId={businessId} user={activityOf} onClose={() => setActivityOf(null)} onOpenCustomer={onOpenCustomer} />}
       {confirmDelete && (
         <div className="us-overlay" onClick={() => setConfirmDelete(null)}>
@@ -417,6 +467,8 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
 }
 
 const CSS = `
+  .us-access{margin-top:4px;font-size:11px;color:rgba(43,38,32,.65);background:#FBF6EE;border:1px solid rgba(43,38,32,.12);border-radius:6px;padding:3px 6px;font-family:'Inter',sans-serif;max-width:100%;}
+
   .us-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
   .us-app-card{display:flex;align-items:center;gap:14px;background:#1B412F;border-radius:14px;padding:16px 18px;flex-wrap:wrap;}
   .us-app-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;color:#F7F0E4;}

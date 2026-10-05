@@ -10,7 +10,7 @@ import { BASE_URL, apiGetTiers } from '@/lib/api'
 // (services/broadcast.js); acá se arma el envío y se muestra el alcance real.
 
 type BaseAudience = 'all' | 'active' | 'inactive' | 'near' | 'ready'
-type Audience = BaseAudience | 'card' | 'tier' | 'answer' | 'customers'
+type Audience = BaseAudience | 'card' | 'tier' | 'answer' | 'customers' | 'location'
 interface AnswerField { fieldId: string; label: string; cardName: string; options: string[] }
 interface Reach { total: number; reachable: number }
 interface HistoryItem { message: string; audience: string; audienceLabel?: string | null; sentCount: number; recipients?: number | null; sentAt: string }
@@ -27,7 +27,7 @@ const BASE: { key: BaseAudience; label: string; desc: (d: number) => string; sta
 ]
 const AUD_LABEL: Record<string, string> = {
   all: 'Todos', active: 'Activos', inactive: 'Inactivos', near: 'Cerca del premio', ready: 'Premio para entregar',
-  card: 'Por tarjeta', tier: 'Por nivel', answer: 'Por respuesta', customers: 'Clientes puntuales',
+  card: 'Por tarjeta', tier: 'Por nivel', answer: 'Por respuesta', customers: 'Clientes puntuales', location: 'Por sucursal',
 }
 
 function fmtDateTime(d: string | number) {
@@ -108,6 +108,8 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
   const [failedScheduled, setFailedScheduled] = useState<Array<{ message: string; scheduledAt: string; error: string }>>([])
   const [reach, setReach] = useState<Record<string, Reach>>({})
   const [answerFields, setAnswerFields] = useState<AnswerField[]>([])
+  // Sucursales habilitadas (solo llegan con 2+, en Pro o Enterprise).
+  const [locationOpts, setLocationOpts] = useState<{ id: string; name: string }[]>([])
   const [used, setUsed] = useState(0)
   const [monthlyLimit, setMonthlyLimit] = useState(limit('monthlyNotifs'))
 
@@ -116,7 +118,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
     const path = `/api/businesses/${businessId}/notifications`
     const apply = (d: any) => {
       setHistory(d.history || []); setScheduled(d.scheduled || []); setFailedScheduled(d.failedScheduled || [])
-      setReach(d.reach || {}); setAnswerFields(d.answerFields || []); setUsed(d.sentThisMonth || 0); setMonthlyLimit(d.monthlyLimit ?? limit('monthlyNotifs'))
+      setReach(d.reach || {}); setAnswerFields(d.answerFields || []); setLocationOpts(d.locations || []); setUsed(d.sentThisMonth || 0); setMonthlyLimit(d.monthlyLimit ?? limit('monthlyNotifs'))
     }
     // Lo guardado (o precargado por Inicio) aparece al instante (lib/cache).
     const cached = readCache<any>(path)
@@ -143,6 +145,8 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
   const [answer, setAnswer] = useState('')
   const answerField = answerFields.find(f => f.fieldId === answerFieldId) || answerFields[0]
   const [picked, setPicked] = useState<Picked[]>([])
+  const [locId, setLocId] = useState('')
+  const locPick = locationOpts.find(l => l.id === locId) || locationOpts[0]
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<Picked[]>([])
   const [searching, setSearching] = useState(false)
@@ -164,15 +168,15 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
   const reachTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     setParamReach(null)
-    if (!businessId || !['card', 'tier', 'answer', 'customers'].includes(audience)) return
+    if (!businessId || !['card', 'tier', 'answer', 'customers', 'location'].includes(audience)) return
     const body = audienceBody()
-    if ((audience === 'card' && !cardId) || (audience === 'tier' && !tierName) || (audience === 'answer' && !(answerField && answer)) || (audience === 'customers' && !picked.length)) return
+    if ((audience === 'card' && !cardId) || (audience === 'tier' && !tierName) || (audience === 'answer' && !(answerField && answer)) || (audience === 'customers' && !picked.length) || (audience === 'location' && !locPick)) return
     if (reachTimer.current) clearTimeout(reachTimer.current)
     reachTimer.current = setTimeout(() => {
       fetch(`${BASE_URL}/api/businesses/${businessId}/notifications/reach`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(body) })
         .then(r => r.ok ? r.json() : null).then(d => setParamReach(d)).catch(() => {})
     }, 250)
-  }, [audience, cardId, tierCardId, tierName, answerFieldId, answer, picked, businessId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [audience, cardId, tierCardId, tierName, answerFieldId, answer, picked, businessId, locPick?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Buscador de clientes puntuales
   useEffect(() => {
@@ -193,13 +197,14 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
     if (audience === 'tier') return { audience, cardId: tierCardId, tierName }
     if (audience === 'answer') return { audience, fieldId: answerField?.fieldId, answer }
     if (audience === 'customers') return { audience, customerIds: picked.flatMap(p => p.ids) }
+    if (audience === 'location') return { audience, locationId: locPick?.id }
     return { audience }
   }
 
-  const currentReach: Reach | null = ['card', 'tier', 'answer', 'customers'].includes(audience) ? paramReach : reach[audience] || null
+  const currentReach: Reach | null = ['card', 'tier', 'answer', 'customers', 'location'].includes(audience) ? paramReach : reach[audience] || null
   const unlimited = monthlyLimit >= 999999
   const atLimit = !unlimited && used >= monthlyLimit
-  const audienceReady = audience === 'card' ? !!cardId : audience === 'tier' ? !!tierName : audience === 'answer' ? !!(answerField && answer) : audience === 'customers' ? picked.length > 0 : true
+  const audienceReady = audience === 'card' ? !!cardId : audience === 'tier' ? !!tierName : audience === 'answer' ? !!(answerField && answer) : audience === 'customers' ? picked.length > 0 : audience === 'location' ? !!locPick : true
 
   async function send() {
     if (!businessId || !message.trim() || busy) return
@@ -443,6 +448,13 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
                         </div>
                       ) })
                     )}
+                    {locationOpts.length >= 2 && audienceRow({ k: 'location', label: 'Por sucursal', desc: 'Los que se registraron o sellaron en esa sucursal (ej: "Hoy 2x1 en Playa")', children: (
+                      <div className="nt-row">
+                        <select className="nt-select" value={locPick?.id || ''} onChange={e => setLocId(e.target.value)} aria-label="Sucursal">
+                          {locationOpts.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                        </select>
+                      </div>
+                    ) })}
                     {audienceRow({ k: 'customers', label: 'Clientes puntuales', desc: 'Elegí a quién: cumpleaños, clientes VIP, una respuesta', locked: !canIndividual, lockText: 'Pro', children: (<>
                       <input className="nt-input" placeholder="Buscar por nombre o email…" value={search} onChange={e => setSearch(e.target.value)} />
                       {search.trim().length >= 2 && (
