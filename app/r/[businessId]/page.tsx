@@ -38,6 +38,7 @@ const CSS = `
   .rg-card-pill-desc { font-size: 12px; color: rgba(43,38,32,.5); overflow-wrap: break-word; word-break: break-word; }
 
   .rg-success { text-align: center; }
+  .rg-wallet-btn--google { background: #1f1f1f; margin-top: -6px; }
   .rg-wallet-btn { display: block; width: 100%; background: #000; color: #fff; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; font-family: var(--font-display); text-decoration: none; margin: 16px 0; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
   .rg-qr-img { width: 100%; max-width: 180px; height: auto; aspect-ratio: 1 / 1; margin: 16px auto; display: block; border-radius: 12px; border: 1px solid rgba(43,38,32,.08); }
   .rg-success-title { font-family: var(--font-display); font-weight: 700; font-size: 17px; margin-bottom: 6px; }
@@ -219,13 +220,15 @@ export default function PublicRegisterPage() {
                   <div className="rg-success">
                     <div className="rg-success-title">¡Listo, {fullName.split(' ')[0]}!</div>
                     <div className="rg-success-note">Ya estás registrado en {businessName} — {result.cardName}.</div>
-                    <a
-                      className="rg-wallet-btn"
-                      href={`${BASE_URL}/api/businesses/${realBusinessId || businessId}/customers/${result.customerId}/wallet/apple`}
-                    >
-                      Agregar a Apple Wallet
-                    </a>
-                    <div className="rg-success-note" style={{ marginTop: 14 }}>¿No tenés iPhone? Mostrá este código en el mostrador mientras sumamos Google Wallet:</div>
+                    {/* Primero el botón del Wallet de este teléfono (Android → Google). */}
+                    {(() => {
+                      const bid = realBusinessId || businessId
+                      const apple = <a key="apple" className="rg-wallet-btn" href={`${BASE_URL}/api/businesses/${bid}/customers/${result.customerId}/wallet/apple`}>Agregar a Apple Wallet</a>
+                      const google = <a key="google" className="rg-wallet-btn rg-wallet-btn--google" href={`${BASE_URL}/api/google-wallet/save/${bid}/${result.customerId}`}>Agregar a Google Wallet</a>
+                      const android = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent)
+                      return android ? [google, apple] : [apple, google]
+                    })()}
+                    <div className="rg-success-note" style={{ marginTop: 14 }}>¿Preferís no guardarla? Mostrá este código en el mostrador:</div>
                     <img
                       className="rg-qr-img"
                       alt="Tu código de cliente"
