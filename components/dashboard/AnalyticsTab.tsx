@@ -488,7 +488,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
     { label: 'Activos',          desc: `Vinieron en los últimos ${inactiveDays} días`, color: '#5B8C5A', bg: 'rgba(91,140,90,.1)',  val: m?.active ?? 0,       pct: true },
     { label: 'Inactivos',        desc: `Más de ${inactiveDays} días sin venir`,        color: '#B23B3B', bg: 'rgba(178,59,59,.08)', val: m?.inactive ?? 0,     pct: true },
     { label: 'Nuevos este mes',  desc: 'Se registraron este mes',                       color: '#185FA5', bg: 'rgba(24,95,165,.1)',  val: m?.newThisMonth ?? 0, pct: false },
-    { label: 'Con Apple Wallet', desc: 'Guardaron la tarjeta en el iPhone',             color: '#533FB7', bg: 'rgba(83,63,183,.08)', val: m?.withDevice ?? 0,   pct: false },
+    { label: 'Con la tarjeta en el Wallet', desc: 'La guardaron en Apple o Google Wallet', color: '#533FB7', bg: 'rgba(83,63,183,.08)', val: m?.withDevice ?? 0,   pct: false },
   ]
 
   const d = detailedLoading ? null : detailed

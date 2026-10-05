@@ -4,8 +4,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { usePlan } from '@/data/plans'
 import { BASE_URL, apiGetTiers } from '@/lib/api'
 
-// Notificaciones: se mandan al Wallet del cliente (hoy Apple Wallet; Google
-// Wallet todavía no). El límite del plan cuenta ENVÍOS (campañas), no
+// Notificaciones: se mandan al Wallet del cliente (Apple Wallet y Google
+// Wallet; Google limita cuántos avisos muestra por tarjeta y por día). El límite del plan cuenta ENVÍOS (campañas), no
 // destinatarios. Todo lo que cuenta y filtra lo hace el backend
 // (services/broadcast.js); acá se arma el envío y se muestra el alcance real.
 
@@ -279,7 +279,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
             <span className="nt-aud-desc">{desc}</span>
           </span>
           {!locked && r && (
-            <span className="nt-aud-count" title={`${r.reachable} de ${r.total} tienen la tarjeta en Apple Wallet`}>
+            <span className="nt-aud-count" title={`${r.reachable} de ${r.total} tienen la tarjeta en Apple Wallet o Google Wallet`}>
               {r.reachable}<small>/{r.total}</small>
             </span>
           )}
@@ -514,11 +514,11 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
               </button>
             </div>
             {sendType === 'now' && currentReach?.reachable === 0 && audienceReady && loaded && (
-              <div className="nt-hint" style={{ marginTop: 8 }}>Nadie de esta audiencia tiene la tarjeta en Apple Wallet todavía.</div>
+              <div className="nt-hint" style={{ marginTop: 8 }}>Nadie de esta audiencia tiene la tarjeta en Apple Wallet o Google Wallet todavía.</div>
             )}
             {feedback && <div className={`nt-feedback nt-feedback--${feedback.ok ? 'ok' : 'err'}`}>{feedback.text}</div>}
             <div className="nt-wallet-note">
-              El número de cada audiencia es <strong>a cuántos les llega / cuántos son</strong>: la notificación llega a quienes guardaron la tarjeta en Apple Wallet. Google Wallet: próximamente.
+              El número de cada audiencia es <strong>a cuántos les llega / cuántos son</strong>: la notificación llega a quienes guardaron la tarjeta en Apple Wallet o Google Wallet. En Android, Google limita cuántos avisos muestra por tarjeta en el día.
             </div>
           </div>
 
