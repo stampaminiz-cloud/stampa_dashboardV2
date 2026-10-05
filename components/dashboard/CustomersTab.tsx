@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
 import { PLAN_LIMITS, type Plan } from '@/data/plans'
 import { BASE_URL, apiGetPointsCatalog, apiRedeemPoints } from '@/lib/api'
+import { InfoTooltip } from './InfoTooltip'
 
 interface CardEntry {
   customerId: string; cardId: string | null
@@ -20,6 +21,7 @@ interface Customer {
   near: boolean; ready: boolean
   joined: string; lastUpdate: number; lastActivity: string
   cards: CardEntry[]
+  location?: string | null // sucursal habitual (con 2+ sucursales)
 }
 
 type StatusFilter = 'all' | 'active' | 'inactive' | 'near' | 'ready'
@@ -236,7 +238,7 @@ function CardSection({ customer, card, canDelete, onDelete, onChanged }: {
 // ─── Historial de movimientos ─────────────────────────────────────────────────
 const HISTORY_ICON: Record<string, string> = { stamp: '●', points: '★', visit: '◆', redeem: '🎁', tier_change: '▲', expire: '⌛' }
 function History({ customer }: { customer: Customer }) {
-  const [items, setItems] = useState<Array<{ type: string; text: string; at: number; card: string | null; by: string }> | null>(null)
+  const [items, setItems] = useState<Array<{ type: string; text: string; at: number; card: string | null; by: string; location?: string | null }> | null>(null)
   const [error, setError] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const ids = customer.cards.map(c => c.customerId).join(',')
@@ -268,7 +270,7 @@ function History({ customer }: { customer: Customer }) {
                 <span className={`ct-hist-ic ct-hist-ic--${it.type}`}>{HISTORY_ICON[it.type] || '•'}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="ct-hist-text">{it.text}</div>
-                  <div className="ct-hist-meta">{fmt(it.at)} · {it.by}{customer.cards.length > 1 && it.card ? ` · ${it.card}` : ''}</div>
+                  <div className="ct-hist-meta">{fmt(it.at)} · {it.by}{it.location ? ` · ${it.location}` : ''}{customer.cards.length > 1 && it.card ? ` · ${it.card}` : ''}</div>
                 </div>
               </div>
             ))}
@@ -369,6 +371,8 @@ export function CustomersTab({
   const [exportError, setExportError] = useState<string | null>(null)
   const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.Starter
   const canExport = limits.analyticsLevel === 'full'
+  // Con 2+ sucursales el backend manda la sucursal habitual de cada fila.
+  const multiLoc = customers.some(c => c.location)
 
   // Si la búsqueda cambia desde afuera (ej. un nombre clickeado en
   // Analítica), el input la refleja en vez de pisarla con el valor viejo.
@@ -522,6 +526,7 @@ export function CustomersTab({
         .ct-near-dot{width:7px;height:7px;border-radius:50%;background:#D4A24C;flex-shrink:0;}
         .ct-prog-txt{font-size:12px;font-weight:600;color:#2B2620;}
         .ct-dynamic{color:#C75D3A;font-weight:600;font-size:12px;}
+        .ct-loc{color:rgba(43,38,32,.7);font-size:12px;}
         .ct-ready-tag{font-size:11px;font-weight:700;color:#5B8C5A;background:rgba(91,140,90,.12);padding:3px 9px;border-radius:20px;white-space:nowrap;}
         .ct-status-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600;display:inline-block;}
         .ct-status-badge--active{background:rgba(91,140,90,.12);color:#5B8C5A;}
@@ -691,6 +696,7 @@ export function CustomersTab({
                       <th className="th-dynamic">Premio</th>
                       <th className={sortKey === 'status' ? 'th-active' : ''} onClick={() => handleSort('status')}>{t('ct_col_status')}<SortIcon active={sortKey === 'status'} dir={sortDir} /></th>
                       <th className={sortKey === 'lastActivity' ? 'th-active' : ''} onClick={() => handleSort('lastActivity')}>{t('ct_col_last')}<SortIcon active={sortKey === 'lastActivity'} dir={sortDir} /></th>
+                      {multiLoc && <th>Sucursal<InfoTooltip text="Donde más viene. Si todavía no vino, donde se registró." /></th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -738,6 +744,7 @@ export function CustomersTab({
                           </div>
                         </td>
                         <td><span className={`ct-activity${activityClass(c)}`}>{c.lastActivity}</span></td>
+                        {multiLoc && <td><span className="ct-loc">{c.location || '—'}</span></td>}
                       </tr>
                     ))}
                   </tbody>

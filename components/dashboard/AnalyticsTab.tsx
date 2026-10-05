@@ -1,9 +1,10 @@
 'use client'
-import { CardSwitcher } from '@/components/ui/CardSwitcher'
+import { PillSelect } from '@/components/ui/PillSelect'
 import React, { useState, useEffect } from 'react'
 import { readCache, getJson } from '@/lib/cache'
+import { withLoc } from '@/lib/location'
 import { MascotLoader } from '@/components/ui/MascotLoader'
-import { EmptyState, RetentionRing, ProgressDistribution, FormAnswers, CardComparison, type NvrBucket, type Retention, type ProgressDist, type FormAnswer as FormAnswerData, type CardRow } from './charts'
+import { EmptyState, RetentionRing, ProgressDistribution, FormAnswers, CardComparison, LocationComparison, type LocationRow, type NvrBucket, type Retention, type ProgressDist, type FormAnswer as FormAnswerData, type CardRow } from './charts'
 import { usePlan } from '@/data/plans'
 import { BASE_URL } from '@/lib/api'
 
@@ -39,6 +40,7 @@ interface Detailed {
   progressDistribution?: ProgressDist | null
   formAnswers?: FormAnswerData[]
   cardComparison?: CardRow[]
+  locationComparison?: LocationRow[]
 }
 
 type Range = '7d' | '30d' | '90d'
@@ -380,7 +382,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   const detailedPath = (r: string, c: string) => {
     const params = new URLSearchParams({ range: r })
     if (c) params.set('cardId', c)
-    return `/api/businesses/${typeof window !== 'undefined' ? localStorage.getItem('stampa_business_id') : ''}/analytics/detailed?${params.toString()}`
+    return withLoc(`/api/businesses/${typeof window !== 'undefined' ? localStorage.getItem('stampa_business_id') : ''}/analytics/detailed?${params.toString()}`)
   }
   // Si la respuesta no trae lo esperado (error del servidor, o un backend
   // viejo durante un deploy) se muestra el error en vez de romper la pantalla.
@@ -417,7 +419,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
     const businessId = localStorage.getItem('stampa_business_id')
     if (!businessId || !cardQuery || !fullAnalytics) return
     let cancelled = false
-    const path = `/api/businesses/${businessId}/analytics?cardId=${cardQuery}`
+    const path = withLoc(`/api/businesses/${businessId}/analytics?cardId=${cardQuery}`)
     const cached = readCache(path)
     if (cached) setCardMetrics({ id: cardQuery, data: cached })
     getJson(path)
@@ -438,7 +440,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
     try {
       const params = new URLSearchParams({ range })
       if (cardQuery) params.set('cardId', cardQuery)
-      const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/analytics/export?${params.toString()}`, {
+      const res = await fetch(`${BASE_URL}${withLoc(`/api/businesses/${businessId}/analytics/export?${params.toString()}`)}`, {
         headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') }
       })
       if (!res.ok) throw new Error()
@@ -486,7 +488,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
     { label: 'Activos',          desc: `Vinieron en los últimos ${inactiveDays} días`, color: '#5B8C5A', bg: 'rgba(91,140,90,.1)',  val: m?.active ?? 0,       pct: true },
     { label: 'Inactivos',        desc: `Más de ${inactiveDays} días sin venir`,        color: '#B23B3B', bg: 'rgba(178,59,59,.08)', val: m?.inactive ?? 0,     pct: true },
     { label: 'Nuevos este mes',  desc: 'Se registraron este mes',                       color: '#185FA5', bg: 'rgba(24,95,165,.1)',  val: m?.newThisMonth ?? 0, pct: false },
-    { label: 'Con Apple Wallet', desc: 'Guardaron la tarjeta en el iPhone',             color: '#533FB7', bg: 'rgba(83,63,183,.08)', val: m?.withDevice ?? 0,   pct: false },
+    { label: 'Con la tarjeta en el Wallet', desc: 'La guardaron en Apple o Google Wallet', color: '#533FB7', bg: 'rgba(83,63,183,.08)', val: m?.withDevice ?? 0,   pct: false },
   ]
 
   const d = detailedLoading ? null : detailed
@@ -569,6 +571,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-rpill:hover{border-color:rgba(43,38,32,.25);}
         .an-rpill--on{background:rgba(199,93,58,.1);border-color:#C75D3A;color:#C75D3A;font-weight:600;}
         .an-export{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid rgba(43,38,32,.15);background:#fff;color:#2B2620;cursor:pointer;font-family:'Inter',sans-serif;}
+        .an-export--icon{width:34px;height:34px;padding:0;justify-content:center;}
         .an-export:hover{border-color:rgba(43,38,32,.3);}
         .an-export:disabled{opacity:.6;cursor:default;}
         .an-export-err{font-size:11px;color:#B23B3B;}
@@ -722,12 +725,6 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
 
       <div className="an-content">
 
-        {/* ── Tarjeta ── */}
-        {activeCards.length > 1 && (
-          <CardSwitcher value={selectedCard?.id || 'all'} onChange={setSelectedCardId}
-            options={[{ id: 'all', label: 'Todas las tarjetas' }, ...activeCards.map(c => ({ id: c.id, label: c.name }))]} />
-        )}
-
         {detailedError && !detailedLoading && (
           <div className="an-error">
             <span>No pudimos cargar parte de la analítica. Revisá tu conexión y probá de nuevo.</span>
@@ -735,8 +732,9 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           </div>
         )}
 
-        {/* Secciones: Resumen / Clientes / Horarios / Tarjetas. El rango y la
-            tarjeta de arriba aplican a todas. */}
+        {/* Secciones a la izquierda; a la derecha, la tarjeta y el período
+            (aplican a todas las secciones) y exportar. La sucursal se elige
+            en la barra lateral. */}
         <div className="an-tabsbar">
           <div className="an-tabs" role="tablist">
             {SECTIONS.map(sec => (
@@ -744,12 +742,14 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
             ))}
           </div>
           <div className="an-block-tools">
-            {RANGES.map(({ key, label }) => (
-              <button key={key} className={`an-rpill${range === key ? ' an-rpill--on' : ''}`} onClick={() => setRange(key)}>{label}</button>
-            ))}
-            <button className="an-export" onClick={exportCsv} disabled={exporting} title="Descargar los movimientos del período para Excel">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              {exporting ? 'Generando…' : 'Exportar CSV'}
+            {activeCards.length > 1 && (
+              <PillSelect ariaLabel="Tarjeta" value={selectedCard?.id || 'all'} onChange={setSelectedCardId}
+                options={[{ id: 'all', label: 'Todas las tarjetas' }, ...activeCards.map(c => ({ id: c.id, label: c.name }))]} />
+            )}
+            <PillSelect ariaLabel="Período" value={range} onChange={v => setRange(v as Range)}
+              options={RANGES.map(r => ({ id: r.key, label: `Últimos ${r.label}` }))} />
+            <button className="an-export an-export--icon" onClick={exportCsv} disabled={exporting} title="Exportar CSV: los movimientos del período, para Excel" aria-label="Exportar CSV">
+              {exporting ? '…' : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>}
             </button>
           </div>
         </div>
@@ -831,6 +831,14 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
               ? <RetentionRing data={d.retention} />
               : <EmptyState title="Todavía sin movimientos" text="Aparece cuando tus clientes vuelvan o se registren." />}
           </div>
+          {/* Multilocal: con "Todas" y 2+ sucursales, cómo le va a cada una. */}
+          {(d?.locationComparison?.length || 0) >= 2 && (
+            <div className="an-card">
+              <div className="an-ctitle">Comparación entre sucursales</div>
+              <div className="an-csub">En los últimos {range.replace('d', '')} días · nuevos: según el QR de sucursal con el que se registraron (el link general cuenta en la principal)</div>
+              <LocationComparison data={d!.locationComparison!} />
+            </div>
+          )}
         </>}
 
         {/* ═══════════════ CLIENTES ═══════════════ */}

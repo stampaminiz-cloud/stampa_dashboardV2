@@ -18,6 +18,9 @@ const CSS = `
   .rg-header-icon img { width: 100%; height: 100%; object-fit: contain; border-radius: 14px; }
   .rg-header-name { font-family: var(--font-display); font-weight: 700; font-size: 19px; margin-bottom: 4px; overflow-wrap: break-word; word-break: break-word; }
   .rg-header-sub { font-size: 12.5px; opacity: .8; line-height: 1.4; }
+  .rg-hours { margin-top: 10px; font-size: 11.5px; opacity: .85; line-height: 1.5; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; }
+  .rg-open { font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.18); }
+  .rg-open--on { background: rgba(255,255,255,.3); }
   .rg-header-badge { display: inline-block; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; background: rgba(255,255,255,.16); padding: 4px 10px; border-radius: 20px; margin-top: 10px; }
 
   .rg-field { margin-bottom: 14px; }
@@ -35,6 +38,7 @@ const CSS = `
   .rg-card-pill-desc { font-size: 12px; color: rgba(43,38,32,.5); overflow-wrap: break-word; word-break: break-word; }
 
   .rg-success { text-align: center; }
+  .rg-wallet-btn--google { background: #1f1f1f; margin-top: -6px; }
   .rg-wallet-btn { display: block; width: 100%; background: #000; color: #fff; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; font-family: var(--font-display); text-decoration: none; margin: 16px 0; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
   .rg-qr-img { width: 100%; max-width: 180px; height: auto; aspect-ratio: 1 / 1; margin: 16px auto; display: block; border-radius: 12px; border: 1px solid rgba(43,38,32,.08); }
   .rg-success-title { font-family: var(--font-display); font-weight: 700; font-size: 17px; margin-bottom: 6px; }
@@ -75,6 +79,7 @@ export default function PublicRegisterPage() {
   const [loading, setLoading] = useState(true)
   const [fatalError, setFatalError] = useState('')
   const [businessName, setBusinessName] = useState('')
+  const [hours, setHours] = useState<{ name: string | null; hours: string; openNow: boolean | null } | null>(null)
   const [whiteLabel, setWhiteLabel] = useState(false)
   const [cards, setCards] = useState<PublicCard[]>([])
   const [selectedCard, setSelectedCard] = useState<PublicCard | null>(null)
@@ -97,9 +102,10 @@ export default function PublicRegisterPage() {
 
   useEffect(() => {
     if (!businessId) return
-    apiGetPublicBusiness(businessId)
+    apiGetPublicBusiness(businessId, new URLSearchParams(window.location.search).get('s'))
       .then(res => {
         setBusinessName(res.business.name)
+        setHours(res.location || null)
         setRealBusinessId(String(res.business.id))
         document.title = `${res.business.name} · Tarjeta de beneficios`
         setWhiteLabel(!!res.whiteLabel)
@@ -139,11 +145,14 @@ export default function PublicRegisterPage() {
       const formResponses = fields
         .filter(f => askable(f) && f._id)
         .map(f => ({ fieldId: f._id as string, value: answers[f._id as string] || '' }))
+      // QR de registro de una sucursal: el link trae ?s=<sucursal>.
+      const locationId = new URLSearchParams(window.location.search).get('s') || undefined
       const res = await apiRegisterCustomer(businessId, {
         cardId: selectedCard?.id,
         fullName: fullName.trim(),
         email: email.trim(),
         formResponses,
+        locationId,
       })
       setResult({ qrValue: res.qrValue, cardName: res.card.name, customerId: res.customerId })
     } catch (err: any) {
@@ -198,6 +207,12 @@ export default function PublicRegisterPage() {
                     : 'Completá tus datos para obtener tu tarjeta'}
                 </div>
                 {selectedCard && <div className="rg-header-badge">{selectedCard.name}</div>}
+                {hours && !result && (
+                  <div className="rg-hours">
+                    {hours.openNow != null && <span className={`rg-open${hours.openNow ? ' rg-open--on' : ''}`}>{hours.openNow ? 'Abierto ahora' : 'Cerrado ahora'}</span>}
+                    <span>{hours.name ? `${hours.name}: ` : ''}{hours.hours}</span>
+                  </div>
+                )}
               </div>
 
               <div className="rg-body">
@@ -205,13 +220,15 @@ export default function PublicRegisterPage() {
                   <div className="rg-success">
                     <div className="rg-success-title">¡Listo, {fullName.split(' ')[0]}!</div>
                     <div className="rg-success-note">Ya estás registrado en {businessName} — {result.cardName}.</div>
-                    <a
-                      className="rg-wallet-btn"
-                      href={`${BASE_URL}/api/businesses/${realBusinessId || businessId}/customers/${result.customerId}/wallet/apple`}
-                    >
-                      Agregar a Apple Wallet
-                    </a>
-                    <div className="rg-success-note" style={{ marginTop: 14 }}>¿No tenés iPhone? Mostrá este código en el mostrador mientras sumamos Google Wallet:</div>
+                    {/* Primero el botón del Wallet de este teléfono (Android → Google). */}
+                    {(() => {
+                      const bid = realBusinessId || businessId
+                      const apple = <a key="apple" className="rg-wallet-btn" href={`${BASE_URL}/api/businesses/${bid}/customers/${result.customerId}/wallet/apple`}>Agregar a Apple Wallet</a>
+                      const google = <a key="google" className="rg-wallet-btn rg-wallet-btn--google" href={`${BASE_URL}/api/google-wallet/save/${bid}/${result.customerId}`}>Agregar a Google Wallet</a>
+                      const android = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent)
+                      return android ? [google, apple] : [apple, google]
+                    })()}
+                    <div className="rg-success-note" style={{ marginTop: 14 }}>¿Preferís no guardarla? Mostrá este código en el mostrador:</div>
                     <img
                       className="rg-qr-img"
                       alt="Tu código de cliente"

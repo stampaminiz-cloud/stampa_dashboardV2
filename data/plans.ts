@@ -20,6 +20,7 @@ export interface PlanLimits {
   notifIndividual:  boolean       // notificaciones a clientes puntuales
   analyticsLevel:   'basic' | 'full'
   multiLocation:    boolean       // multiple branches
+  locationTools:    boolean       // ubicación (aviso de cercanía) y horarios — desde Growth
   whiteLabel:       boolean       // remove Stampa branding
   formBranding:     boolean       // logo + color on signup form
 }
@@ -38,6 +39,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     notifIndividual: false,
     analyticsLevel:  'basic',
     multiLocation:   false,
+    locationTools:   false,
     whiteLabel:      false,
     formBranding:    false,
   },
@@ -54,6 +56,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     notifIndividual: false,
     analyticsLevel:  'full',
     multiLocation:   false,
+    locationTools:   true,
     whiteLabel:      false,
     formBranding:    true,
   },
@@ -69,7 +72,8 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     notifTargeting:  true,
     notifIndividual: true,
     analyticsLevel:  'full',
-    multiLocation:   false,
+    multiLocation:   true,        // hasta 3 sucursales (backend: maxLocations)
+    locationTools:   true,
     whiteLabel:      false,
     formBranding:    true,
   },
@@ -86,6 +90,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     notifIndividual: true,
     analyticsLevel:  'full',
     multiLocation:   true,
+    locationTools:   true,
     whiteLabel:      true,
     formBranding:    true,
   },
@@ -105,6 +110,7 @@ export const FEATURE_LABELS: Record<keyof PlanLimits, string> = {
   notifIndividual: 'Notificaciones a clientes puntuales',
   analyticsLevel:  'Analítica avanzada',
   multiLocation:   'Multi-sucursal',
+  locationTools:   'Ubicación y horarios del local',
   whiteLabel:      'White label (sin marca Stampa)',
   formBranding:    'Logo y color en el formulario de registro',
 }

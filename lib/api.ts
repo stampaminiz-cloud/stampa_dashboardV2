@@ -102,6 +102,7 @@ export interface Owner {
   fullName: string
   plan: 'Starter' | 'Growth' | 'Pro' | 'Enterprise'
   maxLocations: number
+  locationId?: string | null // administrador limitado a una sucursal
   // 'manager' = miembro del equipo invitado por el dueño: ve un solo
   // negocio, sin Equipo, plan ni zona de peligro.
   role?: 'owner' | 'manager'
@@ -236,6 +237,13 @@ export async function apiChangePassword(currentPassword: string, newPassword: st
   })
 }
 
+// Vista previa de Diseño: las imágenes reales del pase (Apple y Google) con
+// los cambios sin guardar.
+export async function apiWalletPreview(businessId: string, cardId: string, body: { design: Record<string, any>; side: 'front' | 'prize'; tierIndex: number }) {
+  return request<{ apple: { logo: string | null; strip: string | null }; google: { logo: string | null; hero: string | null }; meta: Record<string, any> }>(
+    `/api/businesses/${businessId}/cards/${cardId}/wallet-preview`, { method: 'POST', body })
+}
+
 export async function apiGetPointsCatalog(businessId: string, cardId: string) {
   return request<Array<{ _id: string; name: string; pointsCost: number; isActive: boolean }>>(
     `/api/businesses/${businessId}/cards/${cardId}/points-catalog`
@@ -346,13 +354,15 @@ export async function apiCancelDeletion() {
   })
 }
 
-export async function apiGetPublicBusiness(businessId: string) {
+export async function apiGetPublicBusiness(businessId: string, locationId?: string | null) {
   return request<{
     business: { id: string; name: string; slug: string }
+    // Horarios de la sucursal del QR (o de la principal), desde Growth.
+    location?: { name: string | null; hours: string; openNow: boolean | null } | null
     whiteLabel?: boolean
     cards: Array<{ id: string; name: string; type: string; description?: string; color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null }>
     fields: Array<{ _id?: string; label: string; fieldType: string; isLocked: boolean; builtIn?: boolean; isRewardSource?: boolean; isRequired?: boolean; options?: string[]; placeholder?: string }>
-  }>(`/api/businesses/${businessId}/public`, { noAuth: true })
+  }>(`/api/businesses/${businessId}/public${locationId ? `?s=${encodeURIComponent(locationId)}` : ''}`, { noAuth: true })
 }
 
 export async function apiGetPublicCardFields(businessId: string, cardId: string) {
@@ -373,6 +383,7 @@ export async function apiRegisterCustomer(businessId: string, data: {
   fullName: string
   email: string
   formResponses?: Array<{ fieldId: string; value: string }>
+  locationId?: string
 }) {
   return request<{ customerId: string; qrValue: string; card: { id: string; name: string; type: string } }>(
     `/api/businesses/${businessId}/register`, { method: 'POST', body: data, noAuth: true }
@@ -508,6 +519,19 @@ export async function apiReorderFields(businessId: string, cardId: string, order
   })
 }
 
+// ─── Sucursales ───────────────────────────────────────────────────────────────
+export async function apiGetLocations(businessId: string) {
+  return request<import('./location').LocationsResponse>(`/api/businesses/${businessId}/locations`)
+}
+
+export async function apiCreateLocation(businessId: string, data: { name: string; address?: string; mapsUrl?: string }) {
+  return request<import('./location').LocationsResponse>(`/api/businesses/${businessId}/locations`, { method: 'POST', body: data })
+}
+
+export async function apiUpdateLocation(businessId: string, locationId: string, data: Partial<{ name: string; address: string; mapsUrl: string; hours: import('./location').DayHours[]; isActive: boolean }>) {
+  return request<import('./location').LocationsResponse>(`/api/businesses/${businessId}/locations/${locationId}`, { method: 'PATCH', body: data })
+}
+
 // ─── Team ─────────────────────────────────────────────────────────────────────
 export async function apiGetTeam(businessId: string) {
   return request<TeamMember[]>(`/api/businesses/${businessId}/team`)
@@ -518,6 +542,7 @@ export async function apiCreateTeamMember(businessId: string, data: {
   role: 'manager' | 'scanner'
   email?: string
   pin?: string
+  locationId?: string | null
 }) {
   return request<TeamMember & { id?: string; inviteSent?: boolean }>(`/api/businesses/${businessId}/team`, {
     method: 'POST',
@@ -529,6 +554,7 @@ export async function apiUpdateTeamMember(businessId: string, userId: string, da
   fullName?: string
   status?: 'active' | 'disabled'
   pin?: string
+  locationId?: string | null
 }) {
   return request<TeamMember>(`/api/businesses/${businessId}/team/${userId}`, {
     method: 'PATCH',

@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS } from '@/lib/colorPresets'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
-import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiCardImpact, apiGetPointsCatalog } from '@/lib/api'
+import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiCardImpact, apiGetPointsCatalog, apiWalletPreview } from '@/lib/api'
 import { InfoTooltip } from './InfoTooltip'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 
@@ -265,124 +265,42 @@ function ProLock({ label }: { label: string }) {
 }
 
 // ─── Pass preview (Apple Wallet) ──────────────────────────────────────────────
-function RealPassPreview({ design, businessName, logos, rewardSourceLabel, tiers, previewTierIndex, catalog = [] }: {
-  design: CardDesign; businessName?: string | null; logos: LogoState; rewardSourceLabel: string; tiers: MembershipTier[]; previewTierIndex: number
-  catalog?: { name: string; cost: number }[]
+// Las imágenes (logo y franja de sellos / puntos / niveles / premio) son las
+// del pase REAL: las genera el backend con lo que se está editando
+// (POST …/wallet-preview, mismo código que arma el .pkpass). Acá solo va el
+// marco del pase y los campos de texto, iguales a los del pase real.
+export interface WalletPreview {
+  apple: { logo: string | null; strip: string | null }
+  google: { logo: string | null; hero: string | null }
+  meta: { stampsText?: string; points?: number; tierName?: string; perk?: string }
+}
+
+function solidBg(design: CardDesign, activeTier?: MembershipTier) {
+  return design.type === 'membership' && activeTier ? activeTier.bg : design.color
+}
+
+function RealPassPreview({ design, images, rewardLabel, tiers, previewTierIndex }: {
+  design: CardDesign; images: WalletPreview | null; rewardLabel: string; tiers: MembershipTier[]; previewTierIndex: number
 }) {
-  // Puntos: saldo de ejemplo entre el primer y el segundo premio, para que
-  // se vean marcas llenas y huecas.
-  const ptsCosts = Array.from(new Set(catalog.map(c => c.cost).filter(c => c > 0))).sort((a, b) => a - b)
-  const ptsMax = ptsCosts[ptsCosts.length - 1] || 0
-  const ptsBal = !ptsMax ? 120 : ptsCosts.length >= 2 ? Math.round((ptsCosts[0] + ptsCosts[1]) / 2) : Math.round(ptsMax * 0.6)
-  const stamps = Array.from({ length: design.stampsRequired }, (_: unknown, i: number) => i < 3)
   const activeTier = tiers[previewTierIndex] || tiers[0]
-
-  // Membresía: el pase real usa el fondo del nivel del cliente (bg) y su
-  // color para el texto — los niveles reales de la tarjeta (Premios).
-  const bgGrad = design.type === 'membership' && activeTier
-    ? activeTier.bg
-    : `linear-gradient(170deg, ${design.color}, ${design.secondColor})`
-  if (design.type === 'membership' && activeTier) design = { ...design, textColor: activeTier.color }
-
+  const tc = design.type === 'membership' && activeTier ? activeTier.color : (design.textColor || '#FFFFFF')
+  const second = design.type === 'stamp' ? { label: 'PREMIO', value: rewardLabel }
+    : design.type === 'points' ? { label: 'VISITAS', value: '14' } : null
   return (
-    <div className="dt-real-pass" style={{ background: bgGrad }}>
+    <div className="dt-real-pass" style={{ background: solidBg(design, activeTier) }}>
       <div className="dt-real-pass-top">
-        {logos.businessLogo
-          ? <img src={logos.businessLogo} className="dt-real-pass-logo-img" alt="logo" />
-          : <div className="dt-real-pass-logo-text" style={{ color: design.textColor || '#FFFFFF' }}>{(businessName || design.name).toUpperCase()}</div>
-        }
+        {images?.apple.logo ? <img src={images.apple.logo} className="dt-real-pass-logo-real" alt="" /> : <div className="dt-skel-logo" />}
       </div>
-
-      {design.type === 'stamp' && (
-        <div className="dt-real-pass-grid">
-          {stamps.map((filled: boolean, i: number) => (
-            <div key={i} className="dt-real-pass-cell">
-              {filled
-                ? logos.earnedIcon ? <img src={logos.earnedIcon} className="dt-real-pass-icon-img" alt="" /> : <div className="dt-real-pass-icon-default dt-real-pass-icon-filled" />
-                : logos.emptyIcon  ? <img src={logos.emptyIcon}  className="dt-real-pass-icon-img dt-real-pass-icon-img--empty" alt="" /> : <div className="dt-real-pass-icon-default dt-real-pass-icon-empty" />
-              }
-            </div>
-          ))}
-        </div>
-      )}
-
-      {design.type === 'membership' && tiers.length > 0 && (() => {
-        // Misma geometría que el strip del pase real (buildMembershipLadderStrip):
-        // columnas iguales, línea de un centro al otro, todo en el color de
-        // texto del nivel (es el que se lee sobre su fondo).
-        const c = activeTier.color || '#FFFFFF'
-        const n = tiers.length
-        const next = tiers[previewTierIndex + 1]
-        const pct = n > 1 ? (previewTierIndex / (n - 1)) * 100 : 0
-        return (
-          <div className="dt-ladder" style={{ color: c }}>
-            <div className="dt-ladder-steps" style={{ gridTemplateColumns: `repeat(${n}, 1fr)` }}>
-              <div className="dt-ladder-track" style={{ left: `${50 / n}%`, right: `${50 / n}%` }}>
-                <div className="dt-ladder-fill" style={{ width: `${pct}%` }} />
-              </div>
-              {tiers.map((tier, i) => (
-                <div key={tier.id} className={`dt-ladder-step${i < previewTierIndex ? ' is-done' : ''}${i === previewTierIndex ? ' is-on' : ''}`}>
-                  <span className="dt-ladder-dot" />
-                  <span className="dt-ladder-name">{tier.name}</span>
-                </div>
-              ))}
-            </div>
-            <div className="dt-ladder-caption">
-              {next ? `${Math.max((next.threshold || 0) - (activeTier.threshold || 0), 1)} visitas para ${next.name}` : 'Nivel máximo'}
-            </div>
-          </div>
-        )
-      })()}
-
-      {design.type === 'points' && (
-        <div className="dt-real-pass-points-area">
-          <div className="dt-real-pass-points-row">
-            <div className="dt-real-pass-points-icon">
-              {logos.pointsIcon
-                ? <img src={logos.pointsIcon} className="dt-real-pass-icon-img" alt="" />
-                : <div className="dt-real-pass-icon-default dt-real-pass-icon-filled" />
-              }
-            </div>
-            <div className="dt-real-pass-points-num" style={{ color: design.textColor || '#FFFFFF' }}>{ptsBal}</div>
-          </div>
-          {(() => {
-            // Igual que el pase real: barra de 0 al premio más caro, una marca
-            // por premio (llena = ya le alcanza).
-            const tc = design.textColor || '#FFFFFF'
-            const costs = ptsCosts, max = ptsMax, bal = ptsBal
-            const next = catalog.filter(c => c.cost > bal).sort((a, b) => a.cost - b.cost)[0]
-            const ready = costs.filter(c => c <= bal).length
-            const caption = !max ? 'Cargá premios en Premios para ver la barra'
-              : next ? (ready ? `${ready} para canjear · ${next.cost - bal} pts al siguiente` : `${next.cost - bal} pts para ${next.name}`)
-              : '¡Ya podés canjear cualquier premio!'
-            return (<>
-              <div className="dt-pts-bar" style={{ color: tc }}>
-                <div className="dt-pts-fill" style={{ width: `${max ? Math.min(100, (bal / max) * 100) : 0}%` }} />
-                {costs.map(c => (
-                  <span key={c} className={`dt-pts-mark${c <= bal ? ' is-ok' : ''}`} style={{ left: `clamp(6px, ${(c / max) * 100}%, calc(100% - 6px))`, background: c <= bal ? tc : design.color }} />
-                ))}
-              </div>
-              <div className="dt-real-pass-points-sub" style={{ color: hexToRgba(tc, 0.7) }}>{caption}</div>
-            </>)
-          })()}
-        </div>
-      )}
-
+      {images?.apple.strip ? <img src={images.apple.strip} className="dt-real-pass-strip" alt="" /> : <div className="dt-skel-strip" />}
       <div className="dt-real-pass-info">
         <div className="dt-real-pass-info-field">
-          <div className="dt-real-pass-info-label" style={{ color: hexToRgba(design.textColor || '#FFFFFF', 0.65) }}>TITULAR</div>
-          <div className="dt-real-pass-info-val" style={{ color: design.textColor || '#FFFFFF' }}>Nombre del cliente</div>
+          <div className="dt-real-pass-info-label" style={{ color: hexToRgba(tc, 0.65) }}>TITULAR</div>
+          <div className="dt-real-pass-info-val" style={{ color: tc }}>Nombre del cliente</div>
         </div>
-        <div className="dt-real-pass-info-field">
-          <div className="dt-real-pass-info-label" style={{ color: hexToRgba(design.textColor || '#FFFFFF', 0.65) }}>
-            {design.type === 'stamp' ? 'PREMIO' : design.type === 'membership' ? 'NIVEL' : 'PRÓXIMO PREMIO'}
-          </div>
-          <div className="dt-real-pass-info-val" style={{ color: design.textColor || '#FFFFFF' }}>
-            {design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : (design.rewardField || 'Premio'))
-            : design.type === 'membership' ? activeTier.name
-            : (catalog.filter(c => c.cost > ptsBal).sort((a, b) => a.cost - b.cost)[0]?.name || (catalog.length ? '—' : 'Sin premios cargados'))}
-          </div>
-        </div>
+        {second && <div className="dt-real-pass-info-field">
+          <div className="dt-real-pass-info-label" style={{ color: hexToRgba(tc, 0.65) }}>{second.label}</div>
+          <div className="dt-real-pass-info-val" style={{ color: tc }}>{second.value}</div>
+        </div>}
       </div>
       <div className="dt-real-pass-qr-section">
         <QRCode size={90} />
@@ -393,47 +311,29 @@ function RealPassPreview({ design, businessName, logos, rewardSourceLabel, tiers
 }
 
 // ─── Google Wallet preview ────────────────────────────────────────────────────
-function GooglePreview({ design, businessName, logos, rewardSourceLabel, tiers, previewTierIndex }: {
-  design: CardDesign; businessName?: string | null; logos: LogoState; rewardSourceLabel: string; tiers: MembershipTier[]; previewTierIndex: number
+// Mismo formato que arma services/googleWalletPass.js: logo y negocio arriba,
+// nombre de la tarjeta, imagen grande, dos campos y el QR.
+function GooglePreview({ design, businessName, images, rewardLabel }: {
+  design: CardDesign; businessName?: string | null; images: WalletPreview | null; rewardLabel: string
 }) {
-  const stamps = Array.from({ length: design.stampsRequired }, (_: unknown, i: number) => i < 3)
-  const activeTier = tiers[previewTierIndex] || tiers[0]
-
-  const gBgGrad = design.type === 'membership' && activeTier
-    ? activeTier.bg
-    : `linear-gradient(135deg, ${design.color}, ${design.secondColor})`
-
+  const m = images?.meta || {}
+  const fields = design.type === 'stamp' ? [{ l: 'SELLOS', v: m.stampsText || '' }, { l: 'PREMIO', v: rewardLabel }]
+    : design.type === 'points' ? [{ l: 'VISITAS', v: '14' }]
+    : [{ l: 'NIVEL', v: m.tierName || '' }, ...(m.perk ? [{ l: 'BENEFICIO', v: m.perk }] : [])]
+  const tc = design.textColor || '#FFFFFF'
   return (
-    <div className="dt-gpass">
-      <div className="dt-gpass-hero" style={{ background: gBgGrad }}>
-        <div className="dt-gpass-logo-row">
-          {logos.businessLogo ? <img src={logos.businessLogo} className="dt-gpass-logo-img" alt="" /> : <div className="dt-gpass-logo-box" />}
-          <span className="dt-gpass-issuer">{businessName || design.name}</span>
-        </div>
-        <div className="dt-gpass-hero-title">
-          {design.type === 'stamp' ? `3 de ${design.stampsRequired} sellos`
-          : design.type === 'points' ? '120 pts'
-          : activeTier?.name || 'Nivel'}
-        </div>
+    <div className="dt-gp" style={{ background: design.color, color: tc }}>
+      <div className="dt-gp-head">
+        {images?.google.logo ? <img src={images.google.logo} className="dt-gp-logo" alt="" /> : <div className="dt-gp-logo dt-skel-dark" />}
+        <span className="dt-gp-biz">{businessName || design.name}</span>
       </div>
-      <div className="dt-gpass-body">
-        {design.type === 'stamp' && (
-          <div className="dt-gpass-stamps">
-            {stamps.map((filled: boolean, i: number) => (
-              <div key={i} className={`dt-gpass-stamp ${filled ? 'dt-gpass-stamp--filled' : 'dt-gpass-stamp--empty'}`}>
-                {filled && logos.earnedIcon && <img src={logos.earnedIcon} className="dt-gpass-stamp-img" alt="" />}
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="dt-gpass-divider" />
-        <div className="dt-gpass-info-row"><span className="dt-gpass-field-label">Titular</span><span className="dt-gpass-info-val">Nombre del cliente</span></div>
-        <div className="dt-gpass-info-row">
-          <span className="dt-gpass-field-label">{design.type === 'stamp' ? 'Premio' : design.type === 'membership' ? 'Nivel' : 'Puntos'}</span>
-          <span className="dt-gpass-info-val">{design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : (design.rewardField || 'Premio')) : design.type === 'membership' ? activeTier?.name : '120'}</span>
-        </div>
+      <div className="dt-gp-title">{design.name}</div>
+      {images?.google.hero ? <img src={images.google.hero} className="dt-gp-hero" alt="" /> : <div className="dt-gp-hero dt-skel-dark" />}
+      <div className="dt-gp-fields">
+        <div><div className="dt-gp-l">TITULAR</div><div className="dt-gp-v">Nombre del cliente</div></div>
+        {fields.map(f => <div key={f.l}><div className="dt-gp-l">{f.l}</div><div className="dt-gp-v">{f.v}</div></div>)}
       </div>
-      <div className="dt-gpass-qr-wrap"><QRCode size={60} /><div className="dt-gpass-qr-label">Powered by Stampa</div></div>
+      <div className="dt-gp-qr"><QRCode size={84} /></div>
     </div>
   )
 }
@@ -633,6 +533,27 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   }
 
   // Prize card (back face) — matches reference photo
+  // Vista previa con las imágenes reales del pase (backend), con una pequeña
+  // espera para no pedirlas en cada tecla.
+  const [walletPreview, setWalletPreview] = useState<WalletPreview | null>(null)
+  const [walletPreviewError, setWalletPreviewError] = useState(false)
+  const previewReward = card.rewardMode === 'dynamic' ? (rewardOpts.find(o => o.trim()) || 'Lo elige el cliente') : (card.rewardField || 'Premio')
+  const previewDesign = JSON.stringify({
+    name: card.name, color: card.color, secondColor: card.secondColor, textColor: card.textColor,
+    stampsRequired: card.stampsRequired, pointsPerVisit, logoUrl: logos.businessLogo, earnedIcon: logos.earnedIcon, emptyIcon: logos.emptyIcon,
+    flipImageUrl: prizeImage, flipMessage, flipSubMessage,
+  })
+  useEffect(() => {
+    if (!businessId || !card.id) return
+    let cancelled = false
+    const t = setTimeout(() => {
+      apiWalletPreview(businessId, card.id, { design: JSON.parse(previewDesign), side: card.type === 'stamp' ? previewSide : 'front', tierIndex: previewTierIndex })
+        .then(r => { if (!cancelled) { setWalletPreview(r as WalletPreview); setWalletPreviewError(false) } })
+        .catch(() => { if (!cancelled) setWalletPreviewError(true) })
+    }, 350)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [businessId, card.id, card.type, previewDesign, previewSide, previewTierIndex])
+
   const PrizeCard = (
     <div className="dt-prize-pass" style={{ background: `linear-gradient(170deg, ${card.color}, ${card.secondColor})` }}>
       {/* Top message */}
@@ -669,7 +590,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
         )}
         <div className="dt-platform-switch">
           <button className={`dt-platform-btn${platform === 'real' ? ' dt-platform-btn--on' : ''}`} onClick={() => setPlatform('real')}>Apple Wallet</button>
-          <button className={`dt-platform-btn${platform === 'google' ? ' dt-platform-btn--on' : ''}`} onClick={() => setPlatform('google')}>Google Wallet · Próximamente</button>
+          <button className={`dt-platform-btn${platform === 'google' ? ' dt-platform-btn--on' : ''}`} onClick={() => setPlatform('google')}>Google Wallet</button>
         </div>
 
         {card.type === 'membership' && (
@@ -685,17 +606,18 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
         )}
 
         <div className={`dt-pass-flip-wrap${isFlipping ? ' dt-pass-flip-wrap--flipping' : ''}`}>
-          {card.type === 'stamp' && previewSide === 'prize'
+          {/* Cara principal y cara del premio: mismo pase, con la imagen
+              real que corresponde (la del premio se ve al completar la tarjeta). */}
+          {!walletPreview && walletPreviewError && card.type === 'stamp' && previewSide === 'prize'
             ? PrizeCard
             : platform === 'real'
-              ? <RealPassPreview design={card} businessName={businessName} logos={logos} rewardSourceLabel={rewardSourceLabel} tiers={tiers} previewTierIndex={previewTierIndex} catalog={catalog} />
-              : <GooglePreview  design={card} businessName={businessName} logos={logos} rewardSourceLabel={rewardSourceLabel} tiers={tiers} previewTierIndex={previewTierIndex} />
+              ? <RealPassPreview design={card} images={walletPreview} rewardLabel={previewReward} tiers={tiers} previewTierIndex={previewTierIndex} />
+              : <GooglePreview design={card} businessName={businessName} images={walletPreview} rewardLabel={previewReward} />
           }
         </div>
         <div className="dt-preview-note">
-          {card.type === 'stamp' && previewSide === 'prize'
-            ? t('dt_preview' as any)
-            : platform === 'real' ? t('dt_apple_note' as any) : 'Google Wallet todavía no está disponible: por ahora tus clientes con Android usan el código QR que reciben al registrarse. Así se va a ver cuando lo sumemos.'}
+          {walletPreviewError ? 'No pudimos actualizar la vista previa. Revisá tu conexión.'
+            : platform === 'real' ? 'Así se ve en el iPhone de tus clientes, con un cliente de ejemplo.' : 'Así se ve en Google Wallet (Android), con un cliente de ejemplo.'}
         </div>
       </div>
     </div>
@@ -836,11 +758,6 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           {/* POINTS: configuration */}
           {card.type === 'points' && (
             <>
-              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Ícono de puntos</div>
-              <div className="dt-logo-row">
-                <LogoUpload label="Ícono de puntos" hint="Ej: una moneda" value={logos.pointsIcon} onChange={setLogo('pointsIcon')} />
-              </div>
-
               <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Configuración de puntos</div>
               <div className="dt-points-config">
                 <div className="dt-points-row">
@@ -1506,6 +1423,23 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-preview-note{font-size:11px;color:rgba(43,38,32,.4);text-align:center;margin-top:16px;}
         /* Real pass */
         .dt-real-pass{width:300px;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(43,38,32,.25);}
+        /* Imágenes reales del pase (backend): logo 160×50 pt y franja 375×144 pt, en proporción al ancho del pase. */
+        .dt-real-pass-logo-real{display:block;width:47%;height:auto;}
+        .dt-real-pass-strip{display:block;width:100%;height:auto;}
+        .dt-skel-logo{width:47%;aspect-ratio:160/50;border-radius:8px;background:rgba(255,255,255,.18);}
+        .dt-skel-strip{width:100%;aspect-ratio:375/144;background:rgba(255,255,255,.12);}
+        .dt-skel-dark{background:rgba(255,255,255,.18);}
+        .dt-gp{width:300px;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(43,38,32,.25);font-family:'Roboto','Inter',sans-serif;}
+        .dt-gp-head{display:flex;align-items:center;gap:10px;padding:16px 18px 6px;}
+        .dt-gp-logo{width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+        .dt-gp-biz{font-size:13px;font-weight:500;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .dt-gp-title{font-size:20px;font-weight:500;padding:4px 18px 14px;line-height:1.2;}
+        .dt-gp-hero{display:block;width:100%;aspect-ratio:1032/336;height:auto;}
+        .dt-gp-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:10px;padding:14px 18px 4px;}
+        .dt-gp-l{font-size:10px;letter-spacing:.06em;opacity:.75;}
+        .dt-gp-v{font-size:14px;margin-top:2px;overflow-wrap:anywhere;}
+        .dt-gp-qr{display:flex;justify-content:center;padding:14px 0 20px;}
+        .dt-gp-qr > *{background:#fff;border-radius:10px;padding:8px;}
         .dt-real-pass-top{padding:24px 24px 12px;}
         .dt-real-pass-logo-img{max-height:40px;max-width:180px;object-fit:contain;}
         .dt-real-pass-logo-text{font-size:24px;font-weight:900;color:#FFFFFF;letter-spacing:-.02em;line-height:1;}
@@ -1540,15 +1474,16 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-ladder-step.is-on .dt-ladder-name{font-weight:800;opacity:1;}
         .dt-ladder-caption{margin:14px auto 0;width:max-content;max-width:100%;font-size:11px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid currentColor;opacity:.9;}
         .dt-real-pass-points-area{padding:8px 24px 20px;}
-        .dt-real-pass-points-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+        .dt-real-pass-points-row{display:flex;align-items:baseline;gap:6px;margin-bottom:10px;}
+        .dt-real-pass-points-unit{font-size:15px;font-weight:700;}
         .dt-real-pass-points-icon{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
-        .dt-real-pass-points-num{font-size:32px;font-weight:800;color:#FFFFFF;}
+        .dt-real-pass-points-num{font-size:36px;font-weight:800;line-height:1;}
         .dt-pts-bar{position:relative;height:6px;margin:4px 0 10px;}
         .dt-pts-bar::before{content:'';position:absolute;inset:0;border-radius:3px;background:currentColor;opacity:.22;}
         .dt-pts-fill{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:currentColor;}
         .dt-pts-mark{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);box-sizing:border-box;border:2px solid currentColor;}
         .dt-pts-mark.is-ok{border:none;}
-        .dt-real-pass-points-sub{font-size:10px;color:rgba(255,255,255,.6);}
+        .dt-real-pass-points-sub{font-size:11px;}
         .dt-real-pass-info{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 24px 20px;}
         .dt-real-pass-info-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.65);font-weight:600;margin-bottom:4px;}
         .dt-real-pass-info-val{font-size:16px;font-weight:700;color:#FFFFFF;}

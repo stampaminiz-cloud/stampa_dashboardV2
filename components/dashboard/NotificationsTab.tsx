@@ -4,13 +4,13 @@ import React, { useState, useEffect, useRef } from 'react'
 import { usePlan } from '@/data/plans'
 import { BASE_URL, apiGetTiers } from '@/lib/api'
 
-// Notificaciones: se mandan al Wallet del cliente (hoy Apple Wallet; Google
-// Wallet todavía no). El límite del plan cuenta ENVÍOS (campañas), no
+// Notificaciones: se mandan al Wallet del cliente (Apple Wallet y Google
+// Wallet; Google limita cuántos avisos muestra por tarjeta y por día). El límite del plan cuenta ENVÍOS (campañas), no
 // destinatarios. Todo lo que cuenta y filtra lo hace el backend
 // (services/broadcast.js); acá se arma el envío y se muestra el alcance real.
 
 type BaseAudience = 'all' | 'active' | 'inactive' | 'near' | 'ready'
-type Audience = BaseAudience | 'card' | 'tier' | 'answer' | 'customers'
+type Audience = BaseAudience | 'card' | 'tier' | 'answer' | 'customers' | 'location'
 interface AnswerField { fieldId: string; label: string; cardName: string; options: string[] }
 interface Reach { total: number; reachable: number }
 interface HistoryItem { message: string; audience: string; audienceLabel?: string | null; sentCount: number; recipients?: number | null; sentAt: string }
@@ -27,7 +27,7 @@ const BASE: { key: BaseAudience; label: string; desc: (d: number) => string; sta
 ]
 const AUD_LABEL: Record<string, string> = {
   all: 'Todos', active: 'Activos', inactive: 'Inactivos', near: 'Cerca del premio', ready: 'Premio para entregar',
-  card: 'Por tarjeta', tier: 'Por nivel', answer: 'Por respuesta', customers: 'Clientes puntuales',
+  card: 'Por tarjeta', tier: 'Por nivel', answer: 'Por respuesta', customers: 'Clientes puntuales', location: 'Por sucursal',
 }
 
 function fmtDateTime(d: string | number) {
@@ -85,7 +85,8 @@ function Lock() {
   return <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
 }
 
-export function NotificationsTab({ businessId, cards = [], businessName, inactiveDays = 60, isManager = false, onChoosePlan }: {
+export function NotificationsTab({ businessId, cards = [], businessName, inactiveDays = 60, isManager = false, onChoosePlan, selectedLocationId = null }: {
+  selectedLocationId?: string | null
   businessId?: string | null
   cards?: any[]
   businessName: string
@@ -108,6 +109,8 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
   const [failedScheduled, setFailedScheduled] = useState<Array<{ message: string; scheduledAt: string; error: string }>>([])
   const [reach, setReach] = useState<Record<string, Reach>>({})
   const [answerFields, setAnswerFields] = useState<AnswerField[]>([])
+  // Sucursales habilitadas (solo llegan con 2+, en Pro o Enterprise).
+  const [locationOpts, setLocationOpts] = useState<{ id: string; name: string }[]>([])
   const [used, setUsed] = useState(0)
   const [monthlyLimit, setMonthlyLimit] = useState(limit('monthlyNotifs'))
 
@@ -116,7 +119,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
     const path = `/api/businesses/${businessId}/notifications`
     const apply = (d: any) => {
       setHistory(d.history || []); setScheduled(d.scheduled || []); setFailedScheduled(d.failedScheduled || [])
-      setReach(d.reach || {}); setAnswerFields(d.answerFields || []); setUsed(d.sentThisMonth || 0); setMonthlyLimit(d.monthlyLimit ?? limit('monthlyNotifs'))
+      setReach(d.reach || {}); setAnswerFields(d.answerFields || []); setLocationOpts(d.locations || []); setUsed(d.sentThisMonth || 0); setMonthlyLimit(d.monthlyLimit ?? limit('monthlyNotifs'))
     }
     // Lo guardado (o precargado por Inicio) aparece al instante (lib/cache).
     const cached = readCache<any>(path)
@@ -143,6 +146,8 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
   const [answer, setAnswer] = useState('')
   const answerField = answerFields.find(f => f.fieldId === answerFieldId) || answerFields[0]
   const [picked, setPicked] = useState<Picked[]>([])
+  const [locId, setLocId] = useState('')
+  const locPick = locationOpts.find(l => l.id === locId) || locationOpts[0]
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<Picked[]>([])
   const [searching, setSearching] = useState(false)
@@ -164,15 +169,15 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
   const reachTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     setParamReach(null)
-    if (!businessId || !['card', 'tier', 'answer', 'customers'].includes(audience)) return
+    if (!businessId || !['card', 'tier', 'answer', 'customers', 'location'].includes(audience)) return
     const body = audienceBody()
-    if ((audience === 'card' && !cardId) || (audience === 'tier' && !tierName) || (audience === 'answer' && !(answerField && answer)) || (audience === 'customers' && !picked.length)) return
+    if ((audience === 'card' && !cardId) || (audience === 'tier' && !tierName) || (audience === 'answer' && !(answerField && answer)) || (audience === 'customers' && !picked.length) || (audience === 'location' && !locPick)) return
     if (reachTimer.current) clearTimeout(reachTimer.current)
     reachTimer.current = setTimeout(() => {
       fetch(`${BASE_URL}/api/businesses/${businessId}/notifications/reach`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(body) })
         .then(r => r.ok ? r.json() : null).then(d => setParamReach(d)).catch(() => {})
     }, 250)
-  }, [audience, cardId, tierCardId, tierName, answerFieldId, answer, picked, businessId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [audience, cardId, tierCardId, tierName, answerFieldId, answer, picked, businessId, locPick?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Buscador de clientes puntuales
   useEffect(() => {
@@ -193,13 +198,14 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
     if (audience === 'tier') return { audience, cardId: tierCardId, tierName }
     if (audience === 'answer') return { audience, fieldId: answerField?.fieldId, answer }
     if (audience === 'customers') return { audience, customerIds: picked.flatMap(p => p.ids) }
+    if (audience === 'location') return { audience, locationId: locPick?.id }
     return { audience }
   }
 
-  const currentReach: Reach | null = ['card', 'tier', 'answer', 'customers'].includes(audience) ? paramReach : reach[audience] || null
+  const currentReach: Reach | null = ['card', 'tier', 'answer', 'customers', 'location'].includes(audience) ? paramReach : reach[audience] || null
   const unlimited = monthlyLimit >= 999999
   const atLimit = !unlimited && used >= monthlyLimit
-  const audienceReady = audience === 'card' ? !!cardId : audience === 'tier' ? !!tierName : audience === 'answer' ? !!(answerField && answer) : audience === 'customers' ? picked.length > 0 : true
+  const audienceReady = audience === 'card' ? !!cardId : audience === 'tier' ? !!tierName : audience === 'answer' ? !!(answerField && answer) : audience === 'customers' ? picked.length > 0 : audience === 'location' ? !!locPick : true
 
   async function send() {
     if (!businessId || !message.trim() || busy) return
@@ -273,7 +279,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
             <span className="nt-aud-desc">{desc}</span>
           </span>
           {!locked && r && (
-            <span className="nt-aud-count" title={`${r.reachable} de ${r.total} tienen la tarjeta en Apple Wallet`}>
+            <span className="nt-aud-count" title={`${r.reachable} de ${r.total} tienen la tarjeta en Apple Wallet o Google Wallet`}>
               {r.reachable}<small>/{r.total}</small>
             </span>
           )}
@@ -305,6 +311,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
         .nt-char{text-align:right;font-size:10.5px;color:rgba(43,38,32,.4);margin:4px 0 14px;}
         .nt-char--warn{color:#C75D3A;font-weight:600;}
         .nt-field{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.45);font-weight:700;margin-bottom:8px;}
+        .nt-loc-hint{display:block;width:100%;text-align:left;font-size:12.5px;font-weight:600;color:#A9472A;background:rgba(199,93,58,.08);border:1px dashed rgba(199,93,58,.4);border-radius:10px;padding:9px 12px;margin-bottom:8px;cursor:pointer;font-family:'Inter',sans-serif;}
         .nt-auds{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
         .nt-aud{border:1.5px solid rgba(43,38,32,.1);border-radius:11px;transition:border-color .15s;}
         .nt-aud--on{border-color:#C75D3A;background:rgba(199,93,58,.04);}
@@ -402,6 +409,17 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
             <div className={`nt-char${message.length > MAX_CHARS * 0.8 ? ' nt-char--warn' : ''}`}>{message.length} / {MAX_CHARS}</div>
 
             <div className="nt-field">A quién</div>
+            {/* Parado en una sucursal: la audiencia sigue en "Todos" (para no
+                mandar sin querer a un solo local), con un atajo a esa sucursal. */}
+            {(() => {
+              const here = locationOpts.find(l => l.id === selectedLocationId)
+              if (!loaded || !here || (audience === 'location' && locPick?.id === here.id)) return null
+              return (
+                <button type="button" className="nt-loc-hint" onClick={() => { setLocId(here.id); setAudience('location') }}>
+                  Estás viendo {here.name}. ¿Mandar solo a clientes de {here.name}? →
+                </button>
+              )
+            })()}
             <div className="nt-auds">
               {!loaded
                 ? [0, 1, 2].map(i => <div key={i} className="nt-skel" style={{ height: 50 }} />)
@@ -443,6 +461,13 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
                         </div>
                       ) })
                     )}
+                    {locationOpts.length >= 2 && audienceRow({ k: 'location', label: 'Por sucursal', desc: 'Los que se registraron o sellaron en esa sucursal (ej: "Hoy 2x1 en Playa")', children: (
+                      <div className="nt-row">
+                        <select className="nt-select" value={locPick?.id || ''} onChange={e => setLocId(e.target.value)} aria-label="Sucursal">
+                          {locationOpts.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                        </select>
+                      </div>
+                    ) })}
                     {audienceRow({ k: 'customers', label: 'Clientes puntuales', desc: 'Elegí a quién: cumpleaños, clientes VIP, una respuesta', locked: !canIndividual, lockText: 'Pro', children: (<>
                       <input className="nt-input" placeholder="Buscar por nombre o email…" value={search} onChange={e => setSearch(e.target.value)} />
                       {search.trim().length >= 2 && (
@@ -489,11 +514,11 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
               </button>
             </div>
             {sendType === 'now' && currentReach?.reachable === 0 && audienceReady && loaded && (
-              <div className="nt-hint" style={{ marginTop: 8 }}>Nadie de esta audiencia tiene la tarjeta en Apple Wallet todavía.</div>
+              <div className="nt-hint" style={{ marginTop: 8 }}>Nadie de esta audiencia tiene la tarjeta en Apple Wallet o Google Wallet todavía.</div>
             )}
             {feedback && <div className={`nt-feedback nt-feedback--${feedback.ok ? 'ok' : 'err'}`}>{feedback.text}</div>}
             <div className="nt-wallet-note">
-              El número de cada audiencia es <strong>a cuántos les llega / cuántos son</strong>: la notificación llega a quienes guardaron la tarjeta en Apple Wallet. Google Wallet: próximamente.
+              El número de cada audiencia es <strong>a cuántos les llega / cuántos son</strong>: la notificación llega a quienes guardaron la tarjeta en Apple Wallet o Google Wallet. En Android, Google limita cuántos avisos muestra por tarjeta en el día.
             </div>
           </div>
 

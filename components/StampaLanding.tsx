@@ -35,7 +35,7 @@ const PROGRAM_TYPES = [
 
 const STEPS = [
   { n: '01', title: 'Creás tu tarjeta', desc: 'Elegís el formato — sellos, puntos o membresía — y la personalizás con tu marca en minutos, sin saber programar.' },
-  { n: '02', title: 'El cliente la guarda en su wallet', desc: 'Con un link o un QR, la tarjeta queda guardada en Apple Wallet (Google Wallet, muy pronto). No hay que descargar ninguna app.' },
+  { n: '02', title: 'El cliente la guarda en su wallet', desc: 'Con un link o un QR, la tarjeta queda guardada en Apple Wallet o Google Wallet. No hay que descargar ninguna app.' },
   { n: '03', title: 'Cada visita suma', desc: 'Escaneás con la app de Stampa y el sello, punto o beneficio se actualiza al instante en el teléfono del cliente.' },
 ];
 
@@ -46,7 +46,7 @@ const HERO_FEATURE = {
 
 const LIST_FEATURES = [
   { mark: 'S/P', title: 'Sellos, puntos o membresía', desc: 'Elegí el formato que mejor se adapta a tu negocio.' },
-  { mark: 'W', title: 'En Apple Wallet', desc: 'Tu tarjeta vive donde tu cliente ya vive. Google Wallet, muy pronto.' },
+  { mark: 'W', title: 'En Apple Wallet y Google Wallet', desc: 'Tu tarjeta vive donde tu cliente ya vive, en iPhone y en Android.' },
   { mark: 'N', title: 'Notificaciones segmentadas', desc: 'A todos, a los inactivos, a los que están cerca del premio o según lo que respondieron.' },
   { mark: 'R', title: 'Reglas automáticas', desc: 'Días con sello doble, regalo de cumpleaños y vencimiento por inactividad, con aviso.' },
   { mark: '0', title: 'Sin app para el cliente', desc: 'Cero fricción, cero descarga.' },
@@ -93,7 +93,7 @@ const RAW_PLANS = [
 ];
 
 const FAQ_DATA = [
-  { q: '¿Mis clientes necesitan descargar una app?', a: 'No. La tarjeta de fidelización vive directamente en Apple Wallet, que ya viene instalada en el iPhone. Nada que descargar, nada que crear cuenta. Google Wallet llega muy pronto.' },
+  { q: '¿Mis clientes necesitan descargar una app?', a: 'No. La tarjeta de fidelización vive directamente en Apple Wallet o en Google Wallet, que ya vienen en el teléfono. Nada que descargar, nada que crear cuenta.' },
   { q: '¿Cómo escaneo la tarjeta de mis clientes?', a: 'Con la app de escaneo de Stampa. Tu equipo entra con un PIN y vos con tu email. Escaneás el código de la tarjeta (o buscás al cliente por nombre) y el sello, punto o visita se actualiza al instante en su Wallet.' },
   { q: '¿Cuánto tarda en configurarse?', a: 'Menos de 15 minutos. Elegís el formato de tu tarjeta (sellos, puntos o membresía), la personalizás con tu marca y ya podés compartirla con tus clientes.' },
   { q: '¿Necesito tarjeta de crédito para probar?', a: 'No. Los 14 días de prueba gratuita no piden tarjeta de crédito. Solo pagás si decidís continuar con un plan pago.' },
