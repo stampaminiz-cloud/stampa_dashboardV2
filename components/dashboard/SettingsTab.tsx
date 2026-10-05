@@ -6,8 +6,7 @@ import { useLang } from '@/data/i18n'
 import { InfoTooltip } from './InfoTooltip'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { ProgramRules, type RulesCard, type BirthdayRule } from './ProgramRules'
-import { LocationsSection } from './LocationsSection'
-import type { LocationsResponse } from '@/lib/location'
+import type { Location } from '@/lib/location'
 
 interface BusinessAlerts { newCustomer?: boolean; nearPrize: boolean; weeklyDigest: boolean; suspicious?: boolean }
 interface BusinessSettings {
@@ -286,7 +285,7 @@ function CheckboxRow({ label, checked: init, description, onToggle }: { label: s
   )
 }
 
-export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', pendingEmail = null, deletionRequestedAt = null, onSave, isManager = false, billing = null, onChoosePlan, onCancelSubscription, cards = [], birthday = { enabled: false, gift: '' }, onCardsChanged, onLocationsChanged }: { onLocationsChanged?: (r: LocationsResponse) => void; cards?: RulesCard[]; birthday?: BirthdayRule; onCardsChanged?: () => void; business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; pendingEmail?: string | null; deletionRequestedAt?: string | null; onSave?: () => void; isManager?: boolean; billing?: BillingStatus | null; onChoosePlan?: () => void; onCancelSubscription?: () => Promise<void> }) {
+export function SettingsTab({ business: mockBusiness, businessId, ownerName = '', ownerEmail = '', pendingEmail = null, deletionRequestedAt = null, onSave, isManager = false, billing = null, onChoosePlan, onCancelSubscription, cards = [], birthday = { enabled: false, gift: '' }, onCardsChanged, locations = [], onOpenLocations }: { locations?: Location[]; onOpenLocations?: () => void; cards?: RulesCard[]; birthday?: BirthdayRule; onCardsChanged?: () => void; business: BusinessSettings; businessId?: string; ownerName?: string; ownerEmail?: string; pendingEmail?: string | null; deletionRequestedAt?: string | null; onSave?: () => void; isManager?: boolean; billing?: BillingStatus | null; onChoosePlan?: () => void; onCancelSubscription?: () => Promise<void> }) {
   const t = useLang()
   const [business, setBusiness]       = useState(mockBusiness)
   const [inactiveDays, setInactiveDays] = useState(mockBusiness.inactiveDays)
@@ -482,10 +481,13 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
             </select>
             {msgFor('timezone')}
           </FieldRow>
-        </Section>
-
-        <Section title="Sucursales" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>}>
-          <LocationsSection businessId={businessId} plan={business.plan} isManager={isManager} onChoosePlan={onChoosePlan} onChanged={onLocationsChanged} />
+          {/* Sucursales: solo informativo; se administran en su pestaña. */}
+          <FieldRow label="Sucursales">
+            <span className="st-field-val">
+              {(() => { const n = locations.filter(l => l.status === 'active').length; return n > 1 ? `${n} activas` : n === 1 ? '1 (la principal)' : '—' })()}
+            </span>
+            {onOpenLocations && <button className="st-edit-link" onClick={onOpenLocations}>Administrar</button>}
+          </FieldRow>
         </Section>
 
         <Section title="Seguridad" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}>

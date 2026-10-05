@@ -18,6 +18,9 @@ const CSS = `
   .rg-header-icon img { width: 100%; height: 100%; object-fit: contain; border-radius: 14px; }
   .rg-header-name { font-family: var(--font-display); font-weight: 700; font-size: 19px; margin-bottom: 4px; overflow-wrap: break-word; word-break: break-word; }
   .rg-header-sub { font-size: 12.5px; opacity: .8; line-height: 1.4; }
+  .rg-hours { margin-top: 10px; font-size: 11.5px; opacity: .85; line-height: 1.5; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; }
+  .rg-open { font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.18); }
+  .rg-open--on { background: rgba(255,255,255,.3); }
   .rg-header-badge { display: inline-block; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; background: rgba(255,255,255,.16); padding: 4px 10px; border-radius: 20px; margin-top: 10px; }
 
   .rg-field { margin-bottom: 14px; }
@@ -75,6 +78,7 @@ export default function PublicRegisterPage() {
   const [loading, setLoading] = useState(true)
   const [fatalError, setFatalError] = useState('')
   const [businessName, setBusinessName] = useState('')
+  const [hours, setHours] = useState<{ name: string | null; hours: string; openNow: boolean | null } | null>(null)
   const [whiteLabel, setWhiteLabel] = useState(false)
   const [cards, setCards] = useState<PublicCard[]>([])
   const [selectedCard, setSelectedCard] = useState<PublicCard | null>(null)
@@ -97,9 +101,10 @@ export default function PublicRegisterPage() {
 
   useEffect(() => {
     if (!businessId) return
-    apiGetPublicBusiness(businessId)
+    apiGetPublicBusiness(businessId, new URLSearchParams(window.location.search).get('s'))
       .then(res => {
         setBusinessName(res.business.name)
+        setHours(res.location || null)
         setRealBusinessId(String(res.business.id))
         document.title = `${res.business.name} · Tarjeta de beneficios`
         setWhiteLabel(!!res.whiteLabel)
@@ -201,6 +206,12 @@ export default function PublicRegisterPage() {
                     : 'Completá tus datos para obtener tu tarjeta'}
                 </div>
                 {selectedCard && <div className="rg-header-badge">{selectedCard.name}</div>}
+                {hours && !result && (
+                  <div className="rg-hours">
+                    {hours.openNow != null && <span className={`rg-open${hours.openNow ? ' rg-open--on' : ''}`}>{hours.openNow ? 'Abierto ahora' : 'Cerrado ahora'}</span>}
+                    <span>{hours.name ? `${hours.name}: ` : ''}{hours.hours}</span>
+                  </div>
+                )}
               </div>
 
               <div className="rg-body">

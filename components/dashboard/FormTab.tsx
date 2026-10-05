@@ -3,6 +3,7 @@ import { CardSwitcher } from '@/components/ui/CardSwitcher'
 import { readCache } from '@/lib/cache'
 import React, { useState, useEffect, useMemo } from 'react'
 import QRCode from 'qrcode'
+import type { Location } from '@/lib/location'
 import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields } from '@/lib/api'
 import { usePlan } from '@/data/plans'
 
@@ -135,9 +136,16 @@ function download(url: string, name: string) {
   document.body.appendChild(a); a.click(); a.remove()
 }
 
-function Share({ businessName, slug, card, whiteLabel }: { businessName: string; slug?: string; card?: CardInfo; whiteLabel: boolean }) {
+function Share({ businessName, slug, card, whiteLabel, locations = [], selectedLocationId = null }: { businessName: string; slug?: string; card?: CardInfo; whiteLabel: boolean; locations?: Location[]; selectedLocationId?: string | null }) {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const link = slug ? `${origin}/r/${slug}` : ''
+  const generalLink = slug ? `${origin}/r/${slug}` : ''
+  // Multilocal: un QR por sucursal (el de la principal es el link general).
+  // Los clientes que se registran con el QR de una sucursal quedan como
+  // clientes de esa sucursal. Arranca en la sucursal elegida en la barra lateral.
+  const qrLocs = locations.filter(l => l.status === 'active')
+  const [qrLocId, setQrLocId] = useState<string>(() => (qrLocs.find(l => l.id === selectedLocationId) || qrLocs.find(l => l.isPrimary))?.id || '')
+  const qrLoc = qrLocs.length >= 2 ? qrLocs.find(l => l.id === qrLocId) || null : null
+  const link = qrLoc && !qrLoc.isPrimary && generalLink ? `${generalLink}?s=${qrLoc.id}` : generalLink
   const shortLink = link.replace(/^https?:\/\//, '')
   const [qr, setQr] = useState<string>('')
   const [copied, setCopied] = useState(false)
@@ -149,7 +157,7 @@ function Share({ businessName, slug, card, whiteLabel }: { businessName: string;
   }, [link])
 
   async function copy() {
-    try { await navigator.clipboard.writeText(link) } catch { /* sin permiso: igual queda seleccionable */ }
+    try { await navigator.clipboard.writeText(generalLink) } catch { /* sin permiso: igual queda seleccionable */ }
     setCopied(true); setTimeout(() => setCopied(false), 2200)
   }
 
@@ -187,9 +195,9 @@ function Share({ businessName, slug, card, whiteLabel }: { businessName: string;
       if (qrImg) g.drawImage(qrImg, W / 2 - 330, 830, 660, 660)
       g.fillStyle = 'rgba(43,38,32,.75)'; g.font = '500 42px Inter, sans-serif'
       g.fillText('Escaneá con la cámara de tu celular', W / 2, 1570)
-      g.fillStyle = color; g.font = '700 40px Inter, sans-serif'; g.fillText(shortLink, W / 2, 1635)
+      g.fillStyle = color; g.font = '700 40px Inter, sans-serif'; g.fillText(qrLoc && !qrLoc.isPrimary ? `${shortLink.split('?')[0]} · ${qrLoc.name}` : shortLink, W / 2, 1635)
       if (!whiteLabel) { g.fillStyle = 'rgba(43,38,32,.35)'; g.font = '600 28px Inter, sans-serif'; g.fillText('Powered by Stampa', W / 2, 1712) }
-      download(c.toDataURL('image/png'), `cartel-${slug}.png`)
+      download(c.toDataURL('image/png'), `cartel-${slug}${qrLoc && !qrLoc.isPrimary ? `-${qrLoc.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : ''}.png`)
     } finally {
       setMaking(false)
     }
@@ -201,19 +209,26 @@ function Share({ businessName, slug, card, whiteLabel }: { businessName: string;
         <div className="fm-card-title">Link del formulario</div>
         <div className="fm-card-sub">Compartilo por WhatsApp, en la bio de Instagram o donde quieras</div>
         <div className="fm-link-row">
-          <div className="fm-link-box" title={link}>{shortLink || '—'}</div>
-          <button className={`fm-copy${copied ? ' fm-copy--done' : ''}`} onClick={copy} disabled={!link}>{copied ? '✓ Copiado' : 'Copiar'}</button>
+          <div className="fm-link-box" title={generalLink}>{generalLink.replace(/^https?:\/\//, '') || '—'}</div>
+          <button className={`fm-copy${copied ? ' fm-copy--done' : ''}`} onClick={copy} disabled={!generalLink}>{copied ? '✓ Copiado' : 'Copiar'}</button>
         </div>
-        {link && <a className="fm-open" href={link} target="_blank" rel="noreferrer">Abrir el formulario ↗</a>}
+        {generalLink && <a className="fm-open" href={generalLink} target="_blank" rel="noreferrer">Abrir el formulario ↗</a>}
       </div>
       <div className="fm-card fm-qr-card">
         <div className="fm-qr">{qr ? <img src={qr} alt="QR del formulario" /> : <div className="fm-skel" style={{ width: 132, height: 132 }} />}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="fm-card-title">QR y cartel</div>
           <div className="fm-card-sub">Para el mostrador, la vidriera o las mesas</div>
+          {qrLocs.length >= 2 && (
+            <label className="fm-qr-loc">QR de
+              <select value={qrLoc?.id || ''} onChange={e => setQrLocId(e.target.value)} aria-label="Sucursal del QR">
+                {qrLocs.map(l => <option key={l.id} value={l.id}>{l.name}{l.isPrimary ? ' (principal)' : ''}</option>)}
+              </select>
+            </label>
+          )}
           <div className="fm-share-btns">
             <button className="fm-primary" onClick={poster} disabled={!link || making}>{making ? 'Armando…' : 'Descargar cartel (A5)'}</button>
-            <button className="fm-secondary" onClick={() => qr && download(qr, `qr-${slug}.png`)} disabled={!qr}>Solo el QR</button>
+            <button className="fm-secondary" onClick={() => qr && download(qr, `qr-${slug}${qrLoc && !qrLoc.isPrimary ? `-${qrLoc.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : ''}.png`)} disabled={!qr}>Solo el QR</button>
           </div>
         </div>
       </div>
@@ -222,7 +237,9 @@ function Share({ businessName, slug, card, whiteLabel }: { businessName: string;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function FormTab({ businessName, businessSlug, cards, businessId, onGoToDesign, onChoosePlan, isManager = false }: {
+export function FormTab({ businessName, businessSlug, cards, businessId, onGoToDesign, onChoosePlan, isManager = false, locations = [], selectedLocationId = null }: {
+  locations?: Location[]
+  selectedLocationId?: string | null
   businessName: string
   businessSlug?: string
   cards: CardInfo[]
@@ -471,7 +488,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
         </div>
 
         <div className="fm-lbl">Compartir</div>
-        <Share businessName={businessName} slug={businessSlug} card={card} whiteLabel={whiteLabel} />
+        <Share businessName={businessName} slug={businessSlug} card={card} whiteLabel={whiteLabel} locations={locations} selectedLocationId={selectedLocationId} />
       </div>
     </>
   )
@@ -566,6 +583,9 @@ const CSS = `
   .fm-copy--done{background:#5B8C5A;}
   .fm-open{display:inline-block;margin-top:10px;font-size:12px;font-weight:600;color:#C75D3A;text-decoration:none;}
   .fm-qr-card{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+  .fm-qr-loc{display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(43,38,32,.6);margin-top:8px;white-space:nowrap;}
+  .fm-qr-loc select{min-width:0;flex:1;}
+  .fm-qr-loc select{font-size:12.5px;font-weight:600;color:#2B2620;background:#FBF6EE;border:1px solid rgba(43,38,32,.15);border-radius:8px;padding:5px 8px;font-family:'Inter',sans-serif;}
   .fm-qr img{width:132px;height:132px;border-radius:10px;border:1px solid rgba(43,38,32,.08);display:block;}
   .fm-share-btns{display:flex;gap:8px;flex-wrap:wrap;}
   .fm-skel{background:rgba(43,38,32,.07);border-radius:10px;animation:fmPulse 1.2s ease-in-out infinite;}

@@ -21,6 +21,7 @@ const translations = {
     nav_form:           'Formulario',
     nav_design:         'Diseño',
     nav_settings:       'Configuración',
+    nav_locations:      'Sucursales',
     nav_users:          'Equipo',
 
     // ── Header ───────────────────────────────────────────────────────────────
@@ -322,6 +323,7 @@ const translations = {
     nav_form:           'Form',
     nav_design:         'Design',
     nav_settings:       'Settings',
+    nav_locations:      'Locations',
     nav_users:          'Team',
 
     // ── Header ───────────────────────────────────────────────────────────────

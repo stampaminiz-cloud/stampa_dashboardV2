@@ -1,5 +1,5 @@
 'use client'
-import { CardSwitcher } from '@/components/ui/CardSwitcher'
+import { PillSelect } from '@/components/ui/PillSelect'
 import React, { useState, useEffect } from 'react'
 import { readCache, getJson } from '@/lib/cache'
 import { withLoc } from '@/lib/location'
@@ -571,6 +571,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-rpill:hover{border-color:rgba(43,38,32,.25);}
         .an-rpill--on{background:rgba(199,93,58,.1);border-color:#C75D3A;color:#C75D3A;font-weight:600;}
         .an-export{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid rgba(43,38,32,.15);background:#fff;color:#2B2620;cursor:pointer;font-family:'Inter',sans-serif;}
+        .an-export--icon{width:34px;height:34px;padding:0;justify-content:center;}
         .an-export:hover{border-color:rgba(43,38,32,.3);}
         .an-export:disabled{opacity:.6;cursor:default;}
         .an-export-err{font-size:11px;color:#B23B3B;}
@@ -724,12 +725,6 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
 
       <div className="an-content">
 
-        {/* ── Tarjeta ── */}
-        {activeCards.length > 1 && (
-          <CardSwitcher value={selectedCard?.id || 'all'} onChange={setSelectedCardId}
-            options={[{ id: 'all', label: 'Todas las tarjetas' }, ...activeCards.map(c => ({ id: c.id, label: c.name }))]} />
-        )}
-
         {detailedError && !detailedLoading && (
           <div className="an-error">
             <span>No pudimos cargar parte de la analítica. Revisá tu conexión y probá de nuevo.</span>
@@ -737,8 +732,9 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           </div>
         )}
 
-        {/* Secciones: Resumen / Clientes / Horarios / Tarjetas. El rango y la
-            tarjeta de arriba aplican a todas. */}
+        {/* Secciones a la izquierda; a la derecha, la tarjeta y el período
+            (aplican a todas las secciones) y exportar. La sucursal se elige
+            en la barra lateral. */}
         <div className="an-tabsbar">
           <div className="an-tabs" role="tablist">
             {SECTIONS.map(sec => (
@@ -746,12 +742,14 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
             ))}
           </div>
           <div className="an-block-tools">
-            {RANGES.map(({ key, label }) => (
-              <button key={key} className={`an-rpill${range === key ? ' an-rpill--on' : ''}`} onClick={() => setRange(key)}>{label}</button>
-            ))}
-            <button className="an-export" onClick={exportCsv} disabled={exporting} title="Descargar los movimientos del período para Excel">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              {exporting ? 'Generando…' : 'Exportar CSV'}
+            {activeCards.length > 1 && (
+              <PillSelect ariaLabel="Tarjeta" value={selectedCard?.id || 'all'} onChange={setSelectedCardId}
+                options={[{ id: 'all', label: 'Todas las tarjetas' }, ...activeCards.map(c => ({ id: c.id, label: c.name }))]} />
+            )}
+            <PillSelect ariaLabel="Período" value={range} onChange={v => setRange(v as Range)}
+              options={RANGES.map(r => ({ id: r.key, label: `Últimos ${r.label}` }))} />
+            <button className="an-export an-export--icon" onClick={exportCsv} disabled={exporting} title="Exportar CSV: los movimientos del período, para Excel" aria-label="Exportar CSV">
+              {exporting ? '…' : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>}
             </button>
           </div>
         </div>

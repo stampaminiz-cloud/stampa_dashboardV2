@@ -334,55 +334,45 @@ function RealPassPreview({ design, businessName, logos, rewardSourceLabel, tiers
         )
       })()}
 
-      {design.type === 'points' && (
-        <div className="dt-real-pass-points-area">
-          <div className="dt-real-pass-points-row">
-            <div className="dt-real-pass-points-icon">
-              {logos.pointsIcon
-                ? <img src={logos.pointsIcon} className="dt-real-pass-icon-img" alt="" />
-                : <div className="dt-real-pass-icon-default dt-real-pass-icon-filled" />
-              }
+      {design.type === 'points' && (() => {
+        // Igual que el pase real (buildPointsProgressStrip): número grande,
+        // barra hacia el PRÓXIMO premio y cuánto falta. Sin premios
+        // cargados: cuánto suma cada visita, sin barra.
+        const tc = design.textColor || '#FFFFFF'
+        const bal = ptsBal
+        const sorted = [...catalog].sort((a, b) => a.cost - b.cost)
+        const next = sorted.find(c => c.cost > bal)
+        const ready = sorted.some(c => c.cost <= bal)
+        const per = design.pointsPerVisit || 10
+        const caption = !catalog.length ? `Sumás ${per} punto${per === 1 ? '' : 's'} por visita`
+          : next ? `${ready ? 'Ya podés canjear · f' : 'F'}altan ${next.cost - bal} para ${next.name}`
+          : '¡Ya podés canjear cualquier premio!'
+        const pct = !catalog.length ? null : next ? Math.min(100, (bal / next.cost) * 100) : 100
+        return (
+          <div className="dt-real-pass-points-area">
+            <div className="dt-real-pass-points-row" style={{ color: tc }}>
+              <span className="dt-real-pass-points-num">{bal}</span><span className="dt-real-pass-points-unit">{bal === 1 ? 'punto' : 'puntos'}</span>
             </div>
-            <div className="dt-real-pass-points-num" style={{ color: design.textColor || '#FFFFFF' }}>{ptsBal}</div>
+            {pct !== null && <div className="dt-pts-bar" style={{ color: tc }}><div className="dt-pts-fill" style={{ width: `${pct}%` }} /></div>}
+            <div className="dt-real-pass-points-sub" style={{ color: hexToRgba(tc, 0.85) }}>{caption}</div>
           </div>
-          {(() => {
-            // Igual que el pase real: barra de 0 al premio más caro, una marca
-            // por premio (llena = ya le alcanza).
-            const tc = design.textColor || '#FFFFFF'
-            const costs = ptsCosts, max = ptsMax, bal = ptsBal
-            const next = catalog.filter(c => c.cost > bal).sort((a, b) => a.cost - b.cost)[0]
-            const ready = costs.filter(c => c <= bal).length
-            const caption = !max ? 'Cargá premios en Premios para ver la barra'
-              : next ? (ready ? `${ready} para canjear · ${next.cost - bal} pts al siguiente` : `${next.cost - bal} pts para ${next.name}`)
-              : '¡Ya podés canjear cualquier premio!'
-            return (<>
-              <div className="dt-pts-bar" style={{ color: tc }}>
-                <div className="dt-pts-fill" style={{ width: `${max ? Math.min(100, (bal / max) * 100) : 0}%` }} />
-                {costs.map(c => (
-                  <span key={c} className={`dt-pts-mark${c <= bal ? ' is-ok' : ''}`} style={{ left: `clamp(6px, ${(c / max) * 100}%, calc(100% - 6px))`, background: c <= bal ? tc : design.color }} />
-                ))}
-              </div>
-              <div className="dt-real-pass-points-sub" style={{ color: hexToRgba(tc, 0.7) }}>{caption}</div>
-            </>)
-          })()}
-        </div>
-      )}
+        )
+      })()}
 
       <div className="dt-real-pass-info">
         <div className="dt-real-pass-info-field">
           <div className="dt-real-pass-info-label" style={{ color: hexToRgba(design.textColor || '#FFFFFF', 0.65) }}>TITULAR</div>
           <div className="dt-real-pass-info-val" style={{ color: design.textColor || '#FFFFFF' }}>Nombre del cliente</div>
         </div>
-        <div className="dt-real-pass-info-field">
+        {design.type !== 'points' && <div className="dt-real-pass-info-field">
           <div className="dt-real-pass-info-label" style={{ color: hexToRgba(design.textColor || '#FFFFFF', 0.65) }}>
-            {design.type === 'stamp' ? 'PREMIO' : design.type === 'membership' ? 'NIVEL' : 'PRÓXIMO PREMIO'}
+            {design.type === 'stamp' ? 'PREMIO' : 'NIVEL'}
           </div>
           <div className="dt-real-pass-info-val" style={{ color: design.textColor || '#FFFFFF' }}>
             {design.type === 'stamp' ? (design.rewardMode === 'dynamic' ? rewardSourceLabel : (design.rewardField || 'Premio'))
-            : design.type === 'membership' ? activeTier.name
-            : (catalog.filter(c => c.cost > ptsBal).sort((a, b) => a.cost - b.cost)[0]?.name || (catalog.length ? '—' : 'Sin premios cargados'))}
+            : activeTier.name}
           </div>
-        </div>
+        </div>}
       </div>
       <div className="dt-real-pass-qr-section">
         <QRCode size={90} />
@@ -836,11 +826,6 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           {/* POINTS: configuration */}
           {card.type === 'points' && (
             <>
-              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Ícono de puntos</div>
-              <div className="dt-logo-row">
-                <LogoUpload label="Ícono de puntos" hint="Ej: una moneda" value={logos.pointsIcon} onChange={setLogo('pointsIcon')} />
-              </div>
-
               <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Configuración de puntos</div>
               <div className="dt-points-config">
                 <div className="dt-points-row">
@@ -1540,15 +1525,16 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-ladder-step.is-on .dt-ladder-name{font-weight:800;opacity:1;}
         .dt-ladder-caption{margin:14px auto 0;width:max-content;max-width:100%;font-size:11px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid currentColor;opacity:.9;}
         .dt-real-pass-points-area{padding:8px 24px 20px;}
-        .dt-real-pass-points-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+        .dt-real-pass-points-row{display:flex;align-items:baseline;gap:6px;margin-bottom:10px;}
+        .dt-real-pass-points-unit{font-size:15px;font-weight:700;}
         .dt-real-pass-points-icon{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
-        .dt-real-pass-points-num{font-size:32px;font-weight:800;color:#FFFFFF;}
+        .dt-real-pass-points-num{font-size:36px;font-weight:800;line-height:1;}
         .dt-pts-bar{position:relative;height:6px;margin:4px 0 10px;}
         .dt-pts-bar::before{content:'';position:absolute;inset:0;border-radius:3px;background:currentColor;opacity:.22;}
         .dt-pts-fill{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:currentColor;}
         .dt-pts-mark{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);box-sizing:border-box;border:2px solid currentColor;}
         .dt-pts-mark.is-ok{border:none;}
-        .dt-real-pass-points-sub{font-size:10px;color:rgba(255,255,255,.6);}
+        .dt-real-pass-points-sub{font-size:11px;}
         .dt-real-pass-info{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 24px 20px;}
         .dt-real-pass-info-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.65);font-weight:600;margin-bottom:4px;}
         .dt-real-pass-info-val{font-size:16px;font-weight:700;color:#FFFFFF;}
