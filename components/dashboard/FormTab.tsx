@@ -583,7 +583,7 @@ const CSS = `
   .fm-copy--done{background:#5B8C5A;}
   .fm-open{display:inline-block;margin-top:10px;font-size:12px;font-weight:600;color:#C75D3A;text-decoration:none;}
   .fm-qr-card{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
-  .fm-qr-loc{display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(43,38,32,.6);margin-top:8px;white-space:nowrap;}
+  .fm-qr-loc{display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(43,38,32,.6);margin:10px 0 14px;white-space:nowrap;}
   .fm-qr-loc select{min-width:0;flex:1;}
   .fm-qr-loc select{font-size:12.5px;font-weight:600;color:#2B2620;background:#FBF6EE;border:1px solid rgba(43,38,32,.15);border-radius:8px;padding:5px 8px;font-family:'Inter',sans-serif;}
   .fm-qr img{width:132px;height:132px;border-radius:10px;border:1px solid rgba(43,38,32,.08);display:block;}
