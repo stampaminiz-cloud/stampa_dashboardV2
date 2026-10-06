@@ -3,6 +3,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import styles from '../styles/stampa-landing.module.css';
 import { annualSavingsPct, formatPrice, usePlanPrices, type PlanSlug } from '@/lib/pricing';
+import { VerticalPicker } from './landing/VerticalPicker';
 
 /* ────────────────────────────────────────────────────────────────
    Static content
@@ -67,20 +68,6 @@ const CASE_STATS = [
   { value: '0€', label: 'Dependencia de redes sociales' },
 ];
 
-const VERTICALS = [
-  { name: 'Cafeterías', example: 'Sello por cada café — el décimo, gratis.', tag: 'Sellos', initial: 'CA' },
-  { name: 'Restaurantes', example: 'Puntos por consumo, canjeables por platos.', tag: 'Puntos', initial: 'RE' },
-  { name: 'Peluquerías', example: 'Membresía por niveles con beneficios exclusivos.', tag: 'Membresía', initial: 'PE' },
-  { name: 'Gimnasios', example: 'Membresía por asistencia: más visitas, mejor nivel.', tag: 'Membresía', initial: 'GI' },
-  { name: 'Panaderías', example: 'Sello por compra, premio a la décima visita.', tag: 'Sellos', initial: 'PA' },
-  { name: 'Spas', example: 'Puntos canjeables por tratamientos y upgrades.', tag: 'Puntos', initial: 'SP' },
-  { name: 'Ropa', example: 'Puntos por compra, canjeables por descuentos.', tag: 'Puntos', initial: 'RO' },
-  { name: 'Librerías', example: 'Sello por compra, un libro de regalo al completar.', tag: 'Sellos', initial: 'LI' },
-].map((v) => ({
-  ...v,
-  accent: v.tag === 'Sellos' ? 'var(--stampa-ember)' : v.tag === 'Puntos' ? 'var(--blue)' : 'var(--green)',
-  accentSoft: v.tag === 'Sellos' ? 'var(--ember-soft)' : v.tag === 'Puntos' ? 'var(--blue-soft)' : 'var(--green-soft)',
-}));
 
 // Montos: salen de Mercado Pago (lib/pricing.ts → usePlanPrices). Acá solo
 // hay nombre, descripción y features; monthly/annual en 0 = "tiene precio",
@@ -849,79 +836,29 @@ export default function StampaLanding() {
         </div>
       </section>
 
-      {/* RUBROS COMPATIBLES */}
-      <section id="rubros" className="stampa-bg" style={{ padding: '96px 32px', display: 'flex', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+      {/* RUBROS: elegí tu rubro y mirá tu tarjeta */}
+      <section id="rubros" className="stampa-bg" style={{ padding: isMobile ? '72px 20px' : '96px 32px', display: 'flex', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/assets/mascot.png" alt="" style={{ position: 'absolute', left: -60, bottom: -40, width: 220, opacity: 0.1, pointerEvents: 'none' }} />
         <div style={{ width: '100%', maxWidth: 1160, position: 'relative' }}>
-          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+          <div style={{ marginBottom: 40, maxWidth: 680 }}>
             <h2
               style={{
                 fontFamily: 'var(--font-display)',
                 fontWeight: 700,
-                fontSize: 34,
+                fontSize: isMobile ? 28 : 34,
                 color: 'var(--text-strong)',
                 marginBottom: 14,
-                textWrap: 'pretty' as CSSProperties['textWrap'],
+                textWrap: 'balance' as CSSProperties['textWrap'],
               }}
             >
-              Un programa de fidelidad para cada tipo de negocio
+              Así se vería tu tarjeta
             </h2>
-            <p style={{ fontSize: 18, color: 'var(--text-body)', maxWidth: 640, margin: '0 auto' }}>
-              Retené a los que ya te eligen y dale una razón a los nuevos para volver. Stampa se adapta al rubro, no al revés.
+            <p style={{ fontSize: 18, color: 'var(--text-body)', margin: 0 }}>
+              Sellos, puntos o niveles: cada rubro premia distinto. Elegí el tuyo.
             </p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 18 }}>
-            {VERTICALS.map((v) => (
-              <div
-                key={v.name}
-                style={{
-                  background: 'var(--surface-card)',
-                  border: '1px solid var(--border)',
-                  borderTop: `3px solid ${v.accent}`,
-                  borderRadius: 'var(--radius-xl)',
-                  padding: 24,
-                  textAlign: 'left',
-                }}
-              >
-                <div
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 'var(--radius-md)',
-                    background: v.accentSoft,
-                    color: v.accent,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 700,
-                    fontSize: 15,
-                    marginBottom: 16,
-                  }}
-                >
-                  {v.initial}
-                </div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--text-md)', color: 'var(--text-strong)', marginBottom: 8 }}>{v.name}</div>
-                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-body)', lineHeight: 'var(--leading-body)', marginBottom: 16 }}>{v.example}</div>
-                <div
-                  style={{
-                    display: 'inline-block',
-                    fontSize: 'var(--text-2xs)',
-                    fontWeight: 700,
-                    letterSpacing: 'var(--tracking-label)',
-                    textTransform: 'uppercase',
-                    color: v.accent,
-                    background: v.accentSoft,
-                    padding: '4px 10px',
-                    borderRadius: 'var(--radius-full)',
-                  }}
-                >
-                  {v.tag}
-                </div>
-              </div>
-            ))}
-          </div>
+          <VerticalPicker />
         </div>
       </section>
 
