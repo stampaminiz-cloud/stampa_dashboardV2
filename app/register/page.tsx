@@ -10,8 +10,8 @@ import { formatPrice, usePlanPrices, type PlanSlug } from '@/lib/pricing'
 // Precios: salen de Mercado Pago (lib/pricing.ts), igual que en la landing.
 const PLANS: Record<string, { name: string; features: string[]; highlight: boolean }> = {
   starter: { name: 'Starter',    features: ['1 local', '1 tarjeta', 'Hasta 200 clientes'],         highlight: false },
-  growth:  { name: 'Growth',     features: ['3 tarjetas', 'Clientes ilimitados', 'Branding propio'], highlight: true  },
-  pro:     { name: 'Pro',        features: ['3 locales', 'Todo ilimitado', 'Soporte prioritario'],   highlight: false },
+  growth:  { name: 'Growth',     features: ['3 tarjetas', 'Hasta 500 clientes', 'Branding propio'], highlight: true  },
+  pro:     { name: 'Pro',        features: ['3 locales', 'Clientes ilimitados', 'Soporte prioritario'],   highlight: false },
 }
 
 const CSS = `

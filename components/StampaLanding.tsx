@@ -5,13 +5,14 @@ import styles from '../styles/stampa-landing.module.css';
 import { annualSavingsPct, formatPrice, usePlanPrices, type PlanSlug } from '@/lib/pricing';
 import { VerticalPicker } from './landing/VerticalPicker';
 import { FeatureShowcase } from './landing/FeatureShowcase';
+import { HeroPass } from './landing/HeroPass';
 
 /* ────────────────────────────────────────────────────────────────
    Static content
    ──────────────────────────────────────────────────────────────── */
 
 const NAV_LINKS = [
-  { href: '#programas', label: 'Programas' },
+  { href: '#rubros', label: 'Tarjetas' },
   { href: '#como-funciona', label: 'Cómo funciona' },
   { href: '#features', label: 'Features' },
   { href: '#precios', label: 'Precios' },
@@ -22,23 +23,16 @@ const PROOF_BUSINESSES = [
   { name: 'Surge Málaga', category: 'Cafetería de especialidad', logo: '/assets/logo-surge-malaga.jpg', logoBg: '#000000' },
   { name: 'Living4Malaga', category: 'Alojamiento turístico', logo: '/assets/logo-living4malaga.png', logoBg: '#0C2A2A' },
   { name: 'Raíz Criolla', category: 'Carne envasada premium', logo: '/assets/logo-raiz-criolla.png', logoBg: '#5C1414' },
-  { name: 'Nogal', category: 'Dietética', logo: '/assets/logo-nogal.png', logoBg: '#3B2A1E' },
 ];
 
-const PAPER_CONS = ['Se pierde en la billetera', 'Se moja, se arruga, se olvida en casa', 'No manda un solo aviso'];
-const APP_CONS = ['Nadie la descarga para un solo local', 'Cuesta meses y miles de euros', 'Se abandona a la semana'];
-const STAMPA_PROS = ['Vive en el wallet que ya usa', 'Lista para usar en minutos', 'Notificaciones directas al cliente'];
-
-const PROGRAM_TYPES = [
-  { name: 'Sellos', desc: 'Acumulá visitas y elegí un premio al completar la tarjeta.', fit: 'Cafeterías y panaderías' },
-  { name: 'Puntos', desc: 'Cada visita suma puntos canjeables por lo que quieras ofrecer.', fit: 'Restaurantes y spas' },
-  { name: 'Membresía', desc: 'Niveles (Bronce, Plata, Oro, Black o los que armes) que suben solos con las visitas.', fit: 'Gimnasios y peluquerías premium' },
-];
+const PAPER_CONS = ['Se pierde o queda en otra billetera', 'Nadie sabe cuántos sellos le faltan', 'No le podés avisar nada al cliente'];
+const APP_CONS = ['Pocos la bajan para un solo local', 'Desarrollarla lleva meses y miles de euros', 'Si no la abren, no sirve'];
+const STAMPA_PROS = ['Se guarda en el Wallet en un minuto', 'Se actualiza sola en cada visita', 'Tus avisos llegan a la pantalla del celular'];
 
 const STEPS = [
-  { n: '01', title: 'Creás tu tarjeta', desc: 'Elegís el formato — sellos, puntos o membresía — y la personalizás con tu marca en minutos, sin saber programar.' },
-  { n: '02', title: 'El cliente la guarda en su wallet', desc: 'Con un link o un QR, la tarjeta queda guardada en Apple Wallet o Google Wallet. No hay que descargar ninguna app.' },
-  { n: '03', title: 'Cada visita suma', desc: 'Escaneás con la app de Stampa y el sello, punto o beneficio se actualiza al instante en el teléfono del cliente.' },
+  { n: '01', title: 'Armás tu tarjeta', desc: 'Elegís sellos, puntos o niveles, subís tu logo y elegís los colores. Lleva unos 15 minutos.' },
+  { n: '02', title: 'El cliente la guarda', desc: 'Escanea el QR del mostrador, deja su nombre y la agrega a Apple Wallet o Google Wallet.' },
+  { n: '03', title: 'Cada visita suma', desc: 'Tu equipo escanea la tarjeta con la app de Stampa y el celular del cliente se actualiza al momento.' },
 ];
 
 const TESTIMONIAL = {
@@ -48,9 +42,8 @@ const TESTIMONIAL = {
 };
 
 const CASE_STATS = [
-  { value: '150', label: 'Clientes registrados en 2 meses' },
-  { value: '70%', label: 'Regresa activamente' },
-  { value: '0€', label: 'Dependencia de redes sociales' },
+  { value: '150', label: 'Clientes sumados en dos meses' },
+  { value: '70%', label: 'Vuelve a pasar por el local' },
 ];
 
 
@@ -59,13 +52,13 @@ const CASE_STATS = [
 // null = "A consultar" (Enterprise, solo por contacto).
 const RAW_PLANS = [
   { name: 'Starter', slug: 'starter', desc: 'Para arrancar con un local y una tarjeta.', monthly: 0, annual: 0, features: ['1 local', '1 tarjeta de fidelización', 'Hasta 200 clientes', 'Métricas clave en Inicio', '4 notificaciones por mes'], cta: 'Empezar gratis', highlight: false },
-  { name: 'Growth', slug: 'growth', desc: 'Para crecer con marca propia y equipo.', monthly: 0, annual: 0, features: ['1 local', '3 tarjetas de fidelización', 'Clientes ilimitados', 'Analítica completa', '20 notificaciones por mes, segmentadas', '5 usuarios de equipo'], cta: 'Empezar gratis', highlight: true },
-  { name: 'Pro', slug: 'pro', desc: 'Para negocios con varios locales.', monthly: 0, annual: 0, features: ['3 locales', 'Tarjetas, equipo y notificaciones ilimitados', 'Color 100% libre', 'Notificaciones a clientes puntuales', 'Soporte prioritario'], cta: 'Empezar gratis', highlight: false },
+  { name: 'Growth', slug: 'growth', desc: 'Para crecer con marca propia y equipo.', monthly: 0, annual: 0, features: ['1 local', '3 tarjetas de fidelización', 'Hasta 500 clientes', 'Analítica completa', '20 notificaciones por mes, segmentadas', '5 usuarios de equipo'], cta: 'Empezar gratis', highlight: true },
+  { name: 'Pro', slug: 'pro', desc: 'Para negocios con varios locales.', monthly: 0, annual: 0, features: ['3 locales', 'Clientes, tarjetas, equipo y notificaciones ilimitados', 'Color 100% libre', 'Notificaciones a clientes puntuales', 'Soporte prioritario'], cta: 'Empezar gratis', highlight: false },
   { name: 'Enterprise', slug: 'enterprise', desc: 'Para cadenas y franquicias.', monthly: null as number | null, annual: null as number | null, features: ['Locales ilimitados', 'White label', 'Soporte dedicado'], cta: 'Hablar con ventas', highlight: false },
 ];
 
 const FAQ_DATA = [
-  { q: '¿Mis clientes necesitan descargar una app?', a: 'No. La tarjeta de fidelización vive directamente en Apple Wallet o en Google Wallet, que ya vienen en el teléfono. Nada que descargar, nada que crear cuenta.' },
+  { q: '¿Mis clientes necesitan descargar una app?', a: 'No. La tarjeta de fidelización vive directamente en Apple Wallet o en Google Wallet, que ya vienen en el teléfono. No hace falta bajar nada ni crear una cuenta.' },
   { q: '¿Cómo escaneo la tarjeta de mis clientes?', a: 'Con la app de escaneo de Stampa. Tu equipo entra con un PIN y vos con tu email. Escaneás el código de la tarjeta (o buscás al cliente por nombre) y el sello, punto o visita se actualiza al instante en su Wallet.' },
   { q: '¿Cuánto tarda en configurarse?', a: 'Menos de 15 minutos. Elegís el formato de tu tarjeta (sellos, puntos o membresía), la personalizás con tu marca y ya podés compartirla con tus clientes.' },
   { q: '¿Necesito tarjeta de crédito para probar?', a: 'No. Los 14 días de prueba gratuita no piden tarjeta de crédito. Solo pagás si decidís continuar con un plan pago.' },
@@ -90,19 +83,7 @@ const WHATSAPP_ENTERPRISE = whatsappLink('Hola! Me interesa el plan Enterprise d
 // negocio demo en esa base) — si no está, la sección no se muestra.
 const DEMO_BUSINESS_ID = process.env.NEXT_PUBLIC_DEMO_BUSINESS_ID || '';
 
-const STAMP_PATTERN = [true, true, true, true, false, false];
-const HERO_STAMPS = STAMP_PATTERN.map((filled) => ({
-  bg: filled ? 'var(--stampa-ember)' : 'transparent',
-  border: filled ? 'var(--stampa-ember)' : 'rgba(255,255,255,0.35)',
-}));
-const WALLET_STAMPS = STAMP_PATTERN.map((filled) => ({
-  filled,
-  bg: filled ? 'rgba(255,255,255,0.22)' : 'transparent',
-  border: filled ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)',
-}));
-const BAR_W = [2, 1, 3, 1, 2, 2, 1, 3, 2, 1, 1, 2, 3, 1, 2, 1, 2, 3, 1, 1, 2, 3, 1, 2];
-const BAR_H = [60, 90, 45, 100, 70, 55, 85, 40, 95, 65, 100, 50, 75, 90, 45, 100, 60, 80, 55, 100, 70, 45, 90, 65];
-const BARCODE_BARS = BAR_W.map((w, i) => ({ w, h: BAR_H[i] }));
+
 
 /* ────────────────────────────────────────────────────────────────
    Component
@@ -295,7 +276,7 @@ export default function StampaLanding() {
                 marginBottom: 24,
               }}
             >
-              Fidelización digital para negocios
+              Tarjetas de fidelidad para Apple Wallet y Google Wallet
             </div>
             <h1
               style={{
@@ -312,8 +293,8 @@ export default function StampaLanding() {
               La fidelidad no es un algoritmo. Es humana.
             </h1>
             <p style={{ fontSize: 19, lineHeight: 'var(--leading-body)', color: 'var(--text-body)', maxWidth: 520, marginBottom: 36, textWrap: 'pretty' as CSSProperties['textWrap'] }}>
-              Stampa convierte cada visita en una razón para volver. Sin apps que nadie descarga, sin tarjetas de papel que se pierden — solo el
-              wallet que tu cliente ya tiene en el bolsillo.
+              Tu tarjeta de sellos o de puntos, guardada en el celular de tu cliente. Suma en cada visita y le podés avisar cuando le falta
+              poco para el premio.
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
               <a
@@ -343,63 +324,7 @@ export default function StampaLanding() {
           </div>
 
           <div style={{ flex: '1 1 440px', minWidth: 320, position: 'relative', display: 'flex', justifyContent: 'center' }}>
-            <div
-              style={{
-                background: 'var(--surface-card)',
-                backdropFilter: 'blur(var(--blur-card))',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-2xl)',
-                boxShadow: 'var(--shadow-lg)',
-                padding: 28,
-                width: '100%',
-                maxWidth: 440,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
-                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--text-lg)', color: 'var(--text-strong)' }}>
-                  Panel de Stampa
-                </span>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--ember-400)' }} />
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 22 }}>
-                <div style={{ background: 'var(--surface-sunk)', borderRadius: 'var(--radius-md)', padding: '14px 12px' }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: 'var(--text-strong)' }}>1.248</div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 4 }}>Clientes activos</div>
-                </div>
-                <div style={{ background: 'var(--surface-sunk)', borderRadius: 'var(--radius-md)', padding: '14px 12px' }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: 'var(--green)' }}>+312</div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 4 }}>Visitas esta semana</div>
-                </div>
-                <div style={{ background: 'var(--surface-sunk)', borderRadius: 'var(--radius-md)', padding: '14px 12px' }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: 'var(--ember-400)' }}>68%</div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 4 }}>Tasa de retorno</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 70, padding: '0 2px 0', marginBottom: 18 }}>
-                {[40, 60, 45, 90, 55, 70, 100].map((h, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      flex: 1,
-                      background: i === 3 || i === 6 ? 'var(--stampa-ember)' : 'var(--green-600)',
-                      borderRadius: '4px 4px 0 0',
-                      height: `${h}%`,
-                    }}
-                  />
-                ))}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface-sunk)', borderRadius: 'var(--radius-md)', padding: '10px 12px' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/assets/app-icon.png" alt="" style={{ width: 30, height: 30, borderRadius: 8 }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--text-strong)' }}>Café Aurora</div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Nuevo sello — hace 2 min</div>
-                </div>
-                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--ember-400)' }}>4/6</div>
-              </div>
-            </div>
+            <HeroPass />
           </div>
         </div>
       </section>
@@ -420,7 +345,7 @@ export default function StampaLanding() {
             Usado por negocios en España y Argentina
           </div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 30, color: 'var(--stampa-ink)', marginBottom: 44 }}>
-            Negocios que ya viven en el wallet de sus clientes
+            Algunos negocios que ya lo usan
           </h2>
           <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 44 }}>
             {PROOF_BUSINESSES.map((b) => (
@@ -479,7 +404,7 @@ export default function StampaLanding() {
           >
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, color: 'var(--ember-400)' }}>150</span>
             <span style={{ fontSize: 'var(--text-md)', textAlign: 'left', maxWidth: 320 }}>
-              clientes fidelizados en 2 meses en Surge Málaga — mirá el caso →
+              clientes se sumaron en dos meses en Surge Málaga. Ver el caso →
             </span>
           </a>
         </div>
@@ -498,10 +423,10 @@ export default function StampaLanding() {
               textWrap: 'pretty' as CSSProperties['textWrap'],
             }}
           >
-            Las tarjetas de papel se pierden. Las apps nadie las descarga.
+            ¿Por qué no una tarjeta de papel o una app propia?
           </h2>
           <p style={{ fontSize: 18, color: 'var(--text-body)', maxWidth: 560, margin: '0 auto 36px' }}>
-            Stampa vive en el wallet — donde tu cliente ya está, todos los días.
+            La tarjeta queda en el Wallet del celular, al lado de las entradas y los pasajes. No hay que descargar nada.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, textAlign: 'left' }}>
             <div style={{ background: 'var(--surface-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-2xl)', padding: 30 }}>
@@ -510,7 +435,7 @@ export default function StampaLanding() {
               </div>
               {PAPER_CONS.map((item) => (
                 <div key={item} style={{ display: 'flex', gap: 10, padding: '8px 0', color: 'var(--text-body)', fontSize: 'var(--text-base)', borderTop: '1px solid var(--border)' }}>
-                  <span style={{ color: 'var(--red)', fontWeight: 700 }}>—</span>
+                  <span style={{ color: 'var(--red)', fontWeight: 700 }}>✕</span>
                   {item}
                 </div>
               ))}
@@ -521,7 +446,7 @@ export default function StampaLanding() {
               </div>
               {APP_CONS.map((item) => (
                 <div key={item} style={{ display: 'flex', gap: 10, padding: '8px 0', color: 'var(--text-body)', fontSize: 'var(--text-base)', borderTop: '1px solid var(--border)' }}>
-                  <span style={{ color: 'var(--red)', fontWeight: 700 }}>—</span>
+                  <span style={{ color: 'var(--red)', fontWeight: 700 }}>✕</span>
                   {item}
                 </div>
               ))}
@@ -555,123 +480,20 @@ export default function StampaLanding() {
         </div>
       </section>
 
-      {/* TIPOS DE PROGRAMA */}
-      <section id="programas" data-theme="cream" style={{ background: 'var(--stampa-cream)', padding: '96px 32px', display: 'flex', justifyContent: 'center' }}>
-        <div style={{ width: '100%', maxWidth: 1160 }}>
-          <div style={{ textAlign: 'center', marginBottom: 56 }}>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, color: 'var(--stampa-ink)', marginBottom: 14 }}>
-              3 tipos de programa, un solo Stampa
-            </h2>
-            <p style={{ fontSize: 18, color: 'var(--text-body)', maxWidth: 560, margin: '0 auto' }}>
-              Elegí el formato que mejor encaja con la forma en que tus clientes vuelven.
-            </p>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-            {PROGRAM_TYPES.map((p) => (
-              <div key={p.name} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-2xl)', padding: 30 }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--text-lg)', color: 'var(--stampa-ink)', marginBottom: 12 }}>
-                  {p.name}
-                </div>
-                <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-body)', lineHeight: 'var(--leading-body)', marginBottom: 20 }}>{p.desc}</div>
-                <div
-                  style={{
-                    display: 'inline-block',
-                    fontSize: 'var(--text-2xs)',
-                    fontWeight: 700,
-                    letterSpacing: 'var(--tracking-label)',
-                    textTransform: 'uppercase',
-                    color: 'var(--ember-600)',
-                    background: 'var(--ember-soft)',
-                    padding: '5px 12px',
-                    borderRadius: 'var(--radius-full)',
-                  }}
-                >
-                  {p.fit}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* COMO FUNCIONA */}
-      <section id="como-funciona" data-theme="cream" style={{ background: 'var(--stampa-cream)', padding: '96px 32px', display: 'flex', justifyContent: 'center' }}>
-        <div style={{ width: '100%', maxWidth: 1160, display: 'flex', gap: 64, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 480px', minWidth: 320 }}>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, color: 'var(--stampa-ink)', marginBottom: 40 }}>
-              Tres pasos. Cero fricción.
-            </h2>
+      <section id="como-funciona" data-theme="cream" style={{ background: 'var(--stampa-cream)', padding: isMobile ? '72px 20px' : '96px 32px', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ width: '100%', maxWidth: 1160 }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: isMobile ? 28 : 34, color: 'var(--stampa-ink)', marginBottom: 32 }}>
+            Cómo funciona
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: isMobile ? 0 : 40 }}>
             {STEPS.map((step) => (
-              <div key={step.n} style={{ display: 'flex', gap: 20, padding: '22px 0', borderTop: '1px solid var(--border)' }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, color: 'var(--ember-300)', flexShrink: 0, width: 44 }}>
-                  {step.n}
-                </div>
-                <div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--text-lg)', color: 'var(--stampa-ink)', marginBottom: 6 }}>
-                    {step.title}
-                  </div>
-                  <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-body)', lineHeight: 'var(--leading-body)' }}>{step.desc}</div>
-                </div>
+              <div key={step.n} style={{ padding: '22px 0', borderTop: '1px solid var(--border)' }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, color: 'var(--ember-300)', marginBottom: 10 }}>{step.n}</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--text-lg)', color: 'var(--stampa-ink)', marginBottom: 6 }}>{step.title}</div>
+                <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-body)', lineHeight: 'var(--leading-body)' }}>{step.desc}</div>
               </div>
             ))}
-          </div>
-
-          <div style={{ flex: '1 1 360px', minWidth: 300, display: 'flex', justifyContent: 'center' }}>
-            <div style={{ position: 'relative', width: '100%', maxWidth: 320 }}>
-              <div style={{ background: 'linear-gradient(155deg, var(--ember-500), var(--ember-700))', borderRadius: 20, boxShadow: 'var(--shadow-lg)', overflow: 'hidden', fontFamily: 'var(--font-sans)' }}>
-                <div style={{ padding: '20px 22px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/assets/app-icon.png" alt="" style={{ width: 26, height: 26, borderRadius: 7 }} />
-                    <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 700, letterSpacing: 'var(--tracking-label)', textTransform: 'uppercase' }}>
-                      Tarjeta de sellos
-                    </div>
-                  </div>
-                  <div style={{ color: '#fff', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 24, letterSpacing: 'var(--tracking-tight)', marginBottom: 18 }}>
-                    Café Aurora
-                  </div>
-                  <div style={{ display: 'flex', gap: 32 }}>
-                    <div>
-                      <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, fontWeight: 700, letterSpacing: 'var(--tracking-label)', textTransform: 'uppercase', marginBottom: 4 }}>
-                        Progreso
-                      </div>
-                      <div style={{ color: '#fff', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>4 de 6 sellos</div>
-                    </div>
-                    <div>
-                      <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, fontWeight: 700, letterSpacing: 'var(--tracking-label)', textTransform: 'uppercase', marginBottom: 4 }}>
-                        Premio
-                      </div>
-                      <div style={{ color: '#fff', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>Café gratis</div>
-                    </div>
-                  </div>
-                </div>
-                <div style={{ background: 'rgba(0,0,0,0.12)', padding: '20px 22px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-                    {WALLET_STAMPS.map((s, i) => (
-                      <div
-                        key={i}
-                        style={{ aspectRatio: '1', borderRadius: '50%', background: s.bg, border: `2px dashed ${s.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        {s.filled && <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fff' }} />}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <div style={{ borderTop: '2px dashed rgba(255,255,255,0.4)' }} />
-                  <div style={{ position: 'absolute', left: -12, top: -12, width: 24, height: 24, borderRadius: '50%', background: 'var(--stampa-cream)' }} />
-                  <div style={{ position: 'absolute', right: -12, top: -12, width: 24, height: 24, borderRadius: '50%', background: 'var(--stampa-cream)' }} />
-                </div>
-                <div style={{ padding: '18px 22px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, background: '#fff' }}>
-                  <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 34 }}>
-                    {BARCODE_BARS.map((bar, i) => (
-                      <div key={i} style={{ width: bar.w, height: `${bar.h}%`, background: 'var(--stampa-ink)' }} />
-                    ))}
-                  </div>
-                  <span style={{ color: 'var(--text-muted)', fontSize: 11, letterSpacing: 'var(--tracking-label)' }}>CAFE-AURORA-04821</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -748,8 +570,8 @@ export default function StampaLanding() {
             </div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, color: 'var(--stampa-ink)', marginBottom: 20 }}>Surge Málaga</h2>
             <p style={{ fontSize: 18, color: 'var(--text-body)', lineHeight: 'var(--leading-body)', marginBottom: 28 }}>
-              En dos meses, Surge Málaga cambió sus tarjetas de papel por Stampa. El resultado: una base de clientes fieles a la que le pueden
-              hablar directamente, sin depender del algoritmo de Instagram.
+              Surge Málaga es una cafetería de especialidad. Dejó las tarjetas de papel y en dos meses sumó 150 clientes a su tarjeta en el
+              Wallet. Hoy les avisa de promociones y cambios de horario directo al celular, sin depender de Instagram.
             </p>
             <div style={{ borderLeft: '3px solid var(--stampa-ember)', padding: '4px 0 4px 20px', marginBottom: 32 }}>
               <p style={{ fontSize: 17, color: 'var(--stampa-ink)', lineHeight: 'var(--leading-body)', fontStyle: 'italic', marginBottom: 10 }}>
@@ -800,9 +622,9 @@ export default function StampaLanding() {
         <div style={{ width: '100%', maxWidth: 1240 }}>
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, color: 'var(--text-strong)', marginBottom: 14 }}>
-              Planes simples, sin sorpresas
+              Precios
             </h2>
-            <p style={{ fontSize: 18, color: 'var(--text-body)', marginBottom: 32 }}>14 días gratis en cualquier plan. Sin tarjeta de crédito.</p>
+            <p style={{ fontSize: 18, color: 'var(--text-body)', marginBottom: 32 }}>14 días gratis en cualquier plan, sin tarjeta de crédito.</p>
             <div style={{ display: 'inline-flex', background: 'var(--surface-sunk)', border: '1px solid var(--border)', borderRadius: 'var(--radius-full)', padding: 4 }}>
               <button
                 onClick={() => setPeriod('monthly')}

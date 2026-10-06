@@ -332,7 +332,9 @@ function CustomerPanel({ customer, canDelete, onClose, onDelete, onChanged }: {
 // Límite suave (backend: services/customerLimit.js): al 80% se avisa, al
 // 100% quedan `grace` lugares extra y recién después el formulario deja de
 // sumar clientes nuevos.
-export interface CustomerUsage { used: number | null; max: number; grace: number; state: 'unlimited' | 'ok' | 'warn' | 'over' | 'blocked' }
+export interface CustomerUsage { used: number | null; max: number; grace: number; state: 'unlimited' | 'ok' | 'warn' | 'over' | 'blocked'; plan?: string; upgrade?: { plan: string; max: number } | null }
+// Texto del botón para mejorar: "Hasta 500 clientes con Growth" / "Clientes ilimitados con Pro".
+export const upgradeLabel = (u: Pick<CustomerUsage, 'upgrade'>) => !u.upgrade ? 'Ver planes' : u.upgrade.max ? `Hasta ${u.upgrade.max} clientes con ${u.upgrade.plan}` : `Clientes ilimitados con ${u.upgrade.plan}`
 function CustomerLimit({ usage, isManager, onChoosePlan }: { usage: CustomerUsage; isManager: boolean; onChoosePlan: () => void }) {
   const used = usage.used || 0, max = usage.max
   const pct = Math.min(100, (used / max) * 100)
@@ -341,7 +343,7 @@ function CustomerLimit({ usage, isManager, onChoosePlan }: { usage: CustomerUsag
     <div className={`ct-limit ct-limit--${level}`}>
       <div style={{ flex: 1, minWidth: 180 }}>
         <div className="ct-limit-text">
-          <strong>{used.toLocaleString('es-AR')} de {max} clientes</strong> en el plan Starter
+          <strong>{used.toLocaleString('es-AR')} de {max} clientes</strong> en el plan {usage.plan || 'Starter'}
           {usage.state === 'warn' && <> · te quedan {max - used}</>}
           {usage.state === 'over' && <> · llegaste al límite: te quedan {Math.max(0, max + usage.grace - used)} lugares extra</>}
           {usage.state === 'blocked' && <> · el formulario ya no suma clientes nuevos</>}
@@ -350,7 +352,7 @@ function CustomerLimit({ usage, isManager, onChoosePlan }: { usage: CustomerUsag
       </div>
       {level !== 'ok' && (isManager
         ? <span className="ct-limit-hint">Pedile al dueño que mejore el plan.</span>
-        : <button className="ct-limit-btn" onClick={onChoosePlan}>Clientes ilimitados con Growth</button>)}
+        : <button className="ct-limit-btn" onClick={onChoosePlan}>{upgradeLabel(usage)}</button>)}
     </div>
   )
 }

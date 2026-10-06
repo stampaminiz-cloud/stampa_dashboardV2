@@ -48,7 +48,7 @@ const VERTICALS: Vertical[] = [
 
 // Un QR de adorno (no se escanea): 21×21 con los tres cuadros de las esquinas
 // y el resto armado con una secuencia fija, para que parezca un QR real.
-function QrMock() {
+export function QrMock() {
   const N = 21
   const finder = (x: number, y: number) => {
     for (const [fx, fy] of [[0, 0], [N - 7, 0], [0, N - 7]]) {
