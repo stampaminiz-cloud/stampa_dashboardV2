@@ -4,6 +4,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import styles from '../styles/stampa-landing.module.css';
 import { annualSavingsPct, formatPrice, usePlanPrices, type PlanSlug } from '@/lib/pricing';
 import { VerticalPicker } from './landing/VerticalPicker';
+import { FeatureShowcase } from './landing/FeatureShowcase';
 
 /* ────────────────────────────────────────────────────────────────
    Static content
@@ -38,22 +39,6 @@ const STEPS = [
   { n: '01', title: 'Creás tu tarjeta', desc: 'Elegís el formato — sellos, puntos o membresía — y la personalizás con tu marca en minutos, sin saber programar.' },
   { n: '02', title: 'El cliente la guarda en su wallet', desc: 'Con un link o un QR, la tarjeta queda guardada en Apple Wallet o Google Wallet. No hay que descargar ninguna app.' },
   { n: '03', title: 'Cada visita suma', desc: 'Escaneás con la app de Stampa y el sello, punto o beneficio se actualiza al instante en el teléfono del cliente.' },
-];
-
-const HERO_FEATURE = {
-  title: 'Analítica que se entiende',
-  desc: 'Cuándo viene tu gente, quién vuelve y quién no, en qué parte de la tarjeta está cada cliente y qué premios eligen — sin planillas ni adivinar qué está funcionando.',
-};
-
-const LIST_FEATURES = [
-  { mark: 'S/P', title: 'Sellos, puntos o membresía', desc: 'Elegí el formato que mejor se adapta a tu negocio.' },
-  { mark: 'W', title: 'En Apple Wallet y Google Wallet', desc: 'Tu tarjeta vive donde tu cliente ya vive, en iPhone y en Android.' },
-  { mark: 'N', title: 'Notificaciones segmentadas', desc: 'A todos, a los inactivos, a los que están cerca del premio o según lo que respondieron.' },
-  { mark: 'R', title: 'Reglas automáticas', desc: 'Días con sello doble, regalo de cumpleaños y vencimiento por inactividad, con aviso.' },
-  { mark: '0', title: 'Sin app para el cliente', desc: 'Cero fricción, cero descarga.' },
-  { mark: 'SC', title: 'App de escaneo', desc: 'Tu equipo entra con PIN; vos, con tu email. Suma, canjea y busca clientes en segundos.' },
-  { mark: 'EQ', title: 'Gestión de equipo', desc: 'Administradores y scanners, con historial de quién escaneó y alertas de escaneos raros.' },
-  { mark: 'F', title: 'Formulario personalizable', desc: 'Elegí qué datos pedirle a tu cliente al sumarse y usalos para segmentar.' },
 ];
 
 const TESTIMONIAL = {
@@ -734,67 +719,15 @@ export default function StampaLanding() {
       )}
 
       {/* FEATURES */}
-      <section id="features" className="stampa-bg" style={{ padding: '96px 32px', display: 'flex', justifyContent: 'center' }}>
+      <section id="features" className="stampa-bg" style={{ padding: isMobile ? '72px 20px' : '96px 32px', display: 'flex', justifyContent: 'center' }}>
         <div style={{ width: '100%', maxWidth: 1160 }}>
-          <div style={{ marginBottom: 56, maxWidth: 640 }}>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, color: 'var(--text-strong)', marginBottom: 14 }}>
-              Todo lo que necesitás para fidelizar, en un solo lugar
+          <div style={{ marginBottom: 40, maxWidth: 640 }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: isMobile ? 28 : 34, color: 'var(--text-strong)', marginBottom: 14 }}>
+              Lo que pasa después de que el cliente guarda la tarjeta
             </h2>
-            <p style={{ fontSize: 18, color: 'var(--text-body)' }}>Sin plugins, sin integraciones complicadas. Stampa hace todo el trabajo por vos.</p>
+            <p style={{ fontSize: 18, color: 'var(--text-body)' }}>El panel para vos y la app de escaneo para tu equipo.</p>
           </div>
-          <div style={{ display: 'flex', gap: 56, alignItems: 'stretch', flexWrap: 'wrap' }}>
-            <div
-              style={{
-                flex: '1 1 320px',
-                minWidth: 300,
-                background: 'linear-gradient(155deg, var(--green-700), var(--stampa-ink))',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-2xl)',
-                padding: 32,
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <div style={{ fontSize: 'var(--text-2xs)', fontWeight: 700, letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase', color: 'var(--ember-300)', marginBottom: 14 }}>
-                Destacado
-              </div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 24, color: 'var(--text-strong)', marginBottom: 10 }}>{HERO_FEATURE.title}</div>
-              <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-body)', lineHeight: 'var(--leading-body)', marginBottom: 28 }}>{HERO_FEATURE.desc}</div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 90, marginTop: 'auto' }}>
-                {[45, 65, 100, 55, 75, 90].map((h, i) => (
-                  <div key={i} style={{ flex: 1, background: i === 2 || i === 5 ? 'var(--stampa-ember)' : 'var(--green-600)', borderRadius: '4px 4px 0 0', height: `${h}%` }} />
-                ))}
-              </div>
-            </div>
-            <div style={{ flex: '2 1 480px', minWidth: 320, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', columnGap: 32 }}>
-              {LIST_FEATURES.map((f) => (
-                <div key={f.title} style={{ display: 'flex', gap: 14, padding: '18px 0', borderBottom: '1px solid var(--border)' }}>
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      flexShrink: 0,
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'var(--ember-soft)',
-                      color: 'var(--ember-400)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontFamily: 'var(--font-display)',
-                      fontWeight: 700,
-                      fontSize: 12,
-                    }}
-                  >
-                    {f.mark}
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--text-md)', color: 'var(--text-strong)', marginBottom: 4 }}>{f.title}</div>
-                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-body)', lineHeight: 'var(--leading-body)' }}>{f.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <FeatureShowcase />
         </div>
       </section>
 
