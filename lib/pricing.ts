@@ -14,9 +14,9 @@ export type PlanSlug = 'starter' | 'growth' | 'pro'
 export interface PlanPrices { monthly: number | null; annual: number | null; currency: string; taxExcluded?: boolean }
 
 const FALLBACK_PRICES: Record<PlanSlug, PlanPrices> = {
-  starter: { monthly: 29000, annual: 288840, currency: 'ARS' },
-  growth: { monthly: 49000, annual: 488040, currency: 'ARS' },
-  pro: { monthly: 79000, annual: 786840, currency: 'ARS' },
+  starter: { monthly: 35000, annual: 348600, currency: 'ARS' },
+  growth: { monthly: 59000, annual: 587640, currency: 'ARS' },
+  pro: { monthly: 95000, annual: 946200, currency: 'ARS' },
 }
 
 const FALLBACK_EUR: Record<PlanSlug, PlanPrices> = {
