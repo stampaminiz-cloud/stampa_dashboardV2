@@ -6,21 +6,24 @@
 // ADMIN_EMAILS (el backend responde 404 al resto), solo lectura y sin datos
 // de los clientes finales. Backend: routes/admin.js, services/adminMetrics.js.
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { apiAdminBusiness, apiAdminOverview, getToken, type AdminBusinessDetail, type AdminBusinessRow, type AdminOverview, type Money } from '@/lib/api'
+import { apiAdminBusiness, apiAdminOverview, apiAdminSetManualBilling, getToken, type AdminBusinessDetail, type AdminBusinessRow, type AdminModels, type AdminOverview, type Money } from '@/lib/api'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 
 const COUNTRY: Record<string, string> = { AR: 'Argentina', ES: 'España', UY: 'Uruguay', CL: 'Chile', MX: 'México' }
 const ACCESS: Record<string, string> = { trial: 'En prueba', active: 'Pagando', legacy: 'Acceso completo', paused: 'Pausada' }
 const STATUS: Record<string, string> = { active: 'pagando', past_due: 'cobro fallido', paused: 'pausada', cancelled: 'cancelada', trialing: 'en prueba', legacy: 'acceso completo' }
 const CARD_TYPE: Record<string, string> = { stamp: 'Sellos', points: 'Puntos', membership: 'Niveles' }
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
-const CORAL = '#C75D3A', GREEN = '#1B412F', SAND = '#D9C9AE', GREY = '#B9B0A3'
+const CORAL = '#C75D3A', GREEN = '#1B412F', SAND = '#D9C9AE', GREY = '#B9B0A3', GOLD = '#C9A86A'
 
 type Tab = 'summary' | 'income' | 'usage' | 'businesses'
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'summary', label: 'Resumen', icon: 'M3 12h4l3-8 4 16 3-8h4' },
-  { id: 'income', label: 'Ingresos', icon: 'M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6' },
-  { id: 'usage', label: 'Uso', icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
-  { id: 'businesses', label: 'Negocios', icon: 'M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6' },
+// Mismos íconos y trazo que la barra del panel de los negocios.
+const ICON_PROPS = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true }
+const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: 'summary', label: 'Resumen', icon: <svg {...ICON_PROPS}><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg> },
+  { id: 'income', label: 'Ingresos', icon: <svg {...ICON_PROPS}><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg> },
+  { id: 'usage', label: 'Uso', icon: <svg {...ICON_PROPS}><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg> },
+  { id: 'businesses', label: 'Negocios', icon: <svg {...ICON_PROPS}><path d="M3 9l1.5-5h15L21 9" /><path d="M4 9v11h16V9" /><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" /><path d="M10 20v-5h4v5" /></svg> },
 ]
 // Uso y Negocios dependen del período; Resumen e Ingresos usan 30 días fijos.
 const HAS_PERIOD: Tab[] = ['usage', 'businesses']
@@ -77,11 +80,11 @@ export default function AdminPage() {
     <div className="sa-shell">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <nav className="sa-side" aria-label="Secciones">
-        <div className="sa-brand"><span className="t">STAMPA</span><small>Tus números</small></div>
+        <div className="sa-brand"><BrandLogo height={28} tone="cream" /><small>Tus números</small></div>
         <div className="sa-tabs">
           {TABS.map(t => (
             <button key={t.id} className={`sa-tab${tab === t.id ? ' is-on' : ''}`} aria-current={tab === t.id ? 'page' : undefined} onClick={() => setTab(t.id)}>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d={t.icon} /></svg>
+              {t.icon}
               <span>{t.label}</span>
               {t.id === 'businesses' && attention.length > 0 && <em>{attention.length}</em>}
             </button>
@@ -122,7 +125,7 @@ export default function AdminPage() {
         </div>
       </main>
 
-      {open && <Detail id={open} days={effectiveDays} onClose={() => setOpen(null)} />}
+      {open && <Detail id={open} days={effectiveDays} onClose={() => setOpen(null)} onChanged={() => load(effectiveDays, country)} />}
     </div>
   )
 }
@@ -451,7 +454,7 @@ function Usage({ data }: { data: AdminOverview }) {
           <HBar label={`Notificaciones (${period})`} value={f.notifications} />
           <HBar label={`Empleados escanean (${period})`} value={f.teamScans} />
           <HBar label="Regalo de cumpleaños" value={f.birthday} />
-          <HBar label="Sello doble" value={f.doubleDays} />
+          <HBar label="Escaneo doble" value={f.doubleDays} />
           <HBar label="Vencimiento" value={f.expiry} />
           <HBar label="Preguntas propias" value={f.formFields} />
           <HBar label="Varias sucursales" value={f.locations} />
@@ -482,7 +485,78 @@ function Usage({ data }: { data: AdminOverview }) {
           </div>
         </div>
       </div>
+
+      <div className="sa-lbl">Por tipo de tarjeta</div>
+      <div className="sa-card">
+        <div className="sa-card-head">
+          <div><div className="sa-ct">Escaneos por tipo de tarjeta</div><div className="sa-csub">Por {u.series.weekly ? 'semana' : 'día'}, todos los negocios</div></div>
+          <Legend items={MODEL_KEYS.map(k => [`${MODEL[k].label} ${pctOf(u.byTypeTotal[k], u.scans)}`, MODEL[k].color] as [string, string])} />
+        </div>
+        <LineChart labels={u.series.starts} height={150} area={false}
+          series={MODEL_KEYS.map(k => ({ values: u.series.byType[k], color: MODEL[k].color, name: MODEL[k].label }))}
+          tip={i => `${unit}${short(u.series.starts[i])}: ${MODEL_KEYS.map(k => `${MODEL[k].label.toLowerCase()} ${u.series.byType[k][i]}`).join(' · ')}`} />
+      </div>
+      <ModelCards models={data.models} period={period} />
     </>
+  )
+}
+
+const MODEL: Record<'stamp' | 'points' | 'membership', { label: string; color: string }> = {
+  stamp: { label: 'Sellos', color: GREEN }, points: { label: 'Puntos', color: CORAL }, membership: { label: 'Niveles', color: GOLD },
+}
+const MODEL_KEYS = ['stamp', 'points', 'membership'] as const
+const pctOf = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : '—')
+
+// Lo propio de cada tipo de tarjeta (en Uso y en el detalle de un negocio).
+function ModelCards({ models, period, single = false }: { models: AdminModels; period: string; single?: boolean }) {
+  const cards = [
+    models.stamp && (
+      <div key="stamp" className="sa-card sa-model">
+        <ModelHead k="stamp" n={models.stamp.businesses} single={single} />
+        <div className="sa-v">{n(models.stamp.completed)}</div>
+        <div className="sa-csub">tarjetas completadas en {period}</div>
+        <div className="sa-mini">
+          <div><span>Tarjetas de sellos guardadas</span><b>{n(models.stamp.customers)}</b></div>
+          <div><span>Sellos promedio por cliente</span><b>{models.stamp.avgStamps ?? '—'}</b></div>
+          <div><span>A un sello del premio</span><b>{n(models.stamp.nearPrize)}</b></div>
+          <div><span>Completaron la tarjeta alguna vez</span><b>{models.stamp.completedEver == null ? '—' : `${models.stamp.completedEver}%`}</b></div>
+        </div>
+      </div>
+    ),
+    models.points && (
+      <div key="points" className="sa-card sa-model">
+        <ModelHead k="points" n={models.points.businesses} single={single} />
+        <div className="sa-v">{n(models.points.given)}</div>
+        <div className="sa-csub">puntos entregados en {period}</div>
+        <div className="sa-mini">
+          <div><span>Tarjetas de puntos guardadas</span><b>{n(models.points.customers)}</b></div>
+          <div><span>Puntos canjeados</span><b>{n(models.points.redeemed)} <span className="sa-muted">({models.points.redeems} canje{models.points.redeems === 1 ? '' : 's'})</span></b></div>
+          <div><span>Saldo promedio por cliente</span><b>{models.points.avgBalance ?? '—'}</b></div>
+          <div><span>Premio más canjeado</span><b>{models.points.topReward ? `${models.points.topReward.name} (${models.points.topReward.count})` : '—'}</b></div>
+        </div>
+      </div>
+    ),
+    models.membership && (
+      <div key="membership" className="sa-card sa-model">
+        <ModelHead k="membership" n={models.membership.businesses} single={single} />
+        <div className="sa-v">{n(models.membership.ups)}</div>
+        <div className="sa-csub">subidas de nivel en {period}</div>
+        {models.membership.levels.length ? models.membership.levels.map(l => (
+          <HBar key={l.order} label={l.label} value={l.count} max={Math.max(1, ...models.membership!.levels.map(x => x.count))} display={n(l.count)} color={GOLD} />
+        )) : <p className="sa-empty">Sin niveles configurados.</p>}
+      </div>
+    ),
+  ].filter(Boolean)
+  if (!cards.length) return <p className="sa-empty">Ningún negocio tiene tarjetas activas.</p>
+  return <div className={`sa-models sa-models--${cards.length}`}>{cards}</div>
+}
+
+function ModelHead({ k, n: count, single }: { k: 'stamp' | 'points' | 'membership'; n: number; single: boolean }) {
+  return (
+    <div className="sa-model-head">
+      <i style={{ background: MODEL[k].color }} /><span className="sa-ct">{MODEL[k].label}</span>
+      {!single && <span className="sa-csub" style={{ margin: '0 0 0 auto' }}>{count} negocio{count === 1 ? '' : 's'}</span>}
+    </div>
   )
 }
 
@@ -527,7 +601,7 @@ function Businesses({ data, onOpen }: { data: AdminOverview; onOpen: (id: string
                   <td><Spark values={r.trend} /></td>
                   <td className="num">{n(r.newCustomers)}</td>
                   <td className="num">{n(r.redeems)}</td>
-                  <td className="num">{r.pays ? money(r.pays.monthly, r.pays.currency) : <span className="sa-muted">{r.access === 'trial' ? 'prueba' : '—'}</span>}</td>
+                  <td className="num">{r.pays ? <>{money(r.pays.monthly, r.pays.currency)}{r.pays.manual && <div className="sa-muted sa-email">por fuera</div>}</> : <span className="sa-muted">{r.access === 'trial' ? 'prueba' : '—'}</span>}</td>
                   <td>{ago(r.lastScanAt)}</td>
                   <td>{r.signals.map((s, i) => <span key={i} className={`sa-tag sa-tag--${s.kind}`}>{s.text}</span>)}</td>
                 </tr>
@@ -541,7 +615,7 @@ function Businesses({ data, onOpen }: { data: AdminOverview; onOpen: (id: string
   )
 }
 
-function Detail({ id, days, onClose }: { id: string; days: number; onClose: () => void }) {
+function Detail({ id, days, onClose, onChanged }: { id: string; days: number; onClose: () => void; onChanged: () => void }) {
   const [d, setD] = useState<AdminBusinessDetail | null>(null)
   const [err, setErr] = useState(false)
   useEffect(() => {
@@ -553,6 +627,16 @@ function Detail({ id, days, onClose }: { id: string; days: number; onClose: () =
   }, [id, days, onClose])
   const share = (x: number) => d?.passes.total ? Math.round((x / d.passes.total) * 100) : 0
   const yes = (v: boolean) => <b className={v ? 'up' : 'sa-muted'}>{v ? 'Sí' : 'No'}</b>
+  const phone = d?.owner?.phone?.replace(/[^\d]/g, '') || ''
+  const historyText = (h: AdminBusinessDetail['history'][number]) => {
+    if (h.type === 'signup') return `Se registró (${h.plan})`
+    if (h.type === 'manual') {
+      const v = (x: typeof h.to) => (x && typeof x === 'object' ? `${money(x.amount, x.currency)}/mes` : 'nada')
+      return `Paga por fuera: ${v(h.from)} → ${v(h.to)}`
+    }
+    const st = (x: typeof h.to) => (typeof x === 'string' ? STATUS[x] || x : 'sin estado')
+    return `${st(h.from)} → ${st(h.to)}${h.planFrom !== h.planTo ? ` · ${h.planFrom} → ${h.planTo}` : ''}`
+  }
   return (
     <div className="sa-overlay" onClick={onClose}>
       <aside className="sa-drawer" role="dialog" aria-modal="true" aria-label="Detalle del negocio" onClick={e => e.stopPropagation()}>
@@ -561,6 +645,18 @@ function Detail({ id, days, onClose }: { id: string; days: number; onClose: () =
           <>
             <h2 className="t" style={{ margin: '0 0 2px', fontSize: 20 }}>{d.name}</h2>
             <p className="sa-muted" style={{ margin: 0 }}>{d.owner?.email} · {COUNTRY[d.country] || d.country} · alta {fmtDate(d.createdAt)}{!d.isActive && ' · inactivo'}</p>
+            {d.owner && (
+              <div className="sa-contact">
+                <a className="sa-cbtn" href={`mailto:${d.owner.email}?subject=${encodeURIComponent(`Stampa · ${d.name}`)}`}>
+                  <svg {...ICON_PROPS} width={15} height={15}><path d="M4 4h16v16H4z" /><path d="M22 6l-10 7L2 6" /></svg>Escribir mail
+                </a>
+                {phone && (
+                  <a className="sa-cbtn sa-cbtn--wa" href={`https://wa.me/${phone}?text=${encodeURIComponent(`Hola! Te escribo de Stampa por ${d.name}.`)}`} target="_blank" rel="noopener noreferrer">
+                    <svg {...ICON_PROPS} width={15} height={15}><path d="M21 11.5a8.4 8.4 0 0 1-12.6 7.3L3 20l1.3-5.2A8.4 8.4 0 1 1 21 11.5z" /></svg>WhatsApp
+                  </a>
+                )}
+              </div>
+            )}
             <div className="sa-g2 sa-tight">
               <Stat label="Plan" value={d.owner?.plan || '—'}
                 sub={[ACCESS[d.owner?.access || ''], d.owner?.pays ? `${money(d.owner.pays.monthly, d.owner.pays.currency)} por mes` : null,
@@ -568,6 +664,7 @@ function Detail({ id, days, onClose }: { id: string; days: number; onClose: () =
                   d.owner?.access === 'trial' && d.owner.trialEndsAt ? `vence ${fmtDate(d.owner.trialEndsAt)}` : null].filter(Boolean).join(' · ')} />
               <Stat label={`Escaneos (${d.period.days} días)`} value={n(d.period.scans)} sub={`${n(d.period.newCustomers)} clientes nuevos · ${n(d.period.redeems)} canjes`} />
             </div>
+            <ManualBilling id={d.id} current={d.owner?.manualBilling || null} onSaved={() => { apiAdminBusiness(id, days).then(setD).catch(() => {}); onChanged() }} />
             <div className="sa-card sa-gap">
               <div className="sa-ct">Escaneos por semana</div>
               <div className="sa-csub">Últimas 12 semanas</div>
@@ -583,12 +680,14 @@ function Detail({ id, days, onClose }: { id: string; days: number; onClose: () =
                 <span>Visitas por cliente<b>{d.endUsers.avgVisits ?? '—'}</b></span>
               </div>
             </div>
+            <h3>Por tipo de tarjeta</h3>
+            <ModelCards models={d.models} period={`${d.period.days} días`} single />
             <h3>Qué usa</h3>
             <div className="sa-mini sa-mini--plain">
               <div><span>Tarjetas</span><b>{d.features.cards.filter(c => c.isActive).map(c => `${c.name} (${CARD_TYPE[c.type] || c.type})`).join(' · ') || 'Ninguna activa'}</b></div>
               <div><span>Notificaciones ({d.period.days} días)</span><b>{d.features.notifications}</b></div>
               <div><span>Regalo de cumpleaños</span>{yes(d.features.birthday)}</div>
-              <div><span>Sello doble</span>{yes(d.features.doubleDays)}</div>
+              <div><span>Escaneo doble</span>{yes(d.features.doubleDays)}</div>
               <div><span>Vencimiento por inactividad</span>{yes(d.features.expiry)}</div>
               <div><span>Equipo</span><b>{d.features.team} persona{d.features.team === 1 ? '' : 's'}{d.features.teamScans ? ' · escanearon' : ''}</b></div>
               <div><span>Sucursales</span><b>{d.features.locations || 1}</b></div>
@@ -599,11 +698,54 @@ function Detail({ id, days, onClose }: { id: string; days: number; onClose: () =
             ) : <p className="sa-muted">Ninguna todavía.</p>}
             <h3>Historial del plan</h3>
             {d.history.length ? (
-              <ul className="sa-list">{d.history.map((h, i) => <li key={i}><span>{h.type === 'signup' ? `Se registró (${h.plan})` : `${STATUS[h.from || ''] || h.from || 'sin estado'} → ${STATUS[h.to || ''] || h.to || 'sin estado'}${h.planFrom !== h.planTo ? ` · ${h.planFrom} → ${h.planTo}` : ''}`}</span><span className="sa-muted">{fmtDate(h.at)}</span></li>)}</ul>
+              <ul className="sa-list">{d.history.map((h, i) => <li key={i}><span>{historyText(h)}</span><span className="sa-muted">{fmtDate(h.at)}</span></li>)}</ul>
             ) : <p className="sa-muted">Sin cambios registrados (se anotan desde el 6/10/2026).</p>}
           </>
         )}
       </aside>
+    </div>
+  )
+}
+
+// "Paga por fuera": para cuentas que no pagan por Mercado Pago (ej. Surge,
+// por transferencia). Lo que se cargue acá suma al ingreso mensual.
+function ManualBilling({ id, current, onSaved }: { id: string; current: { amount: number; currency: string } | null; onSaved: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [amount, setAmount] = useState(current ? String(current.amount) : '')
+  const [currency, setCurrency] = useState(current?.currency || 'EUR')
+  const [state, setState] = useState<'idle' | 'saving' | 'error'>('idle')
+  const [msg, setMsg] = useState('')
+  async function save(value: number) {
+    if (!Number.isFinite(value) || value < 0) { setState('error'); setMsg('Poné un monto válido.'); return }
+    setState('saving')
+    try {
+      await apiAdminSetManualBilling(id, value, currency)
+      setState('idle'); setOpen(false); onSaved()
+    } catch (e) {
+      setState('error'); setMsg((e as { error?: string })?.error || 'No se pudo guardar.')
+    }
+  }
+  return (
+    <div className="sa-card sa-gap sa-manual">
+      <div className="sa-card-head" style={{ marginBottom: open ? 10 : 0 }}>
+        <div>
+          <div className="sa-ct">Paga por fuera de Mercado Pago</div>
+          <div className="sa-csub">{current ? `${money(current.amount, current.currency)} por mes · suma al ingreso` : 'Para cuentas que te pagan por transferencia u otro medio'}</div>
+        </div>
+        {!open && <button className="sa-link" onClick={() => setOpen(true)}>{current ? 'Cambiar' : 'Cargar monto'}</button>}
+      </div>
+      {open && (
+        <form className="sa-manual-form" onSubmit={e => { e.preventDefault(); save(Number(amount.replace(',', '.'))) }}>
+          <input inputMode="decimal" placeholder="Monto por mes" value={amount} onChange={e => { setAmount(e.target.value); setState('idle') }} aria-label="Monto por mes" />
+          <select value={currency} onChange={e => setCurrency(e.target.value)} aria-label="Moneda">
+            <option value="EUR">EUR</option><option value="ARS">ARS</option><option value="USD">USD</option>
+          </select>
+          <button className="sa-btn" type="submit" disabled={state === 'saving'}>{state === 'saving' ? 'Guardando…' : 'Guardar'}</button>
+          {current && <button type="button" className="sa-link" onClick={() => save(0)}>Quitar</button>}
+          <button type="button" className="sa-link sa-muted" onClick={() => { setOpen(false); setState('idle') }}>Cancelar</button>
+          {state === 'error' && <p className="sa-err">{msg}</p>}
+        </form>
+      )}
     </div>
   )
 }
@@ -614,14 +756,15 @@ const CSS = `
   .t{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;color:#2B2620;}
   .sa-shell{display:flex;min-height:100vh;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;font-size:13px;}
   .sa-shell *{box-sizing:border-box;}
-  .sa-side{width:220px;flex-shrink:0;background:#1B412F;color:#F7F0E4;padding:22px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:18px;}
-  .sa-brand .t{color:#F7F0E4;font-size:20px;letter-spacing:-.01em;display:block;padding:0 8px;}
-  .sa-brand small{display:block;font-size:11px;color:rgba(247,240,228,.55);padding:2px 8px 0;}
-  .sa-tabs{display:flex;flex-direction:column;gap:4px;}
-  .sa-tab{display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;color:rgba(247,240,228,.7);padding:10px 12px;border-radius:10px;font:inherit;font-size:13.5px;cursor:pointer;text-align:left;}
-  .sa-tab svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
-  .sa-tab:hover{background:rgba(247,240,228,.07);color:#fff;}
-  .sa-tab.is-on{background:rgba(247,240,228,.13);color:#fff;font-weight:600;}
+  .sa-side{width:230px;flex-shrink:0;background:#1B412F;color:#F7F0E4;padding:6px 12px 16px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;}
+  .sa-brand{padding:18px 10px 22px;}
+  .sa-brand img{display:block;}
+  .sa-brand small{display:block;font-size:11.5px;color:rgba(247,240,228,.5);margin-top:6px;font-family:'Inter',sans-serif;}
+  .sa-tabs{display:flex;flex-direction:column;gap:2px;flex:1;}
+  .sa-tab{display:flex;align-items:center;gap:12px;width:100%;border:none;background:transparent;color:rgba(247,240,228,.5);padding:11px 12px;border-radius:10px;font-family:'Inter',sans-serif;font-size:15px;font-weight:500;cursor:pointer;text-align:left;transition:all .15s;white-space:nowrap;}
+  .sa-tab svg{flex-shrink:0;}
+  .sa-tab:hover{background:rgba(255,255,255,.07);color:rgba(247,240,228,.85);}
+  .sa-tab.is-on{background:rgba(199,93,58,.22);color:#E8794F;font-weight:600;}
   .sa-tab em{margin-left:auto;font-style:normal;background:#C75D3A;color:#fff;border-radius:99px;font-size:10.5px;font-weight:700;padding:1px 7px;}
   .sa-back{margin-top:auto;color:rgba(247,240,228,.6);font-size:12px;text-decoration:none;padding:8px 12px;}
   .sa-back:hover{color:#fff;}
@@ -692,6 +835,20 @@ const CSS = `
   .sa-types{display:flex;align-items:center;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(43,38,32,.06);}
   .sa-types .sa-legend--col{flex:1;}
   .sa-mrr-empty{padding:6px 0 4px;}
+  .sa-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(43,38,32,.4);font-weight:600;margin:24px 0 10px;}
+  .sa-models{display:grid;gap:12px;margin-top:12px;grid-template-columns:repeat(3,minmax(0,1fr));}
+  .sa-models--2{grid-template-columns:repeat(2,minmax(0,1fr));} .sa-models--1{grid-template-columns:minmax(0,1fr);}
+  .sa-drawer .sa-models{grid-template-columns:minmax(0,1fr);margin-top:0;}
+  .sa-model-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .sa-model-head i{width:10px;height:10px;border-radius:3px;display:inline-block;}
+  .sa-model .sa-csub{margin-bottom:4px;}
+  .sa-contact{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .sa-cbtn{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:7px 12px;border-radius:20px;border:1px solid rgba(43,38,32,.15);background:#fff;color:#2B2620;text-decoration:none;}
+  .sa-cbtn--wa{border-color:rgba(37,163,90,.35);color:#1E7A45;}
+  .sa-manual-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .sa-manual-form input,.sa-manual-form select{font:inherit;font-size:13px;padding:8px 10px;border:1px solid rgba(43,38,32,.18);border-radius:9px;background:#fff;color:#2B2620;}
+  .sa-manual-form input{width:140px;}
+  .sa-err{width:100%;margin:2px 0 0;font-size:12px;color:#B23B3B;}
   .sa-allgood{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;min-height:110px;height:calc(100% - 40px);}
   .sa-allgood svg{width:34px;height:34px;fill:none;stroke:#2E7D4F;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
   .sa-allgood p{margin:0;font-size:12px;color:rgba(43,38,32,.55);max-width:220px;}
@@ -734,11 +891,14 @@ const CSS = `
     .sa-shell{flex-direction:column;}
     .sa-side{position:sticky;top:0;z-index:20;width:100%;height:auto;flex-direction:row;align-items:center;padding:10px 12px;gap:10px;}
     .sa-brand small,.sa-back{display:none;}
-    .sa-brand .t{font-size:16px;padding:0 4px;}
     .sa-tabs{flex-direction:row;overflow-x:auto;gap:2px;scrollbar-width:none;}
     .sa-tabs::-webkit-scrollbar{display:none;}
     .sa-tab{padding:8px 10px;font-size:12.5px;white-space:nowrap;width:auto;}
     .sa-tab svg{display:none;}
+    .sa-brand{padding:2px 4px;flex-shrink:0;} .sa-brand img + img{display:none;}
+    .sa-hbar{grid-template-columns:minmax(0,46%) 1fr 40px;font-size:11.5px;}
+    .sa-tab{font-size:13px;padding:8px 10px;}
+    .sa-models,.sa-models--2{grid-template-columns:minmax(0,1fr);}
     .sa-main{padding:18px 16px 48px;}
     .sa-g5,.sa-g4{grid-template-columns:repeat(2,minmax(0,1fr));}
     .sa-g5>*,.sa-g5>:nth-child(n+4){grid-column:span 1;}
