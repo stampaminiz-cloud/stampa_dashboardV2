@@ -726,6 +726,11 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
                 >
                   {plan.cta}
                 </a>
+                {plan.slug === 'enterprise' && (
+                  <a href={`mailto:hola@stampaclub.com?subject=${encodeURIComponent('Plan Enterprise de Stampa')}`} style={{ textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 10, display: 'block' }}>
+                    o escribinos a hola@stampaclub.com
+                  </a>
+                )}
               </div>
             ))}
           </div>
