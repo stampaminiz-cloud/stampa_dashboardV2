@@ -6,7 +6,7 @@
 // ADMIN_EMAILS (el backend responde 404 al resto), solo lectura y sin datos
 // de los clientes finales. Backend: routes/admin.js, services/adminMetrics.js.
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { apiAdminBusiness, apiAdminOverview, apiAdminSetManualBilling, getToken, type AdminBusinessDetail, type AdminBusinessRow, type AdminModels, type AdminOverview, type Money } from '@/lib/api'
+import { apiAdminBusiness, apiAdminOverview, apiAdminSetManualBilling, apiAdminSetRegion, getToken, type AdminBusinessDetail, type AdminBusinessRow, type AdminModels, type AdminOverview, type Money } from '@/lib/api'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 
 const COUNTRY: Record<string, string> = { AR: 'Argentina', ES: 'España', UY: 'Uruguay', CL: 'Chile', MX: 'México' }
@@ -630,6 +630,7 @@ function Detail({ id, days, onClose, onChanged }: { id: string; days: number; on
   const phone = d?.owner?.phone?.replace(/[^\d]/g, '') || ''
   const historyText = (h: AdminBusinessDetail['history'][number]) => {
     if (h.type === 'signup') return `Se registró (${h.plan})`
+    if (h.type === 'region') return `País de cobro: ${REGION_LABEL[String(h.from)] || h.from} → ${REGION_LABEL[String(h.to)] || h.to}`
     if (h.type === 'manual') {
       const v = (x: typeof h.to) => (x && typeof x === 'object' ? `${money(x.amount, x.currency)}/mes` : 'nada')
       return `Paga por fuera: ${v(h.from)} → ${v(h.to)}`
@@ -664,6 +665,7 @@ function Detail({ id, days, onClose, onChanged }: { id: string; days: number; on
                   d.owner?.access === 'trial' && d.owner.trialEndsAt ? `vence ${fmtDate(d.owner.trialEndsAt)}` : null].filter(Boolean).join(' · ')} />
               <Stat label={`Escaneos (${d.period.days} días)`} value={n(d.period.scans)} sub={`${n(d.period.newCustomers)} clientes nuevos · ${n(d.period.redeems)} canjes`} />
             </div>
+            {d.owner && <RegionPicker id={d.id} region={d.owner.region} provider={d.owner.provider} onSaved={() => { apiAdminBusiness(id, days).then(setD).catch(() => {}); onChanged() }} />}
             <ManualBilling id={d.id} current={d.owner?.manualBilling || null} onSaved={() => { apiAdminBusiness(id, days).then(setD).catch(() => {}); onChanged() }} />
             <div className="sa-card sa-gap">
               <div className="sa-ct">Escaneos por semana</div>
@@ -703,6 +705,35 @@ function Detail({ id, days, onClose, onChanged }: { id: string; days: number; on
           </>
         )}
       </aside>
+    </div>
+  )
+}
+
+const REGION_LABEL: Record<string, string> = { AR: 'Argentina (pesos, Mercado Pago)', ES: 'España (euros + IVA, Stripe)', EU: 'Resto del mundo (euros + IVA, Stripe)' }
+
+// País de cobro de la cuenta: se elige solo en el registro según la IP; acá
+// se corrige si la IP se equivocó. Cambia con qué y en qué moneda paga.
+function RegionPicker({ id, region, provider, onSaved }: { id: string; region: 'AR' | 'ES' | 'EU'; provider: string | null; onSaved: () => void }) {
+  const [value, setValue] = useState(region)
+  const [state, setState] = useState<'idle' | 'saving' | 'error'>('idle')
+  const paying = provider && ((provider === 'stripe' && value === 'AR') || (provider === 'mercadopago' && value !== 'AR'))
+  async function save() {
+    setState('saving')
+    try { await apiAdminSetRegion(id, value); setState('idle'); onSaved() } catch { setState('error') }
+  }
+  return (
+    <div className="sa-card sa-gap">
+      <div className="sa-card-head" style={{ marginBottom: 8 }}>
+        <div><div className="sa-ct">País de cobro</div><div className="sa-csub">Define si paga en pesos con Mercado Pago o en euros + IVA con Stripe</div></div>
+      </div>
+      <div className="sa-manual-form">
+        <select value={value} onChange={e => setValue(e.target.value as 'AR' | 'ES' | 'EU')} aria-label="País de cobro">
+          {(['AR', 'ES', 'EU'] as const).map(r => <option key={r} value={r}>{REGION_LABEL[r]}</option>)}
+        </select>
+        {value !== region && <button className="sa-btn" disabled={state === 'saving'} onClick={save}>{state === 'saving' ? 'Guardando…' : 'Guardar'}</button>}
+        {state === 'error' && <p className="sa-err">No se pudo guardar.</p>}
+        {value !== region && paying && <p className="sa-err" style={{ color: 'rgba(43,38,32,.6)' }}>Tiene una suscripción activa con {provider === 'stripe' ? 'Stripe' : 'Mercado Pago'}: sigue cobrándose ahí hasta que la cancele. El cambio aplica a la próxima vez que elija plan.</p>}
+      </div>
     </div>
   )
 }
