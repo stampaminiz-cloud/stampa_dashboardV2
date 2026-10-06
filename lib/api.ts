@@ -238,7 +238,13 @@ export interface AdminBusinessRow {
   id: string; name: string; country: string; ownerEmail: string | null; plan: string; access: string; billingStatus: string | null
   trialDaysLeft: number | null; isActive: boolean; createdAt: string
   scans: number; scansPrev: number; scansDelta: number | null; newCustomers: number; redeems: number; customers: number
-  lastScanAt: string | null; pays: { currency: string; monthly: number } | null; signals: AdminSignal[]; trend: number[]
+  lastScanAt: string | null; pays: { currency: string; monthly: number; manual?: boolean } | null; signals: AdminSignal[]; trend: number[]
+}
+export type CardModel = 'stamp' | 'points' | 'membership'
+export interface AdminModels {
+  stamp: { businesses: number; customers: number; completed: number; avgStamps: number | null; nearPrize: number; completedEver: number | null } | null
+  points: { businesses: number; customers: number; given: number; redeemed: number; redeems: number; avgBalance: number | null; topReward: { name: string; count: number } | null } | null
+  membership: { businesses: number; ups: number; customers: number; levels: { order: number; label: string; count: number }[] } | null
 }
 export interface AdminOverview {
   generatedAt: string; days: number; country: string; countries: string[]; historyDays: number
@@ -255,7 +261,8 @@ export interface AdminOverview {
   }
   usage: {
     scans: number; scansDelta: number | null; newCustomers: number; newDelta: number | null; redeems: number; redeemsDelta: number | null
-    activeBusinesses: number; businesses: number; series: { weekly: boolean; starts: string[]; values: number[]; newCustomers: number[] }
+    activeBusinesses: number; businesses: number; series: { weekly: boolean; starts: string[]; values: number[]; newCustomers: number[]; byType: Record<CardModel, number[]> }
+    byTypeTotal: Record<CardModel, number>
   }
   features: {
     notifications: number | null; birthday: number | null; doubleDays: number | null; expiry: number | null; teamScans: number | null
@@ -263,24 +270,29 @@ export interface AdminOverview {
     cardTypes: { stamp: number | null; points: number | null; membership: number | null }
   }
   endUsers: { returning: number | null; avgVisits: number | null; medianGapDays: number | null; redeemed: number | null; passes: { total: number; apple: number; google: number }; people: number; perBusiness: number | null }
+  models: AdminModels
   businesses: AdminBusinessRow[]
 }
 export interface AdminBusinessDetail {
   id: string; name: string; createdAt: string; isActive: boolean; country: string
-  owner: { email: string; plan: string; access: string; billingStatus: string | null; period: string | null; trialEndsAt: string | null; nextPaymentDate: string | null; pays: { currency: string; monthly: number } | null } | null
+  owner: { email: string; phone: string | null; plan: string; access: string; billingStatus: string | null; period: string | null; trialEndsAt: string | null; nextPaymentDate: string | null; pays: { currency: string; monthly: number; manual?: boolean } | null; manualBilling: { amount: number; currency: string } | null } | null
   period: { days: number; scans: number; redeems: number; newCustomers: number }
   customers: number; passes: { total: number; apple: number; google: number }
   weeks: string[]; scansWeekly: number[]
   features: { cards: { name: string; type: string; isActive: boolean }[]; locations: number; team: number; teamScans: boolean; birthday: boolean; doubleDays: boolean; expiry: boolean; notifications: number }
   endUsers: { returning: number | null; avgVisits: number | null; medianGapDays: number | null; redeemed: number | null }
+  models: AdminModels
   notifications: { title: string | null; audience: string; recipients: number | null; sentAt: string }[]
-  history: { type: string; at: string; from?: string | null; to?: string | null; planFrom?: string; planTo?: string; plan?: string }[]
+  history: { type: string; at: string; from?: string | { amount: number; currency: string } | null; to?: string | { amount: number; currency: string } | null; planFrom?: string; planTo?: string; plan?: string }[]
 }
 export async function apiAdminOverview(days: number, country: string) {
   return request<AdminOverview>(`/api/admin/overview?days=${days}&country=${encodeURIComponent(country)}`)
 }
 export async function apiAdminBusiness(id: string, days: number) {
   return request<AdminBusinessDetail>(`/api/admin/businesses/${id}?days=${days}`)
+}
+export async function apiAdminSetManualBilling(id: string, amount: number, currency: string) {
+  return request<{ amount: number; currency: string | null }>(`/api/admin/businesses/${id}/manual-billing`, { method: 'PATCH', body: { amount, currency } })
 }
 
 export async function apiChangePassword(currentPassword: string, newPassword: string) {
