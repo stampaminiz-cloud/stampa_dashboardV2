@@ -238,7 +238,7 @@ export interface AdminBusinessRow {
   id: string; name: string; country: string; ownerEmail: string | null; plan: string; access: string; billingStatus: string | null
   trialDaysLeft: number | null; isActive: boolean; createdAt: string
   scans: number; scansPrev: number; scansDelta: number | null; newCustomers: number; redeems: number; customers: number
-  lastScanAt: string | null; pays: { currency: string; monthly: number } | null; signals: AdminSignal[]
+  lastScanAt: string | null; pays: { currency: string; monthly: number } | null; signals: AdminSignal[]; trend: number[]
 }
 export interface AdminOverview {
   generatedAt: string; days: number; country: string; countries: string[]; historyDays: number
@@ -248,10 +248,14 @@ export interface AdminOverview {
     projection: Money | null; arpu: Money; churn: number | null; lifetimeMonths: number | null; ltv: Money | null; legacy: number
     weeks: string[]; signups: number[]; cancels: number[]
     retention: { month: string; accounts: number; d30: number | null; d60: number | null; d90: number | null }[]
+    funnel: { signedUp: number; card: number; scan: number; paid: number }
+    states: { paying: number; trial: number; legacy: number; paused: number }
+    mrrHistory: { month: string; value: Money }[]
+    byPlan: { plan: string; count: number; value: Money }[]
   }
   usage: {
     scans: number; scansDelta: number | null; newCustomers: number; newDelta: number | null; redeems: number; redeemsDelta: number | null
-    activeBusinesses: number; businesses: number; series: { weekly: boolean; starts: string[]; values: number[] }
+    activeBusinesses: number; businesses: number; series: { weekly: boolean; starts: string[]; values: number[]; newCustomers: number[] }
   }
   features: {
     notifications: number | null; birthday: number | null; doubleDays: number | null; expiry: number | null; teamScans: number | null
