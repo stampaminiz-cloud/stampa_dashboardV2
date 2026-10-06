@@ -11,7 +11,7 @@ import { getJson, prefetch } from '@/lib/cache'
 import { RetentionRing, EmptyState as EmptyNote, type Retention } from '@/components/dashboard/charts'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { SettingsTab }       from '@/components/dashboard/SettingsTab'
-import { CustomersTab }      from '@/components/dashboard/CustomersTab'
+import { CustomersTab, upgradeLabel } from '@/components/dashboard/CustomersTab'
 import { AnalyticsTab }      from '@/components/dashboard/AnalyticsTab'
 import { RewardsTab }        from '@/components/dashboard/RewardsTab'
 import { NotificationsTab }  from '@/components/dashboard/NotificationsTab'
@@ -943,20 +943,21 @@ const CSS = `
 
 
 // ─── Main page ────────────────────────────────────────────────────────────────
-// Aviso de límite de clientes (Starter), visible en todas las tabs desde el
+// Aviso de límite de clientes (Starter y Growth), visible en todas las tabs desde el
 // 80%. El detalle está en Clientes (CustomerLimit).
-function LimitBanner({ usage, isManager, onChoosePlan, onOpen }: { usage?: { used: number | null; max: number; grace: number; state: string } | null; isManager: boolean; onChoosePlan: () => void; onOpen: () => void }) {
+function LimitBanner({ usage, isManager, onChoosePlan, onOpen }: { usage?: { used: number | null; max: number; grace: number; state: string; plan?: string; upgrade?: { plan: string; max: number } | null } | null; isManager: boolean; onChoosePlan: () => void; onOpen: () => void }) {
   if (!usage || !['warn', 'over', 'blocked'].includes(usage.state) || usage.used == null) return null
   const extra = Math.max(0, usage.max + usage.grace - usage.used)
-  const text = usage.state === 'warn' ? <>Tenés <strong>{usage.used} de {usage.max} clientes</strong> del plan Starter.</>
-    : usage.state === 'over' ? <>Llegaste a los <strong>{usage.max} clientes</strong> del plan Starter. Te quedan {extra} lugares extra antes de que el formulario deje de sumar clientes nuevos.</>
-    : <><strong>Tu formulario ya no suma clientes nuevos:</strong> usaste los {usage.max} clientes del plan Starter y los lugares extra. Los que ya tenés siguen sumando.</>
+  const plan = usage.plan || 'Starter'
+  const text = usage.state === 'warn' ? <>Tenés <strong>{usage.used} de {usage.max} clientes</strong> del plan {plan}.</>
+    : usage.state === 'over' ? <>Llegaste a los <strong>{usage.max} clientes</strong> del plan {plan}. Te quedan {extra} lugares extra antes de que el formulario deje de sumar clientes nuevos.</>
+    : <><strong>Tu formulario ya no suma clientes nuevos:</strong> usaste los {usage.max} clientes del plan {plan} y los lugares extra. Los que ya tenés siguen sumando.</>
   return (
     <div className={`lim-banner lim-banner--${usage.state}`}>
       <style dangerouslySetInnerHTML={{ __html: `.lim-banner{display:flex;align-items:center;gap:12px;margin:10px 24px 0;padding:10px 14px;border-radius:12px;font-size:12.5px;color:#2B2620;line-height:1.45;flex-wrap:wrap}.lim-banner--warn{background:#FBF1DE;border:1px solid rgba(212,162,76,.45)}.lim-banner--over,.lim-banner--blocked{background:#FBE7E1;border:1px solid rgba(199,93,58,.4)}.lim-banner span{flex:1;min-width:200px}.lim-banner button{border:none;border-radius:8px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}.lim-btn-main{background:#C75D3A;color:#fff}.lim-btn-sec{background:transparent;color:#2B2620;text-decoration:underline}@media(max-width:768px){.lim-banner{margin:10px 16px 0}}` }} />
       <span>{text}</span>
       <button className="lim-btn-sec" onClick={onOpen}>Ver clientes</button>
-      {isManager ? <span style={{ flex: '0 0 auto', minWidth: 0, color: 'rgba(43,38,32,.6)' }}>Avisale al dueño.</span> : <button className="lim-btn-main" onClick={onChoosePlan}>Clientes ilimitados con Growth</button>}
+      {isManager ? <span style={{ flex: '0 0 auto', minWidth: 0, color: 'rgba(43,38,32,.6)' }}>Avisale al dueño.</span> : <button className="lim-btn-main" onClick={onChoosePlan}>{upgradeLabel(usage)}</button>}
     </div>
   )
 }
