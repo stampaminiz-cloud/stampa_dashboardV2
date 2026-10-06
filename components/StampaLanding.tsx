@@ -290,7 +290,7 @@ export default function StampaLanding() {
                 textWrap: 'pretty' as CSSProperties['textWrap'],
               }}
             >
-              La fidelidad no es un algoritmo. Es humana.
+              Que vuelvan es el mejor negocio.
             </h1>
             <p style={{ fontSize: 19, lineHeight: 'var(--leading-body)', color: 'var(--text-body)', maxWidth: 520, marginBottom: 36, textWrap: 'pretty' as CSSProperties['textWrap'] }}>
               Tu tarjeta de sellos o de puntos, guardada en el celular de tu cliente. Suma en cada visita y le podés avisar cuando le falta
@@ -811,7 +811,7 @@ export default function StampaLanding() {
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--text-lg)', color: 'var(--text-strong)' }}>Stampa</span>
               </div>
               <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', lineHeight: 'var(--leading-body)', marginBottom: 20 }}>
-                La fidelidad no es un algoritmo. Es humana.
+                Que vuelvan es el mejor negocio.
               </p>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--surface-sunk)', border: '1px solid var(--border)', borderRadius: 'var(--radius-full)', padding: '6px 14px' }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
