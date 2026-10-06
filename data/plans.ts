@@ -9,7 +9,7 @@ export type Plan = 'Starter' | 'Growth' | 'Pro' | 'Enterprise'
 
 export interface PlanLimits {
   maxActiveCards:   number        // active card types allowed
-  maxCustomers:     number        // clientes registrados (0 = sin límite) — hoy solo se muestra, no se bloquea
+  maxCustomers:     number        // clientes (personas; 0 = sin límite). Límite suave en el backend: services/customerLimit.js
   customColors:     boolean       // hex + color picker (color 100% libre)
   extraColorPresets:boolean       // los 3 presets extra (8 en vez de 5) — escalón intermedio antes del hex libre
   customTextColor:  boolean       // color de texto sobre la tarjeta — desde Pro (afecta el pase real, no solo el preview)
@@ -44,7 +44,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     formBranding:    false,
   },
   Growth: {
-    maxCustomers:    0,
+    maxCustomers:    500,
     maxActiveCards:  3,
     customColors:    false,       // color libre queda reservado para Pro+ — acá se sube a 8 presets curados
     extraColorPresets:true,
