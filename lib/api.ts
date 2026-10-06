@@ -230,46 +230,53 @@ export async function apiMe() {
   return request<{ owner: Owner; businesses: Business[] }>('/api/auth/me')
 }
 
-// ─── Panel interno de Stampa (/admin) ────────────────────────────────────────
+// ─── Panel del dueño de Stampa (/admin) ──────────────────────────────────────
 // Solo responde a los emails de ADMIN_EMAILS (backend); al resto, 404.
-export type AdminFlag = 'past_due' | 'trial_ending_unused' | 'near_limit' | 'inactive' | 'never_used'
+export type Money = Record<string, number> // por moneda: { ARS: 84000, EUR: 39 }
+export interface AdminSignal { kind: 'risk' | 'upsell' | 'idle'; text: string }
 export interface AdminBusinessRow {
-  id: string; name: string; ownerEmail: string | null; plan: string; access: string; billingStatus: string | null
-  trialDaysLeft: number | null; createdAt: string; isActive: boolean; customers: number; maxCustomers: number
-  notifsUsed: number; maxNotifs: number; lastScanAt: string | null; scansWeek: number; flags: AdminFlag[]
+  id: string; name: string; country: string; ownerEmail: string | null; plan: string; access: string; billingStatus: string | null
+  trialDaysLeft: number | null; isActive: boolean; createdAt: string
+  scans: number; scansPrev: number; scansDelta: number | null; newCustomers: number; redeems: number; customers: number
+  lastScanAt: string | null; pays: { currency: string; monthly: number } | null; signals: AdminSignal[]
 }
 export interface AdminOverview {
-  generatedAt: string
+  generatedAt: string; days: number; country: string; countries: string[]; historyDays: number
   money: {
-    mrr: Record<string, number>; mrrUnknown: number; paying: number; planCount: Record<string, number>
-    trials: number; trialsEndingSoon: number; conversion: { rate: number; of: number } | null; legacy: number
+    mrr: Money; mrrPrev: Money | null; mrrUnknown: number; paying: number; planCount: Record<string, number>
+    trials: number; trialsEnding7: number; conversion: { rate: number; of: number } | null
+    projection: Money | null; arpu: Money; churn: number | null; lifetimeMonths: number | null; ltv: Money | null; legacy: number
     weeks: string[]; signups: number[]; cancels: number[]
+    retention: { month: string; accounts: number; d30: number | null; d60: number | null; d90: number | null }[]
   }
   usage: {
-    businesses: number; activeWeek: number; passes: { total: number; apple: number; google: number }
-    customers: number; scansWeek: number; scansWeekly: number[]; notifications: { count: number; recipients: number }
+    scans: number; scansDelta: number | null; newCustomers: number; newDelta: number | null; redeems: number; redeemsDelta: number | null
+    activeBusinesses: number; businesses: number; series: { weekly: boolean; starts: string[]; values: number[] }
   }
-  funnel: { signedUp: number; card: number; customer: number; scan: number }
+  features: {
+    notifications: number | null; birthday: number | null; doubleDays: number | null; expiry: number | null; teamScans: number | null
+    team: number | null; locations: number | null; formFields: number | null; google: number | null
+    cardTypes: { stamp: number | null; points: number | null; membership: number | null }
+  }
+  endUsers: { returning: number | null; avgVisits: number | null; medianGapDays: number | null; redeemed: number | null; passes: { total: number; apple: number; google: number }; people: number; perBusiness: number | null }
   businesses: AdminBusinessRow[]
-  health: {
-    cronAt: string | null; emails: { ok: number; failed: number }; walletErrors: { apple: number; google: number }
-    failedScheduled: number; digestFailures: number; backupsUrl: string
-  }
 }
 export interface AdminBusinessDetail {
-  id: string; name: string; createdAt: string; isActive: boolean
-  owner: { email: string; plan: string; access: string; billingStatus: string | null; period: string | null; trialEndsAt: string | null; nextPaymentDate: string | null } | null
-  cards: { name: string; type: string; isActive: boolean }[]
-  locations: number; customers: number; passes: { total: number; apple: number; google: number }
+  id: string; name: string; createdAt: string; isActive: boolean; country: string
+  owner: { email: string; plan: string; access: string; billingStatus: string | null; period: string | null; trialEndsAt: string | null; nextPaymentDate: string | null; pays: { currency: string; monthly: number } | null } | null
+  period: { days: number; scans: number; redeems: number; newCustomers: number }
+  customers: number; passes: { total: number; apple: number; google: number }
   weeks: string[]; scansWeekly: number[]
+  features: { cards: { name: string; type: string; isActive: boolean }[]; locations: number; team: number; teamScans: boolean; birthday: boolean; doubleDays: boolean; expiry: boolean; notifications: number }
+  endUsers: { returning: number | null; avgVisits: number | null; medianGapDays: number | null; redeemed: number | null }
   notifications: { title: string | null; audience: string; recipients: number | null; sentAt: string }[]
-  history: { type: string; at: string; from?: string; to?: string; planFrom?: string; planTo?: string; plan?: string }[]
+  history: { type: string; at: string; from?: string | null; to?: string | null; planFrom?: string; planTo?: string; plan?: string }[]
 }
-export async function apiAdminOverview() {
-  return request<AdminOverview>('/api/admin/overview')
+export async function apiAdminOverview(days: number, country: string) {
+  return request<AdminOverview>(`/api/admin/overview?days=${days}&country=${encodeURIComponent(country)}`)
 }
-export async function apiAdminBusiness(id: string) {
-  return request<AdminBusinessDetail>(`/api/admin/businesses/${id}`)
+export async function apiAdminBusiness(id: string, days: number) {
+  return request<AdminBusinessDetail>(`/api/admin/businesses/${id}?days=${days}`)
 }
 
 export async function apiChangePassword(currentPassword: string, newPassword: string) {
