@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import StampaLanding from '@/components/StampaLanding'
+import { marketFromCountry } from '@/lib/market'
 
 // La imagen para compartir (WhatsApp, Instagram, LinkedIn) es
 // app/opengraph-image.png — Next la agrega sola a estas etiquetas.
@@ -19,6 +21,9 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image' },
 }
 
-export default function Page() {
-  return <StampaLanding />
+// Precios según el país de la IP (Vercel manda x-vercel-ip-country):
+// Argentina en pesos; el resto en euros + IVA. En local no hay header: AR.
+export default async function Page() {
+  const country = (await headers()).get('x-vercel-ip-country')
+  return <StampaLanding market={marketFromCountry(country)} />
 }

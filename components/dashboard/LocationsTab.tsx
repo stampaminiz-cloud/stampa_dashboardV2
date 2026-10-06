@@ -9,6 +9,7 @@
 // Para no equivocarse de sucursal: se muestran siempre todas, la que está
 // elegida en la barra lateral aparece abierta y marcada, y cada tarjeta
 // guarda lo suyo ("Guardar cambios de Playa"); no hay un guardar general.
+import { SALES_EMAIL, mailLink, whatsappLink } from '@/lib/contact'
 import React, { useEffect, useState } from 'react'
 import { apiGetLocations, apiCreateLocation, apiUpdateLocation } from '@/lib/api'
 import type { Location, LocationsResponse, DayHours } from '@/lib/location'
@@ -254,7 +255,13 @@ export function LocationsTab({ businessId, businessName, isManager = false, sele
               <div className="lt-count">{multiPlan ? (data.max === null ? `${data.activeCount} sucursales activas` : `${data.activeCount} de ${data.max} en tu plan ${data.plan}`) : 'Tu plan incluye una sucursal'}</div>
               {!isManager && (canAdd
                 ? !adding && <button type="button" className="lt-btn" onClick={() => setAdding(true)}>+ Agregar sucursal</button>
-                : onChoosePlan && <button type="button" className="lt-btn-ghost" onClick={onChoosePlan}>{multiPlan ? 'Más sucursales con Enterprise' : 'Hasta 3 sucursales con Pro'}</button>)}
+                : multiPlan
+                  // Enterprise no se contrata solo: se consulta por WhatsApp o mail.
+                  ? <span className="lt-contact">
+                      <a className="lt-btn-ghost" href={whatsappLink(`Hola! Quiero más sucursales en Stampa (plan Enterprise).`)} target="_blank" rel="noopener noreferrer">Más sucursales con Enterprise</a>
+                      <a className="lt-mail" href={mailLink('Plan Enterprise · más sucursales')}>o escribinos a {SALES_EMAIL}</a>
+                    </span>
+                  : onChoosePlan && <button type="button" className="lt-btn-ghost" onClick={onChoosePlan}>Hasta 3 sucursales con Pro</button>)}
             </div>
             {adding && (
               <form className="lt-card lt-add" onSubmit={add}>
@@ -323,6 +330,10 @@ const CSS = `
   .lt-btn{font-size:12.5px;background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:9px 16px;cursor:pointer;font-weight:700;font-family:'Inter',sans-serif;}
   .lt-btn:disabled{opacity:.45;cursor:default;}
   .lt-btn-ghost{font-size:12.5px;background:#fff;color:#C75D3A;border:1px solid rgba(199,93,58,.35);border-radius:9px;padding:8px 14px;cursor:pointer;font-weight:600;font-family:'Inter',sans-serif;}
+  a.lt-btn-ghost{text-decoration:none;display:inline-block;}
+  .lt-contact{display:inline-flex;flex-direction:column;align-items:flex-end;gap:4px;}
+  .lt-mail{font-size:11.5px;color:rgba(43,38,32,.55);text-decoration:none;}
+  .lt-mail:hover{text-decoration:underline;}
   .lt-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid rgba(43,38,32,.07);padding-top:14px;}
   .lt-actions-end{display:flex;align-items:center;gap:10px;}
   .lt-ok{font-size:11.5px;color:#5B8C5A;font-weight:600;}

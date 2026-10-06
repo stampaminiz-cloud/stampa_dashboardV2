@@ -2,7 +2,8 @@
 
 import { useEffect, useState, type CSSProperties } from 'react';
 import styles from '../styles/stampa-landing.module.css';
-import { annualSavingsPct, formatPrice, usePlanPrices, type PlanSlug } from '@/lib/pricing';
+import { annualSavingsPct, formatPrice, taxSuffix, usePlanPrices, type PlanSlug } from '@/lib/pricing';
+import type { Market } from '@/lib/market';
 import { VerticalPicker } from './landing/VerticalPicker';
 import { FeatureShowcase } from './landing/FeatureShowcase';
 import { HeroPass } from './landing/HeroPass';
@@ -89,7 +90,9 @@ const DEMO_BUSINESS_ID = process.env.NEXT_PUBLIC_DEMO_BUSINESS_ID || '';
    Component
    ──────────────────────────────────────────────────────────────── */
 
-export default function StampaLanding() {
+// market: AR = pesos (Mercado Pago); EU = euros + IVA (Stripe). Lo decide
+// app/page.tsx con el país de la IP.
+export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
   const [period, setPeriod] = useState<'monthly' | 'annual'>('monthly');
   const [openFaq, setOpenFaq] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -106,7 +109,7 @@ export default function StampaLanding() {
   }, []);
 
   const isMonthly = period === 'monthly';
-  const prices = usePlanPrices();
+  const prices = usePlanPrices(market);
   // El badge del toggle muestra el ahorro mínimo entre planes ("hasta -X%"
   // sería engañoso si alguno ahorra menos).
   const savings = (['starter', 'growth', 'pro'] as PlanSlug[]).map((k) => annualSavingsPct(prices[k])).filter((x): x is number => x != null);
@@ -114,12 +117,13 @@ export default function StampaLanding() {
   const plans = RAW_PLANS.map((p) => {
     const pr = p.monthly === null ? null : prices[p.slug as PlanSlug];
     // Anual: se muestra el equivalente por mes y abajo el total del año.
-    const monthlyEquivalent = pr?.annual ? Math.round(pr.annual / 12) : null;
+    const monthlyEquivalent = pr?.annual ? (pr.currency === 'EUR' ? Math.round((pr.annual / 12) * 100) / 100 : Math.round(pr.annual / 12)) : null;
     return {
     ...p,
     hasPrice: p.monthly !== null,
     price: pr ? formatPrice(isMonthly ? pr.monthly : monthlyEquivalent, pr.currency) : null,
     annualTotal: pr && !isMonthly && pr.annual ? formatPrice(pr.annual, pr.currency) : null,
+    tax: pr ? taxSuffix(pr) : '',
     cardBg: p.highlight ? 'linear-gradient(155deg, var(--ember-500), var(--ember-700))' : 'var(--surface-card)',
     cardBorder: p.highlight ? '1px solid var(--ember-glow)' : '1px solid var(--border)',
     btnBg: p.highlight ? '#fff' : 'var(--ember-soft)',
@@ -698,9 +702,9 @@ export default function StampaLanding() {
                   {plan.hasPrice ? (
                     <>
                       <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, color: 'var(--text-strong)' }}>{plan.price}</span>
-                      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>/mes</span>
+                      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>/mes{plan.tax}</span>
                       {plan.annualTotal && (
-                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 4 }}>{plan.annualTotal} facturado por año</div>
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 4 }}>{plan.annualTotal}{plan.tax} facturado por año</div>
                       )}
                     </>
                   ) : (
@@ -722,6 +726,11 @@ export default function StampaLanding() {
                 >
                   {plan.cta}
                 </a>
+                {plan.slug === 'enterprise' && (
+                  <a href={`mailto:hola@stampaclub.com?subject=${encodeURIComponent('Plan Enterprise de Stampa')}`} style={{ textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 10, display: 'block' }}>
+                    o escribinos a hola@stampaclub.com
+                  </a>
+                )}
               </div>
             ))}
           </div>

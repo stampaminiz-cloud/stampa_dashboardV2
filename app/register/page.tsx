@@ -4,7 +4,8 @@ import { useSearchParams } from 'next/navigation'
 import { apiRegister, getToken } from '@/lib/api'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { PasswordInput } from '@/components/auth/PasswordInput'
-import { formatPrice, usePlanPrices, type PlanSlug } from '@/lib/pricing'
+import { formatPrice, taxSuffix, usePlanPrices, type PlanSlug } from '@/lib/pricing'
+import { marketFromCountry, regionFromCountry, type Region } from '@/lib/market'
 
 // ─── Plan data ─────────────────────────────────────────────────────────────────
 // Precios: salen de Mercado Pago (lib/pricing.ts), igual que en la landing.
@@ -80,13 +81,18 @@ function RegisterForm() {
   const searchParams = useSearchParams()
   const planSlug = searchParams.get('plan') || 'growth'
   const selectedPlan = PLANS[planSlug] || PLANS.growth
-  const prices = usePlanPrices()
+  // País según la IP (app/api/geo): Argentina paga en pesos con Mercado
+  // Pago; el resto, en euros + IVA con Stripe. Si la IP se equivoca, el país
+  // de la cuenta se corrige desde /admin.
+  const [region, setRegion] = useState<Region>('AR')
+  useEffect(() => {
+    fetch('/api/geo').then(r => (r.ok ? r.json() : null)).then(d => { if (d?.country) setRegion(regionFromCountry(d.country)) }).catch(() => {})
+  }, [])
+  const prices = usePlanPrices(marketFromCountry(region === 'AR' ? 'AR' : region))
   const planPrices = prices[(PLANS[planSlug] ? planSlug : 'growth') as PlanSlug]
   const monthlyPrice = formatPrice(planPrices.monthly, planPrices.currency)
 
-  // region: por ahora solo Argentina (el cobro en España está pausado);
-  // el selector de país vuelve cuando esté Stripe.
-  const [form, setForm] = useState({ fullName: '', email: '', password: '', terms: false, region: 'AR' })
+  const [form, setForm] = useState({ fullName: '', email: '', password: '', terms: false })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [emailTaken, setEmailTaken] = useState(false)
@@ -124,7 +130,7 @@ function RegisterForm() {
         password: form.password,
         fullName: form.fullName.trim(),
         termsAccepted: 'true',
-        region: form.region,
+        region,
         plan: planSlug,
       })
       window.location.href = '/onboarding'
@@ -148,7 +154,7 @@ function RegisterForm() {
               <span className="rg-plan-name">Plan {selectedPlan.name}</span>
               {selectedPlan.highlight && <span className="rg-plan-badge">Más elegido</span>}
             </div>
-            <span className="rg-plan-price">{monthlyPrice}/mes</span>
+            <span className="rg-plan-price">{monthlyPrice}/mes{taxSuffix(planPrices)}</span>
           </div>
           <div className="rg-plan-features">
             {selectedPlan.features.map(f => (

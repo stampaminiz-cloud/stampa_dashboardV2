@@ -275,7 +275,7 @@ export interface AdminOverview {
 }
 export interface AdminBusinessDetail {
   id: string; name: string; createdAt: string; isActive: boolean; country: string
-  owner: { email: string; phone: string | null; plan: string; access: string; billingStatus: string | null; period: string | null; trialEndsAt: string | null; nextPaymentDate: string | null; pays: { currency: string; monthly: number; manual?: boolean } | null; manualBilling: { amount: number; currency: string } | null } | null
+  owner: { email: string; phone: string | null; plan: string; access: string; billingStatus: string | null; period: string | null; trialEndsAt: string | null; nextPaymentDate: string | null; pays: { currency: string; monthly: number; manual?: boolean } | null; manualBilling: { amount: number; currency: string } | null; region: 'AR' | 'ES' | 'EU'; provider: string | null } | null
   period: { days: number; scans: number; redeems: number; newCustomers: number }
   customers: number; passes: { total: number; apple: number; google: number }
   weeks: string[]; scansWeekly: number[]
@@ -290,6 +290,9 @@ export async function apiAdminOverview(days: number, country: string) {
 }
 export async function apiAdminBusiness(id: string, days: number) {
   return request<AdminBusinessDetail>(`/api/admin/businesses/${id}?days=${days}`)
+}
+export async function apiAdminSetRegion(id: string, region: 'AR' | 'ES' | 'EU') {
+  return request<{ region: string }>(`/api/admin/businesses/${id}/region`, { method: 'PATCH', body: { region } })
 }
 export async function apiAdminSetManualBilling(id: string, amount: number, currency: string) {
   return request<{ amount: number; currency: string | null }>(`/api/admin/businesses/${id}/manual-billing`, { method: 'PATCH', body: { amount, currency } })
@@ -682,6 +685,7 @@ export interface BillingPlan {
   currency: string | null
   active: boolean
   error?: boolean
+  taxExcluded?: boolean // Stripe: el precio es más IVA
 }
 
 export async function apiBillingStatus() {
@@ -689,7 +693,12 @@ export async function apiBillingStatus() {
 }
 
 export async function apiBillingPlans() {
-  return request<{ provider: 'mercadopago'; plans: BillingPlan[] }>('/api/billing/plans')
+  return request<{ provider: 'mercadopago' | 'stripe'; plans: BillingPlan[]; stripePublishableKey?: string | null }>('/api/billing/plans')
+}
+
+// Stripe (Europa): abre el formulario de pago incrustado para ese plan.
+export async function apiStripeCheckout(plan: string, period: string) {
+  return request<{ clientSecret: string; sessionId: string }>('/api/billing/stripe/checkout', { method: 'POST', body: { plan, period } })
 }
 
 export async function apiSubscribeMercadoPago(data: { plan: string; period: string; cardTokenId: string; payerEmail?: string }) {
