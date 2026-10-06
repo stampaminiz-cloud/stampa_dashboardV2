@@ -608,9 +608,9 @@ function BillingDetails({ billing, onCancel }: { billing?: BillingStatus | null;
     billing.access === 'legacy' ? 'Cuenta sin cobro (acceso completo).'
     : billing.access === 'trial' ? `Prueba gratis: termina el ${date(billing.trialEndsAt)}.`
     : billing.status === 'cancelled' ? `Suscripción cancelada: tenés acceso hasta el ${date(billing.accessUntil)}.`
-    : billing.access === 'active' ? `Suscripción activa (${billing.period === 'annual' ? 'anual' : 'mensual'}, Mercado Pago).${billing.nextPaymentDate ? ` Próximo cobro: ${date(billing.nextPaymentDate)}.` : ''}`
+    : billing.access === 'active' ? `Suscripción activa (${billing.period === 'annual' ? 'anual' : 'mensual'}, ${billing.provider === 'stripe' ? 'Stripe' : 'Mercado Pago'}).${billing.nextPaymentDate ? ` Próximo cobro: ${date(billing.nextPaymentDate)}.` : ''}`
     : 'Cuenta en pausa: elegí un plan para reactivarla.'
-  const canCancel = billing.provider === 'mercadopago' && billing.access === 'active' && billing.status !== 'cancelled'
+  const canCancel = (billing.provider === 'mercadopago' || billing.provider === 'stripe') && billing.access === 'active' && billing.status !== 'cancelled'
   return (
     <div style={{ marginTop: 10, fontSize: 12, color: 'rgba(43,38,32,.6)', lineHeight: 1.6 }}>
       {line}
@@ -627,7 +627,7 @@ function BillingDetails({ billing, onCancel }: { billing?: BillingStatus | null;
       {error && <div style={{ color: '#B23B3B', marginTop: 6 }}>{error}</div>}
       {billing.subscriptionId && (
         <div style={{ marginTop: 6, fontSize: 11, color: 'rgba(43,38,32,.4)' }}>
-          ID de suscripción (Mercado Pago): <span style={{ fontFamily: 'monospace', userSelect: 'all' }}>{billing.subscriptionId}</span>
+          ID de suscripción ({billing.provider === 'stripe' ? 'Stripe' : 'Mercado Pago'}): <span style={{ fontFamily: 'monospace', userSelect: 'all' }}>{billing.subscriptionId}</span>
         </div>
       )}
     </div>
