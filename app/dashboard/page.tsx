@@ -1237,7 +1237,10 @@ export default function DashboardPage() {
   }, [active, businessId])
 
   useLayoutEffect(() => {
-    const saved = localStorage.getItem('stampa_active_tab') as TabId | null
+    // ?tab=settings (por ejemplo, el link "darse de baja" de los mails de
+    // alertas) abre esa pestaña; si no, la última que se usó.
+    const fromUrl = new URLSearchParams(window.location.search).get('tab') as TabId | null
+    const saved = fromUrl && NAV_IDS.includes(fromUrl) ? fromUrl : localStorage.getItem('stampa_active_tab') as TabId | null
     if (saved) setActive(saved)
     // (si era 'users' y entra un manager, el efecto de abajo lo corrige)
   }, [])
