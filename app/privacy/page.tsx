@@ -126,6 +126,7 @@ export default function PrivacyPage() {
             <li>Apple (Wallet / PassKit) y Google (Google Wallet API), para emitir y actualizar las tarjetas</li>
             <li>Resend, para enviar los mails del servicio (avisos, resúmenes, recuperación de contraseña)</li>
             <li>Mercado Pago y Stripe, para cobrar la suscripción a los negocios (no reciben datos de los clientes finales)</li>
+            <li>Sentry, para detectar errores técnicos del servicio (configurado para no recibir datos personales)</li>
           </ul>
           <p>No vendemos datos personales a terceros con fines publicitarios.</p>
         </Section>
