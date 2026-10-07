@@ -7,6 +7,7 @@ import type { Market } from '@/lib/market';
 import { VerticalPicker } from './landing/VerticalPicker';
 import { FeatureShowcase } from './landing/FeatureShowcase';
 import { BeforeAfter } from './landing/BeforeAfter';
+import { QrImage } from './QrImage';
 import { HeroPass } from './landing/HeroPass';
 
 /* ────────────────────────────────────────────────────────────────
@@ -483,13 +484,7 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
             </div>
             {!isMobile && (
               <div style={{ background: 'var(--stampa-cream)', borderRadius: 24, padding: 22, boxShadow: 'var(--shadow-lg)', textAlign: 'center' }}>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=440x440&margin=0&color=1B412F&bgcolor=FBF6EE&data=${encodeURIComponent(demoUrl)}`}
-                  alt="QR para probar una tarjeta Stampa"
-                  width={220}
-                  height={220}
-                  style={{ display: 'block' }}
-                />
+                <QrImage value={demoUrl} size={220} margin={0} dark="#1B412F" light="#FBF6EE" alt="QR para probar una tarjeta Stampa" style={{ display: 'block' }} />
                 <div style={{ marginTop: 12, fontSize: 'var(--text-xs)', fontWeight: 700, color: '#2B2620' }}>Apuntá la cámara acá</div>
               </div>
             )}
