@@ -24,7 +24,7 @@ export default function PrivacyPage() {
             <a href="mailto:hola@stampaclub.com" style={{ color: 'var(--stampa-ember)', fontWeight: 700 }}>
               hola@stampaclub.com
             </a>
-            . El responsable es Stampa, CUIT 30-39938197-6, con domicilio en Colón 136, Villa Allende (CP 5105), Córdoba, Argentina.
+            . El responsable es Matias Nicolas Marini (nombre comercial: Stampa), CUIT 20-39938197-6, con domicilio en Colón 136, Villa Allende (CP 5105), Córdoba, Argentina.
           </p>
         </Section>
 
