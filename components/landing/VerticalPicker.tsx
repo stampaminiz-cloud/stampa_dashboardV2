@@ -11,7 +11,7 @@ type Points = { kind: 'points'; balance: number; costs: number[]; next: string }
 type Tiers = { kind: 'tiers'; tiers: string[]; current: number; perk: string };
 type Vertical = { id: string; label: string; business: string; color: string; headline: string; detail: string; card: Stamp | Points | Tiers };
 
-const VERTICALS: Vertical[] = [
+export const VERTICALS: Vertical[] = [
   { id: 'cafe', label: 'Cafetería', business: 'Café Luna', color: '#6B2D1F',
     headline: 'Diez cafés, el próximo invita la casa.',
     detail: 'Tarjeta de sellos. Cuando le falta uno, le llega un aviso al celular.',
@@ -73,7 +73,8 @@ export function QrMock() {
   )
 }
 
-function CardMock({ v }: { v: Vertical }) {
+// compact: sin el QR (para el antes y después, landing/BeforeAfter.tsx).
+export function CardMock({ v, compact = false }: { v: Vertical; compact?: boolean }) {
   const c = v.card;
   return (
     <div className="vp-pass" style={{ background: v.color }} aria-label={`Tarjeta de ejemplo de ${v.business}`}>
@@ -115,7 +116,7 @@ function CardMock({ v }: { v: Vertical }) {
         <div><div className="vp-l">TITULAR</div><div className="vp-v">Sofía Ríos</div></div>
         <div><div className="vp-l">{c.kind === 'stamp' ? 'PREMIO' : c.kind === 'points' ? 'VISITAS' : 'BENEFICIO'}</div><div className="vp-v">{c.kind === 'stamp' ? c.prize : c.kind === 'points' ? '14' : c.perk}</div></div>
       </div>
-      <QrMock />
+      {!compact && <QrMock />}
     </div>
   )
 }
@@ -125,7 +126,7 @@ export function VerticalPicker() {
   const v = VERTICALS.find(x => x.id === id) || VERTICALS[0]
   return (
     <div className="vp">
-      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: VP_CSS }} />
       <div className="vp-left">
         <div className="vp-chips" role="group" aria-label="Elegí tu rubro">
           {VERTICALS.map(x => (
@@ -141,7 +142,8 @@ export function VerticalPicker() {
   )
 }
 
-const CSS = `
+// Se exporta para que otras secciones que usan CardMock tengan los estilos.
+export const VP_CSS = `
   .vp{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:48px;align-items:center;}
   .vp-chips{display:flex;flex-wrap:wrap;gap:8px;}
   .vp-chip{font-family:var(--font-sans);font-size:15px;font-weight:500;color:var(--text-body);background:transparent;border:1px solid var(--border);border-radius:999px;padding:9px 16px;cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
