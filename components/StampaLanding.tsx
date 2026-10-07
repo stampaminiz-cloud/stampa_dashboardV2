@@ -846,6 +846,7 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
                 <a href="#caso-de-uso" style={{ color: 'var(--text-body)', fontSize: 'var(--text-sm)' }}>Caso de éxito</a>
                 <a href="#rubros" style={{ color: 'var(--text-body)', fontSize: 'var(--text-sm)' }}>Rubros compatibles</a>
                 <a href="#faq" style={{ color: 'var(--text-body)', fontSize: 'var(--text-sm)' }}>Preguntas frecuentes</a>
+                <a href="/soporte" style={{ color: 'var(--text-body)', fontSize: 'var(--text-sm)' }}>Soporte</a>
               </div>
             </div>
             <div>
