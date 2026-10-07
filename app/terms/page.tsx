@@ -107,7 +107,7 @@ export default function TermsPage() {
             <a href="mailto:hola@stampaclub.com" style={{ color: 'var(--stampa-ember)', fontWeight: 700 }}>
               hola@stampaclub.com
             </a>
-            . Stampa es Matias Nicolas Marini (nombre comercial: Stampa), CUIT 20-39938197-6, con domicilio en Colón 136, Villa Allende (CP 5105), Córdoba, Argentina.
+            . Stampa es el nombre comercial de Matias Nicolas Marini, CUIT 20-39938197-6, con domicilio en Colón 136, Villa Allende (CP 5105), Córdoba, Argentina.
           </p>
         </Section>
       </div>
