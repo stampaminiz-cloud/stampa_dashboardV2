@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { apiGetPublicBusiness, apiGetPublicCardFields, apiRegisterCustomer, apiResendCard, BASE_URL } from '@/lib/api'
+import { QrImage } from '@/components/QrImage'
 
 const CSS = `
   :root { --font-display: 'Plus Jakarta Sans', sans-serif; --font-body: 'Inter', sans-serif; --brand-color: #C75D3A; --brand-second: #993C1D; --brand-text: #FFFFFF; }
@@ -229,11 +230,7 @@ export default function PublicRegisterPage() {
                       return android ? [google, apple] : [apple, google]
                     })()}
                     <div className="rg-success-note" style={{ marginTop: 14 }}>¿Preferís no guardarla? Mostrá este código en el mostrador:</div>
-                    <img
-                      className="rg-qr-img"
-                      alt="Tu código de cliente"
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(result.qrValue)}`}
-                    />
+                    <QrImage className="rg-qr-img" value={result.qrValue} size={200} alt="Tu código de cliente" />
                   </div>
                 ) : !selectedCard ? (
                   <div className="rg-card-pill-row">
