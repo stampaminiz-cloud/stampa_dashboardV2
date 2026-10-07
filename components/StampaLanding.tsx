@@ -6,6 +6,7 @@ import { annualSavingsPct, formatPrice, taxSuffix, usePlanPrices, type PlanSlug 
 import type { Market } from '@/lib/market';
 import { VerticalPicker } from './landing/VerticalPicker';
 import { FeatureShowcase } from './landing/FeatureShowcase';
+import { BeforeAfter } from './landing/BeforeAfter';
 import { HeroPass } from './landing/HeroPass';
 
 /* ────────────────────────────────────────────────────────────────
@@ -26,9 +27,6 @@ const PROOF_BUSINESSES = [
   { name: 'Raíz Criolla', category: 'Carne envasada premium', logo: '/assets/logo-raiz-criolla.png', logoBg: '#5C1414' },
 ];
 
-const PAPER_CONS = ['Se pierde o queda en otra billetera', 'Nadie sabe cuántos sellos le faltan', 'No le podés avisar nada al cliente'];
-const APP_CONS = ['Pocos la bajan para un solo local', 'Desarrollarla lleva meses y miles de euros', 'Si no la abren, no sirve'];
-const STAMPA_PROS = ['Se guarda en el Wallet en un minuto', 'Se actualiza sola en cada visita', 'Tus avisos llegan a la pantalla del celular'];
 
 const STEPS = [
   { n: '01', title: 'Armás tu tarjeta', desc: 'Elegís sellos, puntos o niveles, subís tu logo y elegís los colores. Lleva unos 15 minutos.' },
@@ -191,6 +189,10 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
           )}
 
           {!isMobile && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <a href="/login" className={styles.navLink} style={{ fontSize: 14, fontWeight: 700, padding: '10px 16px', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-lg)', whiteSpace: 'nowrap' }}>
+              Ingresar
+            </a>
             <a
               href="/register"
               className={styles.ctaEmber}
@@ -205,6 +207,7 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
             >
               Empezá gratis
             </a>
+            </div>
           )}
 
           {isMobile && (
@@ -239,6 +242,13 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
                 {link.label}
               </a>
             ))}
+            <a
+              onClick={closeMobileMenu}
+              href="/login"
+              style={{ color: 'var(--stampa-ink)', fontSize: 16, fontWeight: 700, padding: '12px 0', borderBottom: '1px solid var(--cream-300)' }}
+            >
+              Ingresar
+            </a>
             <a
               onClick={closeMobileMenu}
               href="/register"
@@ -414,73 +424,16 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
         </div>
       </section>
 
-      {/* PROBLEMA / SOLUCIÓN */}
-      <section id="solucion" className="stampa-bg" style={{ padding: '64px 32px 80px', display: 'flex', justifyContent: 'center' }}>
-        <div style={{ width: '100%', maxWidth: 1160, textAlign: 'center' }}>
-          <h2
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontWeight: 700,
-              fontSize: 36,
-              color: 'var(--text-strong)',
-              marginBottom: 16,
-              textWrap: 'pretty' as CSSProperties['textWrap'],
-            }}
-          >
-            ¿Por qué no una tarjeta de papel o una app propia?
+      {/* ANTES Y DESPUÉS: papel vs Stampa, para sellos, puntos y niveles */}
+      <section id="solucion" className="stampa-bg" style={{ padding: isMobile ? '64px 20px 72px' : '72px 32px 88px', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ width: '100%', maxWidth: 1000 }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: isMobile ? 28 : 34, color: 'var(--text-strong)', marginBottom: 12, textWrap: 'pretty' as CSSProperties['textWrap'] }}>
+            Tus clientes no van a bajar otra app
           </h2>
-          <p style={{ fontSize: 18, color: 'var(--text-body)', maxWidth: 560, margin: '0 auto 36px' }}>
-            La tarjeta queda en el Wallet del celular, al lado de las entradas y los pasajes. No hay que descargar nada.
+          <p style={{ fontSize: 18, color: 'var(--text-body)', maxWidth: 620, margin: '0 0 28px' }}>
+            Y la de cartón se pierde. Stampa queda en el Wallet del celular, al lado de las entradas y los pasajes.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, textAlign: 'left' }}>
-            <div style={{ background: 'var(--surface-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-2xl)', padding: 30 }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--text-lg)', color: 'var(--text-muted)', marginBottom: 18 }}>
-                Tarjeta de papel
-              </div>
-              {PAPER_CONS.map((item) => (
-                <div key={item} style={{ display: 'flex', gap: 10, padding: '8px 0', color: 'var(--text-body)', fontSize: 'var(--text-base)', borderTop: '1px solid var(--border)' }}>
-                  <span style={{ color: 'var(--red)', fontWeight: 700 }}>✕</span>
-                  {item}
-                </div>
-              ))}
-            </div>
-            <div style={{ background: 'var(--surface-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-2xl)', padding: 30 }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--text-lg)', color: 'var(--text-muted)', marginBottom: 18 }}>
-                Una app propia
-              </div>
-              {APP_CONS.map((item) => (
-                <div key={item} style={{ display: 'flex', gap: 10, padding: '8px 0', color: 'var(--text-body)', fontSize: 'var(--text-base)', borderTop: '1px solid var(--border)' }}>
-                  <span style={{ color: 'var(--red)', fontWeight: 700 }}>✕</span>
-                  {item}
-                </div>
-              ))}
-            </div>
-            <div
-              style={{
-                background: 'linear-gradient(155deg, var(--green-700), var(--stampa-ink))',
-                border: '1px solid var(--ember-glow)',
-                borderRadius: 'var(--radius-2xl)',
-                padding: 30,
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/assets/mascot-cream.png" alt="" style={{ position: 'absolute', right: -20, bottom: -20, width: 110, opacity: 0.5 }} />
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--text-lg)', color: 'var(--ember-300)', marginBottom: 18, position: 'relative' }}>
-                Stampa
-              </div>
-              {STAMPA_PROS.map((item) => (
-                <div
-                  key={item}
-                  style={{ display: 'flex', gap: 10, padding: '8px 0', color: 'var(--text-strong)', fontSize: 'var(--text-base)', borderTop: '1px solid var(--border)', position: 'relative' }}
-                >
-                  <span style={{ color: 'var(--green)', fontWeight: 700 }}>✓</span>
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
+          <BeforeAfter />
         </div>
       </section>
 

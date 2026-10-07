@@ -1,7 +1,12 @@
-// Landing → "Qué hace Stampa": cuatro bloques con un dibujo de la pantalla
-// real (panel, app de escaneo, notificación, sucursales) y lo que gana el
-// comercio. Reemplaza la grilla de 8 funciones con letras como ícono. Los
-// dibujos usan los colores del panel y de la app; los datos son de ejemplo.
+'use client'
+
+// Landing → "Lo que pasa después de que el cliente guarda la tarjeta": cuatro
+// tarjetas que giran. Adelante, un dibujo de la pantalla real (panel, app de
+// escaneo, notificación, sucursales) y lo que gana el comercio; atrás, el
+// detalle. Giran al pasar el mouse (computadora) o al tocarlas (celular y
+// teclado), y aparecen con una animación suave al bajar por la página. Con
+// "reducir movimiento" no hay animaciones. Los datos son de ejemplo.
+import { useEffect, useRef, useState } from 'react'
 
 const EXTRAS = ['regalo de cumpleaños', 'días con sello doble', 'vencimiento por inactividad', 'formulario a medida', 'roles para el equipo', 'resumen semanal por mail']
 
@@ -77,26 +82,59 @@ function BranchesShot() {
 }
 
 const BLOCKS = [
-  { shot: <PanelShot />, title: 'Sabés quién vuelve y quién no', desc: 'Visitas por día, clientes nuevos y los que hace un mes no aparecen, sin armar planillas.' },
-  { shot: <ScannerShot />, title: 'Tu equipo suma un sello en segundos', desc: 'Entran a la app con un PIN, escanean la tarjeta y queda registrado quién lo hizo.' },
-  { shot: <NotificationShot />, title: 'Le escribís al que dejó de venir', desc: 'El aviso llega a la pantalla del celular, sin app y sin pasar por el algoritmo de Instagram.' },
-  { shot: <BranchesShot />, title: 'Una tarjeta para todos tus locales', desc: 'El cliente suma en cualquiera y vos ves cómo anda cada uno por separado.' },
+  { shot: <PanelShot />, kicker: 'Panel', title: 'Sabés quién vuelve y quién no', points: ['Visitas por día y por hora', 'Clientes nuevos y los que volvieron', 'Quién hace un mes que no viene', 'Todo sin armar planillas'] },
+  { shot: <ScannerShot />, kicker: 'App de escaneo', title: 'Tu equipo suma en segundos', points: ['Escanea el QR o busca al cliente por nombre', 'Suma sellos, puntos o visitas y entrega premios', 'Cada empleado entra con su PIN', 'Queda registrado quién escaneó'] },
+  { shot: <NotificationShot />, kicker: 'Notificaciones', title: 'Le escribís al que dejó de venir', points: ['A todos o a un grupo: los que no vienen o los que están cerca del premio', 'Llega a la pantalla bloqueada, sin app', 'Las podés programar para otro día'] },
+  { shot: <BranchesShot />, kicker: 'Sucursales', title: 'Una tarjeta para todos tus locales', points: ['El cliente suma en cualquiera de tus locales', 'Cada celular escanea en su sucursal', 'Ves cómo anda cada local por separado'] },
 ]
 
-export function FeatureShowcase() {
+function FlipCard({ b, i }: { b: (typeof BLOCKS)[number]; i: number }) {
+  const [flipped, setFlipped] = useState(false)
   return (
-    <div className="fs">
+    <article
+      className={`fs-flip${flipped ? ' is-flipped' : ''}`}
+      style={{ ['--i' as string]: i }}
+      tabIndex={0}
+      role="button"
+      aria-pressed={flipped}
+      aria-label={`${b.title}. ${flipped ? 'Mostrando el detalle' : 'Tocá para ver el detalle'}`}
+      onClick={() => setFlipped(f => !f)}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFlipped(f => !f) } }}
+    >
+      <div className="fs-inner">
+        <div className="fs-face fs-front">
+          {b.shot}
+          <div className="fs-text">
+            <h3>{b.title}</h3>
+            <span className="fs-more">Ver más <span aria-hidden="true">↻</span></span>
+          </div>
+        </div>
+        <div className="fs-face fs-back" aria-hidden={!flipped}>
+          <div className="fs-kicker">{b.kicker}</div>
+          <h3>{b.title}</h3>
+          <ul>{b.points.map(p => <li key={p}>{p}</li>)}</ul>
+          <span className="fs-more">Volver <span aria-hidden="true">↺</span></span>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+export function FeatureShowcase() {
+  const ref = useRef<HTMLDivElement>(null)
+  const [shown, setShown] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !('IntersectionObserver' in window)) { setShown(true); return }
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setShown(true); io.disconnect() } }, { threshold: 0.15 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  return (
+    <div className="fs" ref={ref}>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <div className="fs-grid">
-        {BLOCKS.map(b => (
-          <article key={b.title} className="fs-block">
-            {b.shot}
-            <div className="fs-text">
-              <h3>{b.title}</h3>
-              <p>{b.desc}</p>
-            </div>
-          </article>
-        ))}
+      <div className={`fs-grid${shown ? ' is-in' : ''}`}>
+        {BLOCKS.map((b, i) => <FlipCard key={b.title} b={b} i={i} />)}
       </div>
       <p className="fs-extras"><b>También:</b> {EXTRAS.join(' · ')}.</p>
     </div>
@@ -107,9 +145,26 @@ const CSS = `
   .fs *{box-sizing:border-box;}
   .fs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;}
   @media (max-width:820px){.fs-grid{grid-template-columns:minmax(0,1fr);}}
-  .fs-block{display:flex;flex-direction:column;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:var(--radius-2xl);overflow:hidden;}
-  .fs-text{padding:20px 24px 24px;}
-  .fs-text h3{font-family:var(--font-display);font-weight:700;font-size:20px;color:var(--text-strong);margin:0 0 6px;}
+  @media (prefers-reduced-motion:reduce){.fs-flip{opacity:1;transform:none;transition:none;}.fs-inner{transition:none;}}
+  .fs-flip{height:340px;perspective:1200px;cursor:pointer;outline:none;opacity:0;transform:translateY(18px);transition:opacity .55s ease,transform .55s ease;transition-delay:calc(var(--i) * 90ms);}
+  .fs-grid.is-in .fs-flip{opacity:1;transform:none;}
+  .fs-flip:focus-visible .fs-inner{box-shadow:0 0 0 2px var(--stampa-ember);border-radius:var(--radius-2xl);}
+  .fs-inner{position:relative;width:100%;height:100%;transition:transform .6s cubic-bezier(.3,.7,.3,1);transform-style:preserve-3d;}
+  .fs-flip.is-flipped .fs-inner{transform:rotateY(180deg);}
+  @media (hover:hover){.fs-flip:hover .fs-inner{transform:rotateY(180deg);}.fs-flip.is-flipped:hover .fs-inner{transform:rotateY(180deg);}}
+  .fs-face{position:absolute;inset:0;border-radius:var(--radius-2xl);backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;display:flex;flex-direction:column;}
+  .fs-front{background:rgba(255,255,255,0.04);border:1px solid var(--border);}
+  .fs-back{background:#FBF6EE;color:#2B2620;transform:rotateY(180deg);padding:28px 28px 22px;border:1px solid rgba(199,93,58,.35);justify-content:center;}
+  .fs-kicker{font-size:var(--text-2xs);font-weight:700;letter-spacing:var(--tracking-eyebrow);text-transform:uppercase;color:#C75D3A;margin-bottom:10px;}
+  .fs-back h3{font-family:var(--font-display);font-weight:700;font-size:24px;color:#2B2620;margin:0 0 18px;}
+  .fs-back ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:14px;}
+  .fs-back li{position:relative;padding-left:24px;font-size:17px;line-height:1.45;color:rgba(43,38,32,.82);}
+  .fs-back li::before{content:'';position:absolute;left:0;top:.5em;width:10px;height:10px;border-radius:50%;background:#C75D3A;}
+  .fs-more{font-size:var(--text-sm);font-weight:700;color:var(--ember-300);}
+  .fs-back .fs-more{color:#C75D3A;margin-top:auto;padding-top:16px;}
+  .fs-back .fs-kicker{margin-top:auto;}
+  .fs-text{padding:18px 24px 22px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex:1;}
+  .fs-text h3{font-family:var(--font-display);font-weight:700;font-size:20px;color:var(--text-strong);margin:0;}
   .fs-text p{font-size:var(--text-base);color:var(--text-body);line-height:var(--leading-body);margin:0;}
   .fs-extras{margin:24px 0 0;padding:16px 24px;border:1px solid var(--border);border-radius:var(--radius-xl);font-size:var(--text-sm);color:var(--text-body);line-height:1.7;}
   .fs-extras b{color:var(--text-strong);}
