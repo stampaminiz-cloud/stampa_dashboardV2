@@ -12,28 +12,10 @@ export default function TermsPage() {
           ← Volver a Stampa
         </Link>
 
-        <div
-          style={{
-            marginTop: 24,
-            marginBottom: 40,
-            background: 'var(--ember-soft)',
-            border: '1px solid var(--ember-glow)',
-            borderRadius: 'var(--radius-xl)',
-            padding: '18px 22px',
-            fontSize: 'var(--text-sm)',
-            color: 'var(--stampa-ink)',
-            lineHeight: 'var(--leading-body)',
-          }}
-        >
-          <strong>Borrador pendiente de revisión legal.</strong> Este texto es un punto de partida razonable
-          para una plataforma que opera en España y Argentina, pero no reemplaza el asesoramiento de un
-          abogado matriculado en cada jurisdicción antes de publicarlo.
-        </div>
-
-        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, color: 'var(--stampa-ink)', marginBottom: 8 }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, color: 'var(--stampa-ink)', margin: '24px 0 8px' }}>
           Términos y Condiciones
         </h1>
-        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 40 }}>Última actualización: [completar fecha]</p>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 40 }}>Última actualización: 6 de octubre de 2026</p>
 
         <Section title="1. Aceptación de los términos">
           <p>
@@ -115,18 +97,17 @@ export default function TermsPage() {
             Si tu negocio está radicado en España, estos términos se rigen por la legislación española, con
             sometimiento a los juzgados y tribunales que correspondan según la normativa de protección al
             consumidor aplicable. Si tu negocio está radicado en Argentina, se rigen por la legislación argentina,
-            con sometimiento a los tribunales ordinarios competentes. [Completar con jurisdicción específica una
-            vez definida la estructura societaria.]
+            con sometimiento a los tribunales ordinarios de la provincia de Córdoba.
           </p>
         </Section>
 
         <Section title="10. Contacto">
           <p>
             Para cualquier consulta sobre estos términos, escribinos a{' '}
-            <a href="mailto:stampa.miniz@gmail.com" style={{ color: 'var(--stampa-ember)', fontWeight: 700 }}>
-              stampa.miniz@gmail.com
+            <a href="mailto:hola@stampaclub.com" style={{ color: 'var(--stampa-ember)', fontWeight: 700 }}>
+              hola@stampaclub.com
             </a>
-            .
+            . Stampa es Stampa, CUIT 30-39938197-6, con domicilio en Colón 136, Villa Allende (CP 5105), Córdoba, Argentina.
           </p>
         </Section>
       </div>
