@@ -33,14 +33,14 @@ export default function PrivacyPage() {
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, color: 'var(--stampa-ink)', marginBottom: 8 }}>
           Política de Privacidad
         </h1>
-        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 40 }}>Última actualización: [completar fecha]</p>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 40 }}>Última actualización: 6 de octubre de 2026</p>
 
         <Section title="1. Responsable del tratamiento">
           <p>
             Stampa (&quot;nosotros&quot;, &quot;la Plataforma&quot;) es responsable del tratamiento de los datos personales
             descritos en esta política. Podés contactarnos en{' '}
-            <a href="mailto:stampa.miniz@gmail.com" style={{ color: 'var(--stampa-ember)', fontWeight: 700 }}>
-              stampa.miniz@gmail.com
+            <a href="mailto:hola@stampaclub.com" style={{ color: 'var(--stampa-ember)', fontWeight: 700 }}>
+              hola@stampaclub.com
             </a>
             . [Completar: razón social, domicilio legal, CIF/CUIT.]
           </p>
@@ -59,10 +59,40 @@ export default function PrivacyPage() {
               visitas, canjes). Estos datos los recolecta el negocio a través de nuestro formulario de alta, y
               nosotros los procesamos en su nombre.
             </li>
+            <li>
+              <strong>Datos del equipo del negocio:</strong> nombre de cada empleado, su PIN de acceso (guardado
+              cifrado) y el registro de cada escaneo que hace (fecha, sucursal y qué se sumó o canjeó).
+            </li>
           </ul>
         </Section>
 
-        <Section title="3. Finalidad y base legal">
+        <Section title="3. App Stampa Escáner">
+          <p>
+            Stampa Escáner es la app que usan los negocios y sus empleados para escanear las tarjetas de sus
+            clientes. El dueño entra con su email y contraseña; los empleados, con un PIN en un celular que el
+            negocio vinculó desde su panel.
+          </p>
+          <ul>
+            <li>
+              <strong>Cámara:</strong> se usa solo para leer el código QR de la tarjeta del cliente. No se toman ni
+              se guardan fotos.
+            </li>
+            <li>
+              <strong>Qué muestra:</strong> el nombre del cliente, su email parcialmente oculto y el estado de su
+              tarjeta (sellos, puntos o nivel), para que el empleado sepa a quién le está sumando.
+            </li>
+            <li>
+              <strong>Qué guarda:</strong> cada escaneo queda en el historial del negocio (fecha, sucursal y qué
+              empleado lo hizo).
+            </li>
+            <li>
+              <strong>Sin analítica ni publicidad:</strong> la app no usa herramientas de analítica, publicidad ni
+              seguimiento, y no comparte datos con terceros para esos fines.
+            </li>
+          </ul>
+        </Section>
+
+        <Section title="4. Finalidad y base legal">
           <p>Tratamos estos datos para:</p>
           <ul>
             <li>Prestar el servicio (crear y actualizar tarjetas de fidelización en Apple Wallet / Google Wallet).</li>
@@ -76,16 +106,17 @@ export default function PrivacyPage() {
           </p>
         </Section>
 
-        <Section title="4. Conservación de datos">
+        <Section title="5. Conservación de datos">
           <p>
             Conservamos los datos mientras la cuenta del negocio esté activa, y durante el plazo legal exigido
             luego de una baja (por ejemplo, por obligaciones fiscales). El cliente final puede solicitar la
             eliminación de sus datos en cualquier momento, sin perjuicio de la información que el negocio deba
-            conservar por ley.
+            conservar por ley. Si el dueño de un negocio pide la baja de su cuenta, a los 30 días borramos la
+            cuenta, sus negocios y todos sus datos, incluidos los de sus clientes y su equipo.
           </p>
         </Section>
 
-        <Section title="5. Tus derechos">
+        <Section title="6. Tus derechos">
           <p>
             <strong>Si estás en España o la UE</strong> (Reglamento General de Protección de Datos y LOPDGDD),
             tenés derecho a acceder, rectificar, suprimir, oponerte, limitar el tratamiento y portar tus datos, y
@@ -98,24 +129,26 @@ export default function PrivacyPage() {
           </p>
           <p>
             Para ejercer cualquiera de estos derechos, escribinos a{' '}
-            <a href="mailto:stampa.miniz@gmail.com" style={{ color: 'var(--stampa-ember)', fontWeight: 700 }}>
-              stampa.miniz@gmail.com
+            <a href="mailto:hola@stampaclub.com" style={{ color: 'var(--stampa-ember)', fontWeight: 700 }}>
+              hola@stampaclub.com
             </a>
             .
           </p>
         </Section>
 
-        <Section title="6. Con quién compartimos datos">
+        <Section title="7. Con quién compartimos datos">
           <p>Usamos los siguientes proveedores para operar la Plataforma, que actúan como encargados del tratamiento:</p>
           <ul>
             <li>MongoDB Atlas (alojamiento de base de datos)</li>
             <li>Vercel (hosting de la aplicación)</li>
             <li>Apple (Wallet / PassKit) y Google (Google Wallet API), para emitir y actualizar las tarjetas</li>
+            <li>Resend, para enviar los mails del servicio (avisos, resúmenes, recuperación de contraseña)</li>
+            <li>Mercado Pago y Stripe, para cobrar la suscripción a los negocios (no reciben datos de los clientes finales)</li>
           </ul>
           <p>No vendemos datos personales a terceros con fines publicitarios.</p>
         </Section>
 
-        <Section title="7. Transferencias internacionales">
+        <Section title="8. Transferencias internacionales">
           <p>
             Algunos de nuestros proveedores (Vercel, MongoDB Atlas, Apple, Google) pueden procesar datos fuera de
             España o Argentina. En esos casos, nos apoyamos en las garantías que ofrecen dichos proveedores
@@ -123,14 +156,14 @@ export default function PrivacyPage() {
           </p>
         </Section>
 
-        <Section title="8. Cookies">
+        <Section title="9. Cookies">
           <p>
             Esta landing page no utiliza cookies de seguimiento propias más allá de las estrictamente necesarias
             para su funcionamiento. [Completar si se agrega analytics de terceros como Google Analytics o Meta Pixel.]
           </p>
         </Section>
 
-        <Section title="9. Cambios a esta política">
+        <Section title="10. Cambios a esta política">
           <p>
             Podemos actualizar esta política ocasionalmente. Publicaremos cualquier cambio importante en esta misma
             página con su fecha de actualización.
