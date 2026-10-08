@@ -24,7 +24,7 @@ export default function PrivacyPage() {
             <a href="mailto:hola@stampaclub.com" style={{ color: 'var(--stampa-ember)', fontWeight: 700 }}>
               hola@stampaclub.com
             </a>
-            . El responsable es Matias Nicolas Marini (nombre comercial: Stampa), CUIT 20-39938197-6, con domicilio en Colón 136, Villa Allende (CP 5105), Córdoba, Argentina.
+            . Para los negocios de Argentina, el responsable es Matias Nicolas Marini (nombre comercial: Stampa), CUIT 20-39938197-6, con domicilio en Colón 136, Villa Allende (CP 5105), Córdoba, Argentina. Para los negocios de España y el resto de Europa (y sus clientes), el responsable es RecrutIt S.L. (NIF B22496046), con domicilio en Calle Narciso Pérez Texeira 8, 1.º C, 29007 Málaga, España.
           </p>
         </Section>
 
