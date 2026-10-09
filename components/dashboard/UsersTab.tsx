@@ -4,6 +4,7 @@ import QRCode from 'qrcode'
 import { apiGetTeam, apiCreateTeamMember, apiUpdateTeamMember, apiDeleteTeamMember, apiResendInvite, apiTeamActivity, apiGetLocations, type TeamActivity } from '@/lib/api'
 import type { Location } from '@/lib/location'
 import { usePlan } from '@/data/plans'
+import { SCANNER_IOS_URL } from '@/lib/scanner'
 
 // Equipo: el dueño, los Administradores (entran al dashboard con email y
 // contraseña) y los Scanners (entran a la app de escaneo con su PIN).
@@ -18,9 +19,6 @@ interface StaffUser {
   locationId: string | null // administrador: null = todas las sucursales
 }
 
-// URL de la app de escaneo (TestFlight / App Store). Se carga como variable
-// de entorno cuando esté disponible; sin ella se muestra "próximamente".
-const SCANNER_IOS_URL = process.env.NEXT_PUBLIC_SCANNER_IOS_URL || ''
 
 const ROLE: Record<Role, { label: string; color: string; bg: string; desc: string; perms: string[] }> = {
   owner:   { label: 'Dueño',         color: '#C75D3A', bg: 'rgba(199,93,58,.1)',   desc: 'La cuenta que paga el plan', perms: ['Todo el dashboard', 'Plan y facturación', 'Gestión del equipo', 'Eliminar clientes y la cuenta'] },
