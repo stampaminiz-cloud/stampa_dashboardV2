@@ -60,7 +60,7 @@ export const ARTICLES: Article[] = [
       <ul>
         <li><strong>Logo del negocio.</strong> Un PNG con fondo transparente queda mejor. Se muestra arriba a la izquierda de la tarjeta.</li>
         <li><strong>Íconos de los sellos.</strong> Por defecto son círculos. Podés subir tu propio ícono para el sello ganado y para el vacío, por ejemplo una taza.</li>
-        <li><strong>Color de fondo y de texto.</strong> En Starter y Growth elegís entre 16 colores pensados para que se lea bien. Desde Pro, cualquier color.</li>
+        <li><strong>Color de fondo y de texto.</strong> Elegís de una paleta pensada para que la tarjeta se lea bien: 8 colores en Starter y 16 en Growth. Desde Pro, cualquier color.</li>
         <li><strong>Sellos requeridos.</strong> 4, 6, 8, 10 o 12. Para un café, 8 o 10 funciona bien; para algo más caro, menos.</li>
         <li><strong>Cara del premio.</strong> Es lo que ve el cliente cuando completa la tarjeta: una imagen, un mensaje de felicitación y el texto de canje. Tocá "Ver cara del premio" para verla.</li>
         <li><strong>Descripción pública.</strong> Una línea que aparece en el formulario si tenés más de una tarjeta, para que el cliente elija.</li>
