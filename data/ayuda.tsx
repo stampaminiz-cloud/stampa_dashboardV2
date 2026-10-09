@@ -10,6 +10,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { Shot, Steps, Note } from '@/components/ayuda/AyudaUI'
+import { SCANNER_IOS_URL } from '@/lib/scanner'
 
 export type Article = {
   slug: string
@@ -135,7 +136,10 @@ export const ARTICLES: Article[] = [
     summary: 'La app Stampa Escáner va en el celular o la tablet del local. Se vincula una vez y después cada empleado entra con su PIN.',
     body: <>
       <p>Para sumar sellos se usa la app <strong>Stampa Escáner</strong>. Va en el celular o la tablet del local; no hace falta que cada empleado la tenga en su teléfono.</p>
-      <Note>La app está en camino a la App Store. Mientras tanto, escribinos y te mandamos el link para instalarla en el iPhone del local.</Note>
+      {SCANNER_IOS_URL
+        ? <Note>Está en la App Store para iPhone y iPad, pero no aparece en el buscador: se baja desde este link, abierto en el celular del local. <a href={SCANNER_IOS_URL} target="_blank" rel="noopener noreferrer">Descargar Stampa Escáner</a>. También está en el panel, en Equipo.</Note>
+        : <Note>Está en la App Store para iPhone y iPad, pero no aparece en el buscador. Escribinos y te mandamos el link para bajarla.</Note>}
+      <p>Para Android todavía no está. Si el celular del local es Android, escribinos.</p>
       <h2>Vincular el celular del local</h2>
       <Steps items={[
         <>En el panel, entrá a <strong>Equipo</strong> y tocá "Activar dispositivo". Aparece un código QR.</>,
@@ -178,7 +182,7 @@ export const ARTICLES: Article[] = [
       <h2>Entregar el premio</h2>
       <p>Cuando la tarjeta de sellos está completa, queda así hasta que se entrega el premio. Entregalo y tocá "Confirmar entrega": la tarjeta vuelve a cero y el premio queda registrado en Premios.</p>
       <h2>Si te equivocaste</h2>
-      <p>Justo después de sumar aparece "Deshacer" por unos segundos. Si ya no está, escribinos y lo corregimos.</p>
+      <p>Justo después de sumar aparece "Deshacer" por unos segundos. Pasado ese momento ya no se puede deshacer, así que conviene mirar la pantalla antes de pasar al siguiente cliente.</p>
       <h2>Si el QR no se lee o el cliente no tiene el celular</h2>
       <p>Tocá "Buscar cliente por nombre o email" y elegilo de la lista. Si la cámara no anda, revisá que la app tenga permiso de cámara en los ajustes del celular.</p>
       <h2>Cumpleaños y días dobles</h2>
