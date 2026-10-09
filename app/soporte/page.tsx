@@ -63,6 +63,11 @@ export default function SoportePage() {
           </a>
         </div>
 
+        <p style={{ fontSize: 'var(--text-base)', color: 'var(--text-body)', lineHeight: 'var(--leading-body)', marginBottom: 40 }}>
+          ¿Tenés un negocio con Stampa? En el <Link href="/ayuda" style={{ color: 'var(--stampa-ember)', fontWeight: 700 }}>centro de ayuda</Link> está
+          paso a paso cómo diseñar la tarjeta, poner el QR, escanear y mandar notificaciones.
+        </p>
+
         <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--text-h2)', color: 'var(--stampa-ink)', marginBottom: 16 }}>
           Preguntas frecuentes
         </h2>
