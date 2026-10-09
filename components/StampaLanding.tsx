@@ -9,6 +9,7 @@ import { FeatureShowcase } from './landing/FeatureShowcase';
 import { BeforeAfter } from './landing/BeforeAfter';
 import { QrImage } from './QrImage';
 import { HeroPass } from './landing/HeroPass';
+import { SALES_EMAIL, mailLink } from '@/lib/contact';
 
 /* ────────────────────────────────────────────────────────────────
    Static content
@@ -84,6 +85,26 @@ const WHATSAPP_ENTERPRISE = whatsappLink('Hola! Me interesa el plan Enterprise d
 const DEMO_BUSINESS_ID = process.env.NEXT_PUBLIC_DEMO_BUSINESS_ID || '';
 
 
+
+// "Funciona en los dos": iPhone (Apple Wallet) y Android (Google Wallet).
+// Con el mismo estilo negro que los botones reales de "Agregar a…" del
+// registro, pero no son links (acá no hay tarjeta para agregar).
+function WalletBadges() {
+  const badges = [
+    { device: 'iPhone', wallet: 'Apple Wallet' },
+    { device: 'Android', wallet: 'Google Wallet' },
+  ];
+  return (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
+      {badges.map((b) => (
+        <div key={b.wallet} style={{ background: '#000', color: '#fff', borderRadius: 12, padding: '8px 16px', lineHeight: 1.15, boxShadow: '0 4px 14px rgba(0,0,0,.15)' }}>
+          <div style={{ fontSize: 11, opacity: 0.75 }}>{b.device}</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>{b.wallet}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /* ────────────────────────────────────────────────────────────────
    Component
@@ -276,23 +297,6 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
         />
         <div style={{ width: '100%', maxWidth: 1240, display: 'flex', gap: 64, alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
           <div style={{ flex: '1 1 460px', minWidth: 320 }}>
-            <div
-              style={{
-                display: 'inline-block',
-                background: 'var(--ember-soft)',
-                border: '1px solid var(--ember-glow)',
-                color: 'var(--ember-300)',
-                fontSize: 'var(--text-2xs)',
-                fontWeight: 700,
-                letterSpacing: 'var(--tracking-eyebrow)',
-                textTransform: 'uppercase',
-                padding: '7px 14px',
-                borderRadius: 'var(--radius-full)',
-                marginBottom: 24,
-              }}
-            >
-              Tarjetas de fidelidad para Apple Wallet y Google Wallet
-            </div>
             <h1
               style={{
                 fontFamily: 'var(--font-display)',
@@ -431,9 +435,10 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: isMobile ? 28 : 34, color: 'var(--text-strong)', marginBottom: 12, textWrap: 'pretty' as CSSProperties['textWrap'] }}>
             Tus clientes no van a bajar otra app
           </h2>
-          <p style={{ fontSize: 18, color: 'var(--text-body)', maxWidth: 620, margin: '0 0 28px' }}>
+          <p style={{ fontSize: 18, color: 'var(--text-body)', maxWidth: 620, margin: '0 0 20px' }}>
             Y la de cartón se pierde. Stampa queda en el Wallet del celular, al lado de las entradas y los pasajes.
           </p>
+          <WalletBadges />
           <BeforeAfter />
         </div>
       </section>
@@ -456,18 +461,19 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
         </div>
       </section>
 
-      {/* DEMO — probá la tarjeta en tu propio celular */}
+      {/* DEMO — probá la tarjeta en tu propio celular. minHeight auto: .stampa-bg
+          ocupa una pantalla entera y acá sobraba lugar. */}
       {demoUrl && (
-        <section id="demo" className="stampa-bg" style={{ padding: '88px 32px', display: 'flex', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 1000, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: isMobile ? 32 : 64 }}>
+        <section id="demo" className="stampa-bg" style={{ minHeight: 'auto', padding: isMobile ? '48px 20px' : '56px 32px', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 860, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: isMobile ? 24 : 48 }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 'var(--text-2xs)', fontWeight: 700, letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase', color: 'var(--ember-400)', marginBottom: 14 }}>
                 Probala en 10 segundos
               </div>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: isMobile ? 28 : 36, color: 'var(--text-strong)', lineHeight: 'var(--leading-tight)', marginBottom: 16 }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: isMobile ? 26 : 30, color: 'var(--text-strong)', lineHeight: 'var(--leading-tight)', marginBottom: 12 }}>
                 Llevate una tarjeta Stampa a tu Wallet
               </h2>
-              <p style={{ fontSize: 17, color: 'var(--text-body)', lineHeight: 'var(--leading-body)', marginBottom: 24 }}>
+              <p style={{ fontSize: 16, color: 'var(--text-body)', lineHeight: 'var(--leading-body)', marginBottom: isMobile ? 20 : 0 }}>
                 {isMobile
                   ? 'Tocá el botón, dejá tu nombre y agregá la tarjeta a tu Wallet. Así la van a ver tus clientes.'
                   : 'Escaneá el código con la cámara de tu celular, dejá tu nombre y agregá la tarjeta a tu Wallet. Así la van a ver tus clientes.'}
@@ -483,9 +489,9 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
               )}
             </div>
             {!isMobile && (
-              <div style={{ background: 'var(--stampa-cream)', borderRadius: 24, padding: 22, boxShadow: 'var(--shadow-lg)', textAlign: 'center' }}>
-                <QrImage value={demoUrl} size={220} margin={0} dark="#1B412F" light="#FBF6EE" alt="QR para probar una tarjeta Stampa" style={{ display: 'block' }} />
-                <div style={{ marginTop: 12, fontSize: 'var(--text-xs)', fontWeight: 700, color: '#2B2620' }}>Apuntá la cámara acá</div>
+              <div style={{ flexShrink: 0, background: 'var(--stampa-cream)', borderRadius: 20, padding: 16, boxShadow: 'var(--shadow-lg)', textAlign: 'center' }}>
+                <QrImage value={demoUrl} size={150} margin={0} dark="#1B412F" light="#FBF6EE" alt="QR para probar una tarjeta Stampa" style={{ display: 'block' }} />
+                <div style={{ marginTop: 10, fontSize: 'var(--text-xs)', fontWeight: 700, color: '#2B2620' }}>Apuntá la cámara acá</div>
               </div>
             )}
           </div>
@@ -675,8 +681,8 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
                   {plan.cta}
                 </a>
                 {plan.slug === 'enterprise' && (
-                  <a href={`mailto:hola@stampaclub.com?subject=${encodeURIComponent('Plan Enterprise de Stampa')}`} style={{ textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 10, display: 'block' }}>
-                    o escribinos a hola@stampaclub.com
+                  <a href={mailLink('Plan Enterprise de Stampa')} style={{ textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 10, display: 'block' }}>
+                    o escribinos a {SALES_EMAIL}
                   </a>
                 )}
               </div>
@@ -803,7 +809,7 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}>
                 <a
-                  href="mailto:stampa.miniz@gmail.com"
+                  href={`mailto:${SALES_EMAIL}`}
                   className={styles.ctaEmber}
                   style={{
                     display: 'inline-flex',
@@ -815,7 +821,7 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
                     borderRadius: 'var(--radius-lg)',
                   }}
                 >
-                  stampa.miniz@gmail.com
+                  {SALES_EMAIL}
                 </a>
                 <a href={WHATSAPP_SALES} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-body)', fontSize: 'var(--text-sm)' }}>Hablar con ventas por WhatsApp</a>
               </div>
