@@ -4,6 +4,13 @@ import { apiLogin, getToken } from '@/lib/api'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { PasswordInput } from '@/components/auth/PasswordInput'
 
+// A dónde ir después de entrar: ?next=/ayuda/... (lo usa el centro de ayuda,
+// que es solo para cuentas). Solo rutas de este sitio, nunca otro dominio.
+function afterLogin() {
+  const next = new URLSearchParams(window.location.search).get('next') || ''
+  return next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : '/dashboard'
+}
+
 const CSS = `
   :root { --font-display: 'Plus Jakarta Sans', sans-serif; --font-body: 'Inter', sans-serif; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -56,7 +63,7 @@ export default function LoginPage() {
   const [error, setError]       = useState('')
 
   // Si ya hay sesión, no tiene sentido mostrar el login.
-  useEffect(() => { if (getToken()) window.location.replace('/dashboard') }, [])
+  useEffect(() => { if (getToken()) window.location.replace(afterLogin()) }, [])
 
 
   async function handleSubmit(e: React.FormEvent) {
@@ -66,7 +73,7 @@ export default function LoginPage() {
     setError('')
     try {
       await apiLogin(email, password)
-      window.location.href = '/dashboard'
+      window.location.href = afterLogin()
     } catch (err: any) {
       setError(err.error || 'Email o contraseña incorrectos')
       setLoading(false)
