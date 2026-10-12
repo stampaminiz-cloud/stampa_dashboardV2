@@ -1,10 +1,10 @@
 'use client'
 import { CardSwitcher } from '@/components/ui/CardSwitcher'
 import { readCache } from '@/lib/cache'
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import QRCode from 'qrcode'
 import type { Location } from '@/lib/location'
-import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields } from '@/lib/api'
+import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields, apiUpdateCard } from '@/lib/api'
 import { usePlan } from '@/data/plans'
 
 // Formulario de registro, por tarjeta. Nombre y email son fijos; el resto
@@ -63,11 +63,11 @@ function validate(fields: EditField[]): string | null {
 }
 
 // ─── Opciones de una lista ────────────────────────────────────────────────────
-function OptionsEditor({ options, onChange }: { options: string[]; onChange: (o: string[]) => void }) {
+function OptionsEditor({ options, onChange, max = 10 }: { options: string[]; onChange: (o: string[]) => void; max?: number }) {
   const [draft, setDraft] = useState('')
   function add() {
     const v = draft.trim()
-    if (!v || options.some(o => o.toLowerCase() === v.toLowerCase()) || options.length >= 10) return
+    if (!v || options.some(o => o.toLowerCase() === v.toLowerCase()) || options.filter(o => o.trim()).length >= max) return
     onChange([...options.filter(o => o.trim()), v]); setDraft('')
   }
   const real = options.filter(o => o.trim())
@@ -79,7 +79,7 @@ function OptionsEditor({ options, onChange }: { options: string[]; onChange: (o:
           <button onClick={() => onChange(real.filter(x => x !== o))} aria-label={`Quitar ${o}`} title="Quitar opción">×</button>
         </span>
       ))}
-      {real.length < 10 && (
+      {real.length < max && (
         <input className="fm-opt-input" placeholder={real.length < 2 ? 'Escribí una opción y Enter' : '+ Opción'} value={draft} maxLength={40}
           onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }} onBlur={add} />
       )}
@@ -237,7 +237,7 @@ function Share({ businessName, slug, card, whiteLabel, locations = [], selectedL
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function FormTab({ businessName, businessSlug, cards, businessId, onGoToDesign, onChoosePlan, isManager = false, locations = [], selectedLocationId = null }: {
+export function FormTab({ businessName, businessSlug, cards, businessId, onGoToDesign, onChoosePlan, onSaved, isManager = false, locations = [], selectedLocationId = null }: {
   locations?: Location[]
   selectedLocationId?: string | null
   businessName: string
@@ -246,16 +246,28 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
   businessId?: string | null
   onGoToDesign: () => void
   onChoosePlan: () => void
+  onSaved?: () => void
   isManager?: boolean
 }) {
-  const { limit, can } = usePlan()
+  const { limit, can, plan } = usePlan()
   const maxCustom = limit('maxCustomFields')
+  const maxRewardOpts = limit('maxRewardOptions')
   const whiteLabel = can('whiteLabel')
   const activeCards = cards.filter(c => c.isActive)
   const [selectedId, setSelectedId] = useState<string>(activeCards[0]?.id || '')
   const card = activeCards.find(c => c.id === selectedId) || activeCards[0]
   const isStamp = card?.type === 'stamp'
-  const askReward = isStamp && card?.rewardMode === 'dynamic'
+
+  // Premio (solo sellos): "Yo lo defino" o "Lo elige el cliente". Se edita
+  // acá igual que en Diseño y se guarda con "Guardar cambios".
+  const [rMode, setRMode] = useState<'fixed' | 'dynamic'>(card?.rewardMode === 'dynamic' ? 'dynamic' : 'fixed')
+  const [rFixed, setRFixed] = useState(card?.rewardField || '')
+  const [rOpts, setROpts] = useState<string[]>([])
+  const [rBase, setRBase] = useState('')
+  // Lo último guardado desde acá: la lista de tarjetas del panel tarda en
+  // actualizarse y no hay que volver a mostrar el premio viejo.
+  const savedReward = useRef<{ id: string; mode: 'fixed' | 'dynamic'; fixed: string } | null>(null)
+  const askReward = isStamp && rMode === 'dynamic'
 
   const [saved, setSaved] = useState<EditField[] | null>(null)
   const [draft, setDraft] = useState<EditField[] | null>(null)
@@ -278,14 +290,29 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
       // Nombre y email (bloqueados y no-premio) se muestran aparte.
       const editable = list.filter((f: any) => !(f.isLocked && !f.isRewardSource)).sort((a: any, b: any) => a.order - b.order).map(toEdit)
       setSaved(editable); setDraft(editable)
+      resetReward(editable.find(f => f.isRewardSource)?.options || [])
     } catch {
       setLoadError(true); setSaved([]); setDraft([])
     }
   }
-  useEffect(() => { load(); setNotice(null) }, [businessId, card?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  function resetReward(opts: string[]) {
+    const o = savedReward.current && savedReward.current.id === card?.id ? savedReward.current : null
+    const mode = o ? o.mode : card?.rewardMode === 'dynamic' ? 'dynamic' : 'fixed'
+    const fixed = o ? o.fixed : card?.rewardField || ''
+    setRMode(mode); setRFixed(fixed); setROpts(opts)
+    setRBase(JSON.stringify([mode, fixed, opts]))
+  }
+  useEffect(() => { resetReward(cachedRewardOpts()); load(); setNotice(null) }, [businessId, card?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  function cachedRewardOpts(): string[] {
+    const c = businessId && card ? readCache<any[]>(`/api/businesses/${businessId}/cards/${card.id}/fields`) : null
+    return (c || []).find((f: any) => f.isRewardSource)?.options || []
+  }
+  const rClean = rOpts.map(o => o.trim()).filter(Boolean)
+  const rewardDirty = isStamp && rBase !== '' && JSON.stringify([rMode, rFixed.trim(), rClean]) !== rBase
 
   // Hay cambios si cambió algo de algún campo, el orden, o se agregó/borró uno.
-  const dirty = useMemo(() => !!saved && !!draft && JSON.stringify(draft.map(comparable)) !== JSON.stringify(saved.map(comparable)), [saved, draft])
+  const fieldsDirty = useMemo(() => !!saved && !!draft && JSON.stringify(draft.map(comparable)) !== JSON.stringify(saved.map(comparable)), [saved, draft])
+  const dirty = fieldsDirty || rewardDirty
 
   const customCount = (draft || []).filter(f => f.isCustom || !f.id).filter(f => !f.isRewardSource).length
   const rewardField = (draft || []).find(f => f.isRewardSource)
@@ -310,18 +337,30 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
     }])
     setNotice(null)
   }
-  function discard() { setDraft(saved); setRemoved([]); setError(null) }
+  function discard() { setDraft(saved); setRemoved([]); setError(null); resetReward((saved || []).find(f => f.isRewardSource)?.options || []) }
 
   async function save() {
     if (!businessId || !card || !draft || !saved) return
-    const v = validate(draft)
+    const v = validate(draft.filter(f => !f.isRewardSource))
     if (v) { setError(v); return }
+    if (rewardDirty && rMode === 'fixed' && !rFixed.trim()) { setError('Escribí cuál es el premio (ej: Café gratis).'); return }
+    if (rewardDirty && rMode === 'dynamic' && (rClean.length < 2 || rClean.length > maxRewardOpts)) { setError(`Cargá entre 2 y ${maxRewardOpts} opciones de premio para que el cliente elija.`); return }
     setSaving(true); setError(null); setNotice(null)
     try {
+      if (rewardDirty) {
+        await apiUpdateCard(businessId, card.id, {
+          rewardMode: rMode,
+          rewardFixedValue: rFixed.trim() || null,
+          ...(rMode === 'dynamic' ? { rewardOptions: rClean } : {}),
+        })
+        savedReward.current = { id: card.id, mode: rMode, fixed: rFixed.trim() }
+        onSaved?.()
+      }
       for (const f of removed) await apiDeleteField(businessId, card.id, f.id!)
       const ids: string[] = []
       for (const f of draft) {
         const options = f.type === 'select' ? f.options.map(o => o.trim()).filter(Boolean) : undefined
+        if (f.isRewardSource) { if (f.id) ids.push(f.id); continue }
         if (!f.id) {
           const created: any = await apiCreateField(businessId, card.id, { label: f.label.trim(), fieldType: f.type, options, placeholder: f.placeholder, isRewardSource: f.isRewardSource, isRequired: f.isRequired } as any)
           ids.push(created._id)
@@ -352,6 +391,15 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
       setSaving(false)
     }
   }
+
+  // Vista previa: la pregunta de premio con las opciones que se están editando.
+  const previewFields: EditField[] = (() => {
+    const list = draft || []
+    if (!askReward) return list
+    const has = list.some(f => f.isRewardSource)
+    const withOpts = list.map(f => f.isRewardSource ? { ...f, options: rClean } : f)
+    return has ? withOpts : [{ key: 'reward-preview', label: REWARD_QUESTION, type: 'select', options: rClean, placeholder: '', isActive: true, isRequired: true, isRewardSource: true, isLocked: false, isCustom: false } as EditField, ...withOpts]
+  })()
 
   if (!card) {
     return (
@@ -397,19 +445,30 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
             </div>
 
             {isStamp && (
-              <div className={`fm-card fm-reward${askReward && !rewardField ? ' fm-reward--warn' : ''}`}>
+              <div className="fm-card fm-reward">
                 <div className="fm-card-title">★ Premio</div>
-                {!askReward ? (
-                  <div className="fm-card-sub" style={{ margin: 0 }}>
-                    Tu premio es fijo{card.rewardField ? <>: <strong>{card.rewardField}</strong></> : ''}. Al cliente no se le pregunta nada.{' '}
-                    <button className="fm-link-btn" onClick={onGoToDesign}>Cambiar en Diseño</button>
-                  </div>
-                ) : rewardField ? (
-                  <div className="fm-card-sub" style={{ margin: 0 }}>El cliente elige su premio al registrarse en <strong>"{rewardField.label}"</strong>. Las opciones se editan en <button className="fm-link-btn" onClick={onGoToDesign}>Diseño</button>.</div>
+                <div className="fm-card-sub">¿Qué recibe el cliente al completar la tarjeta?</div>
+                <div className="fm-rmodes">
+                  <label className={`fm-rmode${rMode === 'fixed' ? ' fm-rmode--on' : ''}`}>
+                    <input type="radio" name="fm-rmode" checked={rMode === 'fixed'} onChange={() => { setRMode('fixed'); setNotice(null) }} />
+                    <span><strong>Yo lo defino</strong><small>El mismo premio para todos</small></span>
+                  </label>
+                  <label className={`fm-rmode${rMode === 'dynamic' ? ' fm-rmode--on' : ''}`}>
+                    <input type="radio" name="fm-rmode" checked={rMode === 'dynamic'} onChange={() => { setRMode('dynamic'); setNotice(null) }} />
+                    <span><strong>Lo elige el cliente</strong><small>Elige una opción al registrarse</small></span>
+                  </label>
+                </div>
+                {rMode === 'fixed' ? (
+                  <input className="fm-ph-input" style={{ marginLeft: 0, width: '100%', boxSizing: 'border-box' }} value={rFixed} maxLength={60} placeholder="Ej: Café gratis" onChange={e => { setRFixed(e.target.value); setNotice(null) }} />
                 ) : (
                   <>
-                    <div className="fm-card-sub">El cliente elige el premio, pero todavía no cargaste las opciones.</div>
-                    <button className="fm-primary" onClick={onGoToDesign}>Cargar opciones en Diseño</button>
+                    <div className="fm-rlabel">Opciones ({rClean.length}/{maxRewardOpts})</div>
+                    <div className="fm-ropts"><OptionsEditor options={rOpts} max={maxRewardOpts} onChange={o => { setROpts(o); setNotice(null) }} /></div>
+                    <div className="fm-hint" style={{ margin: '8px 0 0' }}>
+                      {rClean.length >= maxRewardOpts
+                        ? <>Llegaste a las {maxRewardOpts} opciones de tu plan.{plan === 'Starter' ? ' Growth permite 6 y Pro 12.' : plan === 'Growth' ? ' Pro permite 12.' : ''}{plan !== 'Pro' && plan !== 'Enterprise' && !isManager && <> <button className="fm-link-btn" onClick={onChoosePlan}>Ver planes</button></>}</>
+                        : 'Elegí premios de valor parecido: si uno vale mucho más, todos van a elegir ese.'}
+                    </div>
                   </>
                 )}
               </div>
@@ -442,7 +501,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
                         ) : null}
                       </div>
                       {f.isRewardSource
-                        ? <div className="fm-hint" style={{ margin: '6px 0 0' }}>Opciones: {f.options.filter(Boolean).join(' · ') || '—'}. Se editan en <button className="fm-link-btn" onClick={onGoToDesign}>Diseño</button>.</div>
+                        ? <div className="fm-hint" style={{ margin: '6px 0 0' }}>Opciones: {(askReward ? rClean : f.options.filter(Boolean)).join(' · ') || '—'}. Se editan arriba, en Premio.</div>
                         : f.type === 'select' && <OptionsEditor options={f.options} onChange={o => patch(f.key, { options: o })} />}
                       {['text', 'tel', 'number'].includes(f.type) && (
                         <input className="fm-ph-input" value={f.placeholder} maxLength={80} placeholder="Texto de ayuda dentro del campo (opcional)" onChange={e => patch(f.key, { placeholder: e.target.value })} />
@@ -483,7 +542,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
 
           <div className="fm-preview-col">
             <div className="fm-preview-title">Así lo ve tu cliente</div>
-            <Preview card={card} businessName={businessName} fields={draft || []} askReward={askReward} whiteLabel={whiteLabel} />
+            <Preview card={card} businessName={businessName} fields={previewFields} askReward={askReward} whiteLabel={whiteLabel} />
           </div>
         </div>
 
@@ -518,6 +577,15 @@ const CSS = `
   .fm-design-note{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
   .fm-swatch{width:34px;height:34px;border-radius:10px;flex-shrink:0;}
   .fm-reward{border-color:rgba(212,162,76,.35);background:rgba(212,162,76,.05);}
+  .fm-rmodes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0 10px;}
+  .fm-rmode{display:flex;gap:9px;align-items:flex-start;border:1.5px solid rgba(43,38,32,.12);border-radius:10px;padding:10px 12px;cursor:pointer;background:#fff;}
+  .fm-rmode--on{border-color:#C75D3A;background:rgba(199,93,58,.04);}
+  .fm-rmode input{accent-color:#C75D3A;margin-top:3px;}
+  .fm-rmode strong{display:block;font-size:13px;color:#2B2620;}
+  .fm-rmode small{display:block;font-size:11.5px;color:rgba(43,38,32,.55);}
+  .fm-rlabel{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:rgba(43,38,32,.5);margin-bottom:6px;}
+  .fm-ropts .fm-opts{margin-left:0;}
+  @media (max-width:560px){.fm-rmodes{grid-template-columns:1fr;}}
   .fm-reward--warn{border-color:rgba(178,59,59,.3);background:rgba(178,59,59,.04);}
   .fm-list{display:flex;flex-direction:column;gap:8px;}
   .fm-row{border:1px solid rgba(43,38,32,.1);border-radius:11px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:#fff;}

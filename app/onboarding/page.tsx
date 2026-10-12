@@ -4,6 +4,7 @@ import { apiMe, apiOnboarding, getToken } from '@/lib/api'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { allowsFreeColor, darkenHex, DEFAULT_CARD_COLOR, presetsForPlan } from '@/lib/colorPresets'
+import { PLAN_LIMITS, type Plan } from '@/data/plans'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CardType    = 'stamp' | 'points' | 'membership'
@@ -17,7 +18,7 @@ interface OBState {
   pointsPerVisit: number
   rewardMode:     RewardMode
   rewardValue:    string
-  rewardOptions:  string[]        // si el cliente elige: las opciones del negocio (2 a 6)
+  rewardOptions:  string[]        // si el cliente elige: las opciones del negocio (2 al máximo del plan)
   brandColor:     string
   brandLogo:      string | null
 }
@@ -444,8 +445,9 @@ function Step3({ state, onChange, onNext, onBack }: StepProps) {
   )
 }
 
-function Step4({ state, onChange, onNext, onBack }: StepProps) {
+function Step4({ state, onChange, onNext, onBack, plan }: StepProps & { plan: string }) {
   const [draft, setDraft] = useState('')
+  const maxOpts = PLAN_LIMITS[plan as Plan]?.maxRewardOptions ?? 3
   // Primera vez en "El cliente elige": arranca con las sugerencias del rubro.
   useEffect(() => {
     if (state.rewardMode === 'customer' && state.rewardOptions.length === 0) {
@@ -456,13 +458,13 @@ function Step4({ state, onChange, onNext, onBack }: StepProps) {
 
   const options = state.rewardOptions
   const cleanDraft = draft.trim()
-  const canAdd = cleanDraft.length > 0 && cleanDraft.length <= 40 && options.length < 6 && !options.some(o => o.toLowerCase() === cleanDraft.toLowerCase())
+  const canAdd = cleanDraft.length > 0 && cleanDraft.length <= 40 && options.length < maxOpts && !options.some(o => o.toLowerCase() === cleanDraft.toLowerCase())
   function addOption() {
     if (!canAdd) return
     onChange({ rewardOptions: [...options, cleanDraft] })
     setDraft('')
   }
-  const valid = state.rewardMode === 'customer' ? options.length >= 2 && options.length <= 6 : state.rewardValue.trim().length > 0
+  const valid = state.rewardMode === 'customer' ? options.length >= 2 && options.length <= maxOpts : state.rewardValue.trim().length > 0
 
   return (
     <div className="ob-step">
@@ -488,14 +490,14 @@ function Step4({ state, onChange, onNext, onBack }: StepProps) {
                 </span>
               ))}
             </div>
-            {options.length < 6 && (
+            {options.length < maxOpts && (
               <div className="ob-chip-add">
                 <input className="ob-input" placeholder="Agregar otra opción…" value={draft} maxLength={40}
                   onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOption() } }} />
                 <button type="button" className="ob-chip-add-btn" onClick={addOption} disabled={!canAdd}>Agregar</button>
               </div>
             )}
-            <div className="ob-chip-note">{options.length < 2 ? 'Cargá al menos 2 opciones.' : `${options.length} de 6 opciones.`}</div>
+            <div className="ob-chip-note">{options.length < 2 ? 'Cargá al menos 2 opciones.' : `${options.length} de ${maxOpts} opciones de tu plan.`}</div>
           </div>
         )}
         <div className={`ob-reward-opt${state.rewardMode === 'fixed' ? ' ob-reward-opt--on' : ''}`}
@@ -921,7 +923,7 @@ export default function OnboardingPage() {
     1: <Step1 {...props} />,
     2: <Step2 {...props} />,
     3: <Step3 {...props} />,
-    4: <Step4 {...props} />,
+    4: <Step4 {...props} plan={plan} />,
     5: <Step5 {...props} plan={plan} />,
     6: <Step6 state={state} onBack={back} onFinish={finish} finishing={finishing} error={finishError} />,
   }
