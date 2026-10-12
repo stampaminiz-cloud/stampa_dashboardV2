@@ -394,7 +394,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   card: CardDesign; businessId?: string | null; businessName?: string | null; onSaved?: () => void; onBack: () => void
   onGoTo?: (tab: 'form' | 'rewards') => void
 }) {
-  const { can, plan } = usePlan()
+  const { can, plan, limit } = usePlan()
   const t = useLang()
   const [card, setCard] = useState<CardDesign>(init)
   // Campos y niveles reales de ESTA tarjeta (antes salían de datos de ejemplo).
@@ -444,6 +444,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const rewardSource = fields.find((f: FormField) => f.isRewardSource)
   // Opciones de "Lo elige el cliente": se editan acá y se guardan en la
   // pregunta de premio del formulario.
+  const maxRewardOpts = limit('maxRewardOptions')
   const [rewardOpts, setRewardOpts] = useState<string[]>([])
   const [rewardOptsBase, setRewardOptsBase] = useState('[]')
   const [newOpt, setNewOpt] = useState('')
@@ -455,7 +456,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const optsChanged = JSON.stringify(cleanOpts) !== rewardOptsBase
   function addOpt() {
     const v = newOpt.trim().slice(0, 40)
-    if (!v || rewardOpts.length >= 6 || rewardOpts.some(o => o.toLowerCase() === v.toLowerCase())) return
+    if (!v || rewardOpts.length >= maxRewardOpts || rewardOpts.some(o => o.toLowerCase() === v.toLowerCase())) return
     setRewardOpts([...rewardOpts, v]); setNewOpt('')
   }
   const rewardSourceLabel = rewardSource ? 'Lo elige cada cliente' : 'Sin configurar'
@@ -480,7 +481,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
     setSaveError(''); setSaveNotice('')
     if (!card.name.trim()) { setSaveError('La tarjeta necesita un nombre.'); return }
     if (card.type === 'stamp' && card.rewardMode !== 'dynamic' && !(card.rewardField || '').trim()) { setSaveError('Escribí cuál es el premio (ej: Café gratis).'); return }
-    if (card.type === 'stamp' && card.rewardMode === 'dynamic' && (cleanOpts.length < 2 || cleanOpts.length > 6)) { setSaveError('Cargá entre 2 y 6 opciones de premio para que el cliente elija.'); return }
+    if (card.type === 'stamp' && card.rewardMode === 'dynamic' && (cleanOpts.length < 2 || cleanOpts.length > maxRewardOpts)) { setSaveError(`Cargá entre 2 y ${maxRewardOpts} opciones de premio para que el cliente elija.`); return }
     if (textColorBad || labelColorBad) { setSaveError('Revisá los colores de texto: tienen que ser un código como #FFFFFF.'); return }
     // Bajar los sellos completa la tarjeta de quienes ya los tienen: avisar antes.
     if (!skipImpactCheck && card.type === 'stamp' && card.stampsRequired < savedStamps) {
@@ -723,7 +724,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
                 {card.rewardMode === 'dynamic' && (
                   <div className="dt-field-picker">
                     <div className="dt-appearance-label">
-                      Opciones de premio ({cleanOpts.length}/6)
+                      Opciones de premio ({cleanOpts.length}/{maxRewardOpts})
                       <InfoTooltip text="El cliente elige una al registrarse y esa queda como su premio. Se muestran como pregunta obligatoria en el formulario." />
                     </div>
                     <div className="dt-opts">
@@ -733,7 +734,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
                           <button type="button" onClick={() => setRewardOpts(rewardOpts.filter((_, j) => j !== i))} aria-label="Quitar opción">×</button>
                         </span>
                       ))}
-                      {rewardOpts.length < 6 && (
+                      {rewardOpts.length < maxRewardOpts && (
                         <span className="dt-opt dt-opt--new">
                           <input value={newOpt} maxLength={40} placeholder="+ Agregar (ej: Café gratis)" onChange={e => setNewOpt(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOpt() } }} onBlur={addOpt} aria-label="Nueva opción" />
                         </span>
@@ -741,7 +742,9 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
                     </div>
                     {cleanOpts.length < 2
                       ? <div className="dt-color-warn">Cargá al menos 2 opciones.</div>
-                      : <div className="dt-public-desc-note">Elegí premios de valor parecido: si uno vale mucho más, todos van a elegir ese.</div>}
+                      : rewardOpts.length >= maxRewardOpts
+                        ? <div className="dt-public-desc-note">Llegaste a las {maxRewardOpts} opciones de tu plan.{plan === 'Starter' ? ' Growth permite 6 y Pro 12.' : plan === 'Growth' ? ' Pro permite 12.' : ''}</div>
+                        : <div className="dt-public-desc-note">Elegí premios de valor parecido: si uno vale mucho más, todos van a elegir ese.</div>}
                   </div>
                 )}
                 <div className={`dt-reward-opt${card.rewardMode !== 'dynamic' ? ' dt-reward-opt--on' : ''}`} onClick={() => setCard({ ...card, rewardMode: 'fixed' })}>

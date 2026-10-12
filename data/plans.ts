@@ -14,6 +14,7 @@ export interface PlanLimits {
   extraColorPresets:boolean       // los 3 presets extra (8 en vez de 5) — escalón intermedio antes del hex libre
   customTextColor:  boolean       // color de texto sobre la tarjeta — desde Pro (afecta el pase real, no solo el preview)
   maxCustomFields:  number        // form builder custom fields
+  maxRewardOptions: number        // opciones de "el cliente elige su premio" (mínimo 2). Espejo de config/planLimits.js
   maxTeamMembers:   number        // managers + scanners
   monthlyNotifs:    number        // envíos (campañas) por mes, no destinatarios
   notifTargeting:   boolean       // notificaciones por tarjeta / por nivel
@@ -33,6 +34,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     extraColorPresets:false,
     customTextColor: false,
     maxCustomFields: 0,
+    maxRewardOptions:3,
     maxTeamMembers:  1,
     monthlyNotifs:   4,
     notifTargeting:  false,
@@ -50,6 +52,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     extraColorPresets:true,
     customTextColor: false,     // colores de texto y etiquetas: desde Pro
     maxCustomFields: 3,
+    maxRewardOptions:6,
     maxTeamMembers:  5,
     monthlyNotifs:   20,
     notifTargeting:  true,
@@ -67,6 +70,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     extraColorPresets:true,
     customTextColor: true,
     maxCustomFields: 3,
+    maxRewardOptions:12,
     maxTeamMembers:  999,
     monthlyNotifs:   999999,
     notifTargeting:  true,
@@ -84,6 +88,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     extraColorPresets:true,
     customTextColor: true,
     maxCustomFields: 10,
+    maxRewardOptions:20,
     maxTeamMembers:  999,
     monthlyNotifs:   999999,
     notifTargeting:  true,
@@ -104,6 +109,7 @@ export const FEATURE_LABELS: Record<keyof PlanLimits, string> = {
   extraColorPresets:'Paleta ampliada (8 colores)',
   customTextColor: 'Color de texto personalizado',
   maxCustomFields: 'Campos personalizados en el formulario',
+  maxRewardOptions:'Opciones de premio para que elija el cliente',
   maxTeamMembers:  'Miembros del equipo',
   monthlyNotifs:   'Envíos de notificaciones por mes',
   notifTargeting:  'Notificaciones por tarjeta y por nivel',
