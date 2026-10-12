@@ -34,7 +34,7 @@ export const ARTICLES: Article[] = [
     body: <>
       <p>Desde que creás la cuenta hasta que el primer cliente tiene la tarjeta en el celular hay cinco pasos. Ninguno lleva más de un rato, y el panel te los marca en Inicio a medida que los completás.</p>
       <Steps items={[
-        <><strong>Diseñá la tarjeta.</strong> Subí tu logo, elegí los colores, cuántos sellos y el premio. En la vista previa ves cómo queda en un iPhone y en un Android. <A to="disenar-la-tarjeta">Cómo diseñarla</A>.</>,
+        <><strong>Diseñá la tarjeta.</strong> En Diseño subí tu logo y elegí los colores y cuántos sellos. En la vista previa ves cómo queda en un iPhone y en un Android. El premio se define en Formulario. <A to="disenar-la-tarjeta">Cómo diseñarla</A> y <A to="premios">cómo elegir el premio</A>.</>,
         <><strong>Poné el QR en el mostrador.</strong> En Formulario descargás un cartel listo para imprimir. El cliente lo escanea con la cámara, deja su nombre y su email y guarda la tarjeta. <A to="qr-del-mostrador">Dónde ponerlo</A>.</>,
         <><strong>Sumá a tu equipo.</strong> Cada empleado tiene un PIN de 4 números para la app de escaneo. <A to="equipo">Cómo sumarlos</A>.</>,
         <><strong>Vinculá el celular del local.</strong> Instalás la app de escaneo y escaneás el código que te muestra el panel. Se hace una vez por celular. <A to="app-de-escaneo">Paso a paso</A>.</>,
@@ -79,10 +79,10 @@ export const ARTICLES: Article[] = [
     body: <>
       <p>Hay tres tipos de tarjeta. El tipo se elige al crearla.</p>
       <h2>Sellos</h2>
-      <p>Una visita, un sello. Al completar la tarjeta, el premio. En Diseño, en "¿Cómo se define el premio?", tenés dos opciones:</p>
+      <p>Una visita, un sello. Al completar la tarjeta, el premio. En <strong>Formulario</strong>, en la caja "Premio", tenés dos opciones:</p>
       <ul>
         <li><strong>Yo lo defino:</strong> el mismo premio para todos, por ejemplo "Un café de especialidad".</li>
-        <li><strong>Lo elige el cliente:</strong> le das opciones en el formulario ("Café", "Medialuna", "Tostado") y lo que elige pasa a ser su premio.</li>
+        <li><strong>Lo elige el cliente:</strong> cargás las opciones ("Café", "Medialuna", "Tostado") y el cliente elige una al registrarse; esa pasa a ser su premio. Starter permite 3 opciones, Growth 6 y Pro 12.</li>
       </ul>
       <p>La tarjeta queda completa hasta que el empleado entrega el premio y toca "Confirmar entrega" en la app. Ahí vuelve a cero.</p>
       <h2>Puntos</h2>
@@ -98,7 +98,7 @@ export const ARTICLES: Article[] = [
     title: 'El formulario de registro',
     summary: 'Qué completa el cliente para llevarse la tarjeta y cómo agregar tus propias preguntas.',
     body: <>
-      <p>El formulario es lo que ve el cliente cuando escanea tu QR. Tiene los colores y el logo de tu tarjeta. Siempre pide nombre y email; el resto lo decidís vos en <strong>Formulario</strong>.</p>
+      <p>El formulario es lo que ve el cliente cuando escanea tu QR. Tiene los colores y el logo de tu tarjeta. Siempre pide nombre y email; el resto lo decidís vos en <strong>Formulario</strong>. Ahí también está la caja "Premio", donde definís qué recibe el cliente al completar la tarjeta (<A to="premios">ver cómo</A>).</p>
       <Shot src="formulario" alt="Pestaña Formulario con los campos y la vista previa del celular" />
       <ul>
         <li><strong>Pregunta del rubro.</strong> Según tu rubro viene una pregunta armada, por ejemplo "¿Con qué acompañás tu café?". Podés cambiar las opciones, ocultarla o hacerla obligatoria.</li>
