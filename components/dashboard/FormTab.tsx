@@ -459,7 +459,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
                   </label>
                 </div>
                 {rMode === 'fixed' ? (
-                  <input className="fm-ph-input" style={{ marginLeft: 0 }} value={rFixed} maxLength={60} placeholder="Ej: Café gratis" onChange={e => { setRFixed(e.target.value); setNotice(null) }} />
+                  <input className="fm-ph-input" style={{ marginLeft: 0, width: '100%', boxSizing: 'border-box' }} value={rFixed} maxLength={60} placeholder="Ej: Café gratis" onChange={e => { setRFixed(e.target.value); setNotice(null) }} />
                 ) : (
                   <>
                     <div className="fm-rlabel">Opciones ({rClean.length}/{maxRewardOpts})</div>

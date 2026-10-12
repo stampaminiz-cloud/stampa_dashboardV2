@@ -394,7 +394,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   card: CardDesign; businessId?: string | null; businessName?: string | null; onSaved?: () => void; onBack: () => void
   onGoTo?: (tab: 'form' | 'rewards') => void
 }) {
-  const { can, plan, limit } = usePlan()
+  const { can, plan } = usePlan()
   const t = useLang()
   const [card, setCard] = useState<CardDesign>(init)
   // Campos y niveles reales de ESTA tarjeta (antes salían de datos de ejemplo).
@@ -442,24 +442,9 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   }
 
   const rewardSource = fields.find((f: FormField) => f.isRewardSource)
-  // Opciones de "Lo elige el cliente": se editan acá y se guardan en la
-  // pregunta de premio del formulario.
-  const maxRewardOpts = limit('maxRewardOptions')
-  const [rewardOpts, setRewardOpts] = useState<string[]>([])
-  const [rewardOptsBase, setRewardOptsBase] = useState('[]')
-  const [newOpt, setNewOpt] = useState('')
-  useEffect(() => {
-    const o = rewardSource?.options || []
-    setRewardOpts(o); setRewardOptsBase(JSON.stringify(o))
-  }, [rewardSource?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-  const cleanOpts = rewardOpts.map(o => o.trim()).filter(Boolean)
-  const optsChanged = JSON.stringify(cleanOpts) !== rewardOptsBase
-  function addOpt() {
-    const v = newOpt.trim().slice(0, 40)
-    if (!v || rewardOpts.length >= maxRewardOpts || rewardOpts.some(o => o.toLowerCase() === v.toLowerCase())) return
-    setRewardOpts([...rewardOpts, v]); setNewOpt('')
-  }
-  const rewardSourceLabel = rewardSource ? 'Lo elige cada cliente' : 'Sin configurar'
+  // El premio (fijo o el que elige el cliente) se define en Formulario.
+  // Acá solo se muestra en la vista previa y como resumen.
+  const rewardChoices = (rewardSource?.options || []).filter(Boolean)
 
   // Cambios sin guardar: se compara con lo que había al abrir.
   const snapshot = (c: CardDesign, l: LogoState, fm: string, fs: string, img: string | null, ppv: number) =>
@@ -468,7 +453,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const [savedStamps, setSavedStamps] = useState(init.stampsRequired)
 
   function setLogo(key: keyof LogoState) { return (url: string | null) => setLogos({ ...logos, [key]: url }) }
-  const dirty = snapshot(card, logos, flipMessage, flipSubMessage, prizeImage, pointsPerVisit) !== baseline || (card.type === 'stamp' && card.rewardMode === 'dynamic' && optsChanged)
+  const dirty = snapshot(card, logos, flipMessage, flipSubMessage, prizeImage, pointsPerVisit) !== baseline
   const textColorBad = !!card.textColor && !isHex(card.textColor)
   const labelColorBad = !!card.labelColor && !isHex(card.labelColor)
   const lowContrast = card.type !== 'membership' && isHex(card.textColor || '#FFFFFF') && isHex(card.color) && contrastRatio(card.textColor || '#FFFFFF', card.color) < 3
@@ -480,8 +465,6 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
     }
     setSaveError(''); setSaveNotice('')
     if (!card.name.trim()) { setSaveError('La tarjeta necesita un nombre.'); return }
-    if (card.type === 'stamp' && card.rewardMode !== 'dynamic' && !(card.rewardField || '').trim()) { setSaveError('Escribí cuál es el premio (ej: Café gratis).'); return }
-    if (card.type === 'stamp' && card.rewardMode === 'dynamic' && (cleanOpts.length < 2 || cleanOpts.length > maxRewardOpts)) { setSaveError(`Cargá entre 2 y ${maxRewardOpts} opciones de premio para que el cliente elija.`); return }
     if (textColorBad || labelColorBad) { setSaveError('Revisá los colores de texto: tienen que ser un código como #FFFFFF.'); return }
     // Bajar los sellos completa la tarjeta de quienes ya los tienen: avisar antes.
     if (!skipImpactCheck && card.type === 'stamp' && card.stampsRequired < savedStamps) {
@@ -502,9 +485,6 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
         isActive: card.isActive,
         stampsRequired: card.stampsRequired,
         pointsPerVisit,
-        ...(card.type === 'stamp' ? { rewardMode: card.rewardMode === 'dynamic' ? 'dynamic' : 'fixed' } : {}),
-        ...(card.type === 'stamp' && card.rewardMode === 'dynamic' && (optsChanged || !rewardSource) ? { rewardOptions: cleanOpts } : {}),
-        rewardFixedValue: card.rewardField || null,
         flipMessage,
         flipSubMessage,
         // null = se quitó (antes mandaba undefined y "Quitar" nunca se guardaba)
@@ -518,10 +498,6 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
       setSaved(true)
       setBaseline(snapshot(card, logos, flipMessage, flipSubMessage, prizeImage, pointsPerVisit))
       setSavedStamps(card.stampsRequired)
-      if (card.type === 'stamp' && card.rewardMode === 'dynamic') {
-        setRewardOpts(cleanOpts); setRewardOptsBase(JSON.stringify(cleanOpts))
-        if (!rewardSource) apiGetFields(businessId, card.id).then(list => setFields(list.map((f: any) => ({ id: f._id, label: f.label, type: f.fieldType, isLocked: f.isLocked, isActive: f.isActive, isRewardSource: f.isRewardSource, order: f.order, options: f.options || [] })))).catch(() => {})
-      }
       setSaveNotice(res?.passUpdates ? `Guardado. Se actualizó la tarjeta en ${res.passUpdates} celular${res.passUpdates === 1 ? '' : 'es'}.` : 'Guardado.')
       onSaved?.()
       setTimeout(() => setSaved(false), 2000)
@@ -538,7 +514,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   // espera para no pedirlas en cada tecla.
   const [walletPreview, setWalletPreview] = useState<WalletPreview | null>(null)
   const [walletPreviewError, setWalletPreviewError] = useState(false)
-  const previewReward = card.rewardMode === 'dynamic' ? (rewardOpts.find(o => o.trim()) || 'Lo elige el cliente') : (card.rewardField || 'Premio')
+  const previewReward = card.rewardMode === 'dynamic' ? (rewardChoices[0] || 'Lo elige el cliente') : (card.rewardField || 'Premio')
   const previewDesign = JSON.stringify({
     name: card.name, color: card.color, secondColor: card.secondColor, textColor: card.textColor,
     stampsRequired: card.stampsRequired, pointsPerVisit, logoUrl: logos.businessLogo, earnedIcon: logos.earnedIcon, emptyIcon: logos.emptyIcon,
@@ -712,48 +688,15 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Campos del formulario</div>
           <div className="dt-reward-goto-forms">Se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>. <InfoTooltip text="El formulario de registro usa el color y el logo de esta tarjeta." /></div>
 
-          {/* STAMP: prize mode */}
+          {/* STAMP: el premio se define en Formulario (un solo lugar). */}
           {card.type === 'stamp' && (
             <>
-              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>¿Cómo se define el premio?</div>
-              <div className="dt-reward-mode-box">
-                <div className={`dt-reward-opt${card.rewardMode === 'dynamic' ? ' dt-reward-opt--on' : ''}`} onClick={() => setCard({ ...card, rewardMode: 'dynamic' })}>
-                  <div className="dt-reward-radio">{card.rewardMode === 'dynamic' && <div className="dt-reward-radio-dot" />}</div>
-                  <div><div className="dt-reward-opt-title">Lo elige el cliente</div><div className="dt-reward-opt-desc">Su respuesta en el formulario se convierte en el premio</div></div>
-                </div>
-                {card.rewardMode === 'dynamic' && (
-                  <div className="dt-field-picker">
-                    <div className="dt-appearance-label">
-                      Opciones de premio ({cleanOpts.length}/{maxRewardOpts})
-                      <InfoTooltip text="El cliente elige una al registrarse y esa queda como su premio. Se muestran como pregunta obligatoria en el formulario." />
-                    </div>
-                    <div className="dt-opts">
-                      {rewardOpts.map((o, i) => (
-                        <span key={i} className="dt-opt">
-                          <input value={o} maxLength={40} onChange={e => setRewardOpts(rewardOpts.map((x, j) => j === i ? e.target.value : x))} aria-label={`Opción ${i + 1}`} style={{ width: `${Math.max(4, o.length) + 1}ch` }} />
-                          <button type="button" onClick={() => setRewardOpts(rewardOpts.filter((_, j) => j !== i))} aria-label="Quitar opción">×</button>
-                        </span>
-                      ))}
-                      {rewardOpts.length < maxRewardOpts && (
-                        <span className="dt-opt dt-opt--new">
-                          <input value={newOpt} maxLength={40} placeholder="+ Agregar (ej: Café gratis)" onChange={e => setNewOpt(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOpt() } }} onBlur={addOpt} aria-label="Nueva opción" />
-                        </span>
-                      )}
-                    </div>
-                    {cleanOpts.length < 2
-                      ? <div className="dt-color-warn">Cargá al menos 2 opciones.</div>
-                      : rewardOpts.length >= maxRewardOpts
-                        ? <div className="dt-public-desc-note">Llegaste a las {maxRewardOpts} opciones de tu plan.{plan === 'Starter' ? ' Growth permite 6 y Pro 12.' : plan === 'Growth' ? ' Pro permite 12.' : ''}</div>
-                        : <div className="dt-public-desc-note">Elegí premios de valor parecido: si uno vale mucho más, todos van a elegir ese.</div>}
-                  </div>
-                )}
-                <div className={`dt-reward-opt${card.rewardMode !== 'dynamic' ? ' dt-reward-opt--on' : ''}`} onClick={() => setCard({ ...card, rewardMode: 'fixed' })}>
-                  <div className="dt-reward-radio">{card.rewardMode !== 'dynamic' && <div className="dt-reward-radio-dot" />}</div>
-                  <div><div className="dt-reward-opt-title">Yo lo defino</div><div className="dt-reward-opt-desc">El mismo premio para todos los clientes</div></div>
-                </div>
-                {card.rewardMode !== 'dynamic' && (
-                  <input className="dt-prize-input" placeholder="Ej: Café gratis" maxLength={40} value={card.rewardField || ''} onChange={e => setCard({ ...card, rewardField: e.target.value })} />
-                )}
+              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Premio</div>
+              <div className="dt-reward-goto-forms">
+                {card.rewardMode === 'dynamic'
+                  ? <>Lo elige el cliente{rewardChoices.length ? <>: <strong>{rewardChoices.join(' · ')}</strong></> : ' (todavía sin opciones)'}.</>
+                  : card.rewardField ? <><strong>{card.rewardField}</strong>, el mismo para todos.</> : 'Todavía no definiste el premio.'}
+                {' '}Se define en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>.
               </div>
             </>
           )}
