@@ -9,6 +9,7 @@ import {
 } from '@/lib/api'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { withLoc } from '@/lib/location'
+import { pointsRuleText } from '@/lib/money'
 
 // Premios, por tarjeta. Todo sale de /rewards-stats (canjes reales que
 // registra la app de escaneo o el dashboard) y de los editores de catálogo
@@ -211,7 +212,7 @@ function PointsRewards({ businessId, cardId, data, onOpenCustomer, onChanged }: 
       <div className="rw-3col">
         <Stat label="Canjes este mes" value={data.redeemedThisMonth ?? 0} sub={`${(data.pointsRedeemedThisMonth ?? 0).toLocaleString('es-AR')} puntos canjeados · ${monthDelta(data.redeemedThisMonth ?? 0, data.redeemedLastMonth ?? 0)}`} />
         <Stat label="Pueden canjear ahora" value={data.canRedeem ?? 0} sub="ya les alcanza para el premio más barato" tone={data.canRedeem > 0 ? 'good' : undefined} />
-        <Stat label="Saldo promedio" value={`${(data.avgBalance ?? 0).toLocaleString('es-AR')} pts`} sub={`suman ${data.pointsPerVisit ?? 0} pts por visita`} />
+        <Stat label="Saldo promedio" value={`${(data.avgBalance ?? 0).toLocaleString('es-AR')} pts`} sub={`suman ${pointsRuleText({ pointsMode: data.pointsMode, pointsPerVisit: data.pointsPerVisit, pointsPerAmount: data.pointsRule?.perAmount, pointsAmountUnit: data.pointsRule?.unit }, data.pointsRule?.currency === 'EUR' ? 'EUR' : 'ARS')}`} />
       </div>
 
       <div className="rw-card">

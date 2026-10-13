@@ -7,6 +7,8 @@ import { useLang } from '@/data/i18n'
 import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiCardImpact, apiGetPointsCatalog, apiWalletPreview } from '@/lib/api'
 import { InfoTooltip } from './InfoTooltip'
 import { NumberStepper } from '@/components/ui/NumberStepper'
+import { PointsRuleEditor, pointsRuleValid, DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
+import { currencyFor, pointsRuleText, type Currency } from '@/lib/money'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CardType = "stamp" | "points" | "membership"
@@ -28,6 +30,9 @@ interface CardDesign {
   flipMessage?: string | null
   flipSubMessage?: string | null
   pointsPerVisit?: number | null
+  pointsMode?: string | null
+  pointsPerAmount?: number | null
+  pointsAmountUnit?: number | null
   textColor?: string | null
   labelColor?: string | null
   publicDescription?: string | null
@@ -390,8 +395,8 @@ function MiniPass({ design, businessName, logos, tiers }: { design: CardDesign; 
 }
 
 // ─── Card Editor ──────────────────────────────────────────────────────────────
-function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onGoTo }: {
-  card: CardDesign; businessId?: string | null; businessName?: string | null; onSaved?: () => void; onBack: () => void
+function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onGoTo, currency = 'ARS' }: {
+  card: CardDesign; businessId?: string | null; businessName?: string | null; onSaved?: () => void; onBack: () => void; currency?: Currency
   onGoTo?: (tab: 'form' | 'rewards') => void
 }) {
   const { can, plan } = usePlan()
@@ -426,7 +431,14 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const [saveNotice, setSaveNotice] = useState('')
   const [confirmImpact, setConfirmImpact] = useState<number | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
-  const [pointsPerVisit, setPointsPerVisit] = useState(init.pointsPerVisit || 10)
+  // Regla de puntos (por visita o por monto): ver PointsRuleEditor.
+  const [pointsRule, setPointsRule] = useState<PointsRuleValue>({
+    pointsMode: init.pointsMode === 'amount' ? 'amount' : 'visit',
+    pointsPerVisit: init.pointsPerVisit || 10,
+    pointsPerAmount: init.pointsPerAmount || 1,
+    pointsAmountUnit: init.pointsAmountUnit || DEFAULT_UNIT[currency],
+  })
+  const pointsPerVisit = JSON.stringify(pointsRule)
   // Flip card state
   const [previewSide, setPreviewSide]       = useState<'front' | 'prize'>('front')
   const [flipMessage, setFlipMessage]       = useState(init.flipMessage || '¡Lo lograste!')
@@ -447,9 +459,9 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const rewardChoices = (rewardSource?.options || []).filter(Boolean)
 
   // Cambios sin guardar: se compara con lo que había al abrir.
-  const snapshot = (c: CardDesign, l: LogoState, fm: string, fs: string, img: string | null, ppv: number) =>
+  const snapshot = (c: CardDesign, l: LogoState, fm: string, fs: string, img: string | null, ppv: string) =>
     JSON.stringify([c.name, c.color, c.secondColor, c.textColor || null, c.labelColor || null, c.publicDescription || '', c.stampsRequired, c.rewardMode, c.rewardField || '', l, fm, fs, img, ppv])
-  const [baseline, setBaseline] = useState(() => snapshot(init, { businessLogo: init.logoUrl || null, earnedIcon: init.earnedIcon || null, emptyIcon: init.emptyIcon || null, pointsIcon: init.pointsIcon || null }, init.flipMessage || '¡Lo lograste!', init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio', init.flipImageUrl || null, init.pointsPerVisit || 10))
+  const [baseline, setBaseline] = useState(() => snapshot(init, { businessLogo: init.logoUrl || null, earnedIcon: init.earnedIcon || null, emptyIcon: init.emptyIcon || null, pointsIcon: init.pointsIcon || null }, init.flipMessage || '¡Lo lograste!', init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio', init.flipImageUrl || null, JSON.stringify({ pointsMode: init.pointsMode === 'amount' ? 'amount' : 'visit', pointsPerVisit: init.pointsPerVisit || 10, pointsPerAmount: init.pointsPerAmount || 1, pointsAmountUnit: init.pointsAmountUnit || DEFAULT_UNIT[currency] })))
   const [savedStamps, setSavedStamps] = useState(init.stampsRequired)
 
   function setLogo(key: keyof LogoState) { return (url: string | null) => setLogos({ ...logos, [key]: url }) }
@@ -465,6 +477,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
     }
     setSaveError(''); setSaveNotice('')
     if (!card.name.trim()) { setSaveError('La tarjeta necesita un nombre.'); return }
+    if (card.type === 'points' && !pointsRuleValid(pointsRule)) { setSaveError('Revisá la regla de puntos: los puntos van de 1 a 1000 y el monto tiene que ser mayor a 0.'); return }
     if (textColorBad || labelColorBad) { setSaveError('Revisá los colores de texto: tienen que ser un código como #FFFFFF.'); return }
     // Bajar los sellos completa la tarjeta de quienes ya los tienen: avisar antes.
     if (!skipImpactCheck && card.type === 'stamp' && card.stampsRequired < savedStamps) {
@@ -484,7 +497,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
         publicDescription: card.publicDescription || '',
         isActive: card.isActive,
         stampsRequired: card.stampsRequired,
-        pointsPerVisit,
+        ...(card.type === 'points' ? pointsRule : {}),
         flipMessage,
         flipSubMessage,
         // null = se quitó (antes mandaba undefined y "Quitar" nunca se guardaba)
@@ -517,7 +530,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const previewReward = card.rewardMode === 'dynamic' ? (rewardChoices[0] || 'Lo elige el cliente') : (card.rewardField || 'Premio')
   const previewDesign = JSON.stringify({
     name: card.name, color: card.color, secondColor: card.secondColor, textColor: card.textColor,
-    stampsRequired: card.stampsRequired, pointsPerVisit, logoUrl: logos.businessLogo, earnedIcon: logos.earnedIcon, emptyIcon: logos.emptyIcon,
+    stampsRequired: card.stampsRequired, ...pointsRule, logoUrl: logos.businessLogo, earnedIcon: logos.earnedIcon, emptyIcon: logos.emptyIcon,
     flipImageUrl: prizeImage, flipMessage, flipSubMessage,
   })
   useEffect(() => {
@@ -706,10 +719,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
             <>
               <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Configuración de puntos</div>
               <div className="dt-points-config">
-                <div className="dt-points-row">
-                  <label className="dt-points-label">Puntos por visita</label>
-                  <NumberStepper value={pointsPerVisit} onChange={setPointsPerVisit} min={1} max={1000} suffix="pts" presets={[5, 10, 20, 50]} size="sm" ariaLabel="Puntos por visita" />
-                </div>
+                <PointsRuleEditor value={pointsRule} onChange={setPointsRule} currency={currency} />
                 <div className="dt-points-note">
                   Los premios y sus puntos se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>Premios</button>.
                 </div>
@@ -971,9 +981,9 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
 }
 
 // ─── Card manager ─────────────────────────────────────────────────────────────
-function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, onChoosePlan }: {
+function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, onChoosePlan, currency = 'ARS' }: {
   cards: CardDesign[]; businessId?: string | null; businessName?: string | null; onSaved?: () => void; onEdit: (card: CardDesign) => void
-  onChoosePlan?: () => void
+  onChoosePlan?: () => void; currency?: Currency
 }) {
   const [cards, setCards]         = useState<CardDesign[]>(init)
   const [showModal, setModal]     = useState(false)
@@ -1112,7 +1122,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
               </div>
               <div className="dt-tile-sub">
                 {card.type === 'stamp'      && `${card.stampsRequired} sellos · ${card.rewardMode === 'dynamic' ? 'el cliente elige' : 'premio fijo'}`}
-                {card.type === 'points'     && `${card.pointsPerVisit || 10} pts por visita`}
+                {card.type === 'points'     && pointsRuleText(card, currency)}
                 {card.type === 'membership' && `${tiersByCard[card.id]?.length || 4} niveles`}
                 {stats[card.id] ? ` · ${stats[card.id].customers} cliente${stats[card.id].customers === 1 ? '' : 's'}` : ''}
                 {!card.isActive && ' · Inactiva'}
@@ -1229,12 +1239,14 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePlan, onGoTo }: {
+export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePlan, onGoTo, region }: {
   cards?: CardDesign[]; businessId?: string | null; businessName?: string | null; onSaved?: () => void
+  region?: string | null
   onChoosePlan?: () => void
   onGoTo?: (tab: 'form' | 'rewards') => void
 }) {
   const [editingCard, setEditingCard] = useState<CardDesign | null>(null)
+  const currency = currencyFor(region)
 
   // Las cards reales ya vienen cargadas del dashboard (fetch único al
   // montar, sin este segundo round-trip) — así no hay ventana de 1-2s
@@ -1585,8 +1597,8 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
       `}</style>
 
       {editingCard
-        ? <CardEditor card={editingCard} businessId={businessId} businessName={businessName} onSaved={onSaved} onBack={() => setEditingCard(null)} onGoTo={onGoTo} />
-        : <CardManager cards={cardDesigns} businessId={businessId} businessName={businessName} onSaved={onSaved} onEdit={setEditingCard} onChoosePlan={onChoosePlan} />
+        ? <CardEditor card={editingCard} businessId={businessId} businessName={businessName} currency={currency} onSaved={onSaved} onBack={() => setEditingCard(null)} onGoTo={onGoTo} />
+        : <CardManager cards={cardDesigns} businessId={businessId} businessName={businessName} currency={currency} onSaved={onSaved} onEdit={setEditingCard} onChoosePlan={onChoosePlan} />
       }
     </>
   )

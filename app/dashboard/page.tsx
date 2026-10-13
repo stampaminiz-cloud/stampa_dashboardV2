@@ -19,6 +19,7 @@ import { FormTab }           from '@/components/dashboard/FormTab'
 import { DesignTab }         from '@/components/dashboard/DesignTab'
 import { UsersTab }          from '@/components/dashboard/UsersTab'
 import { LocationsTab }      from '@/components/dashboard/LocationsTab'
+import { currencyFor, formatMoney } from '@/lib/money'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TabId = 'overview' | 'customers' | 'analytics' | 'rewards' | 'notifications' | 'design' | 'form' | 'users' | 'locations' | 'settings'
@@ -292,7 +293,8 @@ function Header({ title, t, setMobileOpen, setActive, recentActivity: realActivi
 // flechas "↑ 0%", "9 visitas al premio") que veían todos los negocios.
 const ACTIVITY_AV: Record<string, string> = { redeem: 'redeem', signup: 'signup', points: 'login', visit: 'login', tier_change: 'login', stamp: 'stamp' }
 
-function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, isManager, onChoosePlan }: {
+function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, isManager, onChoosePlan, region }: {
+  region?: string | null
   t: (k: any) => string
   analyticsData?: any
   detailedAnalytics?: any
@@ -397,7 +399,8 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
     { v: `${a?.redemptionRate ?? 0}%`, l: 'Tasa de canje', sub: 'canjearon al menos una vez', color: '#C75D3A' },
     hasStamp && a?.avgStampProgress != null && { v: `${a.avgStampProgress}%`, l: 'Progreso promedio', sub: 'de la tarjeta de sellos', color: '#185FA5' },
     hasStamp && stampCard && { v: `${stampCard.stampsRequired}`, l: 'Visitas al premio', sub: 'sellos para completar', color: '#9C7530' },
-    !hasStamp && hasPoints && pointsCard?.pointsPerVisit && { v: `${pointsCard.pointsPerVisit}`, l: 'Puntos por visita', sub: 'suma cada escaneo', color: '#9C7530' },
+    !hasStamp && hasPoints && pointsCard?.pointsMode === 'amount' && { v: `${pointsCard.pointsPerAmount || 1}`, l: 'Puntos por compra', sub: `cada ${formatMoney(pointsCard.pointsAmountUnit || 1000, currencyFor(region))}`, color: '#9C7530' },
+    !hasStamp && hasPoints && pointsCard?.pointsMode !== 'amount' && pointsCard?.pointsPerVisit && { v: `${pointsCard.pointsPerVisit}`, l: 'Puntos por visita', sub: 'suma cada escaneo', color: '#9C7530' },
   ].filter(Boolean) as { v: string; l: string; sub: string; color: string }[]
 
   // ── Primeros pasos (se tildan solos) ──
@@ -1075,6 +1078,9 @@ export default function DashboardPage() {
             flipMessage:    c.flipMessage || null,
             flipSubMessage: c.flipSubMessage || null,
             pointsPerVisit: c.pointsPerVisit || null,
+            pointsMode: c.pointsMode || 'visit',
+            pointsPerAmount: c.pointsPerAmount || null,
+            pointsAmountUnit: c.pointsAmountUnit || null,
             textColor: c.textColor || null,
             publicDescription: c.publicDescription || null,
             expiryMonths: c.expiryMonths || 0,
@@ -1168,6 +1174,9 @@ export default function DashboardPage() {
         flipMessage:    c.flipMessage || null,
         flipSubMessage: c.flipSubMessage || null,
             pointsPerVisit: c.pointsPerVisit || null,
+            pointsMode: c.pointsMode || 'visit',
+            pointsPerAmount: c.pointsPerAmount || null,
+            pointsAmountUnit: c.pointsAmountUnit || null,
             textColor: c.textColor || null,
             publicDescription: c.publicDescription || null,
             expiryMonths: c.expiryMonths || 0,
@@ -1275,7 +1284,7 @@ export default function DashboardPage() {
 
   function renderTab() {
     switch (active) {
-      case 'overview':      return <OverviewTab key={locationId ?? 'all'} t={t} analyticsData={analyticsData} detailedAnalytics={detailedAnalytics} cards={cards} setActive={tab => { setActive(tab); localStorage.setItem('stampa_active_tab', tab) }} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
+      case 'overview':      return <OverviewTab key={locationId ?? 'all'} t={t} analyticsData={analyticsData} detailedAnalytics={detailedAnalytics} cards={cards} setActive={tab => { setActive(tab); localStorage.setItem('stampa_active_tab', tab) }} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} region={owner?.region} />
       case 'customers': return (analyticsData?.total ?? customersCounts?.all ?? customersTotal) > 0 || customersSearch
         ? <CustomersTab
             customers={mapCustomersForTab(customers)}
@@ -1335,7 +1344,7 @@ export default function DashboardPage() {
       case 'form':          return <FormTab businessName={business?.name || 'Tu negocio'} businessSlug={business?.slug} cards={cards} businessId={businessId}
           isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} locations={locations} selectedLocationId={locationId} onSaved={refreshCards}
           onGoToDesign={() => { setActive('design'); localStorage.setItem('stampa_active_tab', 'design') }} />
-      case 'design':        return <DesignTab key={businessId ?? 'loading'} cards={cards} businessId={businessId} businessName={business?.name} onSaved={refreshCards}
+      case 'design':        return <DesignTab key={businessId ?? 'loading'} cards={cards} businessId={businessId} businessName={business?.name} region={owner?.region} onSaved={refreshCards}
           onChoosePlan={() => setShowPlans(true)}
           onGoTo={(tab) => { setActive(tab); localStorage.setItem('stampa_active_tab', tab) }} />
       case 'users':         if (owner?.role === 'manager') return null
