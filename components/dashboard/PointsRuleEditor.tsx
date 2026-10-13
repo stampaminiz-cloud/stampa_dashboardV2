@@ -52,7 +52,7 @@ export function PointsRuleEditor({ value, onChange, currency }: { value: PointsR
             </label>
           </div>
           <div className="pr-note">
-            {unit > 0 ? <>Ej: una compra de {formatMoney(sample, currency)} suma <strong>{samplePts} {samplePts === 1 ? 'punto' : 'puntos'}</strong>. El empleado carga el monto en la app al escanear.</> : 'Escribí cada cuánto suma.'}
+            {unit > 0 ? <>Ej: una compra de {formatMoney(sample, currency)} suma <strong>{samplePts} {samplePts === 1 ? 'punto' : 'puntos'}</strong>. El empleado carga el monto en la app al escanear (necesita la última versión de Stampa Escáner).</> : 'Escribí cada cuánto suma.'}
           </div>
         </>
       )}
