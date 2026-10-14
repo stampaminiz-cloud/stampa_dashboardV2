@@ -86,7 +86,12 @@ export const ARTICLES: Article[] = [
       </ul>
       <p>La tarjeta queda completa hasta que el empleado entrega el premio y toca "Confirmar entrega" en la app. Ahí vuelve a cero.</p>
       <h2>Puntos</h2>
-      <p>Cada visita suma una cantidad fija de puntos. En <strong>Premios</strong> armás un catálogo: "Café gratis, 100 puntos", "Torta entera, 250 puntos". El cliente elige qué canjear y el empleado lo marca en la app.</p>
+      <p>En Diseño elegís cómo se suman:</p>
+      <ul>
+        <li><strong>Por visita:</strong> cada escaneo suma lo mismo, por ejemplo 10 puntos.</li>
+        <li><strong>Por monto de la compra:</strong> suma según lo que gasta, por ejemplo "1 punto cada $1.000". Una compra de $4.500 suma 4 puntos. Sirve cuando cada compra tiene un monto distinto, como en una tienda o un restaurante.</li>
+      </ul>
+      <p>En <strong>Premios</strong> armás un catálogo: "Café gratis, 100 puntos", "Torta entera, 250 puntos". El cliente elige qué canjear y el empleado lo marca en la app.</p>
       <h2>Niveles</h2>
       <p>Una membresía que sube con las visitas: por ejemplo Bronce, Plata y Oro, cada uno con su beneficio. En Premios definís cuántas visitas hacen falta para cada nivel.</p>
       <Shot src="premios" alt="Pestaña Premios con los premios para entregar y los últimos entregados" caption="En Premios ves cuántos están por completar y los últimos premios entregados." />
@@ -175,7 +180,7 @@ export const ARTICLES: Article[] = [
       <h2>En cada visita</h2>
       <ul>
         <li><strong>Sellos:</strong> "+ Sello".</li>
-        <li><strong>Puntos:</strong> "+ Puntos". Si le alcanza para algo del catálogo, aparece marcado y se canjea tocándolo.</li>
+        <li><strong>Puntos:</strong> "+ Puntos". Si la tarjeta suma por monto, primero se escribe el monto de la compra y la app muestra cuántos puntos va a sumar. Si le alcanza para algo del catálogo, aparece marcado y se canjea tocándolo.</li>
         <li><strong>Niveles:</strong> "+ Visita". Si con esa visita sube de nivel, la app lo muestra.</li>
       </ul>
       <p>La tarjeta del cliente se actualiza en su celular en unos segundos.</p>

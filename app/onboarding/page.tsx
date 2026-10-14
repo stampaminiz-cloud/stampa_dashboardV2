@@ -5,6 +5,8 @@ import { BrandLogo } from '@/components/brand/BrandLogo'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { allowsFreeColor, darkenHex, DEFAULT_CARD_COLOR, presetsForPlan } from '@/lib/colorPresets'
 import { PLAN_LIMITS, type Plan } from '@/data/plans'
+import { PointsRuleEditor, pointsRuleValid, DEFAULT_UNIT, type PointsRuleValue } from '@/components/dashboard/PointsRuleEditor'
+import { currencyFor, pointsRuleText, type Currency } from '@/lib/money'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CardType    = 'stamp' | 'points' | 'membership'
@@ -16,6 +18,9 @@ interface OBState {
   cardType:       CardType
   stampsRequired: number
   pointsPerVisit: number
+  pointsMode:     'visit' | 'amount'
+  pointsPerAmount: number
+  pointsAmountUnit: number         // 0 = todavía no elegido (se pone según la moneda)
   rewardMode:     RewardMode
   rewardValue:    string
   rewardOptions:  string[]        // si el cliente elige: las opciones del negocio (2 al máximo del plan)
@@ -383,16 +388,15 @@ const MEMBERSHIP_TIERS = [
   { name: 'Black',  threshold: 50, perk: 'Beneficios exclusivos',  color: '#F7F0E4', bg: '#1A1A18' },
 ]
 
-const POINTS_PRESETS = [5, 10, 20, 50]
 
-function Step3({ state, onChange, onNext, onBack }: StepProps) {
+function Step3({ state, onChange, onNext, onBack, currency }: StepProps & { currency: Currency }) {
   const actionLabels: Record<CardType, string> = {
     stamp: '¿Cuántas visitas para completar la tarjeta?',
-    points: '¿Cuántos puntos suma cada visita?',
+    points: '¿Cómo suman puntos tus clientes?',
     membership: 'Tu programa tiene 4 niveles automáticos',
   }
-  const pointsOk = Number.isInteger(state.pointsPerVisit) && state.pointsPerVisit >= 1 && state.pointsPerVisit <= 1000
-  const setPoints = (n: number) => onChange({ pointsPerVisit: Math.max(1, Math.min(1000, Math.round(n) || 1)) })
+  const rule: PointsRuleValue = { pointsMode: state.pointsMode, pointsPerVisit: state.pointsPerVisit, pointsPerAmount: state.pointsPerAmount, pointsAmountUnit: state.pointsAmountUnit || DEFAULT_UNIT[currency] }
+  const pointsOk = pointsRuleValid(rule)
   return (
     <div className="ob-step">
       <div className="ob-action-label">{actionLabels[state.cardType]}</div>
@@ -411,18 +415,7 @@ function Step3({ state, onChange, onNext, onBack }: StepProps) {
       )}
       {state.cardType === 'points' && (
         <>
-          <div className="ob-stamp-grid">
-            {POINTS_PRESETS.map(n => (
-              <button key={n} className={`ob-stamp-btn${state.pointsPerVisit === n ? ' ob-stamp-btn--on' : ''}`} onClick={() => setPoints(n)}>
-                <span className="ob-stamp-num">{n}</span>
-                <span className="ob-stamp-sub">puntos</span>
-              </button>
-            ))}
-          </div>
-          <div className="ob-stepper-row">
-            <span className="ob-stepper-lbl">Otro valor</span>
-            <NumberStepper value={state.pointsPerVisit} onChange={setPoints} min={1} max={1000} suffix="pts" ariaLabel="Puntos por visita" />
-          </div>
+          <PointsRuleEditor value={rule} onChange={v => onChange(v)} currency={currency} />
           <div className="ob-hint"><StampyIcon size={24} />Los premios (ej: café gratis por 100 puntos) los cargás después en Premios.</div>
         </>
       )}
@@ -615,7 +608,7 @@ function Step5({ state, onChange, onNext, onBack, plan }: StepProps & { plan: st
   )
 }
 
-function Step6({ state, onBack, onFinish, finishing, error }: { state: OBState; onBack: () => void; onFinish: () => void; finishing: boolean; error: string | null }) {
+function Step6({ state, onBack, onFinish, finishing, error, currency }: { state: OBState; onBack: () => void; onFinish: () => void; finishing: boolean; error: string | null; currency: Currency }) {
   const [platform, setPlatform] = useState<'apple' | 'google'>('apple')
   const sectorLabel = SECTORS.find(s => s.id === state.sector)?.label || ''
   const premio = state.cardType === 'stamp'
@@ -638,7 +631,7 @@ function Step6({ state, onBack, onFinish, finishing, error }: { state: OBState; 
           {[
             { label: 'Negocio',   val: state.businessName || '—' },
             { label: 'Rubro',     val: sectorLabel || '—' },
-            { label: 'Programa',  val: state.cardType === 'stamp' ? `Sellos (${state.stampsRequired} visitas)` : state.cardType === 'points' ? `Puntos (${state.pointsPerVisit} por visita)` : 'Membresía (4 niveles)' },
+            { label: 'Programa',  val: state.cardType === 'stamp' ? `Sellos (${state.stampsRequired} visitas)` : state.cardType === 'points' ? `Puntos (${pointsRuleText({ ...state, pointsAmountUnit: state.pointsAmountUnit || DEFAULT_UNIT[currency] }, currency)})` : 'Membresía (4 niveles)' },
             { label: 'Premio',    val: premio },
           ].map(({ label, val }) => (
             <div key={label} className="ob-summary-row">
@@ -848,7 +841,7 @@ const CSS = `
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const INITIAL_STATE: OBState = {
   businessName: '', sector: '', cardType: 'stamp',
-  stampsRequired: 8, pointsPerVisit: 10,
+  stampsRequired: 8, pointsPerVisit: 10, pointsMode: 'visit', pointsPerAmount: 1, pointsAmountUnit: 0,
   rewardMode: 'customer', rewardValue: '', rewardOptions: [],
   brandColor: DEFAULT_CARD_COLOR.start, brandLogo: null,
 }
@@ -857,6 +850,8 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1)
   const [state, setState] = useState<OBState>(INITIAL_STATE)
   const [plan, setPlan] = useState<string>('Starter')
+  const [region, setRegion] = useState('AR')
+  const currency = currencyFor(region)
   const [ready, setReady] = useState(false)
   const [finishing, setFinishing] = useState(false)
   const [finishError, setFinishError] = useState<string | null>(null)
@@ -874,6 +869,7 @@ export default function OnboardingPage() {
       .then(({ owner, businesses }) => {
         if (businesses.length > 0 || owner?.role === 'manager') { window.location.replace('/dashboard'); return }
         setPlan(owner?.plan || 'Starter')
+        setRegion((owner as { region?: string })?.region || 'AR')
         setReady(true)
       })
       .catch(() => setReady(true))
@@ -902,6 +898,7 @@ export default function OnboardingPage() {
         cardType: state.cardType,
         stampsRequired: state.stampsRequired,
         pointsPerVisit: state.pointsPerVisit,
+        ...(state.cardType === 'points' ? { pointsMode: state.pointsMode, pointsPerAmount: state.pointsPerAmount, pointsAmountUnit: state.pointsAmountUnit || DEFAULT_UNIT[currency] } : {}),
         rewardMode: state.rewardMode === 'customer' ? 'dynamic' : 'fixed',
         rewardFixedValue: state.rewardMode === 'fixed' ? state.rewardValue.trim() : undefined,
         rewardOptions: state.cardType === 'stamp' && state.rewardMode === 'customer' ? state.rewardOptions : undefined,
@@ -922,10 +919,10 @@ export default function OnboardingPage() {
   const STEPS: Record<number, React.ReactNode> = {
     1: <Step1 {...props} />,
     2: <Step2 {...props} />,
-    3: <Step3 {...props} />,
+    3: <Step3 {...props} currency={currency} />,
     4: <Step4 {...props} plan={plan} />,
     5: <Step5 {...props} plan={plan} />,
-    6: <Step6 state={state} onBack={back} onFinish={finish} finishing={finishing} error={finishError} />,
+    6: <Step6 state={state} onBack={back} onFinish={finish} finishing={finishing} error={finishError} currency={currency} />,
   }
 
   // El tip del paso 3 depende del programa elegido.
