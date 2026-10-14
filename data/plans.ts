@@ -10,9 +10,9 @@ export type Plan = 'Starter' | 'Growth' | 'Pro' | 'Enterprise'
 export interface PlanLimits {
   maxActiveCards:   number        // active card types allowed
   maxCustomers:     number        // clientes (personas; 0 = sin límite). Límite suave en el backend: services/customerLimit.js
-  customColors:     boolean       // hex + color picker (color 100% libre)
-  extraColorPresets:boolean       // los 3 presets extra (8 en vez de 5) — escalón intermedio antes del hex libre
-  customTextColor:  boolean       // color de texto sobre la tarjeta — desde Pro (afecta el pase real, no solo el preview)
+  customColors:     boolean       // color libre (hoy en todos los planes)
+  extraColorPresets:boolean       // paleta completa de sugeridos (hoy en todos los planes)
+  customTextColor:  boolean       // color de texto y etiquetas (hoy en todos los planes)
   maxCustomFields:  number        // form builder custom fields
   maxRewardOptions: number        // opciones de "el cliente elige su premio" (mínimo 2). Espejo de config/planLimits.js
   maxTeamMembers:   number        // managers + scanners
@@ -30,9 +30,9 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   Starter: {
     maxCustomers:    200,
     maxActiveCards:  1,
-    customColors:    false,
-    extraColorPresets:false,
-    customTextColor: false,
+    customColors:    true,
+    extraColorPresets:true,
+    customTextColor: true,
     maxCustomFields: 0,
     maxRewardOptions:3,
     maxTeamMembers:  1,
@@ -48,9 +48,9 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   Growth: {
     maxCustomers:    500,
     maxActiveCards:  3,
-    customColors:    false,       // color libre queda reservado para Pro+ — acá se sube a 8 presets curados
+    customColors:    true,
     extraColorPresets:true,
-    customTextColor: false,     // colores de texto y etiquetas: desde Pro
+    customTextColor: true,
     maxCustomFields: 3,
     maxRewardOptions:6,
     maxTeamMembers:  5,

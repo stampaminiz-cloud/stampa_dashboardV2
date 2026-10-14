@@ -1,10 +1,11 @@
 'use client'
 import { CardSwitcher } from '@/components/ui/CardSwitcher'
 import { readCache } from '@/lib/cache'
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import QRCode from 'qrcode'
 import type { Location } from '@/lib/location'
-import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields, apiUpdateCard } from '@/lib/api'
+import { OptionsEditor } from './OptionsEditor'
+import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields } from '@/lib/api'
 import { usePlan } from '@/data/plans'
 
 // Formulario de registro, por tarjeta. Nombre y email son fijos; el resto
@@ -60,32 +61,6 @@ function validate(fields: EditField[]): string | null {
     }
   }
   return null
-}
-
-// ─── Opciones de una lista ────────────────────────────────────────────────────
-function OptionsEditor({ options, onChange, max = 10 }: { options: string[]; onChange: (o: string[]) => void; max?: number }) {
-  const [draft, setDraft] = useState('')
-  function add() {
-    const v = draft.trim()
-    if (!v || options.some(o => o.toLowerCase() === v.toLowerCase()) || options.filter(o => o.trim()).length >= max) return
-    onChange([...options.filter(o => o.trim()), v]); setDraft('')
-  }
-  const real = options.filter(o => o.trim())
-  return (
-    <div className="fm-opts">
-      {real.map(o => (
-        <span key={o} className="fm-opt">
-          {o}
-          <button onClick={() => onChange(real.filter(x => x !== o))} aria-label={`Quitar ${o}`} title="Quitar opción">×</button>
-        </span>
-      ))}
-      {real.length < max && (
-        <input className="fm-opt-input" placeholder={real.length < 2 ? 'Escribí una opción y Enter' : '+ Opción'} value={draft} maxLength={40}
-          onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }} onBlur={add} />
-      )}
-      {real.length < 2 && <span className="fm-opt-hint">Mínimo 2 opciones</span>}
-    </div>
-  )
 }
 
 // ─── Vista previa ─────────────────────────────────────────────────────────────
@@ -237,7 +212,7 @@ function Share({ businessName, slug, card, whiteLabel, locations = [], selectedL
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function FormTab({ businessName, businessSlug, cards, businessId, onGoToDesign, onChoosePlan, onSaved, isManager = false, locations = [], selectedLocationId = null }: {
+export function FormTab({ businessName, businessSlug, cards, businessId, onGoToDesign, onGoToRewards, onChoosePlan, isManager = false, locations = [], selectedLocationId = null }: {
   locations?: Location[]
   selectedLocationId?: string | null
   businessName: string
@@ -245,28 +220,23 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
   cards: CardInfo[]
   businessId?: string | null
   onGoToDesign: () => void
+  onGoToRewards: () => void
   onChoosePlan: () => void
-  onSaved?: () => void
   isManager?: boolean
 }) {
   const { limit, can, plan } = usePlan()
   const maxCustom = limit('maxCustomFields')
-  const maxRewardOpts = limit('maxRewardOptions')
   const whiteLabel = can('whiteLabel')
   const activeCards = cards.filter(c => c.isActive)
   const [selectedId, setSelectedId] = useState<string>(activeCards[0]?.id || '')
   const card = activeCards.find(c => c.id === selectedId) || activeCards[0]
   const isStamp = card?.type === 'stamp'
 
-  // Premio (solo sellos): "Yo lo defino" o "Lo elige el cliente". Se edita
-  // acá igual que en Diseño y se guarda con "Guardar cambios".
-  const [rMode, setRMode] = useState<'fixed' | 'dynamic'>(card?.rewardMode === 'dynamic' ? 'dynamic' : 'fixed')
-  const [rFixed, setRFixed] = useState(card?.rewardField || '')
+  // Premio (solo sellos): se edita en Premios. Acá solo se muestra, y la
+  // pregunta del premio queda en la lista bloqueada.
+  const rMode: 'fixed' | 'dynamic' = card?.rewardMode === 'dynamic' ? 'dynamic' : 'fixed'
+  const rFixed = card?.rewardField || ''
   const [rOpts, setROpts] = useState<string[]>([])
-  const [rBase, setRBase] = useState('')
-  // Lo último guardado desde acá: la lista de tarjetas del panel tarda en
-  // actualizarse y no hay que volver a mostrar el premio viejo.
-  const savedReward = useRef<{ id: string; mode: 'fixed' | 'dynamic'; fixed: string } | null>(null)
   const askReward = isStamp && rMode === 'dynamic'
 
   const [saved, setSaved] = useState<EditField[] | null>(null)
@@ -295,24 +265,17 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
       setLoadError(true); setSaved([]); setDraft([])
     }
   }
-  function resetReward(opts: string[]) {
-    const o = savedReward.current && savedReward.current.id === card?.id ? savedReward.current : null
-    const mode = o ? o.mode : card?.rewardMode === 'dynamic' ? 'dynamic' : 'fixed'
-    const fixed = o ? o.fixed : card?.rewardField || ''
-    setRMode(mode); setRFixed(fixed); setROpts(opts)
-    setRBase(JSON.stringify([mode, fixed, opts]))
-  }
+  function resetReward(opts: string[]) { setROpts(opts) }
   useEffect(() => { resetReward(cachedRewardOpts()); load(); setNotice(null) }, [businessId, card?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   function cachedRewardOpts(): string[] {
     const c = businessId && card ? readCache<any[]>(`/api/businesses/${businessId}/cards/${card.id}/fields`) : null
     return (c || []).find((f: any) => f.isRewardSource)?.options || []
   }
   const rClean = rOpts.map(o => o.trim()).filter(Boolean)
-  const rewardDirty = isStamp && rBase !== '' && JSON.stringify([rMode, rFixed.trim(), rClean]) !== rBase
 
   // Hay cambios si cambió algo de algún campo, el orden, o se agregó/borró uno.
   const fieldsDirty = useMemo(() => !!saved && !!draft && JSON.stringify(draft.map(comparable)) !== JSON.stringify(saved.map(comparable)), [saved, draft])
-  const dirty = fieldsDirty || rewardDirty
+  const dirty = fieldsDirty
 
   const customCount = (draft || []).filter(f => f.isCustom || !f.id).filter(f => !f.isRewardSource).length
   const rewardField = (draft || []).find(f => f.isRewardSource)
@@ -343,19 +306,8 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
     if (!businessId || !card || !draft || !saved) return
     const v = validate(draft.filter(f => !f.isRewardSource))
     if (v) { setError(v); return }
-    if (rewardDirty && rMode === 'fixed' && !rFixed.trim()) { setError('Escribí cuál es el premio (ej: Café gratis).'); return }
-    if (rewardDirty && rMode === 'dynamic' && (rClean.length < 2 || rClean.length > maxRewardOpts)) { setError(`Cargá entre 2 y ${maxRewardOpts} opciones de premio para que el cliente elija.`); return }
     setSaving(true); setError(null); setNotice(null)
     try {
-      if (rewardDirty) {
-        await apiUpdateCard(businessId, card.id, {
-          rewardMode: rMode,
-          rewardFixedValue: rFixed.trim() || null,
-          ...(rMode === 'dynamic' ? { rewardOptions: rClean } : {}),
-        })
-        savedReward.current = { id: card.id, mode: rMode, fixed: rFixed.trim() }
-        onSaved?.()
-      }
       for (const f of removed) await apiDeleteField(businessId, card.id, f.id!)
       const ids: string[] = []
       for (const f of draft) {
@@ -445,32 +397,17 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
             </div>
 
             {isStamp && (
-              <div className="fm-card fm-reward">
-                <div className="fm-card-title">★ Premio</div>
-                <div className="fm-card-sub">¿Qué recibe el cliente al completar la tarjeta?</div>
-                <div className="fm-rmodes">
-                  <label className={`fm-rmode${rMode === 'fixed' ? ' fm-rmode--on' : ''}`}>
-                    <input type="radio" name="fm-rmode" checked={rMode === 'fixed'} onChange={() => { setRMode('fixed'); setNotice(null) }} />
-                    <span><strong>Yo lo defino</strong><small>El mismo premio para todos</small></span>
-                  </label>
-                  <label className={`fm-rmode${rMode === 'dynamic' ? ' fm-rmode--on' : ''}`}>
-                    <input type="radio" name="fm-rmode" checked={rMode === 'dynamic'} onChange={() => { setRMode('dynamic'); setNotice(null) }} />
-                    <span><strong>Lo elige el cliente</strong><small>Elige una opción al registrarse</small></span>
-                  </label>
+              <div className="fm-card fm-design-note">
+                <span className="fm-reward-star">★</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="fm-card-title">Premio</div>
+                  <div className="fm-card-sub" style={{ margin: 0 }}>
+                    {askReward
+                      ? <>Lo elige el cliente al registrarse{rClean.length ? <>: {rClean.join(' · ')}</> : ''}.</>
+                      : rFixed ? <>{rFixed}, el mismo para todos. La pregunta del premio no se muestra.</> : 'Todavía no definiste el premio.'}
+                  </div>
                 </div>
-                {rMode === 'fixed' ? (
-                  <input className="fm-ph-input" style={{ marginLeft: 0, width: '100%', boxSizing: 'border-box' }} value={rFixed} maxLength={60} placeholder="Ej: Café gratis" onChange={e => { setRFixed(e.target.value); setNotice(null) }} />
-                ) : (
-                  <>
-                    <div className="fm-rlabel">Opciones ({rClean.length}/{maxRewardOpts})</div>
-                    <div className="fm-ropts"><OptionsEditor options={rOpts} max={maxRewardOpts} onChange={o => { setROpts(o); setNotice(null) }} /></div>
-                    <div className="fm-hint" style={{ margin: '8px 0 0' }}>
-                      {rClean.length >= maxRewardOpts
-                        ? <>Llegaste a las {maxRewardOpts} opciones de tu plan.{plan === 'Starter' ? ' Growth permite 6 y Pro 12.' : plan === 'Growth' ? ' Pro permite 12.' : ''}{plan !== 'Pro' && plan !== 'Enterprise' && !isManager && <> <button className="fm-link-btn" onClick={onChoosePlan}>Ver planes</button></>}</>
-                        : 'Elegí premios de valor parecido: si uno vale mucho más, todos van a elegir ese.'}
-                    </div>
-                  </>
-                )}
+                <button className="fm-secondary" onClick={onGoToRewards}>Editar en Premios</button>
               </div>
             )}
 
@@ -501,7 +438,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
                         ) : null}
                       </div>
                       {f.isRewardSource
-                        ? <div className="fm-hint" style={{ margin: '6px 0 0' }}>Opciones: {(askReward ? rClean : f.options.filter(Boolean)).join(' · ') || '—'}. Se editan arriba, en Premio.</div>
+                        ? <div className="fm-hint" style={{ margin: '6px 0 0' }}>Opciones: {(askReward ? rClean : f.options.filter(Boolean)).join(' · ') || '—'}. Se editan en <button className="fm-link-btn" onClick={onGoToRewards}>Premios</button>.</div>
                         : f.type === 'select' && <OptionsEditor options={f.options} onChange={o => patch(f.key, { options: o })} />}
                       {['text', 'tel', 'number'].includes(f.type) && (
                         <input className="fm-ph-input" value={f.placeholder} maxLength={80} placeholder="Texto de ayuda dentro del campo (opcional)" onChange={e => patch(f.key, { placeholder: e.target.value })} />
@@ -576,6 +513,7 @@ const CSS = `
   .fm-card-sub{font-size:11.5px;color:rgba(43,38,32,.5);margin-bottom:12px;line-height:1.5;}
   .fm-design-note{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
   .fm-swatch{width:34px;height:34px;border-radius:10px;flex-shrink:0;}
+  .fm-reward-star{width:34px;height:34px;border-radius:10px;background:rgba(212,162,76,.15);color:#B8862F;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
   .fm-reward{border-color:rgba(212,162,76,.35);background:rgba(212,162,76,.05);}
   .fm-rmodes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0 10px;}
   .fm-rmode{display:flex;gap:9px;align-items:flex-start;border:1.5px solid rgba(43,38,32,.12);border-radius:10px;padding:10px 12px;cursor:pointer;background:#fff;}
@@ -605,12 +543,7 @@ const CSS = `
   .fm-type-select{border:1px solid rgba(43,38,32,.15);border-radius:7px;padding:6px 8px;font-size:12px;background:#fff;color:#2B2620;font-family:inherit;}
   .fm-ph-input{border:1px dashed rgba(43,38,32,.15);border-radius:7px;padding:6px 9px;font-size:11.5px;color:rgba(43,38,32,.7);font-family:'Inter',sans-serif;outline:none;margin-left:34px;}
   .fm-ph-input:focus{border-color:#C75D3A;border-style:solid;}
-  .fm-opts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:34px;}
-  .fm-opt{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;background:rgba(199,93,58,.08);color:#9E4529;border-radius:20px;padding:3px 5px 3px 10px;}
-  .fm-opt button{border:none;background:rgba(199,93,58,.15);color:#9E4529;width:16px;height:16px;border-radius:50%;font-size:11px;line-height:14px;cursor:pointer;padding:0;}
-  .fm-opt-input{border:1px dashed rgba(43,38,32,.2);border-radius:20px;padding:4px 10px;font-size:11.5px;font-family:inherit;outline:none;min-width:150px;}
-  .fm-opt-input:focus{border-color:#C75D3A;border-style:solid;}
-  .fm-opt-hint{font-size:10.5px;color:#B23B3B;}
+  .fm-opts{margin-left:34px;}
   .fm-row-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-left:34px;}
   .fm-switch{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:rgba(43,38,32,.7);cursor:pointer;user-select:none;}
   .fm-switch input{display:none;}

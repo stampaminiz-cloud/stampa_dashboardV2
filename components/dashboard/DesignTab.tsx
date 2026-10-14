@@ -4,10 +4,11 @@ import React, { useState, useRef, useEffect } from 'react'
 import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS } from '@/lib/colorPresets'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
-import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiCardImpact, apiGetPointsCatalog, apiWalletPreview } from '@/lib/api'
+import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiGetPointsCatalog, apiWalletPreview } from '@/lib/api'
 import { InfoTooltip } from './InfoTooltip'
+import { ColorField, useLogoColors } from './ColorField'
 import { NumberStepper } from '@/components/ui/NumberStepper'
-import { PointsRuleEditor, pointsRuleValid, DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
+import { DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
 import { currencyFor, pointsRuleText, type Currency } from '@/lib/money'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -124,17 +125,6 @@ function compressImage(file: File, maxSide: number, asPng: boolean): Promise<str
   })
 }
 
-// Contraste WCAG entre dos colores hex (1 a 21). Menos de 3 = difícil de leer.
-function contrastRatio(a: string, b: string): number {
-  const lum = (hex: string) => {
-    const c = hex.replace('#', '')
-    if (c.length !== 6) return 1
-    const ch = [0, 2, 4].map(i => { const v = parseInt(c.slice(i, i + 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) })
-    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]
-  }
-  const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m)
-  return (x + 0.05) / (y + 0.05)
-}
 const isHex = (v?: string | null) => !!v && /^#[0-9A-Fa-f]{6}$/.test(v)
 
 // ─── QR Code placeholder ──────────────────────────────────────────────────────
@@ -190,83 +180,14 @@ function LogoUpload({ label, hint, value, onChange }: {
   )
 }
 
-// ─── Color Picker ─────────────────────────────────────────────────────────────
-function ColorPicker({ color, onChange }: { color: string; onChange: (s: string, e: string) => void }) {
-  const [hex, setHex] = useState(color)
-  const { can } = usePlan()
-  const allowsExtraPresets = can('extraColorPresets')
-  const allowsCustom = can('customColors')
-  function applyHex(val: string) {
-    setHex(val)
-    if (/^#[0-9A-Fa-f]{6}$/.test(val)) onChange(val, darkenHex(val))
-  }
-  return (
-    <div>
-      <div className="dt-color-row">
-        {COLOR_PRESETS.map(({ label, start, end }) => (
-          <button key={label} className={`dt-color-dot${color === start ? ' dt-color-dot--on' : ''}`}
-            style={{ background: start }} title={label}
-            onClick={() => { setHex(start); onChange(start, end) }} />
-        ))}
-        {allowsExtraPresets && EXTRA_COLOR_PRESETS.map(({ label, start, end }) => (
-          <button key={label} className={`dt-color-dot${color === start ? ' dt-color-dot--on' : ''}`}
-            style={{ background: start }} title={label}
-            onClick={() => { setHex(start); onChange(start, end) }} />
-        ))}
-      </div>
-      {!allowsExtraPresets && (
-        <div className="dt-upgrade-color-note">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          +8 colores más · Plan Growth o superior
-        </div>
-      )}
-      {allowsCustom ? (
-        <div className="dt-custom-color-row">
-          <label className="dt-custom-swatch" style={{ background: hex }}>
-            <input type="color" value={hex.length === 7 ? hex : '#1B412F'} onChange={e => applyHex(e.target.value)} className="dt-color-native" />
-          </label>
-          <input type="text" className="dt-hex-input" value={hex} onChange={e => applyHex(e.target.value)} placeholder="#1B412F" maxLength={7} />
-          <span className="dt-hex-label">Personalizado</span>
-        </div>
-      ) : (
-        <div className="dt-upgrade-color-note">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          Color 100% libre · Plan Pro o superior
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Selector de color de texto ──────────────────────────────────────────────
-// Colores que suelen leerse bien sobre una tarjeta + uno libre (rueda de
-// color) con su código. `auto` agrega la opción "Automático" (= null).
-const TEXT_SWATCHES = ['#FFFFFF', '#FBF6EE', '#F2D9A6', '#C9A84C', '#8A8580', '#2B2620', '#000000']
-function SwatchPicker({ value, onChange, auto = false }: { value: string | null; onChange: (v: string | null) => void; auto?: boolean }) {
-  const custom = !!value && !TEXT_SWATCHES.includes(value.toUpperCase())
-  return (
-    <div className="dt-swatches">
-      {auto && (
-        <button type="button" className={`dt-swatch dt-swatch--auto${value === null ? ' dt-swatch--on' : ''}`} onClick={() => onChange(null)} title="Automático" aria-label="Automático">A</button>
-      )}
-      {TEXT_SWATCHES.map(c => (
-        <button key={c} type="button" className={`dt-swatch${value?.toUpperCase() === c ? ' dt-swatch--on' : ''}`} style={{ background: c }} onClick={() => onChange(c)} title={c} aria-label={c} />
-      ))}
-      <label className={`dt-swatch dt-swatch--custom${custom ? ' dt-swatch--on' : ''}`} title="Otro color" style={custom ? { background: value! } : undefined}>
-        <input type="color" value={value && value.length === 7 ? value : '#FFFFFF'} onChange={e => onChange(e.target.value.toUpperCase())} className="dt-color-native" />
-      </label>
-      {custom && <input type="text" className="dt-hex-input" value={value!} onChange={e => onChange(e.target.value)} maxLength={7} aria-label="Código de color" />}
-    </div>
-  )
-}
-
-function ProLock({ label }: { label: string }) {
-  return (
-    <div className="dt-upgrade-color-note">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      {label} · Plan Pro
-    </div>
-  )
+// ─── Colores ──────────────────────────────────────────────────────────────────
+// Selector: ColorField (colores del logo, paleta sugerida y color libre, en
+// todos los planes). Para el texto, sugeridos que suelen leerse bien.
+const BG_SUGGESTIONS = [...COLOR_PRESETS, ...EXTRA_COLOR_PRESETS].map(p => ({ hex: p.start, label: p.label }))
+const TEXT_SUGGESTIONS = ['#FFFFFF', '#FBF6EE', '#F2D9A6', '#C9A84C', '#8A8580', '#2B2620', '#000000'].map(hex => ({ hex }))
+// Segundo color del degradé: el del preset si es uno, si no un tono más oscuro.
+function secondFor(hex: string) {
+  return [...COLOR_PRESETS, ...EXTRA_COLOR_PRESETS].find(p => p.start.toUpperCase() === hex.toUpperCase())?.end || darkenHex(hex)
 }
 
 // ─── Pass preview (Apple Wallet) ──────────────────────────────────────────────
@@ -289,6 +210,7 @@ function RealPassPreview({ design, images, rewardLabel, tiers, previewTierIndex 
 }) {
   const activeTier = tiers[previewTierIndex] || tiers[0]
   const tc = design.type === 'membership' && activeTier ? activeTier.color : (design.textColor || '#FFFFFF')
+  const lc = design.type !== 'membership' && design.labelColor && /^#[0-9A-Fa-f]{6}$/.test(design.labelColor) ? design.labelColor : hexToRgba(tc, 0.65)
   const second = design.type === 'stamp' ? { label: 'PREMIO', value: rewardLabel }
     : design.type === 'points' ? { label: 'VISITAS', value: '14' } : null
   return (
@@ -299,11 +221,11 @@ function RealPassPreview({ design, images, rewardLabel, tiers, previewTierIndex 
       {images?.apple.strip ? <img src={images.apple.strip} className="dt-real-pass-strip" alt="" /> : <div className="dt-skel-strip" />}
       <div className="dt-real-pass-info">
         <div className="dt-real-pass-info-field">
-          <div className="dt-real-pass-info-label" style={{ color: hexToRgba(tc, 0.65) }}>TITULAR</div>
+          <div className="dt-real-pass-info-label" style={{ color: lc }}>TITULAR</div>
           <div className="dt-real-pass-info-val" style={{ color: tc }}>Nombre del cliente</div>
         </div>
         {second && <div className="dt-real-pass-info-field">
-          <div className="dt-real-pass-info-label" style={{ color: hexToRgba(tc, 0.65) }}>{second.label}</div>
+          <div className="dt-real-pass-info-label" style={{ color: lc }}>{second.label}</div>
           <div className="dt-real-pass-info-val" style={{ color: tc }}>{second.value}</div>
         </div>}
       </div>
@@ -429,10 +351,9 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [saveNotice, setSaveNotice] = useState('')
-  const [confirmImpact, setConfirmImpact] = useState<number | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
-  // Regla de puntos (por visita o por monto): ver PointsRuleEditor.
-  const [pointsRule, setPointsRule] = useState<PointsRuleValue>({
+  // Regla de puntos: se edita en Premios; acá solo alimenta la vista previa.
+  const [pointsRule] = useState<PointsRuleValue>({
     pointsMode: init.pointsMode === 'amount' ? 'amount' : 'visit',
     pointsPerVisit: init.pointsPerVisit || 10,
     pointsPerAmount: init.pointsPerAmount || 1,
@@ -454,7 +375,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   }
 
   const rewardSource = fields.find((f: FormField) => f.isRewardSource)
-  // El premio (fijo o el que elige el cliente) se define en Formulario.
+  // El premio (fijo o el que elige el cliente) se define en Premios.
   // Acá solo se muestra en la vista previa y como resumen.
   const rewardChoices = (rewardSource?.options || []).filter(Boolean)
 
@@ -462,42 +383,31 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const snapshot = (c: CardDesign, l: LogoState, fm: string, fs: string, img: string | null, ppv: string) =>
     JSON.stringify([c.name, c.color, c.secondColor, c.textColor || null, c.labelColor || null, c.publicDescription || '', c.stampsRequired, c.rewardMode, c.rewardField || '', l, fm, fs, img, ppv])
   const [baseline, setBaseline] = useState(() => snapshot(init, { businessLogo: init.logoUrl || null, earnedIcon: init.earnedIcon || null, emptyIcon: init.emptyIcon || null, pointsIcon: init.pointsIcon || null }, init.flipMessage || '¡Lo lograste!', init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio', init.flipImageUrl || null, JSON.stringify({ pointsMode: init.pointsMode === 'amount' ? 'amount' : 'visit', pointsPerVisit: init.pointsPerVisit || 10, pointsPerAmount: init.pointsPerAmount || 1, pointsAmountUnit: init.pointsAmountUnit || DEFAULT_UNIT[currency] })))
-  const [savedStamps, setSavedStamps] = useState(init.stampsRequired)
 
   function setLogo(key: keyof LogoState) { return (url: string | null) => setLogos({ ...logos, [key]: url }) }
   const dirty = snapshot(card, logos, flipMessage, flipSubMessage, prizeImage, pointsPerVisit) !== baseline
   const textColorBad = !!card.textColor && !isHex(card.textColor)
   const labelColorBad = !!card.labelColor && !isHex(card.labelColor)
-  const lowContrast = card.type !== 'membership' && isHex(card.textColor || '#FFFFFF') && isHex(card.color) && contrastRatio(card.textColor || '#FFFFFF', card.color) < 3
+  const logoColors = useLogoColors(logos.businessLogo)
 
-  async function handleSave(skipImpactCheck = false) {
+  async function handleSave() {
     if (!businessId) {
       setSaveError('No se encontró el negocio — recargá la página e intentá de nuevo.')
       return
     }
     setSaveError(''); setSaveNotice('')
     if (!card.name.trim()) { setSaveError('La tarjeta necesita un nombre.'); return }
-    if (card.type === 'points' && !pointsRuleValid(pointsRule)) { setSaveError('Revisá la regla de puntos: los puntos van de 1 a 1000 y el monto tiene que ser mayor a 0.'); return }
     if (textColorBad || labelColorBad) { setSaveError('Revisá los colores de texto: tienen que ser un código como #FFFFFF.'); return }
-    // Bajar los sellos completa la tarjeta de quienes ya los tienen: avisar antes.
-    if (!skipImpactCheck && card.type === 'stamp' && card.stampsRequired < savedStamps) {
-      try {
-        const { wouldComplete } = await apiCardImpact(businessId, card.id, card.stampsRequired)
-        if (wouldComplete > 0) { setConfirmImpact(wouldComplete); return }
-      } catch { /* si no se puede calcular, se guarda igual */ }
-    }
-    setConfirmImpact(null)
     setSaving(true)
     try {
       const res = await apiUpdateCard(businessId, card.id, {
         name: card.name.trim(),
         color: card.color,
         secondColor: card.secondColor,
-        ...(can('customTextColor') ? { textColor: card.textColor || null, labelColor: card.labelColor || null } : {}),
+        textColor: card.textColor || null,
+        labelColor: card.labelColor || null,
         publicDescription: card.publicDescription || '',
         isActive: card.isActive,
-        stampsRequired: card.stampsRequired,
-        ...(card.type === 'points' ? pointsRule : {}),
         flipMessage,
         flipSubMessage,
         // null = se quitó (antes mandaba undefined y "Quitar" nunca se guardaba)
@@ -510,13 +420,12 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
 
       setSaved(true)
       setBaseline(snapshot(card, logos, flipMessage, flipSubMessage, prizeImage, pointsPerVisit))
-      setSavedStamps(card.stampsRequired)
       setSaveNotice(res?.passUpdates ? `Guardado. Se actualizó la tarjeta en ${res.passUpdates} celular${res.passUpdates === 1 ? '' : 'es'}.` : 'Guardado.')
       onSaved?.()
       setTimeout(() => setSaved(false), 2000)
     } catch (err: any) {
       console.error('Error saving card:', err)
-      setSaveError(err?.error || 'No se pudo guardar. Intentá de nuevo.')
+      setSaveError((err?.error === 'plan_limit_reached' && err?.message) || err?.error || 'No se pudo guardar. Intentá de nuevo.')
     } finally {
       setSaving(false)
     }
@@ -634,15 +543,6 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
       </div>
       {saveError && <div className="dt-save-error">{saveError}</div>}
       {saveNotice && !saveError && <div className="dt-save-notice">{saveNotice}</div>}
-      {confirmImpact != null && (
-        <div className="dt-save-warn">
-          <span>Con {card.stampsRequired} sellos, <strong>{confirmImpact} cliente{confirmImpact === 1 ? '' : 's'}</strong> van a completar su tarjeta al guardar y tener el premio listo para entregar.</span>
-          <span style={{ display: 'flex', gap: 8 }}>
-            <button className="dt-warn-btn" onClick={() => setConfirmImpact(null)}>Cancelar</button>
-            <button className="dt-warn-btn dt-warn-btn--primary" onClick={() => handleSave(true)}>Guardar igual</button>
-          </span>
-        </div>
-      )}
       {confirmLeave && (
         <div className="dt-save-warn">
           <span>Tenés cambios sin guardar en esta tarjeta.</span>
@@ -701,28 +601,17 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Campos del formulario</div>
           <div className="dt-reward-goto-forms">Se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>. <InfoTooltip text="El formulario de registro usa el color y el logo de esta tarjeta." /></div>
 
-          {/* STAMP: el premio se define en Formulario (un solo lugar). */}
-          {card.type === 'stamp' && (
+          {/* La regla y el premio se editan en Premios (un solo lugar). */}
+          {card.type !== 'membership' && (
             <>
-              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Premio</div>
+              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>{card.type === 'stamp' ? 'Sellos y premio' : 'Cómo se suman los puntos'}</div>
               <div className="dt-reward-goto-forms">
-                {card.rewardMode === 'dynamic'
-                  ? <>Lo elige el cliente{rewardChoices.length ? <>: <strong>{rewardChoices.join(' · ')}</strong></> : ' (todavía sin opciones)'}.</>
-                  : card.rewardField ? <><strong>{card.rewardField}</strong>, el mismo para todos.</> : 'Todavía no definiste el premio.'}
-                {' '}Se define en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>.
-              </div>
-            </>
-          )}
-
-          {/* POINTS: configuration */}
-          {card.type === 'points' && (
-            <>
-              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Configuración de puntos</div>
-              <div className="dt-points-config">
-                <PointsRuleEditor value={pointsRule} onChange={setPointsRule} currency={currency} />
-                <div className="dt-points-note">
-                  Los premios y sus puntos se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>Premios</button>.
-                </div>
+                {card.type === 'stamp'
+                  ? <>{card.stampsRequired} sellos · {card.rewardMode === 'dynamic'
+                      ? <>premio a elección{rewardChoices.length ? <>: <strong>{rewardChoices.join(' · ')}</strong></> : ' (todavía sin opciones)'}</>
+                      : card.rewardField ? <><strong>{card.rewardField}</strong></> : 'todavía sin premio'}.</>
+                  : <>{pointsRuleText(init, currency)}.</>}
+                {' '}Se configura en <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>Premios</button>.
               </div>
             </>
           )}
@@ -747,39 +636,22 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
             {card.type === 'membership' ? 'Color de marca' : 'Color de fondo'}
             {card.type === 'membership' && <InfoTooltip text="Se usa en el formulario de registro y en la app de escaneo. En la Wallet, la tarjeta toma el color del nivel de cada cliente (se elige en Premios)." />}
           </div>
-          <ColorPicker color={card.color} onChange={(s, e) => setCard({ ...card, color: s, secondColor: e })} />
+          <ColorField ariaLabel={card.type === 'membership' ? 'Color de marca' : 'Color de fondo'} value={card.color} suggestions={BG_SUGGESTIONS} logoColors={logoColors}
+            onChange={v => v && setCard({ ...card, color: v, secondColor: secondFor(v) })} />
 
-          {/* Colores de texto y etiquetas: desde Pro (afectan el pase real). */}
           <div className="dt-appearance-label" style={{ marginTop: 14 }}>
             Color de texto
             <InfoTooltip text="El color del nombre, los números y los datos de la tarjeta, tal como se ve en la Wallet." />
           </div>
-          {can('customTextColor') ? (<>
-            <SwatchPicker value={card.textColor || '#FFFFFF'} onChange={v => setCard({ ...card, textColor: v })} />
-            {textColorBad && <div className="dt-color-warn">Tiene que ser un código de color como #FFFFFF.</div>}
-            {!textColorBad && lowContrast && <div className="dt-color-warn">Con este fondo el texto se va a leer mal. Probá un color más claro u oscuro.</div>}
-          </>) : <ProLock label="Color de texto y etiquetas" />}
+          <ColorField ariaLabel="Color de texto" value={card.textColor || '#FFFFFF'} suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
+            contrastWith={card.type === 'membership' ? null : card.color} onChange={v => setCard({ ...card, textColor: v })} />
 
-          {can('customTextColor') && (<>
-            <div className="dt-appearance-label" style={{ marginTop: 14 }}>
-              Color de las etiquetas
-              <InfoTooltip text="Los títulos chicos (TITULAR, PREMIO…). En Automático usan el color de texto." />
-            </div>
-            <SwatchPicker value={card.labelColor || null} auto onChange={v => setCard({ ...card, labelColor: v })} />
-            {labelColorBad && <div className="dt-color-warn">Tiene que ser un código de color como #FFFFFF.</div>}
-          </>)}
-
-          {card.type === 'stamp' && (
-            <>
-              <div className="dt-appearance-label" style={{ marginTop: 14 }}>Sellos requeridos</div>
-              <div className="dt-stamps-row">
-                {[4, 6, 8, 10, 12].map((n: number) => (
-                  <button key={n} className={`dt-stamp-count-btn${card.stampsRequired === n ? ' dt-stamp-count-btn--on' : ''}`}
-                    onClick={() => setCard({ ...card, stampsRequired: n })}>{n}</button>
-                ))}
-              </div>
-            </>
-          )}
+          <div className="dt-appearance-label" style={{ marginTop: 14 }}>
+            Color de las etiquetas
+            <InfoTooltip text="Los títulos chicos (TITULAR, PREMIO…). En Automático usan el color de texto." />
+          </div>
+          <ColorField ariaLabel="Color de las etiquetas" value={card.labelColor || null} auto suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
+            contrastWith={card.type === 'membership' ? null : card.color} onChange={v => setCard({ ...card, labelColor: v })} />
 
           {/* ── Cara del premio (stamp only) ── */}
           {card.type === 'stamp' && (

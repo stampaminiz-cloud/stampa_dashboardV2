@@ -1,10 +1,6 @@
-// Paleta de colores de tarjeta por plan. Espejo EXACTO de
-// config/colorPresets.js del backend (que es el que la hace cumplir):
-// si cambia allá, cambiar acá también.
-//
-//   Starter:          8 colores (STARTER_PRESETS)
-//   Growth:           16 (STARTER + GROWTH_EXTRA)
-//   Pro / Enterprise: cualquier color (selector libre)
+// Paleta de colores de tarjeta sugeridos. Espejo de config/colorPresets.js
+// del backend: si cambia allá, cambiar acá también. Todos los planes pueden
+// elegir cualquier color; la paleta son sugerencias que se leen bien.
 
 export interface ColorPreset { label: string; start: string; end: string }
 
@@ -33,11 +29,13 @@ export const GROWTH_EXTRA_PRESETS: ColorPreset[] = [
 export const DEFAULT_CARD_COLOR = STARTER_PRESETS[0]
 
 export function presetsForPlan(plan?: string | null): ColorPreset[] {
-  return ['Growth', 'Pro', 'Enterprise'].includes(plan || '') ? [...STARTER_PRESETS, ...GROWTH_EXTRA_PRESETS] : STARTER_PRESETS
+  void plan
+  return [...STARTER_PRESETS, ...GROWTH_EXTRA_PRESETS]
 }
 
 export function allowsFreeColor(plan?: string | null) {
-  return ['Pro', 'Enterprise'].includes(plan || '')
+  void plan
+  return true
 }
 
 // Tono ~30% más oscuro para el degradé (igual que darken() del backend).
