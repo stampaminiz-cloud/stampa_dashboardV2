@@ -794,14 +794,15 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         .rw-rmode small{display:block;font-size:11.5px;color:rgba(43,38,32,.55);}
         .rw-pv{position:sticky;top:0;}
         .rw-pv-pass{border-radius:16px;overflow:hidden;box-shadow:0 12px 36px rgba(43,38,32,.2);}
-        .rw-pv-top{padding:12px 14px;height:30px;display:flex;align-items:center;}
-        .rw-pv-logo{max-height:30px;max-width:150px;object-fit:contain;}
-        .rw-pv-logo.rw-skel{width:90px;height:22px;background:rgba(255,255,255,.18);}
+        .rw-pv-top{padding:20px 20px 10px;}
+        .rw-pv-logo{display:block;width:47%;height:auto;}
+        .rw-pv-logo.rw-skel{aspect-ratio:160/50;background:rgba(255,255,255,.18);}
         .rw-pv-strip{display:block;width:100%;}
         .rw-pv-strip.rw-skel{background:rgba(255,255,255,.12);border-radius:0;}
-        .rw-pv-fields{display:flex;justify-content:space-between;gap:12px;padding:12px 14px 16px;}
+        .rw-pv-fields{display:flex;justify-content:space-between;gap:12px;padding:12px 20px 18px;}
         .rw-pv-l{font-size:9px;font-weight:600;letter-spacing:.06em;opacity:.75;}
-        .rw-pv-v{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .rw-pv-v{font-size:14px;font-weight:500;line-height:1.25;overflow-wrap:anywhere;}
+        .rw-pv-fields > div{flex:1;min-width:0;}
         .rw-editor-foot{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;}
         .rw-skel{background:rgba(43,38,32,.07);border-radius:8px;animation:rwPulse 1.2s ease-in-out infinite;}
         @keyframes rwPulse{0%,100%{opacity:.45}50%{opacity:1}}
