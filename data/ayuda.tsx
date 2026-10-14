@@ -34,7 +34,7 @@ export const ARTICLES: Article[] = [
     body: <>
       <p>Desde que creás la cuenta hasta que el primer cliente tiene la tarjeta en el celular hay cinco pasos. Ninguno lleva más de un rato, y el panel te los marca en Inicio a medida que los completás.</p>
       <Steps items={[
-        <><strong>Diseñá la tarjeta.</strong> En Diseño subí tu logo y elegí los colores y cuántos sellos. En la vista previa ves cómo queda en un iPhone y en un Android. El premio se define en Formulario. <A to="disenar-la-tarjeta">Cómo diseñarla</A> y <A to="premios">cómo elegir el premio</A>.</>,
+        <><strong>Diseñá la tarjeta.</strong> En Diseño subí tu logo y elegí los colores. En la vista previa ves cómo queda en un iPhone y en un Android. Cuántos sellos hacen falta y el premio se definen en Premios. <A to="disenar-la-tarjeta">Cómo diseñarla</A> y <A to="premios">cómo elegir el premio</A>.</>,
         <><strong>Poné el QR en el mostrador.</strong> En Formulario descargás un cartel listo para imprimir. El cliente lo escanea con la cámara, deja su nombre y su email y guarda la tarjeta. <A to="qr-del-mostrador">Dónde ponerlo</A>.</>,
         <><strong>Sumá a tu equipo.</strong> Cada empleado tiene un PIN de 4 números para la app de escaneo. <A to="equipo">Cómo sumarlos</A>.</>,
         <><strong>Vinculá el celular del local.</strong> Instalás la app de escaneo y escaneás el código que te muestra el panel. Se hace una vez por celular. <A to="app-de-escaneo">Paso a paso</A>.</>,
@@ -53,7 +53,7 @@ export const ARTICLES: Article[] = [
     slug: 'disenar-la-tarjeta',
     group: 'La tarjeta',
     title: 'Diseñar la tarjeta',
-    summary: 'Logo, colores, cantidad de sellos y la imagen que aparece cuando el cliente completa la tarjeta.',
+    summary: 'Logo, colores y la imagen que aparece cuando el cliente completa la tarjeta.',
     body: <>
       <p>Entrá a <strong>Diseño</strong> y tocá "Editar" en tu tarjeta. A la derecha ves la tarjeta como la va a ver tu cliente, con un cliente de ejemplo. Podés cambiar entre "Apple Wallet" y "Google Wallet" para ver las dos.</p>
       <Shot src="diseno" alt="Editor de diseño de la tarjeta con la vista previa del pase de iPhone" />
@@ -61,11 +61,11 @@ export const ARTICLES: Article[] = [
       <ul>
         <li><strong>Logo del negocio.</strong> Un PNG con fondo transparente queda mejor. Se muestra arriba a la izquierda de la tarjeta.</li>
         <li><strong>Íconos de los sellos.</strong> Por defecto son círculos. Podés subir tu propio ícono para el sello ganado y para el vacío, por ejemplo una taza.</li>
-        <li><strong>Color de fondo y de texto.</strong> Elegís de una paleta pensada para que la tarjeta se lea bien: 8 colores en Starter y 16 en Growth. Desde Pro, cualquier color.</li>
-        <li><strong>Sellos requeridos.</strong> 4, 6, 8, 10 o 12. Para un café, 8 o 10 funciona bien; para algo más caro, menos.</li>
+        <li><strong>Color de fondo, de texto y de las etiquetas.</strong> Cualquier color, en todos los planes. Te sugerimos los colores de tu logo y una paleta que se lee bien, y te avisamos si el texto no se va a leer sobre el fondo.</li>
         <li><strong>Cara del premio.</strong> Es lo que ve el cliente cuando completa la tarjeta: una imagen, un mensaje de felicitación y el texto de canje. Tocá "Ver cara del premio" para verla.</li>
         <li><strong>Descripción pública.</strong> Una línea que aparece en el formulario si tenés más de una tarjeta, para que el cliente elija.</li>
       </ul>
+      <p>Cuántos sellos hacen falta, el premio y cómo se suman los puntos no están acá: se configuran en <strong>Premios</strong> (<A to="premios">ver cómo</A>).</p>
       <p>Cuando guardás, las tarjetas que tus clientes ya tienen se actualizan solas. No tienen que volver a descargar nada.</p>
       <h2>Más de una tarjeta</h2>
       <p>Podés tener una tarjeta de sellos y otra de puntos, o una para el café y otra para la panadería. Starter tiene 1 tarjeta activa, Growth 3 y Pro las que quieras. Las tarjetas nuevas se crean con "Nueva tarjeta" en Diseño.</p>
@@ -79,19 +79,19 @@ export const ARTICLES: Article[] = [
     body: <>
       <p>Hay tres tipos de tarjeta. El tipo se elige al crearla.</p>
       <h2>Sellos</h2>
-      <p>Una visita, un sello. Al completar la tarjeta, el premio. En <strong>Formulario</strong>, en la caja "Premio", tenés dos opciones:</p>
+      <p>Una visita, un sello. Al completar la tarjeta, el premio. En <strong>Premios</strong>, en "Cómo se gana", elegís cuántos sellos hacen falta (para un café, 8 o 10 funciona bien; para algo más caro, menos) y el premio. Para el premio hay dos opciones:</p>
       <ul>
         <li><strong>Yo lo defino:</strong> el mismo premio para todos, por ejemplo "Un café de especialidad".</li>
         <li><strong>Lo elige el cliente:</strong> cargás las opciones ("Café", "Medialuna", "Tostado") y el cliente elige una al registrarse; esa pasa a ser su premio. Starter permite 3 opciones, Growth 6 y Pro 12.</li>
       </ul>
       <p>La tarjeta queda completa hasta que el empleado entrega el premio y toca "Confirmar entrega" en la app. Ahí vuelve a cero.</p>
       <h2>Puntos</h2>
-      <p>En Diseño elegís cómo se suman:</p>
+      <p>En <strong>Premios</strong>, en "Cómo se suman los puntos", elegís:</p>
       <ul>
         <li><strong>Por visita:</strong> cada escaneo suma lo mismo, por ejemplo 10 puntos.</li>
         <li><strong>Por monto de la compra:</strong> suma según lo que gasta, por ejemplo "1 punto cada $1.000". Una compra de $4.500 suma 4 puntos. Sirve cuando cada compra tiene un monto distinto, como en una tienda o un restaurante.</li>
       </ul>
-      <p>En <strong>Premios</strong> armás un catálogo: "Café gratis, 100 puntos", "Torta entera, 250 puntos". El cliente elige qué canjear y el empleado lo marca en la app.</p>
+      <p>Más abajo, en la misma pestaña, armás un catálogo: "Café gratis, 100 puntos", "Torta entera, 250 puntos". El cliente elige qué canjear y el empleado lo marca en la app.</p>
       <h2>Niveles</h2>
       <p>Una membresía que sube con las visitas: por ejemplo Bronce, Plata y Oro, cada uno con su beneficio. En Premios definís cuántas visitas hacen falta para cada nivel.</p>
       <Shot src="premios" alt="Pestaña Premios con los premios para entregar y los últimos entregados" caption="En Premios ves cuántos están por completar y los últimos premios entregados." />
@@ -103,7 +103,7 @@ export const ARTICLES: Article[] = [
     title: 'El formulario de registro',
     summary: 'Qué completa el cliente para llevarse la tarjeta y cómo agregar tus propias preguntas.',
     body: <>
-      <p>El formulario es lo que ve el cliente cuando escanea tu QR. Tiene los colores y el logo de tu tarjeta. Siempre pide nombre y email; el resto lo decidís vos en <strong>Formulario</strong>. Ahí también está la caja "Premio", donde definís qué recibe el cliente al completar la tarjeta (<A to="premios">ver cómo</A>).</p>
+      <p>El formulario es lo que ve el cliente cuando escanea tu QR. Tiene los colores y el logo de tu tarjeta. Siempre pide nombre y email; el resto lo decidís vos en <strong>Formulario</strong>. Si el cliente elige su premio, la pregunta aparece sola en el formulario; las opciones se editan en <strong>Premios</strong> (<A to="premios">ver cómo</A>).</p>
       <Shot src="formulario" alt="Pestaña Formulario con los campos y la vista previa del celular" />
       <ul>
         <li><strong>Pregunta del rubro.</strong> Según tu rubro viene una pregunta armada, por ejemplo "¿Con qué acompañás tu café?". Podés cambiar las opciones, ocultarla o hacerla obligatoria.</li>

@@ -124,7 +124,7 @@ const STEP_INFO: Record<number, { title: string; subtitle: string; tip: string }
   },
 }
 
-// Colores: lib/colorPresets.ts (según el plan: 8, 16 o libre).
+// Colores: lib/colorPresets.ts (paleta sugerida; color libre en todos los planes).
 
 function darken(hex: string): string {
   const c = hex.replace('#','')
@@ -556,11 +556,7 @@ function Step5({ state, onChange, onNext, onBack, plan }: StepProps & { plan: st
     setHex(v)
     if (/^#[0-9A-Fa-f]{6}$/.test(v)) onChange({ brandColor: v })
   }
-  const planNote = free
-    ? 'Tu plan incluye cualquier color: elegí uno de la paleta o el tuyo.'
-    : plan === 'Growth'
-      ? '16 colores incluidos en tu plan. En Pro podés elegir cualquier color.'
-      : '8 colores incluidos en tu plan. Growth suma 8 más y Pro permite cualquier color.'
+  const planNote = 'Elegí uno de la paleta o cualquier color. Después lo podés cambiar en Diseño.'
 
   return (
     <div className="ob-step">
