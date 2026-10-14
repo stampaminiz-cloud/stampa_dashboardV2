@@ -208,6 +208,7 @@ function solidBg(design: CardDesign, activeTier?: MembershipTier) {
 function RealPassPreview({ design, images, rewardLabel, tiers, previewTierIndex }: {
   design: CardDesign; images: WalletPreview | null; rewardLabel: string; tiers: MembershipTier[]; previewTierIndex: number
 }) {
+  const whiteLabel = usePlan().can('whiteLabel') // Pro y Enterprise: sin la marca de Stampa
   const activeTier = tiers[previewTierIndex] || tiers[0]
   const tc = design.type === 'membership' && activeTier ? activeTier.color : (design.textColor || '#FFFFFF')
   const lc = design.type !== 'membership' && design.labelColor && /^#[0-9A-Fa-f]{6}$/.test(design.labelColor) ? design.labelColor : hexToRgba(tc, 0.65)
@@ -231,7 +232,7 @@ function RealPassPreview({ design, images, rewardLabel, tiers, previewTierIndex 
       </div>
       <div className="dt-real-pass-qr-section">
         <QRCode size={90} />
-        <div className="dt-real-pass-powered">Powered by Stampa</div>
+        {!whiteLabel && <div className="dt-real-pass-powered">Powered by Stampa</div>}
       </div>
     </div>
   )

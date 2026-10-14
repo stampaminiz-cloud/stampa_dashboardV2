@@ -78,7 +78,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     analyticsLevel:  'full',
     multiLocation:   true,        // hasta 3 sucursales (backend: maxLocations)
     locationTools:   true,
-    whiteLabel:      false,
+    whiteLabel:      true,        // sin "Powered by Stampa" (pase y formulario)
     formBranding:    true,
   },
   Enterprise: {
