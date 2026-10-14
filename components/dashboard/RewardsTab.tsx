@@ -5,15 +5,19 @@ import { MascotLoader } from '@/components/ui/MascotLoader'
 import React, { useState, useEffect } from 'react'
 import {
   BASE_URL, apiGetPointsCatalog, apiCreatePointsCatalogItem, apiUpdatePointsCatalogItem, apiDeletePointsCatalogItem,
-  apiGetTiers, apiSaveTiers, apiCreateDefaultTiers,
+  apiGetTiers, apiSaveTiers, apiCreateDefaultTiers, apiUpdateCard, apiCardImpact, apiWalletPreview,
 } from '@/lib/api'
+import { usePlan } from '@/data/plans'
+import { OptionsEditor } from './OptionsEditor'
+import { PointsRuleEditor, pointsRuleValid, DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { withLoc } from '@/lib/location'
+import { pointsRuleText, currencyFor, type Currency } from '@/lib/money'
 
-// Premios, por tarjeta. Todo sale de /rewards-stats (canjes reales que
-// registra la app de escaneo o el dashboard) y de los editores de catálogo
-// (puntos) y niveles (membresía). El premio de las tarjetas de sellos se
-// edita en Diseño: acá se muestra y se linkea.
+// Premios, por tarjeta: qué gana el cliente y cómo. Acá se edita la regla
+// (sellos y premio, o cómo se suman los puntos), el catálogo de puntos y los
+// niveles. Los números salen de /rewards-stats (canjes reales que registra la
+// app de escaneo o el dashboard).
 
 type CardType = 'stamp' | 'points' | 'membership'
 interface ActiveCard { id: string; name: string; type: CardType; isActive: boolean }
@@ -72,32 +76,209 @@ function Redemptions({ items, onOpenCustomer, empty }: { items: Redemption[]; on
 }
 
 // ─── Sellos ───────────────────────────────────────────────────────────────────
-function StampRewards({ data, onGoToDesign, onOpenCustomer }: { data: any; onGoToDesign: () => void; onOpenCustomer?: (email: string) => void }) {
+// ─── Cómo se gana ─────────────────────────────────────────────────────────────
+// La regla de la tarjeta (sellos para completar y premio, o cómo se suman los
+// puntos) se edita acá, con la tarjeta en vivo al lado. Diseño queda solo
+// para lo visual y Formulario para las preguntas.
+
+// Vista previa del pase con las imágenes reales (las arma el backend con lo
+// que se está editando, igual que en Diseño).
+function RulePreview({ businessId, card, override, rewardLabel }: { businessId: string; card: any; override: Record<string, any>; rewardLabel?: string }) {
+  const [img, setImg] = useState<{ apple: { logo: string | null; strip: string | null } } | null>(null)
+  const [err, setErr] = useState(false)
+  const design = JSON.stringify({
+    name: card.name, color: card.color, secondColor: card.secondColor, textColor: card.textColor, labelColor: card.labelColor,
+    logoUrl: card.logoUrl, earnedIcon: card.earnedIcon, emptyIcon: card.emptyIcon, pointsIcon: card.pointsIcon,
+    stampsRequired: card.stampsRequired, pointsMode: card.pointsMode, pointsPerVisit: card.pointsPerVisit,
+    pointsPerAmount: card.pointsPerAmount, pointsAmountUnit: card.pointsAmountUnit, ...override,
+  })
+  useEffect(() => {
+    let cancelled = false
+    const t = setTimeout(() => {
+      apiWalletPreview(businessId, card.id, { design: JSON.parse(design), side: 'front', tierIndex: 0 })
+        .then(r => { if (!cancelled) { setImg(r); setErr(false) } })
+        .catch(() => { if (!cancelled) setErr(true) })
+    }, 350)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [businessId, card.id, design])
+  const tc = card.textColor || '#FFFFFF'
+  const lc = card.labelColor || tc
+  return (
+    <div className="rw-pv">
+      <div className="rw-pv-pass" style={{ background: card.color || '#1B412F', color: tc }}>
+        <div className="rw-pv-top">{img?.apple.logo ? <img src={img.apple.logo} alt="" className="rw-pv-logo" /> : <div className="rw-pv-logo rw-skel" />}</div>
+        {img?.apple.strip ? <img src={img.apple.strip} alt="" className="rw-pv-strip" /> : <div className="rw-pv-strip rw-skel" style={{ aspectRatio: '375/123' }} />}
+        <div className="rw-pv-fields">
+          <div><div className="rw-pv-l" style={{ color: lc }}>TITULAR</div><div className="rw-pv-v">Nombre del cliente</div></div>
+          {rewardLabel !== undefined && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>PREMIO</div><div className="rw-pv-v">{rewardLabel || '—'}</div></div>}
+        </div>
+      </div>
+      <div className="rw-hint" style={{ textAlign: 'center' }}>{err ? 'No pudimos actualizar la vista previa.' : 'Así la ve tu cliente en la Wallet.'}</div>
+    </div>
+  )
+}
+
+function StampRules({ businessId, card, data, onSaved }: { businessId: string; card: any; data: any; onSaved: () => void }) {
+  const { limit, plan } = usePlan()
+  const maxOpts = limit('maxRewardOptions')
+  const init = () => ({
+    stamps: Number(data.stampsRequired) || 8,
+    mode: (data.reward?.mode === 'dynamic' ? 'dynamic' : 'fixed') as 'fixed' | 'dynamic',
+    fixed: data.reward?.fixedValue || '',
+    opts: (data.reward?.options || []) as string[],
+  })
+  const [base, setBase] = useState(init)
+  const [stamps, setStamps] = useState(base.stamps)
+  const [mode, setMode] = useState(base.mode)
+  const [fixed, setFixed] = useState(base.fixed)
+  const [opts, setOpts] = useState<string[]>(base.opts)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [impact, setImpact] = useState<number | null>(null)
+  const clean = opts.map(o => o.trim()).filter(Boolean)
+  const dirty = JSON.stringify([stamps, mode, fixed.trim(), clean]) !== JSON.stringify([base.stamps, base.mode, base.fixed.trim(), base.opts])
+  const touch = () => { setNotice(null); setError(null); setImpact(null) }
+
+  function discard() { setStamps(base.stamps); setMode(base.mode); setFixed(base.fixed); setOpts(base.opts); touch() }
+
+  async function save(skipImpact = false) {
+    if (mode === 'fixed' && !fixed.trim()) { setError('Escribí cuál es el premio (ej: Café gratis).'); return }
+    if (mode === 'dynamic' && (clean.length < 2 || clean.length > maxOpts)) { setError(`Cargá entre 2 y ${maxOpts} opciones de premio para que el cliente elija.`); return }
+    // Bajar los sellos completa la tarjeta de quienes ya los tienen: avisar antes.
+    if (!skipImpact && stamps < base.stamps) {
+      try {
+        const { wouldComplete } = await apiCardImpact(businessId, card.id, stamps)
+        if (wouldComplete > 0) { setImpact(wouldComplete); return }
+      } catch { /* si no se puede calcular, se guarda igual */ }
+    }
+    setSaving(true); setError(null); setImpact(null)
+    try {
+      const res = await apiUpdateCard(businessId, card.id, {
+        stampsRequired: stamps,
+        rewardMode: mode,
+        rewardFixedValue: fixed.trim() || null,
+        ...(mode === 'dynamic' ? { rewardOptions: clean } : {}),
+      })
+      setBase({ stamps, mode, fixed: fixed.trim(), opts: clean }); setOpts(clean); setFixed(fixed.trim())
+      setNotice(res?.passUpdates ? `Guardado. Se actualizó la tarjeta en ${res.passUpdates} celular${res.passUpdates === 1 ? '' : 'es'}.` : 'Guardado.')
+      onSaved()
+    } catch (e: any) {
+      setError(e?.error || 'No se pudo guardar. Intentá de nuevo.')
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="rw-card">
+      <div className="rw-card-head-row">
+        <div><div className="rw-card-title">Cómo se gana</div><div className="rw-card-sub" style={{ marginBottom: 0 }}>Cuántos sellos hacen falta y qué recibe el cliente al completar la tarjeta</div></div>
+        <div className="rw-editor-foot" style={{ marginTop: 0 }}>
+          {dirty && <button className="rw-secondary-btn" onClick={discard} disabled={saving}>Descartar</button>}
+          <button className="rw-add-btn" onClick={() => save()} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button>
+        </div>
+      </div>
+      {error && <div className="rw-error">{error}</div>}
+      {notice && <div className="rw-notice">{notice}</div>}
+      {impact != null && (
+        <div className="rw-warn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 0, marginBottom: 12 }}>
+          <span>Con {stamps} sellos, <strong>{impact} cliente{impact === 1 ? '' : 's'}</strong> van a completar su tarjeta al guardar y tener el premio listo para entregar.</span>
+          <span style={{ display: 'flex', gap: 6 }}><button className="rw-mini-btn" onClick={() => setImpact(null)}>Cancelar</button><button className="rw-mini-btn rw-mini-btn--primary" onClick={() => save(true)}>Guardar igual</button></span>
+        </div>
+      )}
+      <div className="rw-rules">
+        <div style={{ minWidth: 0 }}>
+          <div className="rw-label">Sellos para completar la tarjeta</div>
+          <NumberStepper value={stamps} onChange={n => { setStamps(Math.max(2, Math.min(20, Math.round(n) || 2))); touch() }} min={2} max={20} presets={[6, 8, 10, 12]} suffix="sellos" size="sm" ariaLabel="Sellos para completar" />
+          <div className="rw-hint" style={{ marginTop: 6 }}>El último sello es el premio.</div>
+
+          <div className="rw-label" style={{ marginTop: 18 }}>Premio</div>
+          <div className="rw-rmodes">
+            <label className={`rw-rmode${mode === 'fixed' ? ' rw-rmode--on' : ''}`}>
+              <input type="radio" name="rw-rmode" checked={mode === 'fixed'} onChange={() => { setMode('fixed'); touch() }} />
+              <span><strong>Yo lo defino</strong><small>El mismo premio para todos</small></span>
+            </label>
+            <label className={`rw-rmode${mode === 'dynamic' ? ' rw-rmode--on' : ''}`}>
+              <input type="radio" name="rw-rmode" checked={mode === 'dynamic'} onChange={() => { setMode('dynamic'); touch() }} />
+              <span><strong>Lo elige el cliente</strong><small>Elige una opción al registrarse</small></span>
+            </label>
+          </div>
+          {mode === 'fixed' ? (
+            <input className="rw-input" style={{ width: '100%', boxSizing: 'border-box' }} value={fixed} maxLength={40} placeholder="Ej: Café gratis" onChange={e => { setFixed(e.target.value); touch() }} />
+          ) : (
+            <>
+              <div className="rw-label">Opciones ({clean.length}/{maxOpts})</div>
+              <OptionsEditor options={opts} max={maxOpts} onChange={o => { setOpts(o); touch() }} />
+              <div className="rw-hint">
+                {clean.length >= maxOpts
+                  ? <>Llegaste a las {maxOpts} opciones de tu plan.{plan === 'Starter' ? ' Growth permite 6 y Pro 12.' : plan === 'Growth' ? ' Pro permite 12.' : ''}</>
+                  : 'Se pregunta en el formulario de registro. Elegí premios de valor parecido: si uno vale mucho más, todos van a elegir ese.'}
+              </div>
+            </>
+          )}
+        </div>
+        <RulePreview businessId={businessId} card={card} override={{ stampsRequired: stamps }} rewardLabel={mode === 'dynamic' ? (clean[0] || 'Lo elige el cliente') : fixed.trim()} />
+      </div>
+    </div>
+  )
+}
+
+function PointsRules({ businessId, card, data, currency, onSaved }: { businessId: string; card: any; data: any; currency: Currency; onSaved: () => void }) {
+  const init = (): PointsRuleValue => ({
+    pointsMode: data.pointsMode === 'amount' ? 'amount' : 'visit',
+    pointsPerVisit: Number(data.pointsPerVisit) || 10,
+    pointsPerAmount: Number(data.pointsRule?.perAmount) || 1,
+    pointsAmountUnit: Number(data.pointsRule?.unit) || DEFAULT_UNIT[currency],
+  })
+  const [base, setBase] = useState(init)
+  const [rule, setRule] = useState(base)
+  const [ver, setVer] = useState(0) // remonta el editor al descartar (texto del monto)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const dirty = JSON.stringify(rule) !== JSON.stringify(base)
+
+  async function save() {
+    if (!pointsRuleValid(rule)) { setError('Revisá la regla: los puntos van de 1 a 1000 y el monto tiene que ser mayor a 0.'); return }
+    setSaving(true); setError(null)
+    try {
+      const res = await apiUpdateCard(businessId, card.id, rule)
+      setBase(rule)
+      setNotice(res?.passUpdates ? `Guardado. Se actualizó la tarjeta en ${res.passUpdates} celular${res.passUpdates === 1 ? '' : 'es'}.` : 'Guardado.')
+      onSaved()
+    } catch (e: any) {
+      setError(e?.error || 'No se pudo guardar. Intentá de nuevo.')
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="rw-card">
+      <div className="rw-card-head-row">
+        <div><div className="rw-card-title">Cómo se suman los puntos</div><div className="rw-card-sub" style={{ marginBottom: 0 }}>Lo que suma cada cliente cada vez que lo escaneás</div></div>
+        <div className="rw-editor-foot" style={{ marginTop: 0 }}>
+          {dirty && <button className="rw-secondary-btn" onClick={() => { setRule(base); setVer(v => v + 1); setError(null) }} disabled={saving}>Descartar</button>}
+          <button className="rw-add-btn" onClick={save} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button>
+        </div>
+      </div>
+      {error && <div className="rw-error">{error}</div>}
+      {notice && <div className="rw-notice">{notice}</div>}
+      <div className="rw-rules">
+        <div style={{ minWidth: 0 }}>
+          <PointsRuleEditor key={ver} value={rule} onChange={v => { setRule(v); setNotice(null); setError(null) }} currency={currency} />
+          {rule.pointsMode === 'amount' && <div className="rw-hint">En la app de escaneo, el empleado carga el monto de la compra y se suman los puntos que correspondan.</div>}
+        </div>
+        <RulePreview businessId={businessId} card={card} override={rule} />
+      </div>
+    </div>
+  )
+}
+
+function StampRewards({ businessId, card, data, onSaved, onOpenCustomer }: { businessId: string; card: any; data: any; onSaved: () => void; onOpenCustomer?: (email: string) => void }) {
   const chosen: Array<{ prize: string; count: number }> = data.chosen || []
   const maxCount = Math.max(1, ...chosen.map(d => d.count))
   const dynamic = data.reward?.mode === 'dynamic'
-  const options: string[] = data.reward?.options || []
   return (
     <div className="rw-content">
-      <div className="rw-card rw-reward-summary">
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="rw-card-title">Tu premio</div>
-          {dynamic ? (
-            <>
-              <div className="rw-reward-main">Lo elige cada cliente al registrarse</div>
-              <div className="rw-reward-sub">
-                {options.length > 0
-                  ? <>Opciones: {options.map(o => <span key={o} className="rw-chip">{o}</span>)}</>
-                  : 'Todavía no cargaste opciones en la pregunta del premio del formulario.'}
-              </div>
-            </>
-          ) : (
-            <div className="rw-reward-main">{data.reward?.fixedValue || <span style={{ color: '#B23B3B' }}>Sin definir</span>}</div>
-          )}
-          <div className="rw-reward-sub">Se completa con <strong>{data.stampsRequired} sellos</strong>. Se entrega desde la app de escaneo.</div>
-        </div>
-        <button className="rw-secondary-btn" onClick={onGoToDesign}>Editar en Diseño</button>
-      </div>
+      <StampRules key={data.cardId} businessId={businessId} card={card} data={data} onSaved={onSaved} />
 
       <div className="rw-3col">
         <Stat label="Para entregar" value={data.toDeliver ?? 0} sub="tarjetas completas esperando su premio" tone={data.toDeliver > 0 ? 'good' : undefined} />
@@ -135,7 +316,8 @@ function StampRewards({ data, onGoToDesign, onOpenCustomer }: { data: any; onGoT
 }
 
 // ─── Puntos ───────────────────────────────────────────────────────────────────
-function PointsRewards({ businessId, cardId, data, onOpenCustomer, onChanged }: { businessId: string; cardId: string; data: any; onOpenCustomer?: (email: string) => void; onChanged: () => void }) {
+function PointsRewards({ businessId, card, data, currency, onSaved, onOpenCustomer, onChanged }: { businessId: string; card: any; data: any; currency: Currency; onSaved: () => void; onOpenCustomer?: (email: string) => void; onChanged: () => void }) {
+  const cardId = card.id
   const [catalog, setCatalog] = useState<Array<{ _id: string; name: string; pointsCost: number; isActive: boolean }> | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState<{ id: string; name: string; points: string } | null>(null)
@@ -208,10 +390,12 @@ function PointsRewards({ businessId, cardId, data, onOpenCustomer, onChanged }: 
 
   return (
     <div className="rw-content">
+      <PointsRules key={data.cardId} businessId={businessId} card={card} data={data} currency={currency} onSaved={onSaved} />
+
       <div className="rw-3col">
         <Stat label="Canjes este mes" value={data.redeemedThisMonth ?? 0} sub={`${(data.pointsRedeemedThisMonth ?? 0).toLocaleString('es-AR')} puntos canjeados · ${monthDelta(data.redeemedThisMonth ?? 0, data.redeemedLastMonth ?? 0)}`} />
         <Stat label="Pueden canjear ahora" value={data.canRedeem ?? 0} sub="ya les alcanza para el premio más barato" tone={data.canRedeem > 0 ? 'good' : undefined} />
-        <Stat label="Saldo promedio" value={`${(data.avgBalance ?? 0).toLocaleString('es-AR')} pts`} sub={`suman ${data.pointsPerVisit ?? 0} pts por visita`} />
+        <Stat label="Saldo promedio" value={`${(data.avgBalance ?? 0).toLocaleString('es-AR')} pts`} sub={`suman ${pointsRuleText({ pointsMode: data.pointsMode, pointsPerVisit: data.pointsPerVisit, pointsPerAmount: data.pointsRule?.perAmount, pointsAmountUnit: data.pointsRule?.unit }, data.pointsRule?.currency === 'EUR' ? 'EUR' : 'ARS')}`} />
       </div>
 
       <div className="rw-card">
@@ -481,9 +665,11 @@ function MembershipRewards({ businessId, cardId, data, onChanged }: { businessId
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer }: {
+export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, onSaved, region }: {
   cards?: any[]; businessId?: string | null
   onGoToDesign: () => void
+  onSaved?: () => void
+  region?: string | null
   onOpenCustomer?: (email: string) => void
 }) {
   const activeCards: ActiveCard[] = (cards || []).filter((c: any) => c.isActive)
@@ -509,6 +695,9 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer }: 
     return () => { cancelled = true }
   }, [businessId, selected?.id, reload])
 
+  const currency = currencyFor(region)
+  // Al guardar la regla: se refrescan las tarjetas del panel y los números.
+  const afterSave = () => { onSaved?.(); setReload(n => n + 1) }
   const ready = !!selected && dataFor === selected.id && !error && data?.cardId === selected.id
 
   return (
@@ -595,12 +784,32 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer }: 
         .rw-visits{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(43,38,32,.5);white-space:nowrap;}
         .rw-swatch{width:26px;height:26px;border-radius:8px;border:2px solid;cursor:pointer;padding:0;}
         .rw-palette{position:absolute;top:32px;left:0;z-index:20;background:#fff;border:1px solid rgba(43,38,32,.12);border-radius:10px;padding:8px;display:grid;grid-template-columns:repeat(4,26px);gap:6px;box-shadow:0 8px 24px rgba(43,38,32,.15);}
+        .rw-rules{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start;margin-top:4px;}
+        .rw-label{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:rgba(43,38,32,.5);margin-bottom:7px;}
+        .rw-rmodes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+        .rw-rmode{display:flex;gap:9px;align-items:flex-start;border:1.5px solid rgba(43,38,32,.12);border-radius:10px;padding:10px 12px;cursor:pointer;background:#fff;}
+        .rw-rmode--on{border-color:#C75D3A;background:rgba(199,93,58,.04);}
+        .rw-rmode input{accent-color:#C75D3A;margin-top:3px;}
+        .rw-rmode strong{display:block;font-size:13px;color:#2B2620;}
+        .rw-rmode small{display:block;font-size:11.5px;color:rgba(43,38,32,.55);}
+        .rw-pv{position:sticky;top:0;}
+        .rw-pv-pass{border-radius:16px;overflow:hidden;box-shadow:0 12px 36px rgba(43,38,32,.2);}
+        .rw-pv-top{padding:12px 14px;height:30px;display:flex;align-items:center;}
+        .rw-pv-logo{max-height:30px;max-width:150px;object-fit:contain;}
+        .rw-pv-logo.rw-skel{width:90px;height:22px;background:rgba(255,255,255,.18);}
+        .rw-pv-strip{display:block;width:100%;}
+        .rw-pv-strip.rw-skel{background:rgba(255,255,255,.12);border-radius:0;}
+        .rw-pv-fields{display:flex;justify-content:space-between;gap:12px;padding:12px 14px 16px;}
+        .rw-pv-l{font-size:9px;font-weight:600;letter-spacing:.06em;opacity:.75;}
+        .rw-pv-v{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .rw-editor-foot{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;}
         .rw-skel{background:rgba(43,38,32,.07);border-radius:8px;animation:rwPulse 1.2s ease-in-out infinite;}
         @keyframes rwPulse{0%,100%{opacity:.45}50%{opacity:1}}
         @media(max-width:900px){.rw-tier-grid{grid-template-columns:repeat(3,1fr);}}
         @media(max-width:768px){
-          .rw-3col,.rw-2col{grid-template-columns:1fr;}
+          .rw-3col,.rw-2col,.rw-rules{grid-template-columns:1fr;}
+          .rw-rmodes{grid-template-columns:1fr;}
+          .rw-pv{position:static;max-width:320px;width:100%;margin:0 auto;}
           .rw-tier-grid{grid-template-columns:1fr 1fr;}
           .rw-content{padding:14px 16px;}
           .rw-card-head-row{flex-direction:column;}
@@ -627,9 +836,9 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer }: 
         ) : !ready ? (
           <div className="rw-content"><MascotLoader text="Buscando tus premios…" /></div>
         ) : selected.type === 'stamp' ? (
-          <StampRewards data={data} onGoToDesign={onGoToDesign} onOpenCustomer={onOpenCustomer} />
+          <StampRewards businessId={businessId!} card={selected} data={data} onSaved={afterSave} onOpenCustomer={onOpenCustomer} />
         ) : selected.type === 'points' ? (
-          <PointsRewards businessId={businessId!} cardId={selected.id} data={data} onOpenCustomer={onOpenCustomer} onChanged={() => setReload(n => n + 1)} />
+          <PointsRewards businessId={businessId!} card={selected} data={data} currency={currency} onSaved={afterSave} onOpenCustomer={onOpenCustomer} onChanged={() => setReload(n => n + 1)} />
         ) : (
           <MembershipRewards businessId={businessId!} cardId={selected.id} data={data} onChanged={() => setReload(n => n + 1)} />
         )}
