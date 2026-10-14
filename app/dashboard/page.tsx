@@ -1331,7 +1331,7 @@ export default function DashboardPage() {
             cta="Ver formulario"
             onCta={() => { setActive('form'); localStorage.setItem('stampa_active_tab', 'form') }}
           /></div>
-      case 'rewards': return <RewardsTab key={locationId ?? 'all'} cards={cards} businessId={businessId} onGoToDesign={() => { setActive('design'); localStorage.setItem('stampa_active_tab', 'design') }} onOpenCustomer={openCustomerByEmail} />
+      case 'rewards': return <RewardsTab key={locationId ?? 'all'} cards={cards} businessId={businessId} region={owner?.region} onSaved={refreshCards} onGoToDesign={() => { setActive('design'); localStorage.setItem('stampa_active_tab', 'design') }} onOpenCustomer={openCustomerByEmail} />
           case 'notifications': return <NotificationsTab
           businessId={businessId}
           cards={cards}
@@ -1342,7 +1342,8 @@ export default function DashboardPage() {
           selectedLocationId={locationId}
         />
       case 'form':          return <FormTab businessName={business?.name || 'Tu negocio'} businessSlug={business?.slug} cards={cards} businessId={businessId}
-          isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} locations={locations} selectedLocationId={locationId} onSaved={refreshCards}
+          isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} locations={locations} selectedLocationId={locationId} 
+          onGoToRewards={() => { setActive('rewards'); localStorage.setItem('stampa_active_tab', 'rewards') }}
           onGoToDesign={() => { setActive('design'); localStorage.setItem('stampa_active_tab', 'design') }} />
       case 'design':        return <DesignTab key={businessId ?? 'loading'} cards={cards} businessId={businessId} businessName={business?.name} region={owner?.region} onSaved={refreshCards}
           onChoosePlan={() => setShowPlans(true)}

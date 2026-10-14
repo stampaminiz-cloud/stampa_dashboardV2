@@ -4,10 +4,10 @@ import React, { useState, useRef, useEffect } from 'react'
 import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS } from '@/lib/colorPresets'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
-import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiCardImpact, apiGetPointsCatalog, apiWalletPreview } from '@/lib/api'
+import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiGetPointsCatalog, apiWalletPreview } from '@/lib/api'
 import { InfoTooltip } from './InfoTooltip'
 import { NumberStepper } from '@/components/ui/NumberStepper'
-import { PointsRuleEditor, pointsRuleValid, DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
+import { DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
 import { currencyFor, pointsRuleText, type Currency } from '@/lib/money'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -429,10 +429,9 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [saveNotice, setSaveNotice] = useState('')
-  const [confirmImpact, setConfirmImpact] = useState<number | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
-  // Regla de puntos (por visita o por monto): ver PointsRuleEditor.
-  const [pointsRule, setPointsRule] = useState<PointsRuleValue>({
+  // Regla de puntos: se edita en Premios; acá solo alimenta la vista previa.
+  const [pointsRule] = useState<PointsRuleValue>({
     pointsMode: init.pointsMode === 'amount' ? 'amount' : 'visit',
     pointsPerVisit: init.pointsPerVisit || 10,
     pointsPerAmount: init.pointsPerAmount || 1,
@@ -454,7 +453,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   }
 
   const rewardSource = fields.find((f: FormField) => f.isRewardSource)
-  // El premio (fijo o el que elige el cliente) se define en Formulario.
+  // El premio (fijo o el que elige el cliente) se define en Premios.
   // Acá solo se muestra en la vista previa y como resumen.
   const rewardChoices = (rewardSource?.options || []).filter(Boolean)
 
@@ -462,7 +461,6 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const snapshot = (c: CardDesign, l: LogoState, fm: string, fs: string, img: string | null, ppv: string) =>
     JSON.stringify([c.name, c.color, c.secondColor, c.textColor || null, c.labelColor || null, c.publicDescription || '', c.stampsRequired, c.rewardMode, c.rewardField || '', l, fm, fs, img, ppv])
   const [baseline, setBaseline] = useState(() => snapshot(init, { businessLogo: init.logoUrl || null, earnedIcon: init.earnedIcon || null, emptyIcon: init.emptyIcon || null, pointsIcon: init.pointsIcon || null }, init.flipMessage || '¡Lo lograste!', init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio', init.flipImageUrl || null, JSON.stringify({ pointsMode: init.pointsMode === 'amount' ? 'amount' : 'visit', pointsPerVisit: init.pointsPerVisit || 10, pointsPerAmount: init.pointsPerAmount || 1, pointsAmountUnit: init.pointsAmountUnit || DEFAULT_UNIT[currency] })))
-  const [savedStamps, setSavedStamps] = useState(init.stampsRequired)
 
   function setLogo(key: keyof LogoState) { return (url: string | null) => setLogos({ ...logos, [key]: url }) }
   const dirty = snapshot(card, logos, flipMessage, flipSubMessage, prizeImage, pointsPerVisit) !== baseline
@@ -470,23 +468,14 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const labelColorBad = !!card.labelColor && !isHex(card.labelColor)
   const lowContrast = card.type !== 'membership' && isHex(card.textColor || '#FFFFFF') && isHex(card.color) && contrastRatio(card.textColor || '#FFFFFF', card.color) < 3
 
-  async function handleSave(skipImpactCheck = false) {
+  async function handleSave() {
     if (!businessId) {
       setSaveError('No se encontró el negocio — recargá la página e intentá de nuevo.')
       return
     }
     setSaveError(''); setSaveNotice('')
     if (!card.name.trim()) { setSaveError('La tarjeta necesita un nombre.'); return }
-    if (card.type === 'points' && !pointsRuleValid(pointsRule)) { setSaveError('Revisá la regla de puntos: los puntos van de 1 a 1000 y el monto tiene que ser mayor a 0.'); return }
     if (textColorBad || labelColorBad) { setSaveError('Revisá los colores de texto: tienen que ser un código como #FFFFFF.'); return }
-    // Bajar los sellos completa la tarjeta de quienes ya los tienen: avisar antes.
-    if (!skipImpactCheck && card.type === 'stamp' && card.stampsRequired < savedStamps) {
-      try {
-        const { wouldComplete } = await apiCardImpact(businessId, card.id, card.stampsRequired)
-        if (wouldComplete > 0) { setConfirmImpact(wouldComplete); return }
-      } catch { /* si no se puede calcular, se guarda igual */ }
-    }
-    setConfirmImpact(null)
     setSaving(true)
     try {
       const res = await apiUpdateCard(businessId, card.id, {
@@ -496,8 +485,6 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
         ...(can('customTextColor') ? { textColor: card.textColor || null, labelColor: card.labelColor || null } : {}),
         publicDescription: card.publicDescription || '',
         isActive: card.isActive,
-        stampsRequired: card.stampsRequired,
-        ...(card.type === 'points' ? pointsRule : {}),
         flipMessage,
         flipSubMessage,
         // null = se quitó (antes mandaba undefined y "Quitar" nunca se guardaba)
@@ -510,7 +497,6 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
 
       setSaved(true)
       setBaseline(snapshot(card, logos, flipMessage, flipSubMessage, prizeImage, pointsPerVisit))
-      setSavedStamps(card.stampsRequired)
       setSaveNotice(res?.passUpdates ? `Guardado. Se actualizó la tarjeta en ${res.passUpdates} celular${res.passUpdates === 1 ? '' : 'es'}.` : 'Guardado.')
       onSaved?.()
       setTimeout(() => setSaved(false), 2000)
@@ -634,15 +620,6 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
       </div>
       {saveError && <div className="dt-save-error">{saveError}</div>}
       {saveNotice && !saveError && <div className="dt-save-notice">{saveNotice}</div>}
-      {confirmImpact != null && (
-        <div className="dt-save-warn">
-          <span>Con {card.stampsRequired} sellos, <strong>{confirmImpact} cliente{confirmImpact === 1 ? '' : 's'}</strong> van a completar su tarjeta al guardar y tener el premio listo para entregar.</span>
-          <span style={{ display: 'flex', gap: 8 }}>
-            <button className="dt-warn-btn" onClick={() => setConfirmImpact(null)}>Cancelar</button>
-            <button className="dt-warn-btn dt-warn-btn--primary" onClick={() => handleSave(true)}>Guardar igual</button>
-          </span>
-        </div>
-      )}
       {confirmLeave && (
         <div className="dt-save-warn">
           <span>Tenés cambios sin guardar en esta tarjeta.</span>
@@ -701,28 +678,17 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Campos del formulario</div>
           <div className="dt-reward-goto-forms">Se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>. <InfoTooltip text="El formulario de registro usa el color y el logo de esta tarjeta." /></div>
 
-          {/* STAMP: el premio se define en Formulario (un solo lugar). */}
-          {card.type === 'stamp' && (
+          {/* La regla y el premio se editan en Premios (un solo lugar). */}
+          {card.type !== 'membership' && (
             <>
-              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Premio</div>
+              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>{card.type === 'stamp' ? 'Sellos y premio' : 'Cómo se suman los puntos'}</div>
               <div className="dt-reward-goto-forms">
-                {card.rewardMode === 'dynamic'
-                  ? <>Lo elige el cliente{rewardChoices.length ? <>: <strong>{rewardChoices.join(' · ')}</strong></> : ' (todavía sin opciones)'}.</>
-                  : card.rewardField ? <><strong>{card.rewardField}</strong>, el mismo para todos.</> : 'Todavía no definiste el premio.'}
-                {' '}Se define en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>.
-              </div>
-            </>
-          )}
-
-          {/* POINTS: configuration */}
-          {card.type === 'points' && (
-            <>
-              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Configuración de puntos</div>
-              <div className="dt-points-config">
-                <PointsRuleEditor value={pointsRule} onChange={setPointsRule} currency={currency} />
-                <div className="dt-points-note">
-                  Los premios y sus puntos se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>Premios</button>.
-                </div>
+                {card.type === 'stamp'
+                  ? <>{card.stampsRequired} sellos · {card.rewardMode === 'dynamic'
+                      ? <>premio a elección{rewardChoices.length ? <>: <strong>{rewardChoices.join(' · ')}</strong></> : ' (todavía sin opciones)'}</>
+                      : card.rewardField ? <><strong>{card.rewardField}</strong></> : 'todavía sin premio'}.</>
+                  : <>{pointsRuleText(init, currency)}.</>}
+                {' '}Se configura en <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>Premios</button>.
               </div>
             </>
           )}
@@ -768,18 +734,6 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
             <SwatchPicker value={card.labelColor || null} auto onChange={v => setCard({ ...card, labelColor: v })} />
             {labelColorBad && <div className="dt-color-warn">Tiene que ser un código de color como #FFFFFF.</div>}
           </>)}
-
-          {card.type === 'stamp' && (
-            <>
-              <div className="dt-appearance-label" style={{ marginTop: 14 }}>Sellos requeridos</div>
-              <div className="dt-stamps-row">
-                {[4, 6, 8, 10, 12].map((n: number) => (
-                  <button key={n} className={`dt-stamp-count-btn${card.stampsRequired === n ? ' dt-stamp-count-btn--on' : ''}`}
-                    onClick={() => setCard({ ...card, stampsRequired: n })}>{n}</button>
-                ))}
-              </div>
-            </>
-          )}
 
           {/* ── Cara del premio (stamp only) ── */}
           {card.type === 'stamp' && (
