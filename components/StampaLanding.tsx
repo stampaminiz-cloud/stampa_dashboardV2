@@ -54,7 +54,7 @@ const CASE_STATS = [
 const RAW_PLANS = [
   { name: 'Starter', slug: 'starter', desc: 'Para arrancar con un local y una tarjeta.', monthly: 0, annual: 0, features: ['1 local', '1 tarjeta de fidelización', 'Hasta 200 clientes', 'Métricas clave en Inicio', '4 notificaciones por mes'], cta: 'Empezar gratis', highlight: false },
   { name: 'Growth', slug: 'growth', desc: 'Para crecer con marca propia y equipo.', monthly: 0, annual: 0, features: ['1 local', '3 tarjetas de fidelización', 'Hasta 500 clientes', 'Analítica completa', '20 notificaciones por mes, segmentadas', '5 usuarios de equipo'], cta: 'Empezar gratis', highlight: true },
-  { name: 'Pro', slug: 'pro', desc: 'Para negocios con varios locales.', monthly: 0, annual: 0, features: ['3 locales', 'Clientes, tarjetas, equipo y notificaciones ilimitados', 'Hasta 12 premios para que elija el cliente', 'Notificaciones a clientes puntuales', 'Soporte prioritario'], cta: 'Empezar gratis', highlight: false },
+  { name: 'Pro', slug: 'pro', desc: 'Para negocios con varios locales.', monthly: 0, annual: 0, features: ['3 locales', 'Clientes, tarjetas, equipo y notificaciones ilimitados', 'Avisos automáticos: bienvenida, te extrañamos y reseñas en Google', 'Hasta 12 premios para que elija el cliente', 'Sin la marca Stampa en la tarjeta y el formulario', 'Notificaciones a clientes puntuales', 'Soporte prioritario'], cta: 'Empezar gratis', highlight: false },
   { name: 'Enterprise', slug: 'enterprise', desc: 'Para cadenas y franquicias.', monthly: null as number | null, annual: null as number | null, features: ['Locales ilimitados', 'White label', 'Soporte dedicado'], cta: 'Hablar con ventas', highlight: false },
 ];
 

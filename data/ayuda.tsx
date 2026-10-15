@@ -278,8 +278,17 @@ export const ARTICLES: Article[] = [
       <p>"Enviar ahora" o "Programar" para un día y una hora. Las programadas aparecen abajo y se pueden cancelar hasta que salen. Mandalas antes de tu horario fuerte, no a la noche.</p>
       <h2>Probar antes de mandar</h2>
       <p>"Enviarme una prueba" te lo manda solo a vos y no cuenta para el límite. Para recibirla tenés que tener tu propia tarjeta, registrada con el mismo email de tu cuenta.</p>
+      <h2>Avisos automáticos (Pro)</h2>
+      <p>En <strong>Notificaciones</strong>, en "Automáticas", prendés avisos que salen solos. Cada uno le llega una sola vez al cliente por motivo, siempre de día:</p>
+      <ul>
+        <li><strong>Bienvenida:</strong> una hora después de registrarse.</li>
+        <li><strong>A un sello del premio:</strong> al día siguiente de la visita que lo dejó a un sello.</li>
+        <li><strong>Te extrañamos:</strong> a los 15, 30 o 60 días sin venir.</li>
+        <li><strong>Pedir reseña en Google:</strong> después de la visita 3, 5 o 10. El link de reseñas queda también en el dorso de la tarjeta.</li>
+      </ul>
+      <p>Podés cambiar el texto de cada uno y usar {'{nombre}'} y {'{negocio}'}. Al lado de cada aviso ves cuántos salieron en el mes.</p>
       <h2>Cuántas por mes</h2>
-      <p>Starter tiene 4 envíos por mes, Growth 20 y Pro los que quieras. Cuenta cada envío, sin importar a cuántos clientes les llega. Los avisos automáticos (cumpleaños, vencimientos) no cuentan.</p>
+      <p>Starter tiene 4 envíos por mes, Growth 20 y Pro los que quieras. Cuenta cada envío, sin importar a cuántos clientes les llega. Los avisos automáticos (cumpleaños, vencimientos y los de Pro) no cuentan.</p>
       <Note>En Android, Google limita cuántos avisos de una misma tarjeta muestra por día. Si mandás dos seguidos, puede que el segundo no aparezca en la pantalla, aunque queda en la tarjeta.</Note>
     </>,
   },

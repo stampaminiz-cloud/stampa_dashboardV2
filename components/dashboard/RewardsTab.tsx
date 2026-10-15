@@ -12,7 +12,7 @@ import { OptionsEditor } from './OptionsEditor'
 import { PointsRuleEditor, pointsRuleValid, DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { withLoc } from '@/lib/location'
-import { pointsRuleText, currencyFor, type Currency } from '@/lib/money'
+import { pointsRuleText, currencyFor, formatMoney, type Currency } from '@/lib/money'
 
 // Premios, por tarjeta: qué gana el cliente y cómo. Acá se edita la regla
 // (sellos y premio, o cómo se suman los puntos), el catálogo de puntos y los
@@ -222,7 +222,31 @@ function StampRules({ businessId, card, data, onSaved }: { businessId: string; c
   )
 }
 
-function PointsRules({ businessId, card, data, currency, onSaved }: { businessId: string; card: any; data: any; currency: Currency; onSaved: () => void }) {
+// Cuánto le cuesta a un cliente llegar a cada premio con la regla que se está editando.
+function RuleReach({ rule, catalog, currency }: { rule: PointsRuleValue; catalog: { name: string; pointsCost: number }[] | null; currency: Currency }) {
+  const items = (catalog || []).slice().sort((a, b) => a.pointsCost - b.pointsCost).slice(0, 4)
+  return (
+    <div className="rw-reach">
+      <div className="rw-label">Cuánto le cuesta llegar a cada premio</div>
+      {catalog === null ? <div className="rw-skel" style={{ height: 60 }} />
+        : !items.length ? <div className="rw-hint" style={{ marginTop: 0 }}>Cargá premios en el catálogo de abajo y acá vas a ver cuántas visitas (o cuánta plata) necesita un cliente para cada uno.</div>
+        : items.map(i => {
+            const need = rule.pointsMode === 'amount'
+              ? (rule.pointsPerAmount > 0 && rule.pointsAmountUnit > 0 ? `gastando ${formatMoney(Math.ceil(i.pointsCost / rule.pointsPerAmount) * rule.pointsAmountUnit, currency)}` : '—')
+              : (rule.pointsPerVisit > 0 ? (n => `${n} visita${n === 1 ? '' : 's'}`)(Math.ceil(i.pointsCost / rule.pointsPerVisit)) : '—')
+            return (
+              <div key={i.name} className="rw-reach-row">
+                <span className="rw-reach-name">{i.name}</span>
+                <span className="rw-pts-badge">{i.pointsCost.toLocaleString('es-AR')} pts</span>
+                <span className="rw-reach-need">{need}</span>
+              </div>
+            )
+          })}
+    </div>
+  )
+}
+
+function PointsRules({ businessId, card, data, currency, catalog, onSaved }: { businessId: string; card: any; data: any; currency: Currency; catalog: { name: string; pointsCost: number; isActive?: boolean }[] | null; onSaved: () => void }) {
   const init = (): PointsRuleValue => ({
     pointsMode: data.pointsMode === 'amount' ? 'amount' : 'visit',
     pointsPerVisit: Number(data.pointsPerVisit) || 10,
@@ -264,7 +288,7 @@ function PointsRules({ businessId, card, data, currency, onSaved }: { businessId
       <div className="rw-rules">
         <div style={{ minWidth: 0 }}>
           <PointsRuleEditor key={ver} value={rule} onChange={v => { setRule(v); setNotice(null); setError(null) }} currency={currency} />
-          {rule.pointsMode === 'amount' && <div className="rw-hint">En la app de escaneo, el empleado carga el monto de la compra y se suman los puntos que correspondan.</div>}
+          <RuleReach rule={rule} catalog={catalog ? catalog.filter(i => i.isActive !== false) : null} currency={currency} />
         </div>
         <RulePreview businessId={businessId} card={card} override={rule} />
       </div>
@@ -390,7 +414,7 @@ function PointsRewards({ businessId, card, data, currency, onSaved, onOpenCustom
 
   return (
     <div className="rw-content">
-      <PointsRules key={data.cardId} businessId={businessId} card={card} data={data} currency={currency} onSaved={onSaved} />
+      <PointsRules key={data.cardId} businessId={businessId} card={card} data={data} currency={currency} catalog={catalog} onSaved={onSaved} />
 
       <div className="rw-3col">
         <Stat label="Canjes este mes" value={data.redeemedThisMonth ?? 0} sub={`${(data.pointsRedeemedThisMonth ?? 0).toLocaleString('es-AR')} puntos canjeados · ${monthDelta(data.redeemedThisMonth ?? 0, data.redeemedLastMonth ?? 0)}`} />
@@ -792,6 +816,11 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         .rw-rmode input{accent-color:#C75D3A;margin-top:3px;}
         .rw-rmode strong{display:block;font-size:13px;color:#2B2620;}
         .rw-rmode small{display:block;font-size:11.5px;color:rgba(43,38,32,.55);}
+        .rw-reach{margin-top:18px;padding-top:14px;border-top:1px solid rgba(43,38,32,.07);}
+        .rw-reach-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(43,38,32,.05);font-size:12px;}
+        .rw-reach-row:last-child{border-bottom:none;}
+        .rw-reach-name{flex:1;min-width:0;color:#2B2620;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .rw-reach-need{width:130px;text-align:right;color:rgba(43,38,32,.6);font-weight:600;flex-shrink:0;}
         .rw-pv{position:sticky;top:0;}
         .rw-pv-pass{border-radius:16px;overflow:hidden;box-shadow:0 12px 36px rgba(43,38,32,.2);}
         .rw-pv-top{padding:20px 20px 10px;}
