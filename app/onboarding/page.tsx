@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { apiMe, apiOnboarding, getToken } from '@/lib/api'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { NumberStepper } from '@/components/ui/NumberStepper'
-import { allowsFreeColor, darkenHex, DEFAULT_CARD_COLOR, presetsForPlan } from '@/lib/colorPresets'
+import { darkenHex, DEFAULT_CARD_COLOR, presetsForPlan } from '@/lib/colorPresets'
+import { ColorField, useLogoColors } from '@/components/dashboard/ColorField'
 import { PLAN_LIMITS, type Plan } from '@/data/plans'
 import { PointsRuleEditor, pointsRuleValid, DEFAULT_UNIT, type PointsRuleValue } from '@/components/dashboard/PointsRuleEditor'
 import { currencyFor, pointsRuleText, type Currency } from '@/lib/money'
@@ -114,7 +115,7 @@ const STEP_INFO: Record<number, { title: string; subtitle: string; tip: string }
   },
   5: {
     title: 'Dale identidad a tu tarjeta',
-    subtitle: 'El logo y el color se muestran en la wallet pass de tus clientes.',
+    subtitle: 'El logo y el color se muestran en la tarjeta que tus clientes guardan en el Wallet.',
     tip: 'Una tarjeta con tus colores se ve más profesional y genera más confianza en tus clientes.',
   },
   6: {
@@ -192,7 +193,7 @@ function WalletPass({ state }: { state: OBState }) {
           {state.cardType === 'stamp' ? 'PROGRESO' : state.cardType === 'points' ? 'PUNTOS' : 'NIVEL'}
         </div>
         <div style={{ fontSize: 26, fontWeight: 800, color: '#fff', lineHeight: 1 }}>
-          {state.cardType === 'stamp' ? `3 / ${state.stampsRequired}` : state.cardType === 'points' ? '120 pts' : 'Silver'}
+          {state.cardType === 'stamp' ? `3 / ${state.stampsRequired}` : state.cardType === 'points' ? '120 pts' : 'Plata'}
         </div>
       </div>
 
@@ -214,7 +215,7 @@ function WalletPass({ state }: { state: OBState }) {
       )}
       {state.cardType === 'membership' && (
         <div style={{ padding: '4px 22px 16px', display: 'flex', gap: 6 }}>
-          {['Bronze','Silver','Gold','Black'].map((t, i) => (
+          {['Bronce','Plata','Oro','Black'].map((t, i) => (
             <div key={t} style={{ fontSize: 9, padding: '4px 10px', borderRadius: 20, background: i === 1 ? 'rgba(255,255,255,.88)' : 'rgba(255,255,255,.16)', color: i === 1 ? '#2B2620' : 'rgba(255,255,255,.7)', fontWeight: 700 }}>{t}</div>
           ))}
         </div>
@@ -227,7 +228,7 @@ function WalletPass({ state }: { state: OBState }) {
             {state.cardType === 'membership' ? 'NIVEL ACTUAL' : state.cardType === 'points' ? 'ACUMULADO' : 'PREMIO'}
           </div>
           <div style={{ fontSize: 12, color: '#fff', fontWeight: 600, marginTop: 3 }}>
-            {state.cardType === 'stamp' ? rewardLabel : state.cardType === 'points' ? '120 pts' : 'Silver'}
+            {state.cardType === 'stamp' ? rewardLabel : state.cardType === 'points' ? '120 pts' : 'Plata'}
           </div>
         </div>
         <div>
@@ -256,7 +257,7 @@ function GooglePass({ state }: { state: OBState }) {
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,.8)', fontWeight: 500 }}>{state.businessName || 'Tu negocio'}</span>
         </div>
         <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>
-          {state.cardType === 'stamp' ? `3 de ${state.stampsRequired} sellos` : state.cardType === 'points' ? '120 pts' : 'Silver'}
+          {state.cardType === 'stamp' ? `3 de ${state.stampsRequired} sellos` : state.cardType === 'points' ? '120 pts' : 'Plata'}
         </div>
       </div>
       <div style={{ padding: '16px 18px' }}>
@@ -342,8 +343,8 @@ function Step2({ state, onChange, onNext, onBack }: { state: OBState; onChange: 
 
   const CARD_TYPES: Array<{ id: CardType; name: string; desc: string; reason: string }> = [
     { id: 'stamp',      name: 'Tarjeta de sellos',   desc: 'Sellos por visita · Premio al completar', reason: 'Ideal para negocios de consumo frecuente. Simple y efectivo.' },
-    { id: 'points',     name: 'Puntos por visita',   desc: 'Puntos acumulables · Catálogo de premios', reason: 'Perfecto cuando tenés múltiples servicios o distintos precios.' },
-    { id: 'membership', name: 'Membresía por niveles', desc: 'Bronze → Silver → Gold → Black', reason: 'Genera exclusividad. Tus mejores clientes sienten que progresan.' },
+    { id: 'points',     name: 'Puntos',              desc: 'Por visita o por monto de la compra · Catálogo de premios', reason: 'Perfecto cuando tenés múltiples servicios o distintos precios.' },
+    { id: 'membership', name: 'Membresía por niveles', desc: 'Bronce → Plata → Oro → Black', reason: 'Genera exclusividad. Tus mejores clientes sienten que progresan.' },
   ]
 
   return (
@@ -382,9 +383,9 @@ function Step2({ state, onChange, onNext, onBack }: { state: OBState; onChange: 
 type StepProps = { state: OBState; onChange: (p: Partial<OBState>) => void; onNext: () => void; onBack: () => void }
 
 const MEMBERSHIP_TIERS = [
-  { name: 'Bronze', threshold: 0,  perk: 'Bienvenida',             color: '#854F0B', bg: '#FAEEDA' },
-  { name: 'Silver', threshold: 10, perk: '5% de descuento',        color: '#444441', bg: '#EAEAEA' },
-  { name: 'Gold',   threshold: 25, perk: 'Regalo de cumpleaños',   color: '#633806', bg: '#FAC775' },
+  { name: 'Bronce', threshold: 0,  perk: 'Bienvenida',             color: '#854F0B', bg: '#FAEEDA' },
+  { name: 'Plata',  threshold: 10, perk: '5% de descuento',        color: '#444441', bg: '#EAEAEA' },
+  { name: 'Oro',    threshold: 25, perk: 'Regalo de cumpleaños',   color: '#633806', bg: '#FAC775' },
   { name: 'Black',  threshold: 50, perk: 'Beneficios exclusivos',  color: '#F7F0E4', bg: '#1A1A18' },
 ]
 
@@ -541,9 +542,8 @@ async function compressLogo(file: File): Promise<string> {
 function Step5({ state, onChange, onNext, onBack, plan }: StepProps & { plan: string }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
-  const [hex, setHex] = useState(state.brandColor)
   const presets = presetsForPlan(plan)
-  const free = allowsFreeColor(plan)
+  const logoColors = useLogoColors(state.brandLogo)
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return
@@ -551,10 +551,6 @@ function Step5({ state, onChange, onNext, onBack, plan }: StepProps & { plan: st
     try { onChange({ brandLogo: await compressLogo(file) }) }
     catch (err: any) { setLogoError(err.message) }
     e.target.value = ''
-  }
-  function applyHex(v: string) {
-    setHex(v)
-    if (/^#[0-9A-Fa-f]{6}$/.test(v)) onChange({ brandColor: v })
   }
   const planNote = 'Elegí uno de la paleta o cualquier color. Después lo podés cambiar en Diseño.'
 
@@ -580,22 +576,29 @@ function Step5({ state, onChange, onNext, onBack, plan }: StepProps & { plan: st
         </div>
         <div style={{ flex: 1 }}>
           <div className="ob-brand-label">Color de la tarjeta</div>
+          {logoColors.length > 0 && (<>
+            <div className="ob-color-sub">De tu logo</div>
+            <div className="ob-color-row">
+              {logoColors.map(c => (
+                <button key={c} title={c} aria-label={c}
+                  className={`ob-color-dot${state.brandColor.toLowerCase() === c.toLowerCase() ? ' ob-color-dot--on' : ''}`}
+                  style={{ background: c }} onClick={() => onChange({ brandColor: c })} />
+              ))}
+            </div>
+            <div className="ob-color-sub">Sugeridos</div>
+          </>)}
           <div className="ob-color-row">
             {presets.map(c => (
               <button key={c.start} title={c.label} aria-label={c.label}
                 className={`ob-color-dot${state.brandColor.toLowerCase() === c.start.toLowerCase() ? ' ob-color-dot--on' : ''}`}
-                style={{ background: c.start }} onClick={() => { onChange({ brandColor: c.start }); setHex(c.start) }} />
+                style={{ background: c.start }} onClick={() => onChange({ brandColor: c.start })} />
             ))}
           </div>
-          {free && (
-            <div className="ob-custom-color">
-              <label className="ob-custom-swatch" style={{ background: /^#[0-9A-Fa-f]{6}$/.test(hex) ? hex : state.brandColor }}>
-                <input type="color" value={state.brandColor} onChange={e => applyHex(e.target.value)} />
-              </label>
-              <input className="ob-hex-input" value={hex} maxLength={7} onChange={e => applyHex(e.target.value)} placeholder="#1B412F" />
-              <span className="ob-hex-label">Color propio</span>
-            </div>
-          )}
+          <div className="ob-custom-color">
+            <span className="ob-hex-label">Otro color</span>
+            <ColorField ariaLabel="Color de la tarjeta" value={state.brandColor} logoColors={logoColors}
+              suggestions={presets.map(p => ({ hex: p.start, label: p.label }))} onChange={v => v && onChange({ brandColor: v })} />
+          </div>
           <div className="ob-hint" style={{ marginTop: 16 }}><StampyIcon size={26} />{planNote}</div>
         </div>
       </div>
@@ -723,7 +726,7 @@ const CSS = `
   .ob-type-card { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:16px 18px; background:#fff; border:2px solid rgba(43,38,32,.1); border-radius:14px; cursor:pointer; transition:all .15s; text-align:left; }
   .ob-type-card:hover { border-color:rgba(43,38,32,.25); }
   .ob-type-card--on { border-color:#C75D3A; background:rgba(199,93,58,.05); }
-  .ob-type-card--rec { border-color:#C75D3A; }
+  .ob-type-card--rec:not(.ob-type-card--on) { border-color:rgba(199,93,58,.3); border-style:dashed; }
   .ob-type-name { font-size:15px; font-weight:700; color:#2B2620; margin-bottom:4px; }
   .ob-type-desc { font-size:12px; color:rgba(43,38,32,.5); }
   .ob-type-rec-note { font-size:12px; color:rgba(43,38,32,.65); margin-top:6px; line-height:1.5; }
@@ -739,7 +742,8 @@ const CSS = `
   .ob-stamp-btn--on { border-color:#C75D3A; background:#C75D3A; color:#fff; }
   .ob-stamp-num { font-size:26px; font-weight:800; }
   .ob-stamp-sub { font-size:9px; opacity:.7; }
-  .ob-hint { display:flex; align-items:center; gap:10px; font-size:12.5px; color:rgba(43,38,32,.55); margin-top:12px; background:rgba(43,38,32,.045); padding:11px 16px; border-radius:11px; line-height:1.5; }
+  .ob-section-label { font-size:13px; font-weight:600; color:#2B2620; margin:24px 0 12px; }
+  .ob-hint { display:flex; align-items:center; gap:10px; font-size:12.5px; color:rgba(43,38,32,.55); margin-top:18px; background:rgba(43,38,32,.045); padding:11px 16px; border-radius:11px; line-height:1.5; }
   /* Points */
   .ob-pts-input { width:88px; padding:10px; font-size:24px; font-weight:800; text-align:center; border:2px solid rgba(43,38,32,.12); border-radius:12px; background:#fff; color:#2B2620; font-family:var(--font-d); outline:none; }
   .ob-pts-input:focus { border-color:#C75D3A; }
@@ -767,6 +771,7 @@ const CSS = `
   .ob-logo-zone:hover { border-color:#C75D3A; }
   .ob-logo-hint { font-size:10px; color:rgba(43,38,32,.4); }
   .ob-logo-remove { font-size:11px; color:#B23B3B; background:none; border:none; cursor:pointer; margin-top:6px; }
+  .ob-color-sub { font-size:11px; color:rgba(43,38,32,.5); margin:4px 0 8px; }
   .ob-color-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
   .ob-color-dot { width:32px; height:32px; border-radius:50%; border:2.5px solid transparent; cursor:pointer; transition:all .15s; }
   .ob-color-dot--on { border-color:#2B2620; transform:scale(1.1); }

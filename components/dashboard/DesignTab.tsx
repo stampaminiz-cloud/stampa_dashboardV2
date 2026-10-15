@@ -6,9 +6,9 @@ import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
 import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiGetPointsCatalog, apiWalletPreview } from '@/lib/api'
 import { InfoTooltip } from './InfoTooltip'
-import { ColorField, useLogoColors } from './ColorField'
+import { ColorField, contrastRatio, useLogoColors } from './ColorField'
 import { NumberStepper } from '@/components/ui/NumberStepper'
-import { DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
+import { PointsRuleEditor, DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
 import { currencyFor, pointsRuleText, type Currency } from '@/lib/money'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -186,6 +186,10 @@ function LogoUpload({ label, hint, value, onChange }: {
 const BG_SUGGESTIONS = [...COLOR_PRESETS, ...EXTRA_COLOR_PRESETS].map(p => ({ hex: p.start, label: p.label }))
 const TEXT_SUGGESTIONS = ['#FFFFFF', '#FBF6EE', '#F2D9A6', '#C9A84C', '#8A8580', '#2B2620', '#000000'].map(hex => ({ hex }))
 // Segundo color del degradé: el del preset si es uno, si no un tono más oscuro.
+// Membresía: el texto del formulario y de la app se elige solo (claro u oscuro).
+function autoTextFor(bg: string) {
+  return contrastRatio('#FFFFFF', bg) >= 3 ? '#FFFFFF' : '#2B2620'
+}
 function secondFor(hex: string) {
   return [...COLOR_PRESETS, ...EXTRA_COLOR_PRESETS].find(p => p.start.toUpperCase() === hex.toUpperCase())?.end || darkenHex(hex)
 }
@@ -617,42 +621,45 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
             </>
           )}
 
-          {/* MEMBERSHIP: redirect to rewards */}
-          {card.type === 'membership' && (
+          {/* Appearance */}
+          <div className="dt-panel-section-title" style={{ marginTop: 20 }}>{card.type === 'membership' ? 'Colores de la tarjeta' : 'Apariencia de la tarjeta'}</div>
+          {card.type === 'membership' ? (
             <>
-              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Niveles de membresía</div>
-              <div className="dt-membership-note">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
-                <div>
-                  <div className="dt-membership-note-title">Los niveles se configuran en Premios</div>
-                  <div className="dt-membership-note-desc">Nombre, color, visitas y beneficio de cada nivel: <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>ir a Premios</button>.</div>
-                </div>
+              {/* Membresía: en Apple la tarjeta toma el color de cada nivel
+                  (Premios). Google Wallet usa un solo color por tarjeta: este,
+                  que también pinta el formulario y la app de escaneo. Texto y
+                  etiquetas salen del nivel (Apple) o los elige Google. */}
+              <div className="dt-appearance-label">Color de la tarjeta</div>
+              <ColorField ariaLabel="Color de la tarjeta" value={card.color} suggestions={BG_SUGGESTIONS} logoColors={logoColors}
+                onChange={v => v && setCard({ ...card, color: v, secondColor: secondFor(v), textColor: autoTextFor(v) })} />
+              <div className="dt-reward-goto-forms" style={{ marginTop: 8 }}>Se usa en Google Wallet, en el formulario de registro y en la app de escaneo.</div>
+              <div className="dt-appearance-label" style={{ marginTop: 16 }}>En Apple Wallet, el color de cada nivel</div>
+              <div className="dt-tier-chips">
+                {tiers.map(t => <span key={t.id || t.name} className="dt-tier-chip" style={{ background: t.bg, color: t.color }}>{t.name}</span>)}
               </div>
+              <div className="dt-reward-goto-forms" style={{ marginTop: 8 }}>Nombre, color, visitas y beneficio de cada nivel se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>Premios</button>.</div>
+            </>
+          ) : (
+            <>
+              <div className="dt-appearance-label">Color de fondo</div>
+              <ColorField ariaLabel="Color de fondo" value={card.color} suggestions={BG_SUGGESTIONS} logoColors={logoColors}
+                onChange={v => v && setCard({ ...card, color: v, secondColor: secondFor(v) })} />
+
+              <div className="dt-appearance-label" style={{ marginTop: 14 }}>
+                Color de texto
+                <InfoTooltip text="El color del nombre, los números y los datos de la tarjeta, tal como se ve en la Wallet." />
+              </div>
+              <ColorField ariaLabel="Color de texto" value={card.textColor || '#FFFFFF'} suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
+                contrastWith={card.color} onChange={v => setCard({ ...card, textColor: v })} />
+
+              <div className="dt-appearance-label" style={{ marginTop: 14 }}>
+                Color de las etiquetas
+                <InfoTooltip text="Los títulos chicos (TITULAR, PREMIO…). En Automático usan el color de texto." />
+              </div>
+              <ColorField ariaLabel="Color de las etiquetas" value={card.labelColor || null} auto suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
+                contrastWith={card.color} onChange={v => setCard({ ...card, labelColor: v })} />
             </>
           )}
-
-          {/* Appearance */}
-          <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Apariencia de la tarjeta</div>
-          <div className="dt-appearance-label">
-            {card.type === 'membership' ? 'Color de marca' : 'Color de fondo'}
-            {card.type === 'membership' && <InfoTooltip text="Se usa en el formulario de registro y en la app de escaneo. En la Wallet, la tarjeta toma el color del nivel de cada cliente (se elige en Premios)." />}
-          </div>
-          <ColorField ariaLabel={card.type === 'membership' ? 'Color de marca' : 'Color de fondo'} value={card.color} suggestions={BG_SUGGESTIONS} logoColors={logoColors}
-            onChange={v => v && setCard({ ...card, color: v, secondColor: secondFor(v) })} />
-
-          <div className="dt-appearance-label" style={{ marginTop: 14 }}>
-            Color de texto
-            <InfoTooltip text="El color del nombre, los números y los datos de la tarjeta, tal como se ve en la Wallet." />
-          </div>
-          <ColorField ariaLabel="Color de texto" value={card.textColor || '#FFFFFF'} suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
-            contrastWith={card.type === 'membership' ? null : card.color} onChange={v => setCard({ ...card, textColor: v })} />
-
-          <div className="dt-appearance-label" style={{ marginTop: 14 }}>
-            Color de las etiquetas
-            <InfoTooltip text="Los títulos chicos (TITULAR, PREMIO…). En Automático usan el color de texto." />
-          </div>
-          <ColorField ariaLabel="Color de las etiquetas" value={card.labelColor || null} auto suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
-            contrastWith={card.type === 'membership' ? null : card.color} onChange={v => setCard({ ...card, labelColor: v })} />
 
           {/* ── Cara del premio (stamp only) ── */}
           {card.type === 'stamp' && (
@@ -707,23 +714,24 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
 
 // ─── Card Manager (Level 1) ───────────────────────────────────────────────────
 // ─── New card modal ───────────────────────────────────────────────────────────
-function NewCardModal({ onClose, onAdd, existingCount }: {
+function NewCardModal({ onClose, onAdd, existingCount, currency = 'ARS' }: {
   onClose: () => void
   onAdd:   (card: Omit<CardDesign, 'id'>) => Promise<string | null>
   existingCount: number
+  currency?: Currency
 }) {
   const [step, setStep]         = useState<1 | 2>(1)
   const [name, setName]         = useState('')
   const [type, setType]         = useState<CardType>('stamp')
   const [stamps, setStamps]     = useState(8)
-  const [points, setPoints]     = useState(10)
+  const [rule, setRule]         = useState<PointsRuleValue>({ pointsMode: 'visit', pointsPerVisit: 10, pointsPerAmount: 1, pointsAmountUnit: DEFAULT_UNIT[currency] })
   const [rewardMode, setRewardMode] = useState<'dynamic' | 'fixed'>('dynamic')
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState<string | null>(null)
 
   const TYPES: Array<{ id: CardType; label: string; desc: string }> = [
     { id: 'stamp',      label: 'Tarjeta de sellos',   desc: 'Visitas → premio al completar' },
-    { id: 'points',     label: 'Puntos por visita',   desc: 'Acumulan puntos del catálogo'  },
+    { id: 'points',     label: 'Puntos',              desc: 'Suman por visita o por monto y los canjean por premios' },
     { id: 'membership', label: 'Membresía por niveles', desc: 'Bronce → Plata → Oro → Black (los editás en Premios)' },
   ]
 
@@ -738,7 +746,8 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
       stampsRequired: type === 'stamp' ? stamps : 0,
       rewardMode:     type === 'stamp' ? rewardMode : null,
       rewardField:    null,
-      pointsPerVisit: type === 'points' ? points : null,
+      pointsPerVisit: type === 'points' ? rule.pointsPerVisit : null,
+      ...(type === 'points' ? { pointsMode: rule.pointsMode, pointsPerAmount: rule.pointsPerAmount, pointsAmountUnit: rule.pointsAmountUnit } : {}),
     }
     setSaving(true)
     setError(null)
@@ -823,9 +832,9 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
 
             {type === 'points' && (
               <>
-                <div className="dt-modal-field-label">Puntos por visita</div>
-                <NumberStepper value={points} onChange={setPoints} min={1} max={1000} suffix="pts" presets={[5, 10, 20, 50]} ariaLabel="Puntos por visita" />
-                <div className="dt-modal-hint">Los premios y umbrales se configuran desde la sección Premios.</div>
+                <div className="dt-modal-field-label">Cómo se suman los puntos</div>
+                <PointsRuleEditor value={rule} onChange={setRule} currency={currency} />
+                <div className="dt-modal-hint" style={{ marginTop: 16 }}>Los premios del catálogo se cargan después, en Premios.</div>
               </>
             )}
 
@@ -925,6 +934,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
         stampsRequired: draft.stampsRequired || undefined,
         rewardMode:     draft.rewardMode || undefined,
         pointsPerVisit: draft.pointsPerVisit || undefined,
+        ...(draft.type === 'points' ? { pointsMode: draft.pointsMode, pointsPerAmount: draft.pointsPerAmount, pointsAmountUnit: draft.pointsAmountUnit } : {}),
       } as any)
       const newCard: CardDesign = {
         id:             created._id,
@@ -940,6 +950,9 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
         earnedIcon:     created.earnedIcon || null,
         emptyIcon:      created.emptyIcon || null,
         pointsPerVisit: created.pointsPerVisit || null,
+        pointsMode: created.pointsMode || 'visit',
+        pointsPerAmount: created.pointsPerAmount || null,
+        pointsAmountUnit: created.pointsAmountUnit || null,
       }
       setCards([...cards, newCard])
       onSaved?.()  // re-sincroniza el estado del padre para que sobreviva un cambio de tab
@@ -1033,6 +1046,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
           onClose={() => setModal(false)}
           onAdd={handleCardAdded}
           existingCount={cards.length}
+          currency={currency}
         />
       )}
 
@@ -1142,6 +1156,8 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-save-warn{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12.5px;color:#7A5A12;background:rgba(212,162,76,.14);border-bottom:1px solid rgba(212,162,76,.3);padding:10px 20px;}
         .dt-warn-btn{font-size:12px;font-weight:600;border:1px solid rgba(43,38,32,.2);background:#fff;color:#2B2620;border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;}
         .dt-warn-btn--primary{background:#C75D3A;border-color:#C75D3A;color:#fff;}
+        .dt-tier-chips{display:flex;flex-wrap:wrap;gap:6px;}
+        .dt-tier-chip{font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(43,38,32,.08);}
         .dt-color-warn{font-size:11px;color:#9E4529;background:rgba(199,93,58,.08);border-radius:7px;padding:6px 9px;margin-top:6px;line-height:1.4;}
         .dt-inline-link{background:none;border:none;padding:0;color:#C75D3A;font-weight:700;cursor:pointer;font-family:inherit;font-size:inherit;}
         .dt-editor-body{flex:1;display:grid;grid-template-columns:300px 1fr;overflow:hidden;}

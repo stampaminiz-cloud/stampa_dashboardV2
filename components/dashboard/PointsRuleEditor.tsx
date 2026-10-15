@@ -35,8 +35,8 @@ export function PointsRuleEditor({ value, onChange, currency }: { value: PointsR
         ))}
       </div>
       {value.pointsMode === 'visit' ? (
-        <div className="pr-row">
-          <span>Puntos por visita</span>
+        <div className="pr-stack">
+          <span className="pr-label">Puntos por visita</span>
           <NumberStepper value={value.pointsPerVisit} onChange={n => set({ pointsPerVisit: Math.max(1, Math.min(1000, Math.round(n) || 1)) })} min={1} max={1000} suffix="pts" presets={[5, 10, 20, 50]} size="sm" ariaLabel="Puntos por visita" />
         </div>
       ) : (
@@ -61,13 +61,15 @@ export function PointsRuleEditor({ value, onChange, currency }: { value: PointsR
 }
 
 const CSS = `
-  .pr-box{display:flex;flex-direction:column;gap:10px;}
+  .pr-box{display:flex;flex-direction:column;gap:12px;}
   .pr-modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   .pr-mode{text-align:left;display:flex;flex-direction:column;gap:2px;border:1.5px solid rgba(43,38,32,.12);border-radius:10px;padding:9px 11px;background:#fff;cursor:pointer;font-family:inherit;}
   .pr-mode strong{font-size:12.5px;color:#2B2620;}
   .pr-mode small{font-size:11px;color:rgba(43,38,32,.55);}
   .pr-mode--on{border-color:#C75D3A;background:rgba(199,93,58,.05);}
   .pr-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;color:#2B2620;}
+  .pr-stack{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:4px;}
+  .pr-label{font-size:12.5px;color:#2B2620;font-weight:500;}
   .pr-row--wrap{justify-content:flex-start;flex-wrap:wrap;}
   .pr-money{display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(43,38,32,.18);border-radius:8px;padding:5px 9px;background:#fff;font-size:13px;}
   .pr-money input{border:none;outline:none;width:90px;font:inherit;background:transparent;}
