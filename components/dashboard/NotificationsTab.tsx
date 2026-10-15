@@ -3,6 +3,7 @@ import { readCache, getJson } from '@/lib/cache'
 import React, { useState, useEffect, useRef } from 'react'
 import { usePlan } from '@/data/plans'
 import { BASE_URL, apiGetTiers } from '@/lib/api'
+import { AutoNotices } from './AutoNotices'
 
 // Notificaciones: se mandan al Wallet del cliente (Apple Wallet y Google
 // Wallet; Google limita cuántos avisos muestra por tarjeta y por día). El límite del plan cuenta ENVÍOS (campañas), no
@@ -552,6 +553,9 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
             </div>
           </div>
         </div>
+
+        <div className="nt-lbl">Automáticas</div>
+        <AutoNotices businessId={businessId} businessName={businessName} hasStamp={hasStamp} isManager={isManager} onChoosePlan={onChoosePlan} />
 
         <div className="nt-lbl">Programadas</div>
         <div className="nt-card">
