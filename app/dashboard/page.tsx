@@ -1345,6 +1345,7 @@ export default function DashboardPage() {
         />
       case 'form':          return <FormTab businessName={business?.name || 'Tu negocio'} businessSlug={business?.slug} cards={cards} businessId={businessId}
           isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} locations={locations} selectedLocationId={locationId} 
+          onSaved={refreshCards}
           onGoToRewards={() => { setActive('rewards'); localStorage.setItem('stampa_active_tab', 'rewards') }}
           onGoToDesign={() => { setActive('design'); localStorage.setItem('stampa_active_tab', 'design') }} />
       case 'design':        return <DesignTab key={businessId ?? 'loading'} cards={cards} businessId={businessId} businessName={business?.name} region={owner?.region} onSaved={refreshCards}

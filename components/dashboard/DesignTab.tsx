@@ -403,10 +403,13 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
     try {
       const res = await apiUpdateCard(businessId, card.id, {
         name: card.name.trim(),
-        color: card.color,
-        secondColor: card.secondColor,
-        textColor: card.textColor || null,
-        labelColor: card.labelColor || null,
+        // Membresía: los colores se editan en Formulario (formulario y app) y en Premios (niveles).
+        ...(card.type === 'membership' ? {} : {
+          color: card.color,
+          secondColor: card.secondColor,
+          textColor: card.textColor || null,
+          labelColor: card.labelColor || null,
+        }),
         publicDescription: card.publicDescription || '',
         isActive: card.isActive,
         flipMessage,
@@ -617,27 +620,27 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
             </>
           )}
 
-          {/* MEMBERSHIP: redirect to rewards */}
-          {card.type === 'membership' && (
+          {/* Appearance */}
+          {card.type === 'membership' ? (
             <>
-              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Niveles de membresía</div>
-              <div className="dt-membership-note">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
-                <div>
-                  <div className="dt-membership-note-title">Los niveles se configuran en Premios</div>
-                  <div className="dt-membership-note-desc">Nombre, color, visitas y beneficio de cada nivel: <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>ir a Premios</button>.</div>
-                </div>
+              {/* Membresía: la tarjeta del Wallet toma el color de cada nivel
+                  (Premios). El color del formulario y de la app se elige en
+                  Formulario. Texto y etiquetas salen de cada nivel. */}
+              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Colores de la tarjeta</div>
+              <div className="dt-reward-goto-forms" style={{ marginBottom: 10 }}>Son los de cada nivel:</div>
+              <div className="dt-tier-chips">
+                {tiers.map(t => <span key={t.id || t.name} className="dt-tier-chip" style={{ background: t.bg, color: t.color }}>{t.name}</span>)}
+              </div>
+              <div className="dt-reward-goto-forms" style={{ marginTop: 10 }}>
+                Se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>Premios</button>. El color del formulario y de la app de escaneo se elige en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>.
               </div>
             </>
-          )}
-
-          {/* Appearance */}
+          ) : (<>
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Apariencia de la tarjeta</div>
           <div className="dt-appearance-label">
-            {card.type === 'membership' ? 'Color de marca' : 'Color de fondo'}
-            {card.type === 'membership' && <InfoTooltip text="Se usa en el formulario de registro y en la app de escaneo. En la Wallet, la tarjeta toma el color del nivel de cada cliente (se elige en Premios)." />}
+            Color de fondo
           </div>
-          <ColorField ariaLabel={card.type === 'membership' ? 'Color de marca' : 'Color de fondo'} value={card.color} suggestions={BG_SUGGESTIONS} logoColors={logoColors}
+          <ColorField ariaLabel="Color de fondo" value={card.color} suggestions={BG_SUGGESTIONS} logoColors={logoColors}
             onChange={v => v && setCard({ ...card, color: v, secondColor: secondFor(v) })} />
 
           <div className="dt-appearance-label" style={{ marginTop: 14 }}>
@@ -645,14 +648,16 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
             <InfoTooltip text="El color del nombre, los números y los datos de la tarjeta, tal como se ve en la Wallet." />
           </div>
           <ColorField ariaLabel="Color de texto" value={card.textColor || '#FFFFFF'} suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
-            contrastWith={card.type === 'membership' ? null : card.color} onChange={v => setCard({ ...card, textColor: v })} />
+            contrastWith={card.color} onChange={v => setCard({ ...card, textColor: v })} />
 
           <div className="dt-appearance-label" style={{ marginTop: 14 }}>
             Color de las etiquetas
             <InfoTooltip text="Los títulos chicos (TITULAR, PREMIO…). En Automático usan el color de texto." />
           </div>
           <ColorField ariaLabel="Color de las etiquetas" value={card.labelColor || null} auto suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
-            contrastWith={card.type === 'membership' ? null : card.color} onChange={v => setCard({ ...card, labelColor: v })} />
+            contrastWith={card.color} onChange={v => setCard({ ...card, labelColor: v })} />
+
+          </>)}
 
           {/* ── Cara del premio (stamp only) ── */}
           {card.type === 'stamp' && (
@@ -1149,6 +1154,8 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-save-warn{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12.5px;color:#7A5A12;background:rgba(212,162,76,.14);border-bottom:1px solid rgba(212,162,76,.3);padding:10px 20px;}
         .dt-warn-btn{font-size:12px;font-weight:600;border:1px solid rgba(43,38,32,.2);background:#fff;color:#2B2620;border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;}
         .dt-warn-btn--primary{background:#C75D3A;border-color:#C75D3A;color:#fff;}
+        .dt-tier-chips{display:flex;flex-wrap:wrap;gap:6px;}
+        .dt-tier-chip{font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(43,38,32,.08);}
         .dt-color-warn{font-size:11px;color:#9E4529;background:rgba(199,93,58,.08);border-radius:7px;padding:6px 9px;margin-top:6px;line-height:1.4;}
         .dt-inline-link{background:none;border:none;padding:0;color:#C75D3A;font-weight:700;cursor:pointer;font-family:inherit;font-size:inherit;}
         .dt-editor-body{flex:1;display:grid;grid-template-columns:300px 1fr;overflow:hidden;}
