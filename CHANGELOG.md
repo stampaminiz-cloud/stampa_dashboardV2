@@ -2,7 +2,7 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.1.0 (en staging, sin fecha)
+## 1.1.0 (15/10/2026)
 
 **Nuevo**
 - Notificaciones → Automáticas (Pro): bienvenida, a un sello del premio, te extrañamos y reseña en Google, con texto editable y cuántos salieron en el mes.
