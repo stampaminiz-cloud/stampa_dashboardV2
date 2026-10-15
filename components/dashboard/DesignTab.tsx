@@ -8,7 +8,7 @@ import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields,
 import { InfoTooltip } from './InfoTooltip'
 import { ColorField, useLogoColors } from './ColorField'
 import { NumberStepper } from '@/components/ui/NumberStepper'
-import { DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
+import { PointsRuleEditor, DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
 import { currencyFor, pointsRuleText, type Currency } from '@/lib/money'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -707,23 +707,24 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
 
 // ─── Card Manager (Level 1) ───────────────────────────────────────────────────
 // ─── New card modal ───────────────────────────────────────────────────────────
-function NewCardModal({ onClose, onAdd, existingCount }: {
+function NewCardModal({ onClose, onAdd, existingCount, currency = 'ARS' }: {
   onClose: () => void
   onAdd:   (card: Omit<CardDesign, 'id'>) => Promise<string | null>
   existingCount: number
+  currency?: Currency
 }) {
   const [step, setStep]         = useState<1 | 2>(1)
   const [name, setName]         = useState('')
   const [type, setType]         = useState<CardType>('stamp')
   const [stamps, setStamps]     = useState(8)
-  const [points, setPoints]     = useState(10)
+  const [rule, setRule]         = useState<PointsRuleValue>({ pointsMode: 'visit', pointsPerVisit: 10, pointsPerAmount: 1, pointsAmountUnit: DEFAULT_UNIT[currency] })
   const [rewardMode, setRewardMode] = useState<'dynamic' | 'fixed'>('dynamic')
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState<string | null>(null)
 
   const TYPES: Array<{ id: CardType; label: string; desc: string }> = [
     { id: 'stamp',      label: 'Tarjeta de sellos',   desc: 'Visitas → premio al completar' },
-    { id: 'points',     label: 'Puntos por visita',   desc: 'Acumulan puntos del catálogo'  },
+    { id: 'points',     label: 'Puntos',              desc: 'Suman por visita o por monto y los canjean por premios' },
     { id: 'membership', label: 'Membresía por niveles', desc: 'Bronce → Plata → Oro → Black (los editás en Premios)' },
   ]
 
@@ -738,7 +739,8 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
       stampsRequired: type === 'stamp' ? stamps : 0,
       rewardMode:     type === 'stamp' ? rewardMode : null,
       rewardField:    null,
-      pointsPerVisit: type === 'points' ? points : null,
+      pointsPerVisit: type === 'points' ? rule.pointsPerVisit : null,
+      ...(type === 'points' ? { pointsMode: rule.pointsMode, pointsPerAmount: rule.pointsPerAmount, pointsAmountUnit: rule.pointsAmountUnit } : {}),
     }
     setSaving(true)
     setError(null)
@@ -823,9 +825,9 @@ function NewCardModal({ onClose, onAdd, existingCount }: {
 
             {type === 'points' && (
               <>
-                <div className="dt-modal-field-label">Puntos por visita</div>
-                <NumberStepper value={points} onChange={setPoints} min={1} max={1000} suffix="pts" presets={[5, 10, 20, 50]} ariaLabel="Puntos por visita" />
-                <div className="dt-modal-hint">Los premios y umbrales se configuran desde la sección Premios.</div>
+                <div className="dt-modal-field-label">Cómo se suman los puntos</div>
+                <PointsRuleEditor value={rule} onChange={setRule} currency={currency} />
+                <div className="dt-modal-hint" style={{ marginTop: 16 }}>Los premios del catálogo se cargan después, en Premios.</div>
               </>
             )}
 
@@ -925,6 +927,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
         stampsRequired: draft.stampsRequired || undefined,
         rewardMode:     draft.rewardMode || undefined,
         pointsPerVisit: draft.pointsPerVisit || undefined,
+        ...(draft.type === 'points' ? { pointsMode: draft.pointsMode, pointsPerAmount: draft.pointsPerAmount, pointsAmountUnit: draft.pointsAmountUnit } : {}),
       } as any)
       const newCard: CardDesign = {
         id:             created._id,
@@ -940,6 +943,9 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
         earnedIcon:     created.earnedIcon || null,
         emptyIcon:      created.emptyIcon || null,
         pointsPerVisit: created.pointsPerVisit || null,
+        pointsMode: created.pointsMode || 'visit',
+        pointsPerAmount: created.pointsPerAmount || null,
+        pointsAmountUnit: created.pointsAmountUnit || null,
       }
       setCards([...cards, newCard])
       onSaved?.()  // re-sincroniza el estado del padre para que sobreviva un cambio de tab
@@ -1033,6 +1039,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
           onClose={() => setModal(false)}
           onAdd={handleCardAdded}
           existingCount={cards.length}
+          currency={currency}
         />
       )}
 
