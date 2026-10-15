@@ -6,7 +6,7 @@ import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
 import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiGetPointsCatalog, apiWalletPreview } from '@/lib/api'
 import { InfoTooltip } from './InfoTooltip'
-import { ColorField, useLogoColors } from './ColorField'
+import { ColorField, contrastRatio, useLogoColors } from './ColorField'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { PointsRuleEditor, DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
 import { currencyFor, pointsRuleText, type Currency } from '@/lib/money'
@@ -186,6 +186,10 @@ function LogoUpload({ label, hint, value, onChange }: {
 const BG_SUGGESTIONS = [...COLOR_PRESETS, ...EXTRA_COLOR_PRESETS].map(p => ({ hex: p.start, label: p.label }))
 const TEXT_SUGGESTIONS = ['#FFFFFF', '#FBF6EE', '#F2D9A6', '#C9A84C', '#8A8580', '#2B2620', '#000000'].map(hex => ({ hex }))
 // Segundo color del degradé: el del preset si es uno, si no un tono más oscuro.
+// Membresía: el texto del formulario y de la app se elige solo (claro u oscuro).
+function autoTextFor(bg: string) {
+  return contrastRatio('#FFFFFF', bg) >= 3 ? '#FFFFFF' : '#2B2620'
+}
 function secondFor(hex: string) {
   return [...COLOR_PRESETS, ...EXTRA_COLOR_PRESETS].find(p => p.start.toUpperCase() === hex.toUpperCase())?.end || darkenHex(hex)
 }
@@ -403,13 +407,10 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
     try {
       const res = await apiUpdateCard(businessId, card.id, {
         name: card.name.trim(),
-        // Membresía: los colores se editan en Formulario (formulario y app) y en Premios (niveles).
-        ...(card.type === 'membership' ? {} : {
-          color: card.color,
-          secondColor: card.secondColor,
-          textColor: card.textColor || null,
-          labelColor: card.labelColor || null,
-        }),
+        color: card.color,
+        secondColor: card.secondColor,
+        textColor: card.textColor || null,
+        labelColor: card.labelColor || null,
         publicDescription: card.publicDescription || '',
         isActive: card.isActive,
         flipMessage,
@@ -621,43 +622,44 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           )}
 
           {/* Appearance */}
+          <div className="dt-panel-section-title" style={{ marginTop: 20 }}>{card.type === 'membership' ? 'Colores de la tarjeta' : 'Apariencia de la tarjeta'}</div>
           {card.type === 'membership' ? (
             <>
-              {/* Membresía: la tarjeta del Wallet toma el color de cada nivel
-                  (Premios). El color del formulario y de la app se elige en
-                  Formulario. Texto y etiquetas salen de cada nivel. */}
-              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Colores de la tarjeta</div>
-              <div className="dt-reward-goto-forms" style={{ marginBottom: 10 }}>Son los de cada nivel:</div>
+              {/* Membresía: en Apple la tarjeta toma el color de cada nivel
+                  (Premios). Google Wallet usa un solo color por tarjeta: este,
+                  que también pinta el formulario y la app de escaneo. Texto y
+                  etiquetas salen del nivel (Apple) o los elige Google. */}
+              <div className="dt-appearance-label">Color de la tarjeta</div>
+              <ColorField ariaLabel="Color de la tarjeta" value={card.color} suggestions={BG_SUGGESTIONS} logoColors={logoColors}
+                onChange={v => v && setCard({ ...card, color: v, secondColor: secondFor(v), textColor: autoTextFor(v) })} />
+              <div className="dt-reward-goto-forms" style={{ marginTop: 8 }}>Se usa en Google Wallet, en el formulario de registro y en la app de escaneo.</div>
+              <div className="dt-appearance-label" style={{ marginTop: 16 }}>En Apple Wallet, el color de cada nivel</div>
               <div className="dt-tier-chips">
                 {tiers.map(t => <span key={t.id || t.name} className="dt-tier-chip" style={{ background: t.bg, color: t.color }}>{t.name}</span>)}
               </div>
-              <div className="dt-reward-goto-forms" style={{ marginTop: 10 }}>
-                Se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>Premios</button>. El color del formulario y de la app de escaneo se elige en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>.
-              </div>
+              <div className="dt-reward-goto-forms" style={{ marginTop: 8 }}>Nombre, color, visitas y beneficio de cada nivel se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>Premios</button>.</div>
             </>
-          ) : (<>
-          <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Apariencia de la tarjeta</div>
-          <div className="dt-appearance-label">
-            Color de fondo
-          </div>
-          <ColorField ariaLabel="Color de fondo" value={card.color} suggestions={BG_SUGGESTIONS} logoColors={logoColors}
-            onChange={v => v && setCard({ ...card, color: v, secondColor: secondFor(v) })} />
+          ) : (
+            <>
+              <div className="dt-appearance-label">Color de fondo</div>
+              <ColorField ariaLabel="Color de fondo" value={card.color} suggestions={BG_SUGGESTIONS} logoColors={logoColors}
+                onChange={v => v && setCard({ ...card, color: v, secondColor: secondFor(v) })} />
 
-          <div className="dt-appearance-label" style={{ marginTop: 14 }}>
-            Color de texto
-            <InfoTooltip text="El color del nombre, los números y los datos de la tarjeta, tal como se ve en la Wallet." />
-          </div>
-          <ColorField ariaLabel="Color de texto" value={card.textColor || '#FFFFFF'} suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
-            contrastWith={card.color} onChange={v => setCard({ ...card, textColor: v })} />
+              <div className="dt-appearance-label" style={{ marginTop: 14 }}>
+                Color de texto
+                <InfoTooltip text="El color del nombre, los números y los datos de la tarjeta, tal como se ve en la Wallet." />
+              </div>
+              <ColorField ariaLabel="Color de texto" value={card.textColor || '#FFFFFF'} suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
+                contrastWith={card.color} onChange={v => setCard({ ...card, textColor: v })} />
 
-          <div className="dt-appearance-label" style={{ marginTop: 14 }}>
-            Color de las etiquetas
-            <InfoTooltip text="Los títulos chicos (TITULAR, PREMIO…). En Automático usan el color de texto." />
-          </div>
-          <ColorField ariaLabel="Color de las etiquetas" value={card.labelColor || null} auto suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
-            contrastWith={card.color} onChange={v => setCard({ ...card, labelColor: v })} />
-
-          </>)}
+              <div className="dt-appearance-label" style={{ marginTop: 14 }}>
+                Color de las etiquetas
+                <InfoTooltip text="Los títulos chicos (TITULAR, PREMIO…). En Automático usan el color de texto." />
+              </div>
+              <ColorField ariaLabel="Color de las etiquetas" value={card.labelColor || null} auto suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
+                contrastWith={card.color} onChange={v => setCard({ ...card, labelColor: v })} />
+            </>
+          )}
 
           {/* ── Cara del premio (stamp only) ── */}
           {card.type === 'stamp' && (

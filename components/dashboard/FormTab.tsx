@@ -5,9 +5,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import QRCode from 'qrcode'
 import type { Location } from '@/lib/location'
 import { OptionsEditor } from './OptionsEditor'
-import { ColorField, contrastRatio, useLogoColors } from './ColorField'
-import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS, darkenHex } from '@/lib/colorPresets'
-import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields, apiUpdateCard } from '@/lib/api'
+import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields } from '@/lib/api'
 import { usePlan } from '@/data/plans'
 
 // Formulario de registro, por tarjeta. Nombre y email son fijos; el resto
@@ -214,7 +212,7 @@ function Share({ businessName, slug, card, whiteLabel, locations = [], selectedL
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function FormTab({ businessName, businessSlug, cards, businessId, onGoToDesign, onGoToRewards, onChoosePlan, onSaved, isManager = false, locations = [], selectedLocationId = null }: {
+export function FormTab({ businessName, businessSlug, cards, businessId, onGoToDesign, onGoToRewards, onChoosePlan, isManager = false, locations = [], selectedLocationId = null }: {
   locations?: Location[]
   selectedLocationId?: string | null
   businessName: string
@@ -224,7 +222,6 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
   onGoToDesign: () => void
   onGoToRewards: () => void
   onChoosePlan: () => void
-  onSaved?: () => void
   isManager?: boolean
 }) {
   const { limit, can, plan } = usePlan()
@@ -241,18 +238,6 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
   const rFixed = card?.rewardField || ''
   const [rOpts, setROpts] = useState<string[]>([])
   const askReward = isStamp && rMode === 'dynamic'
-
-  // Membresía: la tarjeta del Wallet usa el color de cada nivel (Premios); el
-  // color de la tarjeta solo pinta el formulario y la app de escaneo, así que
-  // se edita acá. El texto se elige solo (claro u oscuro) para que se lea.
-  const isMembership = card?.type === 'membership'
-  const [brand, setBrand] = useState<string | null>(null)
-  useEffect(() => { setBrand(null) }, [card?.id])
-  const brandDirty = isMembership && !!brand && brand.toUpperCase() !== (card?.color || '').toUpperCase()
-  const autoText = (bg: string) => contrastRatio('#FFFFFF', bg) >= 3 ? '#FFFFFF' : '#2B2620'
-  const brandSecond = (hex: string) => [...STARTER_PRESETS, ...GROWTH_EXTRA_PRESETS].find(p => p.start.toUpperCase() === hex.toUpperCase())?.end || darkenHex(hex)
-  const shownCard = card && brandDirty ? { ...card, color: brand!, secondColor: brandSecond(brand!), textColor: autoText(brand!) } : card
-  const logoColors = useLogoColors(isMembership ? card?.logoUrl : null)
 
   const [saved, setSaved] = useState<EditField[] | null>(null)
   const [draft, setDraft] = useState<EditField[] | null>(null)
@@ -290,7 +275,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
 
   // Hay cambios si cambió algo de algún campo, el orden, o se agregó/borró uno.
   const fieldsDirty = useMemo(() => !!saved && !!draft && JSON.stringify(draft.map(comparable)) !== JSON.stringify(saved.map(comparable)), [saved, draft])
-  const dirty = fieldsDirty || brandDirty
+  const dirty = fieldsDirty
 
   const customCount = (draft || []).filter(f => f.isCustom || !f.id).filter(f => !f.isRewardSource).length
   const rewardField = (draft || []).find(f => f.isRewardSource)
@@ -315,7 +300,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
     }])
     setNotice(null)
   }
-  function discard() { setDraft(saved); setRemoved([]); setError(null); setBrand(null); resetReward((saved || []).find(f => f.isRewardSource)?.options || []) }
+  function discard() { setDraft(saved); setRemoved([]); setError(null); resetReward((saved || []).find(f => f.isRewardSource)?.options || []) }
 
   async function save() {
     if (!businessId || !card || !draft || !saved) return
@@ -323,10 +308,6 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
     if (v) { setError(v); return }
     setSaving(true); setError(null); setNotice(null)
     try {
-      if (brandDirty) {
-        await apiUpdateCard(businessId, card.id, { color: brand!, secondColor: brandSecond(brand!), textColor: autoText(brand!) })
-        onSaved?.()
-      }
       for (const f of removed) await apiDeleteField(businessId, card.id, f.id!)
       const ids: string[] = []
       for (const f of draft) {
@@ -406,27 +387,14 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
 
         <div className="fm-grid">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
-            {isMembership ? (
-              <div className="fm-card">
-                <div className="fm-card-title">Color del formulario y de la app</div>
-                <div className="fm-card-sub">Lo ven tus clientes al registrarse y tus empleados en la app de escaneo. La tarjeta del Wallet usa el color de cada nivel (se elige en Premios).</div>
-                <div className="fm-brand-row">
-                  <ColorField ariaLabel="Color del formulario y de la app" value={shownCard?.color || '#1B412F'} logoColors={logoColors}
-                    suggestions={[...STARTER_PRESETS, ...GROWTH_EXTRA_PRESETS].map(p => ({ hex: p.start, label: p.label }))}
-                    onChange={v => { if (v) { setBrand(v); setNotice(null) } }} />
-                  <span className="fm-hint" style={{ margin: 0 }}>El logo se cambia en <button className="fm-link-btn" onClick={onGoToDesign}>Diseño</button>.</span>
-                </div>
+            <div className="fm-card fm-design-note">
+              <span className="fm-swatch" style={{ background: `linear-gradient(135deg, ${card.color || '#1B412F'}, ${card.secondColor || card.color || '#1B412F'})` }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="fm-card-title">Usa el diseño de tu tarjeta</div>
+                <div className="fm-card-sub" style={{ margin: 0 }}>El color y el logo del formulario son los de "{card.name}".</div>
               </div>
-            ) : (
-              <div className="fm-card fm-design-note">
-                <span className="fm-swatch" style={{ background: `linear-gradient(135deg, ${card.color || '#1B412F'}, ${card.secondColor || card.color || '#1B412F'})` }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="fm-card-title">Usa el diseño de tu tarjeta</div>
-                  <div className="fm-card-sub" style={{ margin: 0 }}>El color y el logo del formulario son los de "{card.name}".</div>
-                </div>
-                <button className="fm-secondary" onClick={onGoToDesign}>Editar en Diseño</button>
-              </div>
-            )}
+              <button className="fm-secondary" onClick={onGoToDesign}>Editar en Diseño</button>
+            </div>
 
             {isStamp && (
               <div className="fm-card fm-design-note">
@@ -511,12 +479,12 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
 
           <div className="fm-preview-col">
             <div className="fm-preview-title">Así lo ve tu cliente</div>
-            <Preview card={shownCard} businessName={businessName} fields={previewFields} askReward={askReward} whiteLabel={whiteLabel} />
+            <Preview card={card} businessName={businessName} fields={previewFields} askReward={askReward} whiteLabel={whiteLabel} />
           </div>
         </div>
 
         <div className="fm-lbl">Compartir</div>
-        <Share businessName={businessName} slug={businessSlug} card={shownCard} whiteLabel={whiteLabel} locations={locations} selectedLocationId={selectedLocationId} />
+        <Share businessName={businessName} slug={businessSlug} card={card} whiteLabel={whiteLabel} locations={locations} selectedLocationId={selectedLocationId} />
       </div>
     </>
   )
@@ -543,7 +511,6 @@ const CSS = `
   .fm-card{background:#fff;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:16px 18px;box-shadow:0 1px 8px rgba(43,38,32,.04);min-width:0;}
   .fm-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
   .fm-card-sub{font-size:11.5px;color:rgba(43,38,32,.5);margin-bottom:12px;line-height:1.5;}
-  .fm-brand-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
   .fm-design-note{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
   .fm-swatch{width:34px;height:34px;border-radius:10px;flex-shrink:0;}
   .fm-reward-star{width:34px;height:34px;border-radius:10px;background:rgba(212,162,76,.15);color:#B8862F;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
