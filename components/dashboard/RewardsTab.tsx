@@ -9,6 +9,7 @@ import {
 } from '@/lib/api'
 import { usePlan } from '@/data/plans'
 import { OptionsEditor } from './OptionsEditor'
+import { useLogoColors, logoFadesOn } from './ColorField'
 import { PointsRuleEditor, pointsRuleValid, DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { withLoc } from '@/lib/location'
@@ -83,7 +84,10 @@ function Redemptions({ items, onOpenCustomer, empty }: { items: Redemption[]; on
 
 // Vista previa del pase con las imágenes reales (las arma el backend con lo
 // que se está editando, igual que en Diseño).
-function RulePreview({ businessId, card, override, rewardLabel }: { businessId: string; card: any; override: Record<string, any>; rewardLabel?: string }) {
+function RulePreview({ businessId, card, override, rewardLabel, tiers, tierIndex = 0 }: {
+  businessId: string; card: any; override: Record<string, any>; rewardLabel?: string
+  tiers?: { name: string; threshold: number; color: string; bg: string; perk?: string }[]; tierIndex?: number
+}) {
   const [img, setImg] = useState<{ apple: { logo: string | null; strip: string | null } } | null>(null)
   const [err, setErr] = useState(false)
   const design = JSON.stringify({
@@ -91,21 +95,24 @@ function RulePreview({ businessId, card, override, rewardLabel }: { businessId: 
     logoUrl: card.logoUrl, earnedIcon: card.earnedIcon, emptyIcon: card.emptyIcon, pointsIcon: card.pointsIcon,
     stampsRequired: card.stampsRequired, pointsMode: card.pointsMode, pointsPerVisit: card.pointsPerVisit,
     pointsPerAmount: card.pointsPerAmount, pointsAmountUnit: card.pointsAmountUnit, ...override,
+    ...(tiers ? { tiers } : {}),
   })
   useEffect(() => {
     let cancelled = false
     const t = setTimeout(() => {
-      apiWalletPreview(businessId, card.id, { design: JSON.parse(design), side: 'front', tierIndex: 0 })
+      apiWalletPreview(businessId, card.id, { design: JSON.parse(design), side: 'front', tierIndex })
         .then(r => { if (!cancelled) { setImg(r); setErr(false) } })
         .catch(() => { if (!cancelled) setErr(true) })
     }, 350)
     return () => { cancelled = true; clearTimeout(t) }
-  }, [businessId, card.id, design])
-  const tc = card.textColor || '#FFFFFF'
-  const lc = card.labelColor || tc
+  }, [businessId, card.id, design, tierIndex])
+  // Membresía: en Apple el pase toma el color del nivel.
+  const tier = tiers?.[Math.min(tierIndex, tiers.length - 1)]
+  const tc = tier ? tier.color : card.textColor || '#FFFFFF'
+  const lc = tier ? tier.color : card.labelColor || tc
   return (
     <div className="rw-pv">
-      <div className="rw-pv-pass" style={{ background: card.color || '#1B412F', color: tc }}>
+      <div className="rw-pv-pass" style={{ background: tier ? tier.bg : card.color || '#1B412F', color: tc }}>
         <div className="rw-pv-top">{img?.apple.logo ? <img src={img.apple.logo} alt="" className="rw-pv-logo" /> : <div className="rw-pv-logo rw-skel" />}</div>
         {img?.apple.strip ? <img src={img.apple.strip} alt="" className="rw-pv-strip" /> : <div className="rw-pv-strip rw-skel" style={{ aspectRatio: '375/123' }} />}
         <div className="rw-pv-fields">
@@ -554,7 +561,10 @@ function validateTiers(tiers: EditTier[]): string | null {
   return null
 }
 
-function MembershipRewards({ businessId, cardId, data, onChanged }: { businessId: string; cardId: string; data: any; onChanged: () => void }) {
+function MembershipRewards({ businessId, card, data, onChanged }: { businessId: string; card: any; data: any; onChanged: () => void }) {
+  const cardId = card.id
+  const [pvTier, setPvTier] = useState(0)
+  const logoColors = useLogoColors(card.logoUrl)
   const [saved, setSaved] = useState<EditTier[] | null>(null)
   const [draft, setDraft] = useState<EditTier[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -643,7 +653,8 @@ function MembershipRewards({ businessId, cardId, data, onChanged }: { businessId
             <div style={{ marginTop: 10 }}><button className="rw-add-btn" onClick={createDefaults} disabled={saving}>{saving ? 'Creando…' : 'Crear niveles sugeridos'}</button></div>
           </div>
         ) : (
-          <>
+          <div className="rw-rules rw-rules--wide">
+          <div style={{ minWidth: 0 }}>
             <div className="rw-tier-editor">
               <div className="rw-tier-row rw-tier-row--head"><span /><span>Nivel</span><span>Desde</span><span>Beneficio</span><span /></div>
               {draft.map((t, i) => (
@@ -681,7 +692,21 @@ function MembershipRewards({ businessId, cardId, data, onChanged }: { businessId
               <button className="rw-confirm-btn" onClick={save} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button>
             </div>
             <div className="rw-hint">Si bajás las visitas de un nivel, los clientes que ya las cumplen suben al guardar. Si las subís, nadie pierde el nivel que ya ganó.</div>
-          </>
+          </div>
+          <div>
+            <div className="rw-pv-tiers" role="group" aria-label="Ver la tarjeta como">
+              {draft.map((t, i) => (
+                <button key={t.key} type="button" className={`rw-pv-tier${pvTier === i ? ' is-on' : ''}`} style={pvTier === i ? { background: t.bg, color: t.color, borderColor: t.color } : undefined} onClick={() => setPvTier(i)}>{t.name || `Nivel ${i + 1}`}</button>
+              ))}
+            </div>
+            <RulePreview businessId={businessId} card={card} override={{}} tierIndex={Math.min(pvTier, draft.length - 1)}
+              tiers={draft.map((t, i) => ({ name: t.name.trim() || `Nivel ${i + 1}`, threshold: i === 0 ? 0 : Number(t.threshold) || 1, color: t.color, bg: t.bg, perk: t.perk }))} />
+            {(() => {
+              const faded = draft.filter(t => logoFadesOn(logoColors, t.bg)).map(t => t.name || 'un nivel')
+              return faded.length > 0 && <div className="rw-warn">Tu logo casi no se ve en {faded.length > 1 ? `${faded.slice(0, -1).join(', ')} y ${faded[faded.length - 1]}` : faded[0]}. Elegí un color más oscuro para {faded.length > 1 ? 'esos niveles' : 'ese nivel'} o subí un logo oscuro en Diseño.</div>
+            })()}
+          </div>
+          </div>
         )}
       </div>
     </div>
@@ -822,6 +847,9 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         .rw-reach-name{flex:1;min-width:0;color:#2B2620;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
         .rw-reach-need{width:130px;text-align:right;color:rgba(43,38,32,.6);font-weight:600;flex-shrink:0;}
         .rw-pv{position:sticky;top:0;}
+        .rw-pv-tiers{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:12px;}
+        .rw-pv-tier{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;border:1.5px solid rgba(43,38,32,.15);background:#fff;color:rgba(43,38,32,.6);cursor:pointer;font-family:inherit;}
+        @media(max-width:1180px){.rw-rules--wide{grid-template-columns:1fr;}.rw-rules--wide .rw-pv{position:static;max-width:320px;margin:0 auto;}}
         .rw-pv-pass{border-radius:16px;overflow:hidden;box-shadow:0 12px 36px rgba(43,38,32,.2);}
         .rw-pv-top{padding:20px 20px 10px;}
         .rw-pv-logo{display:block;width:47%;height:auto;}
@@ -870,7 +898,7 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         ) : selected.type === 'points' ? (
           <PointsRewards businessId={businessId!} card={selected} data={data} currency={currency} onSaved={afterSave} onOpenCustomer={onOpenCustomer} onChanged={() => setReload(n => n + 1)} />
         ) : (
-          <MembershipRewards businessId={businessId!} cardId={selected.id} data={data} onChanged={() => setReload(n => n + 1)} />
+          <MembershipRewards businessId={businessId!} card={selected} data={data} onChanged={() => setReload(n => n + 1)} />
         )}
       </div>
     </>

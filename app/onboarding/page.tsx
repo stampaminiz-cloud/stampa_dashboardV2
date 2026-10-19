@@ -1,10 +1,11 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react'
-import { apiMe, apiOnboarding, getToken } from '@/lib/api'
+import { apiMe, apiOnboarding, apiOnboardingPreview, getToken } from '@/lib/api'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { darkenHex, DEFAULT_CARD_COLOR, presetsForPlan } from '@/lib/colorPresets'
 import { ColorField, useLogoColors } from '@/components/dashboard/ColorField'
+import { PassPreview, type PassImages } from '@/components/dashboard/PassPreview'
 import { PLAN_LIMITS, type Plan } from '@/data/plans'
 import { PointsRuleEditor, pointsRuleValid, DEFAULT_UNIT, type PointsRuleValue } from '@/components/dashboard/PointsRuleEditor'
 import { currencyFor, pointsRuleText, type Currency } from '@/lib/money'
@@ -127,11 +128,6 @@ const STEP_INFO: Record<number, { title: string; subtitle: string; tip: string }
 
 // Colores: lib/colorPresets.ts (paleta sugerida; color libre en todos los planes).
 
-function darken(hex: string): string {
-  const c = hex.replace('#','')
-  if (c.length !== 6) return hex
-  return '#' + [0,2,4].map(i => Math.round(parseInt(c.slice(i,i+2),16)*0.72).toString(16).padStart(2,'0')).join('')
-}
 
 // ─── Stampa mascot ────────────────────────────────────────────────────────────
 function StampaFrog({ size = 28 }: { size?: number }) {
@@ -151,135 +147,6 @@ function StampyIcon({ size = 32, color = '#C75D3A' }: { size?: number; color?: s
 }
 
 // ─── QR code ──────────────────────────────────────────────────────────────────
-function QRCode({ size = 80 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 21 21" fill="none">
-      <rect x="0" y="0" width="7" height="7" fill="#000"/><rect x="1" y="1" width="5" height="5" fill="#fff"/><rect x="2" y="2" width="3" height="3" fill="#000"/>
-      <rect x="14" y="0" width="7" height="7" fill="#000"/><rect x="15" y="1" width="5" height="5" fill="#fff"/><rect x="16" y="2" width="3" height="3" fill="#000"/>
-      <rect x="0" y="14" width="7" height="7" fill="#000"/><rect x="1" y="15" width="5" height="5" fill="#fff"/><rect x="2" y="16" width="3" height="3" fill="#000"/>
-      <rect x="9" y="0" width="1" height="1" fill="#000"/><rect x="11" y="1" width="2" height="1" fill="#000"/>
-      <rect x="8" y="8" width="2" height="4" fill="#000"/><rect x="11" y="8" width="3" height="1" fill="#000"/>
-      <rect x="9" y="13" width="3" height="1" fill="#000"/><rect x="9" y="15" width="1" height="3" fill="#000"/>
-      <rect x="11" y="15" width="2" height="2" fill="#000"/><rect x="15" y="15" width="4" height="1" fill="#000"/>
-      <rect x="14" y="17" width="3" height="1" fill="#000"/><rect x="18" y="16" width="2" height="2" fill="#000"/>
-    </svg>
-  )
-}
-
-// ─── Wallet pass preview (Apple style, same as Design tab) ────────────────────
-function WalletPass({ state }: { state: OBState }) {
-  const stamps = Array.from({ length: state.stampsRequired }, (_: unknown, i: number) => i < 3)
-  const rewardLabel = state.rewardMode === 'customer' ? 'Lo que el cliente elija' : (state.rewardValue || 'Premio')
-
-  return (
-    <div style={{ width: '100%', maxWidth: 300, margin: '0 auto', borderRadius: 20, overflow: 'hidden', boxShadow: '0 20px 60px rgba(43,38,32,.25)', background: `linear-gradient(170deg, ${state.brandColor}, ${darken(state.brandColor)})` }}>
-      {/* Top */}
-      <div style={{ padding: '22px 22px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          {state.brandLogo
-            ? <img src={state.brandLogo} style={{ maxHeight: 36, maxWidth: 140, objectFit: 'contain' }} alt="" />
-            : <div style={{ fontWeight: 800, fontSize: 20, color: '#fff', letterSpacing: '-.01em' }}>{state.businessName || 'Tu negocio'}</div>
-          }
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 8, color: 'rgba(255,255,255,.55)', textTransform: 'uppercase', letterSpacing: '.06em' }}>TITULAR</div>
-          <div style={{ fontSize: 13, color: '#fff', fontWeight: 600, marginTop: 2 }}>Tu cliente</div>
-        </div>
-      </div>
-
-      {/* Primary value */}
-      <div style={{ padding: '4px 22px 12px' }}>
-        <div style={{ fontSize: 8, color: 'rgba(255,255,255,.55)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>
-          {state.cardType === 'stamp' ? 'PROGRESO' : state.cardType === 'points' ? 'PUNTOS' : 'NIVEL'}
-        </div>
-        <div style={{ fontSize: 26, fontWeight: 800, color: '#fff', lineHeight: 1 }}>
-          {state.cardType === 'stamp' ? `3 / ${state.stampsRequired}` : state.cardType === 'points' ? '120 pts' : 'Plata'}
-        </div>
-      </div>
-
-      {/* Card-type content */}
-      {state.cardType === 'stamp' && (
-        <div style={{ padding: '4px 22px 16px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {stamps.map((filled: boolean, i: number) => (
-            <div key={i} style={{ width: 24, height: 24, borderRadius: '50%', background: filled ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.18)', border: filled ? 'none' : '1.5px dashed rgba(255,255,255,.4)' }} />
-          ))}
-        </div>
-      )}
-      {state.cardType === 'points' && (
-        <div style={{ padding: '4px 22px 16px' }}>
-          <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,.2)', borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ width: '24%', height: '100%', background: 'rgba(255,255,255,.85)', borderRadius: 3 }} />
-          </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.55)', marginTop: 6 }}>480 pts para el próximo premio</div>
-        </div>
-      )}
-      {state.cardType === 'membership' && (
-        <div style={{ padding: '4px 22px 16px', display: 'flex', gap: 6 }}>
-          {['Bronce','Plata','Oro','Black'].map((t, i) => (
-            <div key={t} style={{ fontSize: 9, padding: '4px 10px', borderRadius: 20, background: i === 1 ? 'rgba(255,255,255,.88)' : 'rgba(255,255,255,.16)', color: i === 1 ? '#2B2620' : 'rgba(255,255,255,.7)', fontWeight: 700 }}>{t}</div>
-          ))}
-        </div>
-      )}
-
-      {/* Secondary fields */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', padding: '10px 22px', background: 'rgba(0,0,0,.18)' }}>
-        <div>
-          <div style={{ fontSize: 8, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
-            {state.cardType === 'membership' ? 'NIVEL ACTUAL' : state.cardType === 'points' ? 'ACUMULADO' : 'PREMIO'}
-          </div>
-          <div style={{ fontSize: 12, color: '#fff', fontWeight: 600, marginTop: 3 }}>
-            {state.cardType === 'stamp' ? rewardLabel : state.cardType === 'points' ? '120 pts' : 'Plata'}
-          </div>
-        </div>
-        <div>
-          <div style={{ fontSize: 8, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.06em' }}>VISITAS</div>
-          <div style={{ fontSize: 12, color: '#fff', fontWeight: 600, marginTop: 3 }}>12</div>
-        </div>
-      </div>
-
-      {/* QR */}
-      <div style={{ background: '#fff', padding: '18px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-        <QRCode size={90} />
-        <div style={{ fontSize: 10, color: '#aaa' }}>Powered by Stampa</div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Google Pass ──────────────────────────────────────────────────────────────
-function GooglePass({ state }: { state: OBState }) {
-  const stamps = Array.from({ length: state.stampsRequired }, (_: unknown, i: number) => i < 3)
-  return (
-    <div style={{ width: '100%', maxWidth: 300, margin: '0 auto', borderRadius: 18, overflow: 'hidden', boxShadow: '0 20px 60px rgba(43,38,32,.25)', background: '#fff' }}>
-      <div style={{ height: 100, background: `linear-gradient(135deg, ${state.brandColor}, ${darken(state.brandColor)})`, padding: '14px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,.3)' }} />
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,.8)', fontWeight: 500 }}>{state.businessName || 'Tu negocio'}</span>
-        </div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>
-          {state.cardType === 'stamp' ? `3 de ${state.stampsRequired} sellos` : state.cardType === 'points' ? '120 pts' : 'Plata'}
-        </div>
-      </div>
-      <div style={{ padding: '16px 18px' }}>
-        {state.cardType === 'stamp' && (
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-            {stamps.map((f: boolean, i: number) => (
-              <div key={i} style={{ width: 22, height: 22, borderRadius: '50%', background: f ? '#e8f0fe' : '#f1f3f4', border: f ? '1.5px solid #1a73e8' : '1.5px dashed #c4c7c5' }} />
-            ))}
-          </div>
-        )}
-        <div style={{ borderTop: '1px solid #e8eaed', paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-          <div><div style={{ fontSize: 10, color: '#5f6368' }}>Titular</div><div style={{ color: '#202124', fontWeight: 500 }}>Tu cliente</div></div>
-          <div><div style={{ fontSize: 10, color: '#5f6368' }}>Visitas</div><div style={{ color: '#202124', fontWeight: 500 }}>12</div></div>
-        </div>
-      </div>
-      <div style={{ padding: '12px 18px', borderTop: '1px solid #e8eaed', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-        <QRCode size={60} />
-        <div style={{ fontSize: 9, color: '#5f6368' }}>Powered by Stampa</div>
-      </div>
-    </div>
-  )
-}
 
 // ─── Nav buttons ──────────────────────────────────────────────────────────────
 function Nav({ onBack, onNext, nextLabel = 'Siguiente', disabled = false, showSkip = false, onSkip }: {
@@ -609,6 +476,19 @@ function Step5({ state, onChange, onNext, onBack, plan }: StepProps & { plan: st
 
 function Step6({ state, onBack, onFinish, finishing, error, currency }: { state: OBState; onBack: () => void; onFinish: () => void; finishing: boolean; error: string | null; currency: Currency }) {
   const [platform, setPlatform] = useState<'apple' | 'google'>('apple')
+  // Las imágenes reales del pase (las mismas que va a tener la tarjeta).
+  const [images, setImages] = useState<PassImages | null>(null)
+  const [previewError, setPreviewError] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    apiOnboardingPreview({ design: {
+      type: state.cardType, name: state.businessName || 'Tu tarjeta', color: state.brandColor, secondColor: darkenHex(state.brandColor),
+      logoUrl: state.brandLogo, stampsRequired: state.stampsRequired, pointsMode: state.pointsMode, pointsPerVisit: state.pointsPerVisit,
+      pointsPerAmount: state.pointsPerAmount, pointsAmountUnit: state.pointsAmountUnit || DEFAULT_UNIT[currency],
+    } }).then(r => { if (!cancelled) setImages(r as PassImages) }).catch(() => { if (!cancelled) setPreviewError(true) })
+    return () => { cancelled = true }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const rewardLabel = state.rewardMode === 'customer' ? (state.rewardOptions[0] || 'Lo que el cliente elija') : (state.rewardValue || 'Premio')
   const sectorLabel = SECTORS.find(s => s.id === state.sector)?.label || ''
   const premio = state.cardType === 'stamp'
     ? (state.rewardMode === 'customer' ? `El cliente elige: ${state.rewardOptions.join(', ')}` : state.rewardValue || '—')
@@ -622,8 +502,10 @@ function Step6({ state, onBack, onFinish, finishing, error, currency }: { state:
             <button className={`ob-platform-btn${platform === 'apple' ? ' ob-platform-btn--on' : ''}`} onClick={() => setPlatform('apple')}>Apple Wallet</button>
             <button className={`ob-platform-btn${platform === 'google' ? ' ob-platform-btn--on' : ''}`} onClick={() => setPlatform('google')}>Google Wallet</button>
           </div>
-          {platform === 'apple' ? <WalletPass state={state} /> : <GooglePass state={state} />}
-          <div className="ob-preview-note">{platform === 'apple' ? 'Apple Wallet — formato real del pase' : 'Google Wallet — tarjeta Material'}</div>
+          <PassPreview platform={platform} type={state.cardType} images={images} color={state.brandColor}
+            businessName={state.businessName || 'Tu negocio'} cardName={state.businessName || 'Tu tarjeta'} rewardLabel={rewardLabel}
+            tier={state.cardType === 'membership' ? MEMBERSHIP_TIERS[0] : null} />
+          <div className="ob-preview-note">{previewError ? 'No pudimos cargar la vista previa. Tu tarjeta se crea igual.' : platform === 'apple' ? 'Así se ve en un iPhone, con un cliente de ejemplo.' : 'Así se ve en Google Wallet (Android), con un cliente de ejemplo.'}</div>
         </div>
         <div className="ob-summary">
           <div className="ob-summary-title">Resumen del programa</div>

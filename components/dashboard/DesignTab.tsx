@@ -6,7 +6,7 @@ import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
 import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiGetPointsCatalog, apiWalletPreview } from '@/lib/api'
 import { InfoTooltip } from './InfoTooltip'
-import { ColorField, contrastRatio, useLogoColors } from './ColorField'
+import { ColorField, contrastRatio, useLogoColors, logoFadesOn } from './ColorField'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { PointsRuleEditor, DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
 import { currencyFor, pointsRuleText, type Currency } from '@/lib/money'
@@ -638,6 +638,10 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
                 {tiers.map(t => <span key={t.id || t.name} className="dt-tier-chip" style={{ background: t.bg, color: t.color }}>{t.name}</span>)}
               </div>
               <div className="dt-reward-goto-forms" style={{ marginTop: 8 }}>Nombre, color, visitas y beneficio de cada nivel se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>Premios</button>.</div>
+              {(() => {
+                const faded = tiers.filter(t => logoFadesOn(logoColors, t.bg)).map(t => t.name)
+                return faded.length > 0 && <div className="dt-color-warn">Tu logo casi no se ve en {faded.length > 1 ? `${faded.slice(0, -1).join(', ')} y ${faded[faded.length - 1]}` : faded[0]}. Probá un logo más oscuro o cambiá el color de {faded.length > 1 ? 'esos niveles' : 'ese nivel'} en Premios.</div>
+              })()}
             </>
           ) : (
             <>

@@ -312,6 +312,12 @@ export async function apiWalletPreview(businessId: string, cardId: string, body:
     `/api/businesses/${businessId}/cards/${cardId}/wallet-preview`, { method: 'POST', body })
 }
 
+// Onboarding: vista previa real del pase antes de que exista la tarjeta.
+export async function apiOnboardingPreview(body: { design: Record<string, any>; tierIndex?: number }) {
+  return request<{ apple: { logo: string | null; strip: string | null }; google: { logo: string | null; hero: string | null }; meta: Record<string, any> }>(
+    `/api/businesses/onboarding/wallet-preview`, { method: 'POST', body })
+}
+
 export async function apiGetPointsCatalog(businessId: string, cardId: string) {
   return request<Array<{ _id: string; name: string; pointsCost: number; isActive: boolean }>>(
     `/api/businesses/${businessId}/cards/${cardId}/points-catalog`
