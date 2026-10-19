@@ -18,6 +18,12 @@ export function contrastRatio(a: string, b: string) {
   return (x + 0.05) / (y + 0.05)
 }
 
+// El logo casi no se ve sobre ese fondo: su color principal (el que más
+// aparece) casi no contrasta. Los acentos chicos no alcanzan para leerlo.
+export function logoFadesOn(logoColors: string[], bg: string) {
+  return logoColors.length > 0 && isHex(bg) && contrastRatio(logoColors[0], bg) < 2
+}
+
 // ─── HSV ↔ hex ────────────────────────────────────────────────────────────────
 function hexToHsv(hex: string) {
   const c = hex.replace('#', '')
