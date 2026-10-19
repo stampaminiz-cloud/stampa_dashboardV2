@@ -281,10 +281,13 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
           </span>
           {!locked && r && (
             <span className="nt-aud-count" title={`${r.reachable} de ${r.total} tienen la tarjeta en Apple Wallet o Google Wallet`}>
-              {r.reachable}<small>/{r.total}</small>
+              {r.reachable}<small> de {r.total}</small>
             </span>
           )}
         </button>
+        {on && !locked && r && r.total > r.reachable && (
+          <div className="nt-aud-miss">A {r.total - r.reachable} no les llega: no tienen la tarjeta guardada en Apple Wallet ni en Google Wallet.</div>
+        )}
         {on && !locked && children && <div className="nt-aud-extra">{children}</div>}
       </div>
     )
@@ -383,6 +386,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
         .nt-reached{font-weight:700;color:#5B8C5A;}
         .nt-cancel{font-size:11px;color:#B23B3B;background:none;border:none;cursor:pointer;font-weight:600;padding:4px 8px;border-radius:6px;flex-shrink:0;}
         .nt-empty{font-size:12px;color:rgba(43,38,32,.45);text-align:center;padding:18px 0;line-height:1.5;}
+        .nt-aud-miss{font-size:11px;color:rgba(43,38,32,.55);padding:0 14px 10px 40px;line-height:1.45;}
         .nt-skel{background:rgba(43,38,32,.07);border-radius:8px;animation:ntPulse 1.2s ease-in-out infinite;}
         @keyframes ntPulse{0%,100%{opacity:.45}50%{opacity:1}}
         @media(max-width:900px){.nt-2col{grid-template-columns:1fr;}}

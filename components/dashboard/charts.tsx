@@ -110,9 +110,10 @@ export function RetentionRing({ data }: { data: Retention }) {
         <div className="ch-tile"><div className="ch-tile-k"><i style={{ background: CORAL }} />Volvieron</div><div className="ch-tile-v">{r}</div><div className="ch-tile-s">ya eran clientes</div></div>
         <div className="ch-tile"><div className="ch-tile-k"><i style={{ background: BLUE }} />Nuevos</div><div className="ch-tile-v">{n}</div><div className="ch-tile-s">se registraron</div></div>
         <div className="ch-tile">
-          <div className="ch-tile-k">Vs período anterior</div>
-          <div className={`ch-tile-v ${diff == null || diff === 0 ? '' : diff > 0 ? 'up' : 'down'}`}>{diff == null ? '—' : diff === 0 ? '=' : `${diff > 0 ? '+' : '−'}${Math.abs(diff)} pts`}</div>
-          <div className="ch-tile-s">{prevShare == null ? 'sin datos para comparar' : `antes ${prevShare}%`}</div>
+          {/* Antes decía "−14 pts" (puntos porcentuales) y se confundía con los puntos de las tarjetas. */}
+          <div className="ch-tile-k">Período anterior</div>
+          <div className="ch-tile-v">{prevShare == null ? '—' : `${prevShare}%`}</div>
+          <div className={`ch-tile-s ${diff == null || diff === 0 ? '' : diff > 0 ? 'up' : 'down'}`}>{prevShare == null ? 'sin datos para comparar' : diff === 0 ? 'igual que ahora' : `${diff! > 0 ? '↑ subió' : '↓ bajó'} a ${share}%`}</div>
         </div>
       </div>
     </div>
@@ -220,6 +221,8 @@ const CSS = `
   .ch-tile-v{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#2B2620;margin-top:4px;}
   .ch-tile-v.up{color:#2E7D4F;}
   .ch-tile-v.down{color:#B4442A;}
+  .ch-tile-s.up{color:#2E7D4F;font-weight:600;}
+  .ch-tile-s.down{color:#B4442A;font-weight:600;}
   .ch-tile-s{font-size:11px;color:rgba(43,38,32,.45);font-family:'Inter',sans-serif;}
   @media(max-width:600px){.ch-ring-tiles{grid-template-columns:1fr 1fr;}}
   .ch-legend i,.ch-row i,.ch-card i{display:inline-block;flex-shrink:0;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:middle;}
