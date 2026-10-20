@@ -7,7 +7,7 @@ import {
   IconHome, IconUsers, IconChartBar, IconGift, IconBell, IconClipboardList, IconPalette, IconUserCircle,
   IconMapPin, IconSettings, IconCalendar, IconClock, IconQrcode, IconRosetteDiscountCheck, IconHandStop,
   IconStar, IconHeartHandshake, IconAt, IconMessageStar, IconAbc, IconHash, IconList, IconPhone, IconCake,
-  IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconTrash, IconPencil, IconLock, IconCheck, IconX, IconUser, IconHelpCircle, IconLogout, IconMenu2, IconBolt, IconAlertTriangle, IconInfoCircle, IconCircleCheck, IconCoins, IconCrown, IconArrowUp, IconArrowDown, IconSearch, IconDownload, IconArrowBackUp, IconHourglass, IconRepeat, IconFlame, IconMoon, IconTarget, IconUpload, IconBrandApple, IconBrandGooglePlay, IconPhoto, IconArrowLeft, IconStarFilled, IconPencilMinus,
+  IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconTrash, IconPencil, IconLock, IconCheck, IconX, IconUser, IconHelpCircle, IconLogout, IconMenu2, IconBolt, IconAlertTriangle, IconInfoCircle, IconCircleCheck, IconCoins, IconCrown, IconArrowUp, IconArrowDown, IconSearch, IconDownload, IconArrowBackUp, IconHourglass, IconRepeat, IconFlame, IconMoon, IconTarget, IconUpload, IconBuildingStore, IconListCheck, IconMail, IconCreditCard, IconBrandApple, IconBrandGooglePlay, IconPhoto, IconArrowLeft, IconStarFilled, IconPencilMinus,
   type Icon as TablerIcon,
 } from '@tabler/icons-react'
 
@@ -26,6 +26,7 @@ export const ICONS = {
   puntos: IconCoins, membresia: IconCrown, flechaArriba: IconArrowUp, flechaAbajo: IconArrowDown, buscar: IconSearch,
   descargar: IconDownload, nivel: IconArrowUp, vencio: IconHourglass, deshacer: IconArrowBackUp,
   apple: IconBrandApple, googlePlay: IconBrandGooglePlay,
+  negocio: IconBuildingStore, reglas: IconListCheck, mail: IconMail, plan: IconCreditCard,
   subir: IconUpload, imagen: IconPhoto, volver: IconArrowLeft, estrella: IconStarFilled,
   objetivo: IconTarget, escribir: IconPencilMinus,
   vuelve: IconRepeat, fuerte: IconFlame, flojo: IconMoon,
