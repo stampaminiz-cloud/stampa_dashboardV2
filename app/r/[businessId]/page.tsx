@@ -1,4 +1,5 @@
 'use client'
+import { DateParts } from '@/components/ui/DateTime'
 import React, { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { apiGetPublicBusiness, apiGetPublicCardFields, apiRegisterCustomer, apiResendCard, BASE_URL } from '@/lib/api'
@@ -274,11 +275,13 @@ export default function PublicRegisterPage() {
                                 <option value="">Elegir...</option>
                                 {(f.options || []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                               </select>
+                            ) : f.fieldType === 'date' ? (
+                              <DateParts className="rg-select" value={answers[f._id as string] || ''} onChange={v => setAnswers({ ...answers, [f._id as string]: v })} />
                             ) : (
                               <input
                                 className="rg-input"
                                 placeholder={f.placeholder || undefined}
-                                type={f.fieldType === 'date' ? 'date' : f.fieldType === 'tel' ? 'tel' : f.fieldType === 'number' ? 'number' : 'text'}
+                                type={f.fieldType === 'tel' ? 'tel' : f.fieldType === 'number' ? 'number' : 'text'}
                                 value={answers[f._id as string] || ''}
                                 onChange={e => setAnswers({ ...answers, [f._id as string]: e.target.value })}
                               />
