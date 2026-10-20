@@ -1,6 +1,5 @@
 /* styles/globals.css */
-@import '../styles/stampa-tokens.css';
-@import '../styles/sistema.css';
+/* stampa-tokens.css y sistema.css se importan antes, en app/layout.tsx. */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
