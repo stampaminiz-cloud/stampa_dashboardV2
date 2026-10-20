@@ -5,8 +5,9 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Fonts ─────────────────────────────────────────────────────
-   Mismas que el dashboard y la app de escaneo: Plus Jakarta Sans para
-   títulos, Inter para texto. Se cargan desde Google Fonts en
+   Familjen Grotesk para títulos y Albert Sans para texto (decidido el
+   19/10/2026, "Mostrador"). Se cargan una sola vez con next/font en
+   app/layout.tsx, que define --ff-display y --ff-body. Se cargan desde Google Fonts en
    components/StampaLanding.tsx (mismo patrón que app/login/page.tsx).
    Paleta "Botanica Daylight" del dashboard — antes eran los colores del
    handoff original (#E46C31 / #F7EFE8 / #01231A). */
@@ -16,7 +17,7 @@
     --stampa-ink:    #1B412F;
     --stampa-pine:   #24523D;
     --stampa-ember:  #C75D3A;
-    --stampa-cream:  #FBF6EE;
+    --stampa-cream:  #F1F3EE;   /* fondo "salvia" (antes crema #FBF6EE), 19/10/2026 */
   
     /* ── Ember (orange) ramp ────────────────────────── */
     --ember-700:  #9E4529;
@@ -39,9 +40,9 @@
     --green-400: #4F7D66;
   
     /* ── Neutral / cream ramp ───────────────────────── */
-    --cream-50:  #FFFDF9;
-    --cream-100: #FBF6EE;
-    --cream-200: #F3EADC;
+    --cream-50:  #FAFBF8;
+    --cream-100: #F1F3EE;
+    --cream-200: #E4E9E1;
     --cream-300: #E6D8C4;
   
     /* ── Semantic accents ───────────────────────────── */
@@ -74,8 +75,9 @@
     --focus-ring:     rgba(199, 93, 58, 0.42);
   
     /* ── Typography ──────────────────────────────────── */
-    --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    --font-sans: var(--ff-body), system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-display: var(--ff-display), system-ui, sans-serif;
+    --font-body: var(--ff-body), system-ui, -apple-system, sans-serif;
     --font-mono: 'SFMono-Regular', ui-monospace, 'Menlo', monospace;
   
     --weight-regular: 400;

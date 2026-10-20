@@ -1,4 +1,6 @@
 'use client'
+import { Icon } from '@/components/ui/Icon'
+import { Switch } from '@/components/ui/Switch'
 import React, { useState, useEffect } from 'react'
 import type { BillingStatus } from '@/lib/api'
 import { apiUpdateBusiness, apiChangePassword, apiUpdateProfile, apiExportCustomers, apiRequestDeletion, apiCancelDeletion, apiChangeEmail } from '@/lib/api'
@@ -109,8 +111,8 @@ function EditableText({ value, maxLength = 60, onSave }: { value: string; maxLen
     <div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <input className="st-inline-input" value={val} maxLength={maxLength} onChange={e => setVal(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setEditing(false); setVal(shown); setError(null) } }} autoFocus />
-        <button className="st-btn-sm" onClick={save} disabled={busy}>{busy ? '…' : 'Guardar'}</button>
-        <button className="st-edit-link" onClick={() => { setEditing(false); setVal(shown); setError(null) }}>Cancelar</button>
+        <button className="s-btn s-btn--primary s-btn--sm" onClick={save} disabled={busy}>{busy ? '…' : 'Guardar'}</button>
+        <button className="s-btn s-btn--text s-btn--sm" onClick={() => { setEditing(false); setVal(shown); setError(null) }}>Cancelar</button>
       </div>
       {error && <div className="st-inline-error">{error}</div>}
     </div>
@@ -118,7 +120,7 @@ function EditableText({ value, maxLength = 60, onSave }: { value: string; maxLen
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       <span className="st-field-val">{shown}</span>
-      {ok ? <span className="st-ok">✓ Guardado</span> : <button className="st-edit-link" onClick={() => setEditing(true)}>Editar</button>}
+      {ok ? <span className="st-ok">✓ Guardado</span> : <button className="s-btn s-btn--text s-btn--sm" onClick={() => setEditing(true)}>Editar</button>}
     </div>
   )
 }
@@ -144,7 +146,7 @@ function SectorField({ value, saving, saved, t, onSave }: { value: string; savin
     return (
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <span className="st-field-val">{SECTOR_LABELS[value] || value}</span>
-        <button className="st-edit-link" onClick={startEdit}>{t('edit')}</button>
+        <button className="s-btn s-btn--text s-btn--sm" onClick={startEdit}>{t('edit')}</button>
       </div>
     )
   }
@@ -157,15 +159,15 @@ function SectorField({ value, saving, saved, t, onSave }: { value: string; savin
             <option key={id} value={id}>{label}</option>
           ))}
         </select>
-        <button className="st-btn-sm" onClick={requestSave}>{saving ? '...' : saved ? '✓' : t('save')}</button>
-        <button className="st-edit-link" onClick={cancel}>{t('cancel')}</button>
+        <button className="s-btn s-btn--primary s-btn--sm" onClick={requestSave}>{saving ? '...' : saved ? <Icon name="listo" size={14} /> : t('save')}</button>
+        <button className="s-btn s-btn--text s-btn--sm" onClick={cancel}>{t('cancel')}</button>
       </div>
       {confirming && (
         <div className="st-sector-confirm">
           <p>Cambiar el rubro no modifica tu tarjeta ni los campos del formulario que ya tenés configurados — solo actualiza las recomendaciones de aquí en más. Podés ajustar la tarjeta y el formulario manualmente cuando quieras desde Diseño y Formulario.</p>
           <div className="st-delete-actions">
-            <button className="st-delete-btn-cancel" onClick={cancel}>{t('cancel')}</button>
-            <button className="st-sector-confirm-btn" onClick={confirmSave}>Sí, cambiar rubro</button>
+            <button className="s-btn s-btn--secondary s-btn--sm" onClick={cancel}>{t('cancel')}</button>
+            <button className="s-btn s-btn--primary s-btn--sm" onClick={confirmSave}>Sí, cambiar rubro</button>
           </div>
         </div>
       )}
@@ -199,7 +201,7 @@ function MyAccountSection({ ownerName, ownerEmail, isManager, pendingEmail }: { 
       <FieldRow label="Tu email">
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span className="st-field-val">{ownerEmail}</span>
-          {!isManager && !changing && <button className="st-edit-link" onClick={() => { setChanging(true); setMsg(null) }}>Cambiar</button>}
+          {!isManager && !changing && <button className="s-btn s-btn--text s-btn--sm" onClick={() => { setChanging(true); setMsg(null) }}>Cambiar</button>}
         </div>
       </FieldRow>
       {isManager && <div className="st-timezone-note">Tu email lo administra el dueño del negocio.</div>}
@@ -208,8 +210,8 @@ function MyAccountSection({ ownerName, ownerEmail, isManager, pendingEmail }: { 
           <input className="st-pw-input" type="email" placeholder="Email nuevo" value={newEmail} onChange={e => setNewEmail(e.target.value)} autoFocus />
           <input className="st-pw-input" type="password" placeholder="Tu contraseña" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" />
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="st-btn-sm" type="submit" disabled={busy || !newEmail.trim() || !password}>{busy ? '…' : 'Mandar link de confirmación'}</button>
-            <button className="st-edit-link" type="button" onClick={() => setChanging(false)}>Cancelar</button>
+            <button className="s-btn s-btn--primary s-btn--sm" type="submit" disabled={busy || !newEmail.trim() || !password}>{busy ? '…' : 'Mandar link de confirmación'}</button>
+            <button className="s-btn s-btn--text s-btn--sm" type="button" onClick={() => setChanging(false)}>Cancelar</button>
           </div>
           <div className="st-timezone-note">Te mandamos un link al email nuevo. El cambio se aplica cuando lo confirmes.</div>
         </form>
@@ -263,7 +265,7 @@ function PasswordSection() {
       </FieldRow>
       {error && <div className="st-pw-error">{error}</div>}
       {success && <div className="st-pw-success">Contraseña actualizada correctamente.</div>}
-      <button type="submit" className="st-btn-sm" style={{ marginTop: 10 }} disabled={saving}>
+      <button type="submit" className="s-btn s-btn--primary s-btn--sm" style={{ marginTop: 10 }} disabled={saving}>
         {saving ? 'Guardando...' : 'Cambiar contraseña'}
       </button>
     </form>
@@ -273,10 +275,8 @@ function PasswordSection() {
 function CheckboxRow({ label, checked: init, description, onToggle }: { label: string; checked: boolean; description?: string; onToggle?: (v: boolean) => void }) {
   const [checked, setChecked] = useState(init)
   return (
-    <div className="st-check-row" onClick={() => { const v = !checked; setChecked(v); onToggle?.(v) }}>
-      <div className={`st-checkbox${checked ? ' st-checkbox--on' : ''}`}>
-        {checked && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-      </div>
+    <div className="st-check-row">
+      <Switch checked={checked} label={label} onChange={v => { setChecked(v); onToggle?.(v) }} />
       <div>
         <div className="st-check-label">{label}</div>
         {description && <div className="st-check-desc">{description}</div>}
@@ -387,68 +387,60 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
     <>
       <style>{`
         .st-content{flex:1;overflow-y:auto;padding:22px 24px;display:flex;flex-direction:column;gap:14px;}
-        .st-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:18px 20px;box-shadow:0 1px 8px rgba(43,38,32,.04);}
-        .st-card-head{display:flex;align-items:center;gap:8px;padding-bottom:14px;border-bottom:1px solid rgba(43,38,32,.07);margin-bottom:14px;}
-        .st-card-head svg{color:rgba(43,38,32,.5);flex-shrink:0;}
-        .st-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;color:#2B2620;}
+        .st-card{background:#FFFFFF;border:1px solid rgba(34,32,27,.07);border-radius:14px;padding:18px 20px;box-shadow:0 1px 8px rgba(34,32,27,.04);}
+        .st-card-head{display:flex;align-items:center;gap:8px;padding-bottom:14px;border-bottom:1px solid rgba(34,32,27,.07);margin-bottom:14px;}
+        .st-card-head svg{color:rgba(34,32,27,.5);flex-shrink:0;}
+        .st-card-title{font-family:var(--font-display);font-weight:700;font-size:13.5px;color:var(--s-tinta);}
         .st-rule{display:flex;flex-direction:column;gap:8px;}
-        .st-rule-title{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:#2B2620;}
+        .st-rule-title{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--s-tinta);}
         .st-rule-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-        .st-rule-text{font-size:12px;color:rgba(43,38,32,.75);min-width:130px;}
+        .st-rule-text{font-size:12px;color:rgba(34,32,27,.75);min-width:130px;}
         .st-rule-presets{display:flex;gap:6px;}
-        .st-rule-chip{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid rgba(43,38,32,.14);background:#fff;color:rgba(43,38,32,.7);cursor:pointer;font-family:'Inter',sans-serif;}
-        .st-rule-chip.is-on{background:rgba(199,93,58,.1);border-color:#C75D3A;color:#C75D3A;}
-        .st-field-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(43,38,32,.05);min-height:42px;}
+        .st-rule-chip{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid rgba(34,32,27,.14);background:#fff;color:rgba(34,32,27,.7);cursor:pointer;font-family:var(--font-body);}
+        .st-rule-chip.is-on{background:rgba(199,93,58,.1);border-color:var(--s-brasa);color:var(--s-brasa);}
+        .st-field-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(34,32,27,.05);min-height:42px;}
         .st-field-row:last-child{border-bottom:none;padding-bottom:0;}
-        .st-field-label{font-size:12.5px;color:rgba(43,38,32,.6);}
+        .st-field-label{font-size:12.5px;color:rgba(34,32,27,.6);}
         .st-field-value{display:flex;align-items:center;gap:8px;}
-        .st-field-val{font-size:12.5px;font-weight:600;color:#2B2620;}
-        .st-timezone-select{font-size:12.5px;font-weight:600;color:#2B2620;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.12);border-radius:8px;padding:6px 10px;font-family:'Inter',sans-serif;cursor:pointer;}
-        .st-inline-input{padding:5px 9px;font-size:12.5px;border:1.5px solid #C75D3A;border-radius:7px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;width:180px;outline:none;}
-        .st-pw-input{padding:6px 10px;font-size:12.5px;border:1px solid rgba(43,38,32,.15);border-radius:7px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;width:200px;outline:none;}
-        .st-pw-input:focus{border-color:#C75D3A;}
-        .st-pw-error{font-size:11.5px;color:#B23B3B;background:rgba(178,59,59,.07);border:1px solid rgba(178,59,59,.2);border-radius:8px;padding:8px 12px;margin-top:10px;}
+        .st-field-val{font-size:12.5px;font-weight:600;color:var(--s-tinta);}
+        .st-timezone-select{font-size:12.5px;font-weight:600;color:var(--s-tinta);background:var(--s-salvia);border:1.5px solid rgba(34,32,27,.12);border-radius:8px;padding:6px 10px;font-family:var(--font-body);cursor:pointer;}
+        .st-inline-input{padding:5px 9px;font-size:12.5px;border:1.5px solid var(--s-brasa);border-radius:7px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);width:180px;outline:none;}
+        .st-pw-input{padding:6px 10px;font-size:12.5px;border:1px solid rgba(34,32,27,.15);border-radius:7px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);width:200px;outline:none;}
+        .st-pw-input:focus{border-color:var(--s-brasa);}
+        .st-pw-error{font-size:11.5px;color:var(--s-error);background:rgba(178,59,59,.07);border:1px solid rgba(178,59,59,.2);border-radius:8px;padding:8px 12px;margin-top:10px;}
         .st-pw-success{font-size:11.5px;color:#2C5A2C;background:rgba(91,140,90,.1);border:1px solid rgba(91,140,90,.25);border-radius:8px;padding:8px 12px;margin-top:10px;}
-        .st-edit-link{font-size:11px;color:#C75D3A;font-weight:600;background:none;border:none;cursor:pointer;padding:0;}
-        .st-btn-sm{font-size:11px;background:#C75D3A;color:#fff;border:none;border-radius:7px;padding:5px 12px;cursor:pointer;font-weight:600;}
-        .st-number-input{width:60px;padding:5px 9px;font-size:12.5px;border:1px solid rgba(43,38,32,.15);border-radius:7px;text-align:center;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
-        .st-number-input:focus{border-color:#C75D3A;}
-        .st-check-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgba(43,38,32,.05);cursor:pointer;user-select:none;}
+        .st-number-input{width:60px;padding:5px 9px;font-size:12.5px;border:1px solid rgba(34,32,27,.15);border-radius:7px;text-align:center;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);outline:none;}
+        .st-number-input:focus{border-color:var(--s-brasa);}
+        .st-check-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgba(34,32,27,.05);cursor:pointer;user-select:none;}
         .st-check-row:last-child{border-bottom:none;padding-bottom:0;}
-        .st-checkbox{width:17px;height:17px;border-radius:4px;border:1.5px solid rgba(43,38,32,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .15s;}
-        .st-checkbox--on{background:#C75D3A;border-color:#C75D3A;}
-        .st-check-label{font-size:12.5px;color:#2B2620;font-weight:500;}
-        .st-check-desc{font-size:11px;color:rgba(43,38,32,.45);margin-top:2px;}
+        .st-check-label{font-size:12.5px;color:var(--s-tinta);font-weight:500;}
+        .st-check-desc{font-size:11px;color:rgba(34,32,27,.45);margin-top:2px;}
         .st-plan-card{background:rgba(199,93,58,.07);border:1px solid rgba(199,93,58,.2);border-radius:11px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;}
-        .st-plan-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:800;color:#C75D3A;}
-        .st-plan-sub{font-size:11px;color:rgba(43,38,32,.5);margin-top:2px;}
+        .st-plan-name{font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--s-brasa);}
+        .st-plan-sub{font-size:11px;color:rgba(34,32,27,.5);margin-top:2px;}
         .st-plan-dots{display:flex;gap:6px;margin-top:8px;}
         .st-plan-dot{width:9px;height:9px;border-radius:50%;}
-        .st-plan-dot--on{background:#C75D3A;}
-        .st-plan-dot--off{background:rgba(43,38,32,.15);}
-        .st-upgrade-btn{background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;}
+        .st-plan-dot--on{background:var(--s-brasa);}
+        .st-plan-dot--off{background:rgba(34,32,27,.15);}
         .st-danger-card{background:rgba(178,59,59,.04);border:1px solid rgba(178,59,59,.15);border-radius:14px;padding:18px 20px;}
-        .st-danger-head{display:flex;align-items:center;gap:8px;color:#B23B3B;padding-bottom:14px;border-bottom:1px solid rgba(178,59,59,.1);margin-bottom:14px;}
-        .st-danger-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;color:#B23B3B;}
+        .st-danger-head{display:flex;align-items:center;gap:8px;color:var(--s-error);padding-bottom:14px;border-bottom:1px solid rgba(178,59,59,.1);margin-bottom:14px;}
+        .st-danger-title{font-family:var(--font-display);font-weight:700;font-size:13.5px;color:var(--s-error);}
         .st-danger-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(178,59,59,.07);}
         .st-danger-row:last-child{border-bottom:none;padding-bottom:0;}
-        .st-danger-label{font-size:12.5px;color:rgba(43,38,32,.65);}
-        .st-danger-link{font-size:11.5px;color:#B23B3B;font-weight:700;background:none;border:none;cursor:pointer;}
+        .st-danger-label{font-size:12.5px;color:rgba(34,32,27,.65);}
+        .st-danger-link{font-size:11.5px;color:var(--s-error);font-weight:700;background:none;border:none;cursor:pointer;}
         .st-delete-confirm{margin-top:12px;background:rgba(178,59,59,.08);border:1px solid rgba(178,59,59,.2);border-radius:10px;padding:14px;}
-        .st-delete-confirm p{font-size:12px;color:rgba(43,38,32,.7);margin-bottom:12px;line-height:1.5;}
+        .st-delete-confirm p{font-size:12px;color:rgba(34,32,27,.7);margin-bottom:12px;line-height:1.5;}
         .st-delete-actions{display:flex;gap:8px;}
-        .st-delete-btn-cancel{background:none;border:1px solid rgba(43,38,32,.2);border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer;color:rgba(43,38,32,.6);}
-        .st-delete-btn-confirm{background:#B23B3B;border:none;border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer;color:#fff;font-weight:700;}
-        .st-timezone-note{font-size:10.5px;color:rgba(43,38,32,.4);margin-top:8px;line-height:1.5;}
-        .st-rules-note{font-size:12px;color:rgba(43,38,32,.6);line-height:1.6;background:rgba(199,93,58,.06);border:1px solid rgba(199,93,58,.15);border-radius:10px;padding:11px 14px;margin-bottom:14px;}
-        .st-rules-summary{font-size:11.5px;color:rgba(43,38,32,.5);margin-top:10px;line-height:1.6;}
-        .st-sector-confirm{position:absolute;z-index:5;top:calc(100% + 8px);left:0;right:0;min-width:320px;background:#fff;border:1px solid rgba(199,93,58,.25);border-radius:10px;padding:14px;box-shadow:0 8px 24px rgba(43,38,32,.12);}
-        .st-sector-confirm p{font-size:12px;color:rgba(43,38,32,.7);margin-bottom:12px;line-height:1.55;}
-        .st-sector-confirm-btn{background:#C75D3A;border:none;border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer;color:#fff;font-weight:700;}
-        .st-alerts-note{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:12px;}
-        .st-inline-error{font-size:11px;color:#B23B3B;font-weight:600;margin-top:4px;}
-        .st-ok{font-size:11px;color:#5B8C5A;font-weight:600;}
-        .st-subform{display:flex;flex-direction:column;gap:8px;background:#FBF6EE;border-radius:10px;padding:12px;margin:8px 0;}
+        .st-timezone-note{font-size:10.5px;color:rgba(34,32,27,.4);margin-top:8px;line-height:1.5;}
+        .st-rules-note{font-size:12px;color:rgba(34,32,27,.6);line-height:1.6;background:rgba(199,93,58,.06);border:1px solid rgba(199,93,58,.15);border-radius:10px;padding:11px 14px;margin-bottom:14px;}
+        .st-rules-summary{font-size:11.5px;color:rgba(34,32,27,.5);margin-top:10px;line-height:1.6;}
+        .st-sector-confirm{position:absolute;z-index:5;top:calc(100% + 8px);left:0;right:0;min-width:320px;background:#fff;border:1px solid rgba(199,93,58,.25);border-radius:10px;padding:14px;box-shadow:0 8px 24px rgba(34,32,27,.12);}
+        .st-sector-confirm p{font-size:12px;color:rgba(34,32,27,.7);margin-bottom:12px;line-height:1.55;}
+        .st-alerts-note{font-size:11px;color:rgba(34,32,27,.45);margin-bottom:12px;}
+        .st-inline-error{font-size:11px;color:var(--s-error);font-weight:600;margin-top:4px;}
+        .st-ok{font-size:11px;color:var(--s-listo);font-weight:600;}
+        .st-subform{display:flex;flex-direction:column;gap:8px;background:var(--s-salvia);border-radius:10px;padding:12px;margin:8px 0;}
         .st-subform .st-pw-input{width:100%;background:#fff;}
         @media(max-width:768px){
           .st-content{padding:14px 16px;}
@@ -461,11 +453,11 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
       `}</style>
 
       <div className="st-content">
-        <Section title="Mi cuenta" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}>
+        <Section title="Mi cuenta" icon={<Icon name="perfil" size={16} />}>
           <MyAccountSection ownerName={ownerName} ownerEmail={ownerEmail} isManager={isManager} pendingEmail={pendingEmail} />
         </Section>
 
-        <Section title={t('st_profile')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V8L3 4h18l-2 4v13"/><path d="M9 21v-6h6v6"/></svg>}>
+        <Section title={t('st_profile')} icon={<Icon name="negocio" size={16} />}>
           <FieldRow label={t('st_name')}><EditableText value={business.name} maxLength={60} onSave={v => handleSave('name', v)} /></FieldRow>
           <FieldRow label={t('st_sector')}><SectorField value={business.sector} saving={saving} saved={saved} t={t} onSave={v => { handleSave('sector', v) }} />{msgFor('sector')}</FieldRow>
           <FieldRow label={<>{t('st_timezone')}<InfoTooltip text="Se usa para 'hoy', 'este mes', los horarios de Analítica y la hora de las alertas por email. Tiene que ser la del local." /></>}>
@@ -486,15 +478,15 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
             <span className="st-field-val">
               {(() => { const n = locations.filter(l => l.status === 'active').length; return n > 1 ? `${n} activas` : n === 1 ? '1 (la principal)' : '—' })()}
             </span>
-            {onOpenLocations && <button className="st-edit-link" onClick={onOpenLocations}>Administrar</button>}
+            {onOpenLocations && <button className="s-btn s-btn--text s-btn--sm" onClick={onOpenLocations}>Administrar</button>}
           </FieldRow>
         </Section>
 
-        <Section title="Seguridad" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}>
+        <Section title="Seguridad" icon={<Icon name="candado" size={16} />}>
           <PasswordSection />
         </Section>
 
-        <Section title={t('st_rules')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}>
+        <Section title={t('st_rules')} icon={<Icon name="reglas" size={16} />}>
           {/* Mismo formato que las demás reglas (ProgramRules): título con ⓘ y el control debajo. */}
           <div className="st-rule">
             <div className="st-rule-title">
@@ -516,7 +508,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           <ProgramRules businessId={businessId} cards={cards} birthday={birthday} onCardsChanged={onCardsChanged} onBusinessChanged={onSave} />
         </Section>
 
-        <Section title={t('st_alerts')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}>
+        <Section title={t('st_alerts')} icon={<Icon name="mail" size={16} />}>
           {isManager
             ? <div className="st-alerts-note">Las alertas por email le llegan al dueño del negocio.</div>
             : <>
@@ -531,21 +523,21 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         {/* Plan y zona de peligro: solo el dueño (el manager tiene "todo el
             dashboard, sin billing ni equipo, sin zona de peligro"). */}
         {!isManager && <>
-        <Section title={t('st_plan')} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>}>
+        <Section title={t('st_plan')} icon={<Icon name="plan" size={16} />}>
           <div className="st-plan-card">
             <div>
               <div className="st-plan-name">Plan {business.plan}</div>
               <div className="st-plan-sub">{business.planActiveCards} {t('st_active_cards')}{business.planMaxCards >= 999 ? ' · sin límite' : ''}</div>
               {planDots.length > 0 && <div className="st-plan-dots">{planDots.map((on: boolean, i: number) => <div key={i} className={`st-plan-dot ${on ? 'st-plan-dot--on' : 'st-plan-dot--off'}`} />)}</div>}
             </div>
-            <button className="st-upgrade-btn" onClick={onChoosePlan}>{billing?.access === 'active' ? 'Cambiar plan' : 'Elegir plan'}</button>
+            <button className="s-btn s-btn--primary s-btn--sm" onClick={onChoosePlan}>{billing?.access === 'active' ? 'Cambiar plan' : 'Elegir plan'}</button>
           </div>
           <BillingDetails billing={billing} onCancel={onCancelSubscription} />
         </Section>
 
         <div className="st-danger-card">
           <div className="st-danger-head">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <Icon name="atencion" size={16} />
             <span className="st-danger-title">{t('st_danger')}</span>
           </div>
           <div className="st-danger-row">
@@ -564,7 +556,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
                 Hasta ese momento podés cancelarlo cuando quieras.
               </p>
               <div className="st-delete-actions">
-                <button className="st-delete-btn-cancel" onClick={handleCancelDeletion} disabled={deletionLoading}>
+                <button className="s-btn s-btn--secondary s-btn--sm" onClick={handleCancelDeletion} disabled={deletionLoading}>
                   {deletionLoading ? '...' : 'Cancelar eliminación'}
                 </button>
               </div>
@@ -583,8 +575,8 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
               <p>Se cancela tu suscripción y tu cuenta queda marcada para eliminar. Tenés <strong>30 días</strong> para arrepentirte (entrando y tocando "Cancelar eliminación" acá). Después se borra todo de forma definitiva: negocio, tarjetas, clientes e historial. Te recomendamos exportar tus datos antes.</p>
               <input className="st-pw-input" type="password" placeholder="Tu contraseña para confirmar" value={deletePassword} onChange={e => setDeletePassword(e.target.value)} style={{ width: '100%', marginBottom: 10 }} autoComplete="current-password" />
               <div className="st-delete-actions">
-                <button className="st-delete-btn-cancel" onClick={() => { setShowDeleteConfirm(false); setDeletePassword('') }} disabled={deletionLoading}>{t('cancel')}</button>
-                <button className="st-delete-btn-confirm" onClick={handleConfirmDeletion} disabled={deletionLoading || !deletePassword}>
+                <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setShowDeleteConfirm(false); setDeletePassword('') }} disabled={deletionLoading}>{t('cancel')}</button>
+                <button className="s-btn s-btn--danger s-btn--sm" onClick={handleConfirmDeletion} disabled={deletionLoading || !deletePassword}>
                   {deletionLoading ? '...' : t('st_delete_yes')}
                 </button>
               </div>

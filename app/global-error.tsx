@@ -9,7 +9,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
   useEffect(() => { Sentry.captureException(error) }, [error])
   return (
     <html lang="es">
-      <body style={{ margin: 0, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FBF6EE', color: '#2B2620', fontFamily: 'Inter, system-ui, sans-serif', padding: 16, textAlign: 'center' }}>
+      <body style={{ margin: 0, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F3EE', color: '#2B2620', fontFamily: 'Inter, system-ui, sans-serif', padding: 16, textAlign: 'center' }}>
         <div>
           <h1 style={{ fontSize: 22, margin: '0 0 8px' }}>Algo salió mal</h1>
           <p style={{ margin: '0 0 18px', color: 'rgba(43,38,32,.65)' }}>Ya nos llegó el aviso. Probá de nuevo en un momento.</p>

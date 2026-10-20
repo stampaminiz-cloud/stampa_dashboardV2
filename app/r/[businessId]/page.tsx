@@ -1,16 +1,18 @@
 'use client'
+import { Icon } from '@/components/ui/Icon'
+import { DateParts } from '@/components/ui/DateTime'
 import React, { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { apiGetPublicBusiness, apiGetPublicCardFields, apiRegisterCustomer, apiResendCard, BASE_URL } from '@/lib/api'
 import { QrImage } from '@/components/QrImage'
 
 const CSS = `
-  :root { --font-display: 'Plus Jakarta Sans', sans-serif; --font-body: 'Inter', sans-serif; --brand-color: #C75D3A; --brand-second: #993C1D; --brand-text: #FFFFFF; }
+  :root { --brand-color: var(--s-brasa); --brand-second: #993C1D; --brand-text: #FFFFFF; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { overflow-x: hidden; width: 100%; max-width: 100vw; }
-  body { font-family: var(--font-body); background: #FBF6EE; color: #2B2620; }
+  body { font-family: var(--font-body); background: var(--s-salvia); color: var(--s-tinta); }
   .rg-shell { min-height: 100vh; width: 100%; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-x: hidden; }
-  .rg-card { background: #FFFFFF; border: 1px solid rgba(43,38,32,.08); border-radius: 22px; width: 100%; max-width: 380px; box-shadow: 0 8px 40px rgba(43,38,32,.12); overflow: hidden; }
+  .rg-card { background: #FFFFFF; border: 1px solid rgba(34,32,27,.08); border-radius: 22px; width: 100%; max-width: 380px; box-shadow: 0 8px 40px rgba(34,32,27,.12); overflow: hidden; }
   .rg-body { padding: 28px 26px; }
 
   /* Header con degradé — ícono + nombre + subtítulo */
@@ -25,33 +27,33 @@ const CSS = `
   .rg-header-badge { display: inline-block; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; background: rgba(255,255,255,.16); padding: 4px 10px; border-radius: 20px; margin-top: 10px; }
 
   .rg-field { margin-bottom: 14px; }
-  .rg-label { font-size: 11px; font-weight: 700; color: rgba(43,38,32,.5); text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 6px; }
-  .rg-input, .rg-select { width: 100%; max-width: 100%; padding: 12px 14px; font-size: 14px; border: 1.5px solid rgba(43,38,32,.12); border-radius: 12px; background: #FBF6EE; color: #2B2620; font-family: var(--font-body); outline: none; }
+  .rg-label { font-size: 11px; font-weight: 700; color: rgba(34,32,27,.5); text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 6px; }
+  .rg-input, .rg-select { width: 100%; max-width: 100%; padding: 12px 14px; font-size: 14px; border: 1.5px solid rgba(34,32,27,.12); border-radius: 12px; background: var(--s-salvia); color: var(--s-tinta); font-family: var(--font-body); outline: none; }
   .rg-input:focus, .rg-select:focus { border-color: var(--brand-color); background: #FFFFFF; }
-  .rg-btn { width: 100%; background: var(--brand-color); color: #fff; border: none; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-display); margin-top: 6px; box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+  .rg-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; background: var(--brand-color); color: #fff; border: none; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-display); margin-top: 6px; box-shadow: 0 4px 14px rgba(0,0,0,.12); }
   .rg-btn:disabled { opacity: .6; cursor: not-allowed; box-shadow: none; }
-  .rg-error { font-size: 11.5px; color: #B23B3B; background: rgba(178,59,59,.07); border: 1px solid rgba(178,59,59,.2); border-radius: 9px; padding: 10px 14px; margin-bottom: 16px; overflow-wrap: break-word; }
+  .rg-error { font-size: 11.5px; color: var(--s-error); background: rgba(178,59,59,.07); border: 1px solid rgba(178,59,59,.2); border-radius: 9px; padding: 10px 14px; margin-bottom: 16px; overflow-wrap: break-word; }
 
   .rg-card-pill-row { display: flex; flex-direction: column; gap: 8px; }
-  .rg-card-pill { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 13px 15px; border-radius: 12px; border: 1.5px solid rgba(43,38,32,.12); background: #FBF6EE; cursor: pointer; font-family: var(--font-body); font-size: 14px; color: #2B2620; text-align: left; width: 100%; max-width: 100%; }
+  .rg-card-pill { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 13px 15px; border-radius: 12px; border: 1.5px solid rgba(34,32,27,.12); background: var(--s-salvia); cursor: pointer; font-family: var(--font-body); font-size: 14px; color: var(--s-tinta); text-align: left; width: 100%; max-width: 100%; }
   .rg-card-pill:hover { border-color: var(--brand-color); }
   .rg-card-pill-name { font-weight: 600; overflow-wrap: break-word; word-break: break-word; }
-  .rg-card-pill-desc { font-size: 12px; color: rgba(43,38,32,.5); overflow-wrap: break-word; word-break: break-word; }
+  .rg-card-pill-desc { font-size: 12px; color: rgba(34,32,27,.5); overflow-wrap: break-word; word-break: break-word; }
 
   .rg-success { text-align: center; }
   .rg-wallet-btn--google { background: #1f1f1f; margin-top: -6px; }
   .rg-wallet-btn { display: block; width: 100%; background: #000; color: #fff; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; font-family: var(--font-display); text-decoration: none; margin: 16px 0; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
-  .rg-qr-img { width: 100%; max-width: 180px; height: auto; aspect-ratio: 1 / 1; margin: 16px auto; display: block; border-radius: 12px; border: 1px solid rgba(43,38,32,.08); }
+  .rg-qr-img { width: 100%; max-width: 180px; height: auto; aspect-ratio: 1 / 1; margin: 16px auto; display: block; border-radius: 12px; border: 1px solid rgba(34,32,27,.08); }
   .rg-success-title { font-family: var(--font-display); font-weight: 700; font-size: 17px; margin-bottom: 6px; }
-  .rg-success-note { font-size: 12px; color: rgba(43,38,32,.55); line-height: 1.6; overflow-wrap: break-word; }
-  .rg-footer-badge { text-align: center; font-size: 10.5px; color: rgba(43,38,32,.3); padding: 14px 0 4px; font-weight: 600; letter-spacing: .02em; }
+  .rg-success-note { font-size: 12px; color: rgba(34,32,27,.55); line-height: 1.6; overflow-wrap: break-word; }
+  .rg-footer-badge { text-align: center; font-size: 10.5px; color: rgba(34,32,27,.3); padding: 14px 0 4px; font-weight: 600; letter-spacing: .02em; }
 
-  .rg-loading, .rg-fatal { text-align: center; font-size: 13px; color: rgba(43,38,32,.5); padding: 60px 26px; }
-  .rg-legal { font-size: 11px; color: rgba(43,38,32,.5); text-align: center; line-height: 1.5; margin-top: 12px; }
+  .rg-loading, .rg-fatal { text-align: center; font-size: 13px; color: rgba(34,32,27,.5); padding: 60px 26px; }
+  .rg-legal { font-size: 11px; color: rgba(34,32,27,.5); text-align: center; line-height: 1.5; margin-top: 12px; }
   .rg-legal a, .rg-link { color: var(--brand-color); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-body); font-size: inherit; }
-  .rg-back { display: inline-block; margin-bottom: 14px; font-size: 12px; }
-  .rg-recover { text-align: center; margin-top: 14px; font-size: 12px; color: rgba(43,38,32,.55); }
-  .rg-info { font-size: 12px; color: #3F6E3E; background: rgba(91,140,90,.1); border: 1px solid rgba(91,140,90,.25); border-radius: 9px; padding: 10px 14px; margin-bottom: 16px; line-height: 1.5; }
+  .rg-back { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 14px; font-size: 12px; }
+  .rg-recover { text-align: center; margin-top: 14px; font-size: 12px; color: rgba(34,32,27,.55); }
+  .rg-info { font-size: 12px; color: var(--s-listo); background: rgba(91,140,90,.1); border: 1px solid rgba(91,140,90,.25); border-radius: 9px; padding: 10px 14px; margin-bottom: 16px; line-height: 1.5; }
   .rg-btn--ghost { background: #fff; color: var(--brand-color); border: 1.5px solid var(--brand-color); box-shadow: none; }
 `
 
@@ -185,8 +187,6 @@ export default function PublicRegisterPage() {
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
       <div className="rg-shell">
         <div className="rg-card">
           {loading ? (
@@ -243,7 +243,7 @@ export default function PublicRegisterPage() {
                   </div>
                 ) : (
                   <>
-                    {cards.length > 1 && !recoverMode && <button className="rg-link rg-back" onClick={() => { setSelectedCard(null); setError(''); setAlreadyRegistered(false) }}>← Cambiar de tarjeta</button>}
+                    {cards.length > 1 && !recoverMode && <button className="rg-link rg-back" onClick={() => { setSelectedCard(null); setError(''); setAlreadyRegistered(false) }}><Icon name="anterior" size={14} /> Cambiar de tarjeta</button>}
                     {info && <div className="rg-info">{info}</div>}
                     {error && <div className="rg-error">{error}</div>}
                     {recoverMode ? (
@@ -276,11 +276,13 @@ export default function PublicRegisterPage() {
                                 <option value="">Elegir...</option>
                                 {(f.options || []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                               </select>
+                            ) : f.fieldType === 'date' ? (
+                              <DateParts className="rg-select" value={answers[f._id as string] || ''} onChange={v => setAnswers({ ...answers, [f._id as string]: v })} />
                             ) : (
                               <input
                                 className="rg-input"
                                 placeholder={f.placeholder || undefined}
-                                type={f.fieldType === 'date' ? 'date' : f.fieldType === 'tel' ? 'tel' : f.fieldType === 'number' ? 'number' : 'text'}
+                                type={f.fieldType === 'tel' ? 'tel' : f.fieldType === 'number' ? 'number' : 'text'}
                                 value={answers[f._id as string] || ''}
                                 onChange={e => setAnswers({ ...answers, [f._id as string]: e.target.value })}
                               />
@@ -293,7 +295,7 @@ export default function PublicRegisterPage() {
                           </button>
                         ) : (
                           <button className="rg-btn" type="submit" disabled={submitting}>
-                            {submitting ? 'Registrando…' : 'Obtener mi tarjeta →'}
+                            {submitting ? 'Registrando…' : <>Obtener mi tarjeta <Icon name="siguiente" size={16} /></>}
                           </button>
                         )}
                         <div className="rg-legal">

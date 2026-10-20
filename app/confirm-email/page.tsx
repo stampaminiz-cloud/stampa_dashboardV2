@@ -6,12 +6,12 @@ import { apiConfirmEmail } from '@/lib/api'
 // Link que llega al email nuevo cuando el dueño lo cambia en Configuración.
 const CSS = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Inter', sans-serif; background: #FBF6EE; color: #2B2620; }
+  body { font-family: var(--font-body); background: #F1F3EE; color: #2B2620; }
   .ce-shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
   .ce-card { background: #fff; border: 1px solid rgba(43,38,32,.08); border-radius: 24px; padding: 36px; width: 100%; max-width: 400px; box-shadow: 0 8px 40px rgba(43,38,32,.1); text-align: center; }
-  .ce-title { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 21px; margin-bottom: 8px; }
+  .ce-title { font-family: var(--font-display); font-weight: 700; font-size: 21px; margin-bottom: 8px; }
   .ce-sub { font-size: 13.5px; color: rgba(43,38,32,.6); line-height: 1.55; margin-bottom: 22px; }
-  .ce-btn { display: inline-block; background: #C75D3A; color: #fff; border-radius: 12px; padding: 13px 22px; font-size: 14px; font-weight: 700; text-decoration: none; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .ce-btn { display: inline-block; background: #C75D3A; color: #fff; border-radius: 12px; padding: 13px 22px; font-size: 14px; font-weight: 700; text-decoration: none; font-family: var(--font-display); }
 `
 
 function Confirm() {

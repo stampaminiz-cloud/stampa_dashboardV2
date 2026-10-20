@@ -1,4 +1,5 @@
 'use client'
+import { Icon, type IconName } from '@/components/ui/Icon'
 import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
 import { PLAN_LIMITS, type Plan } from '@/data/plans'
@@ -70,9 +71,9 @@ function avatarColor(name: string) {
 }
 
 function CardTypeIcon({ type }: { type: string }) {
-  if (type === 'points') return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-  if (type === 'membership') return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+  if (type === 'points') return <Icon name="puntos" size={14} />
+  if (type === 'membership') return <Icon name="membresia" size={14} />
+  return <Icon name="sello" size={14} />
 }
 
 function cardTypeLabel(type: string) {
@@ -84,11 +85,9 @@ const isNear = (card: CardEntry) => card.cardType === 'stamp' && !!card.cardStam
 
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   return (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-      strokeLinecap="round" strokeLinejoin="round"
-      style={{ opacity: active ? 1 : 0.25, marginLeft: 4, verticalAlign: 'middle' }}>
-      {active && dir === 'asc' ? <path d="M12 19V5M5 12l7-7 7 7" /> : <path d="M12 5v14M5 12l7 7 7-7" />}
-    </svg>
+    <span style={{ opacity: active ? 1 : 0.3, marginLeft: 3, verticalAlign: '-2px', display: 'inline-flex' }}>
+      <Icon name={active && dir === 'asc' ? 'flechaArriba' : 'flechaAbajo'} size={14} />
+    </span>
   )
 }
 
@@ -161,7 +160,7 @@ function CardSection({ customer, card, canDelete, onDelete, onChanged }: {
         <span className="ct-panel-card-type"><CardTypeIcon type={card.cardType} />{card.cardName || cardTypeLabel(card.cardType)}</span>
         {canDelete && (
           <button className="ct-panel-delete-btn" onClick={() => setConfirmDel(true)} title="Eliminar esta tarjeta">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            <Icon name="borrar" size={14} />
           </button>
         )}
       </div>
@@ -185,7 +184,7 @@ function CardSection({ customer, card, canDelete, onDelete, onChanged }: {
           <div className="ct-panel-progress-bar"><div className="ct-panel-progress-fill" style={{ width: `${required ? Math.min(100, (card.stamps / required) * 100) : 0}%` }} /></div>
           {isReady(card) ? (
             <div className="ct-ready-note">
-              <strong>🎁 Premio listo para entregar</strong>
+              <strong className="ct-ic-text"><Icon name="premios" size={14} /> Premio listo para entregar</strong>
               <span>{card.premio ? `${card.premio} · ` : ''}Se entrega desde la app de escaneo: al escanear su tarjeta aparece "Entregar premio".</span>
             </div>
           ) : isNear(card) && (
@@ -236,7 +235,7 @@ function CardSection({ customer, card, canDelete, onDelete, onChanged }: {
 }
 
 // ─── Historial de movimientos ─────────────────────────────────────────────────
-const HISTORY_ICON: Record<string, string> = { stamp: '●', points: '★', visit: '◆', redeem: '🎁', tier_change: '▲', expire: '⌛' }
+const HISTORY_ICON: Record<string, IconName> = { stamp: 'sello', points: 'puntos', visit: 'listo', redeem: 'premios', tier_change: 'nivel', expire: 'vencio' }
 function History({ customer }: { customer: Customer }) {
   const [items, setItems] = useState<Array<{ type: string; text: string; at: number; card: string | null; by: string; location?: string | null }> | null>(null)
   const [error, setError] = useState(false)
@@ -267,7 +266,7 @@ function History({ customer }: { customer: Customer }) {
         : <>
             {shown.map((it, i) => (
               <div key={i} className="ct-hist-row">
-                <span className={`ct-hist-ic ct-hist-ic--${it.type}`}>{HISTORY_ICON[it.type] || '•'}</span>
+                <span className={`ct-hist-ic ct-hist-ic--${it.type}`}><Icon name={HISTORY_ICON[it.type] || 'listo'} size={14} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="ct-hist-text">{it.text}</div>
                   <div className="ct-hist-meta">{fmt(it.at)} · {it.by}{it.location ? ` · ${it.location}` : ''}{customer.cards.length > 1 && it.card ? ` · ${it.card}` : ''}</div>
@@ -296,7 +295,7 @@ function CustomerPanel({ customer, canDelete, onClose, onDelete, onChanged }: {
         <div className="ct-sheet-grip" />
         <div className="ct-panel-header">
           <button className="ct-panel-close" onClick={onClose} aria-label="Cerrar">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <Icon name="cerrar" size={14} />
           </button>
         </div>
         <div className="ct-panel-avatar" style={{ background: color }}>{initials(customer.name)}</div>
@@ -309,7 +308,7 @@ function CustomerPanel({ customer, canDelete, onClose, onDelete, onChanged }: {
           {customer.cards.map(c => (
             <span key={c.customerId} className={`ct-card-badge ct-card-badge--${c.cardType}`}>{c.cardName || cardTypeLabel(c.cardType)}</span>
           ))}
-          {customer.ready ? <span className="ct-ready-badge">🎁 Premio listo</span> : customer.near && <span className="ct-near-badge">{t('ct_near_badge')}</span>}
+          {customer.ready ? <span className="ct-ready-badge"><Icon name="premios" size={12} /> Premio listo</span> : customer.near && <span className="ct-near-badge"><Icon name="unSello" size={12} /> {t('ct_near_badge')}</span>}
         </div>
 
         <div className="ct-panel-section">
@@ -465,7 +464,7 @@ export function CustomersTab({
     { key: 'all', label: t('ct_all'), count: counts?.all },
     { key: 'active', label: t('ct_active'), count: counts?.active },
     { key: 'inactive', label: t('ct_inactive'), count: counts?.inactive },
-    { key: 'ready', label: '🎁 Para entregar', count: counts?.ready, hideIfZero: true },
+    { key: 'ready', label: 'Para entregar', count: counts?.ready, hideIfZero: true },
     { key: 'near', label: t('ct_near_prize'), count: counts?.near, hideIfZero: true },
   ]
   const activityClass = (c: Customer) => {
@@ -477,150 +476,141 @@ export function CustomersTab({
   return (
     <>
       <style>{`
+        .ct-ic-text{display:inline-flex;align-items:center;gap:5px;}
         .ct-shell{flex:1;display:grid;grid-template-columns:${selected ? '1fr 300px' : '1fr'};overflow:hidden;}
         .ct-main{display:flex;flex-direction:column;overflow:hidden;}
-        .ct-toolbar{display:flex;align-items:center;gap:10px;padding:14px 24px;border-bottom:1px solid rgba(43,38,32,.07);background:#FFFFFF;flex-shrink:0;flex-wrap:wrap;}
-        .ct-search{display:flex;align-items:center;gap:8px;background:#FBF6EE;border:1px solid rgba(43,38,32,.1);border-radius:9px;padding:8px 12px;flex:1;max-width:280px;min-width:180px;}
-        .ct-search input{background:none;border:none;outline:none;font-family:'Inter',sans-serif;font-size:12.5px;color:#2B2620;width:100%;}
-        .ct-search input::placeholder{color:rgba(43,38,32,.38);}
-        .ct-search-clear{background:none;border:none;color:rgba(43,38,32,.4);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;}
+        .ct-toolbar{display:flex;align-items:center;gap:10px;padding:14px 24px;border-bottom:1px solid rgba(34,32,27,.07);background:#FFFFFF;flex-shrink:0;flex-wrap:wrap;}
+        .ct-search{display:flex;align-items:center;gap:8px;background:var(--s-salvia);border:1px solid rgba(34,32,27,.1);border-radius:9px;padding:8px 12px;flex:1;max-width:280px;min-width:180px;}
+        .ct-search input{background:none;border:none;outline:none;font-family:var(--font-body);font-size:12.5px;color:var(--s-tinta);width:100%;}
+        .ct-search input::placeholder{color:rgba(34,32,27,.38);}
+        .ct-search-clear{background:none;border:none;color:rgba(34,32,27,.4);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;}
         .ct-filter-pills{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
         .ct-toolbar-end{margin-left:auto;display:flex;align-items:center;gap:8px;}
-        .ct-pill{font-size:11px;padding:6px 12px;border-radius:20px;border:1px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;white-space:nowrap;}
-        .ct-pill:hover{border-color:rgba(43,38,32,.25);}
-        .ct-pill--on{background:rgba(199,93,58,.1);border-color:#C75D3A;color:#C75D3A;font-weight:600;}
-        .ct-pill-sep{width:1px;align-self:stretch;background:rgba(43,38,32,.1);margin:0 2px;}
-        .ct-export{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid rgba(43,38,32,.15);background:#fff;color:#2B2620;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;}
-        .ct-export:hover{border-color:rgba(43,38,32,.3);}
-        .ct-export:disabled{opacity:.6;cursor:default;}
-        .ct-export--locked{color:rgba(43,38,32,.5);}
-        .ct-export-err{font-size:11px;color:#B23B3B;padding:6px 24px 0;}
-        .ct-limit{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 24px;border-bottom:1px solid rgba(43,38,32,.07);background:#fff;}
-        .ct-limit-text{font-size:12px;color:rgba(43,38,32,.65);margin-bottom:6px;}
-        .ct-limit-text strong{color:#2B2620;}
-        .ct-limit-bar{height:5px;background:rgba(43,38,32,.07);border-radius:3px;overflow:hidden;max-width:360px;}
-        .ct-limit-bar div{height:100%;background:#5B8C5A;border-radius:3px;}
+        .ct-pill-sep{width:1px;align-self:stretch;background:rgba(34,32,27,.1);margin:0 2px;}
+        .ct-export--locked{color:var(--s-tinta-3);}
+        .ct-export-err{font-size:11px;color:var(--s-error);padding:6px 24px 0;}
+        .ct-limit{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 24px;border-bottom:1px solid rgba(34,32,27,.07);background:#fff;}
+        .ct-limit-text{font-size:12px;color:rgba(34,32,27,.65);margin-bottom:6px;}
+        .ct-limit-text strong{color:var(--s-tinta);}
+        .ct-limit-bar{height:5px;background:rgba(34,32,27,.07);border-radius:3px;overflow:hidden;max-width:360px;}
+        .ct-limit-bar div{height:100%;background:var(--s-listo);border-radius:3px;}
         .ct-limit--warn .ct-limit-bar div{background:#D4A24C;}
         .ct-limit--full{background:rgba(178,59,59,.05);}
-        .ct-limit--full .ct-limit-bar div{background:#B23B3B;}
-        .ct-limit-btn{font-size:12px;font-weight:700;background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:8px 14px;cursor:pointer;font-family:inherit;}
-        .ct-limit-hint{font-size:11.5px;color:rgba(43,38,32,.5);}
+        .ct-limit--full .ct-limit-bar div{background:var(--s-error);}
+        .ct-limit-btn{font-size:12px;font-weight:700;background:var(--s-brasa);color:#fff;border:none;border-radius:9px;padding:8px 14px;cursor:pointer;font-family:inherit;}
+        .ct-limit-hint{font-size:11.5px;color:rgba(34,32,27,.5);}
         .ct-table-wrap{flex:1;overflow-y:auto;}
-        .ct-pagination{display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 24px;border-top:1px solid rgba(43,38,32,.07);background:#FFFFFF;flex-shrink:0;}
-        .ct-page-btn{font-size:12px;font-weight:600;color:#C75D3A;background:none;border:1px solid rgba(199,93,58,.3);border-radius:8px;padding:6px 14px;cursor:pointer;transition:all .15s;}
-        .ct-page-btn:hover:not(:disabled){background:rgba(199,93,58,.08);}
-        .ct-page-btn:disabled{opacity:.35;cursor:not-allowed;color:rgba(43,38,32,.4);border-color:rgba(43,38,32,.15);}
-        .ct-page-label{font-size:11.5px;color:rgba(43,38,32,.5);}
+        .ct-pagination{display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 24px;border-top:1px solid rgba(34,32,27,.07);background:#FFFFFF;flex-shrink:0;}
+        .ct-page-label{font-size:11.5px;color:rgba(34,32,27,.5);}
         table.ct{width:100%;border-collapse:collapse;}
-        table.ct thead{background:#FFFFFF;position:sticky;top:0;z-index:2;border-bottom:1px solid rgba(43,38,32,.08);}
-        table.ct th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:rgba(43,38,32,.38);font-weight:700;padding:10px 14px;white-space:nowrap;user-select:none;cursor:pointer;}
-        table.ct th:hover{color:rgba(43,38,32,.6);}
-        table.ct th.th-active{color:#2B2620;}
-        table.ct th.th-dynamic{color:#C75D3A;cursor:default;}
-        table.ct tbody tr{border-bottom:1px solid rgba(43,38,32,.05);cursor:pointer;transition:background .1s;}
+        table.ct thead{background:#FFFFFF;position:sticky;top:0;z-index:2;border-bottom:1px solid rgba(34,32,27,.08);}
+        table.ct th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:rgba(34,32,27,.38);font-weight:700;padding:10px 14px;white-space:nowrap;user-select:none;cursor:pointer;}
+        table.ct th:hover{color:rgba(34,32,27,.6);}
+        table.ct th.th-active{color:var(--s-tinta);}
+        table.ct th.th-dynamic{color:var(--s-brasa);cursor:default;}
+        table.ct tbody tr{border-bottom:1px solid rgba(34,32,27,.05);cursor:pointer;transition:background .1s;}
         table.ct tbody tr:hover{background:rgba(199,93,58,.04);}
         table.ct tbody tr.ct-row--selected{background:rgba(199,93,58,.08);}
-        table.ct td{padding:11px 14px;font-size:12px;color:rgba(43,38,32,.8);vertical-align:middle;}
+        table.ct td{padding:11px 14px;font-size:12px;color:rgba(34,32,27,.8);vertical-align:middle;}
         .ct-customer-cell{display:flex;align-items:center;gap:10px;}
         .ct-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;}
-        .ct-customer-name{font-weight:600;color:#2B2620;font-size:12.5px;display:flex;align-items:center;gap:6px;}
-        .ct-customer-email{font-size:10.5px;color:rgba(43,38,32,.45);}
+        .ct-customer-name{font-weight:600;color:var(--s-tinta);font-size:12.5px;display:flex;align-items:center;gap:6px;}
+        .ct-customer-email{font-size:10.5px;color:rgba(34,32,27,.45);}
         .ct-near-dot{width:7px;height:7px;border-radius:50%;background:#D4A24C;flex-shrink:0;}
-        .ct-prog-txt{font-size:12px;font-weight:600;color:#2B2620;}
-        .ct-dynamic{color:#C75D3A;font-weight:600;font-size:12px;}
-        .ct-loc{color:rgba(43,38,32,.7);font-size:12px;}
-        .ct-ready-tag{font-size:11px;font-weight:700;color:#5B8C5A;background:rgba(91,140,90,.12);padding:3px 9px;border-radius:20px;white-space:nowrap;}
+        .ct-prog-txt{font-size:12px;font-weight:600;color:var(--s-tinta);}
+        .ct-dynamic{color:var(--s-brasa);font-weight:600;font-size:12px;}
+        .ct-loc{color:rgba(34,32,27,.7);font-size:12px;}
+        .ct-ready-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--s-listo);background:var(--s-listo-suave);padding:3px 9px;border-radius:20px;white-space:nowrap;}
         .ct-status-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600;display:inline-block;}
-        .ct-status-badge--active{background:rgba(91,140,90,.12);color:#5B8C5A;}
-        .ct-status-badge--inactive{background:rgba(43,38,32,.07);color:rgba(43,38,32,.5);}
+        .ct-status-badge--active{background:var(--s-listo-suave);color:var(--s-listo);}
+        .ct-status-badge--inactive{background:rgba(34,32,27,.07);color:rgba(34,32,27,.5);}
         .ct-card-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600;display:inline-block;}
-        .ct-card-badge--stamp{background:rgba(199,93,58,.1);color:#C75D3A;}
+        .ct-card-badge--stamp{background:rgba(199,93,58,.1);color:var(--s-brasa);}
         .ct-card-badge--points{background:rgba(15,110,86,.1);color:#0F6E56;}
         .ct-card-badge--membership{background:rgba(83,74,183,.1);color:#534AB7;}
-        .ct-near-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600;background:rgba(212,162,76,.15);color:#9C7530;}
-        .ct-ready-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:700;background:rgba(91,140,90,.14);color:#3F6E3E;}
-        .ct-activity{font-size:11.5px;color:rgba(43,38,32,.55);white-space:nowrap;}
-        .ct-activity--recent{color:#5B8C5A;font-weight:600;}
-        .ct-activity--old{color:#B23B3B;}
+        .ct-near-badge{white-space:nowrap;display:inline-flex;align-items:center;gap:4px;font-size:10.5px;padding:3px 10px;border-radius:20px;font-weight:600;background:var(--s-aviso-suave);color:var(--s-aviso);}
+        .ct-ready-badge{white-space:nowrap;display:inline-flex;align-items:center;gap:4px;font-size:10.5px;padding:3px 10px;border-radius:20px;font-weight:700;background:var(--s-listo-suave);color:var(--s-listo);}
+        .ct-activity{font-size:11.5px;color:rgba(34,32,27,.55);white-space:nowrap;}
+        .ct-activity--recent{color:var(--s-listo);font-weight:600;}
+        .ct-activity--old{color:var(--s-error);}
         .ct-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:60px 20px;text-align:center;}
-        .ct-empty-icon{width:44px;height:44px;border-radius:50%;background:rgba(43,38,32,.06);display:flex;align-items:center;justify-content:center;color:rgba(43,38,32,.3);}
-        .ct-empty-txt{font-size:13px;color:rgba(43,38,32,.45);}
-        .ct-empty-btn{font-size:12px;font-weight:600;color:#C75D3A;background:none;border:1px solid rgba(199,93,58,.3);border-radius:8px;padding:6px 14px;cursor:pointer;}
-        .ct-skel{background:rgba(43,38,32,.07);border-radius:6px;animation:ctPulse 1.2s ease-in-out infinite;}
+        .ct-empty-icon{width:44px;height:44px;border-radius:50%;background:rgba(34,32,27,.06);display:flex;align-items:center;justify-content:center;color:rgba(34,32,27,.3);}
+        .ct-empty-txt{font-size:13px;color:rgba(34,32,27,.45);}
+        .ct-empty-btn{font-size:12px;font-weight:600;color:var(--s-brasa);background:none;border:1px solid rgba(199,93,58,.3);border-radius:8px;padding:6px 14px;cursor:pointer;}
+        .ct-skel{background:rgba(34,32,27,.07);border-radius:6px;animation:ctPulse 1.2s ease-in-out infinite;}
         @keyframes ctPulse{0%,100%{opacity:.45}50%{opacity:1}}
-        .ct-skel-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(43,38,32,.05);}
+        .ct-skel-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(34,32,27,.05);}
         .ct-sheet-overlay,.ct-sheet-grip{display:none;}
-        .ct-panel{background:#FFFFFF;border-left:1px solid rgba(43,38,32,.08);display:flex;flex-direction:column;align-items:center;padding:16px;overflow-y:auto;}
+        .ct-panel{background:#FFFFFF;border-left:1px solid rgba(34,32,27,.08);display:flex;flex-direction:column;align-items:center;padding:16px;overflow-y:auto;}
         .ct-panel-header{width:100%;display:flex;justify-content:flex-end;margin-bottom:6px;}
-        .ct-panel-delete-btn{background:none;border:none;cursor:pointer;color:rgba(43,38,32,.25);padding:4px;border-radius:6px;display:flex;align-items:center;transition:all .15s;}
-        .ct-panel-delete-btn:hover{color:#B23B3B;background:rgba(178,59,59,.08);}
-        .ct-panel-close{background:none;border:none;cursor:pointer;color:rgba(43,38,32,.4);padding:4px;border-radius:6px;display:flex;align-items:center;transition:all .15s;}
-        .ct-panel-close:hover{background:#FBF6EE;color:#2B2620;}
+        .ct-panel-delete-btn{background:none;border:none;cursor:pointer;color:rgba(34,32,27,.25);padding:4px;border-radius:6px;display:flex;align-items:center;transition:all .15s;}
+        .ct-panel-delete-btn:hover{color:var(--s-error);background:rgba(178,59,59,.08);}
+        .ct-panel-close{background:none;border:none;cursor:pointer;color:rgba(34,32,27,.4);padding:4px;border-radius:6px;display:flex;align-items:center;transition:all .15s;}
+        .ct-panel-close:hover{background:var(--s-salvia);color:var(--s-tinta);}
         .ct-confirm-del{width:100%;background:rgba(178,59,59,.07);border:1px solid rgba(178,59,59,.2);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
-        .ct-confirm-del-text{font-size:12px;color:rgba(43,38,32,.7);line-height:1.5;margin-bottom:10px;}
-        .ct-confirm-del-err{font-size:11.5px;color:#B23B3B;font-weight:600;margin-bottom:8px;}
+        .ct-confirm-del-text{font-size:12px;color:rgba(34,32,27,.7);line-height:1.5;margin-bottom:10px;}
+        .ct-confirm-del-err{font-size:11.5px;color:var(--s-error);font-weight:600;margin-bottom:8px;}
         .ct-confirm-del-btns{display:flex;gap:8px;}
-        .ct-confirm-cancel{flex:1;background:none;border:1px solid rgba(43,38,32,.15);border-radius:8px;padding:7px;font-size:12px;cursor:pointer;color:rgba(43,38,32,.55);}
-        .ct-confirm-ok{flex:1;background:#B23B3B;color:#fff;border:none;border-radius:8px;padding:7px;font-size:12px;font-weight:700;cursor:pointer;}
+        .ct-confirm-cancel{flex:1;background:none;border:1px solid rgba(34,32,27,.15);border-radius:8px;padding:7px;font-size:12px;cursor:pointer;color:rgba(34,32,27,.55);}
+        .ct-confirm-ok{flex:1;background:var(--s-error);color:#fff;border:none;border-radius:8px;padding:7px;font-size:12px;font-weight:700;cursor:pointer;}
         .ct-confirm-ok:disabled,.ct-confirm-cancel:disabled{opacity:.6;cursor:default;}
         .ct-panel-avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;margin-bottom:8px;flex-shrink:0;}
-        .ct-panel-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:#2B2620;text-align:center;}
-        .ct-panel-email{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:10px;text-align:center;word-break:break-all;}
+        .ct-panel-name{font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--s-tinta);text-align:center;}
+        .ct-panel-email{font-size:11px;color:rgba(34,32,27,.45);margin-bottom:10px;text-align:center;word-break:break-all;}
         .ct-panel-badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;}
-        .ct-panel-section{width:100%;margin-top:14px;padding-top:13px;border-top:1px solid rgba(43,38,32,.07);}
+        .ct-panel-section{width:100%;margin-top:14px;padding-top:13px;border-top:1px solid rgba(34,32,27,.07);}
         .ct-resync-row{display:flex;align-items:center;gap:6px;}
-        .ct-resync-btn{display:flex;align-items:center;justify-content:center;gap:7px;flex:1;font-size:12.5px;font-weight:600;padding:10px 14px;border-radius:9px;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.12);color:#2B2620;cursor:pointer;font-family:'Inter',sans-serif;width:100%;}
+        .ct-resync-btn{display:flex;align-items:center;justify-content:center;gap:7px;flex:1;font-size:12.5px;font-weight:600;padding:10px 14px;border-radius:9px;background:var(--s-salvia);border:1.5px solid rgba(34,32,27,.12);color:var(--s-tinta);cursor:pointer;font-family:var(--font-body);width:100%;}
         .ct-redeem-picker{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
-        .ct-redeem-item{display:flex;align-items:center;justify-content:space-between;width:100%;font-size:12px;padding:9px 12px;border-radius:8px;background:#FBF6EE;border:1px solid rgba(43,38,32,.1);color:#2B2620;cursor:pointer;font-family:'Inter',sans-serif;}
+        .ct-redeem-item{display:flex;align-items:center;justify-content:space-between;width:100%;font-size:12px;padding:9px 12px;border-radius:8px;background:var(--s-salvia);border:1px solid rgba(34,32,27,.1);color:var(--s-tinta);cursor:pointer;font-family:var(--font-body);}
         .ct-redeem-item:disabled{opacity:.4;cursor:not-allowed;}
-        .ct-redeem-cost{font-weight:700;color:#C75D3A;}
-        .ct-redeem-cancel{font-size:11px;color:rgba(43,38,32,.5);background:none;border:none;cursor:pointer;align-self:center;margin-top:4px;font-family:inherit;}
+        .ct-redeem-cost{font-weight:700;color:var(--s-brasa);}
+        .ct-redeem-cancel{font-size:11px;color:rgba(34,32,27,.5);background:none;border:none;cursor:pointer;align-self:center;margin-top:4px;font-family:inherit;}
         .ct-resync-btn:disabled{opacity:.6;cursor:not-allowed;}
-        .ct-resync-hint{font-size:11px;color:rgba(43,38,32,.45);line-height:1.5;margin-top:4px;}
-        .ct-resync-msg{font-size:11.5px;color:#2B2620;background:rgba(43,38,32,.04);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.45;}
-        .ct-resync-msg--err{background:rgba(178,59,59,.07);color:#8E2F2F;}
-        .ct-panel-section-title{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:rgba(43,38,32,.38);font-weight:700;margin-bottom:10px;}
-        .ct-panel-progress-num{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;color:#C75D3A;margin-bottom:8px;}
-        .ct-panel-progress-den{font-size:14px;color:rgba(43,38,32,.4);font-weight:500;}
+        .ct-resync-hint{font-size:11px;color:rgba(34,32,27,.45);line-height:1.5;margin-top:4px;}
+        .ct-resync-msg{font-size:11.5px;color:var(--s-tinta);background:rgba(34,32,27,.04);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.45;}
+        .ct-resync-msg--err{background:rgba(178,59,59,.07);color:var(--s-error);}
+        .ct-panel-section-title{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:rgba(34,32,27,.38);font-weight:700;margin-bottom:10px;}
+        .ct-panel-progress-num{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--s-brasa);margin-bottom:8px;}
+        .ct-panel-progress-den{font-size:14px;color:rgba(34,32,27,.4);font-weight:500;}
         .ct-panel-stamps{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;}
-        .ct-panel-stamp{width:18px;height:18px;border-radius:50%;background:rgba(43,38,32,.08);}
-        .ct-panel-stamp--filled{background:#C75D3A;}
-        .ct-panel-progress-bar{width:100%;height:5px;background:rgba(43,38,32,.08);border-radius:3px;overflow:hidden;margin-bottom:8px;}
-        .ct-panel-progress-fill{height:100%;background:linear-gradient(90deg,#C75D3A,#D4A24C);border-radius:3px;transition:width .3s;}
+        .ct-panel-stamp{width:18px;height:18px;border-radius:50%;background:rgba(34,32,27,.08);}
+        .ct-panel-stamp--filled{background:var(--s-brasa);}
+        .ct-panel-progress-bar{width:100%;height:5px;background:rgba(34,32,27,.08);border-radius:3px;overflow:hidden;margin-bottom:8px;}
+        .ct-panel-progress-fill{height:100%;background:linear-gradient(90deg,var(--s-brasa),#D4A24C);border-radius:3px;transition:width .3s;}
         .ct-near-note{font-size:11px;color:#9C7530;font-weight:600;background:rgba(212,162,76,.12);padding:6px 10px;border-radius:8px;}
-        .ct-ready-note{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:#3F6E3E;background:rgba(91,140,90,.1);border:1px solid rgba(91,140,90,.25);padding:9px 11px;border-radius:9px;line-height:1.45;}
-        .ct-panel-field-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(43,38,32,.05);font-size:11.5px;}
+        .ct-ready-note{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--s-listo);background:rgba(91,140,90,.1);border:1px solid rgba(91,140,90,.25);padding:9px 11px;border-radius:9px;line-height:1.45;}
+        .ct-panel-field-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(34,32,27,.05);font-size:11.5px;}
         .ct-panel-field-row:last-child{border-bottom:none;}
         .ct-panel-field-row--highlight{background:rgba(212,162,76,.07);margin:0 -6px;padding:7px 6px;border-radius:8px;border-bottom:none;}
-        .ct-panel-field-label{color:rgba(43,38,32,.5);}
-        .ct-panel-field-val{color:#2B2620;font-weight:600;text-align:right;max-width:160px;}
-        .ct-panel-field-val--highlight{color:#C75D3A;}
+        .ct-panel-field-label{color:rgba(34,32,27,.5);}
+        .ct-panel-field-val{color:var(--s-tinta);font-weight:600;text-align:right;max-width:160px;}
+        .ct-panel-field-val--highlight{color:var(--s-brasa);}
         .ct-stack-cell{display:flex;flex-direction:column;gap:6px;}
-        .ct-stack-line{display:flex;align-items:center;gap:6px;color:rgba(43,38,32,.7);}
-        .ct-panel-card-section{border-top:1px solid rgba(43,38,32,.08);padding-top:14px;}
+        .ct-stack-line{display:flex;align-items:center;gap:6px;color:rgba(34,32,27,.7);}
+        .ct-panel-card-section{border-top:1px solid rgba(34,32,27,.08);padding-top:14px;}
         .ct-panel-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-        .ct-panel-card-type{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:#2B2620;}
+        .ct-panel-card-type{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--s-tinta);}
         .ct-panel-card-responses{margin-top:12px;}
-        .ct-hist-row{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid rgba(43,38,32,.05);}
+        .ct-hist-row{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid rgba(34,32,27,.05);}
         .ct-hist-row:last-of-type{border-bottom:none;}
-        .ct-hist-ic{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;background:rgba(199,93,58,.1);color:#C75D3A;}
+        .ct-hist-ic{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;background:rgba(199,93,58,.1);color:var(--s-brasa);}
         .ct-hist-ic--points{background:rgba(15,110,86,.1);color:#0F6E56;}
         .ct-hist-ic--visit,.ct-hist-ic--tier_change{background:rgba(83,74,183,.1);color:#534AB7;}
-        .ct-hist-ic--redeem{background:rgba(91,140,90,.12);}
-        .ct-hist-text{font-size:12px;color:#2B2620;font-weight:500;}
-        .ct-hist-meta{font-size:10.5px;color:rgba(43,38,32,.45);margin-top:1px;}
+        .ct-hist-ic--redeem{background:var(--s-listo-suave);}
+        .ct-hist-text{font-size:12px;color:var(--s-tinta);font-weight:500;}
+        .ct-hist-meta{font-size:10.5px;color:rgba(34,32,27,.45);margin-top:1px;}
         @media(max-width:768px){
           .ct-shell{grid-template-columns:1fr;}
           /* Ficha como hoja que sube desde abajo */
           .ct-sheet-overlay{display:block;position:fixed;inset:0;background:rgba(20,16,12,.35);z-index:60;animation:ctFade .2s ease;}
-          .ct-panel{position:fixed;left:0;right:0;bottom:0;max-height:88vh;max-height:88dvh;z-index:61;border-left:none;border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(43,38,32,.18);padding:10px 18px calc(18px + env(safe-area-inset-bottom));animation:ctUp .25s ease;}
-          .ct-sheet-grip{display:block;width:40px;height:4px;border-radius:2px;background:rgba(43,38,32,.18);margin:2px auto 4px;flex-shrink:0;}
+          .ct-panel{position:fixed;left:0;right:0;bottom:0;max-height:88vh;max-height:88dvh;z-index:61;border-left:none;border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(34,32,27,.18);padding:10px 18px calc(18px + env(safe-area-inset-bottom));animation:ctUp .25s ease;}
+          .ct-sheet-grip{display:block;width:40px;height:4px;border-radius:2px;background:rgba(34,32,27,.18);margin:2px auto 4px;flex-shrink:0;}
           .ct-panel-field-val{max-width:60%;}
           .ct-toolbar{padding:10px 14px;gap:8px;}
           .ct-search{max-width:100%;flex-basis:100%;}
           .ct-toolbar-end{margin-left:0;}
           .ct-filter-pills{gap:4px;}
-          .ct-pill{font-size:10.5px;padding:5px 10px;}
           .ct-limit{padding:10px 14px;}
           .ct-export-err{padding:6px 14px 0;}
           .ct-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
@@ -639,34 +629,34 @@ export function CustomersTab({
           )}
           <div className="ct-toolbar">
             <div className="ct-search">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <Icon name="buscar" size={14} />
               <input placeholder={t('ct_search')} value={searchDraft} onChange={e => setSearchDraft(e.target.value)} />
               {searchDraft && <button className="ct-search-clear" onClick={() => { setSearchDraft(''); onSearchChange('') }} aria-label="Borrar búsqueda">×</button>}
             </div>
             <div className="ct-filter-pills">
               {FILTERS.filter(f => !f.hideIfZero || (f.count ?? 0) > 0 || statusFilter === f.key).map(f => (
-                <button key={f.key} className={`ct-pill${statusFilter === f.key ? ' ct-pill--on' : ''}`} onClick={() => onStatusFilterChange(f.key)}>
+                <button key={f.key} className="s-chip" aria-pressed={statusFilter === f.key} onClick={() => onStatusFilterChange(f.key)}>
                   {f.label}{f.count != null ? ` (${f.count})` : ''}
                 </button>
               ))}
               {cards.length > 1 && (
                 <>
                   <div className="ct-pill-sep" />
-                  <button className={`ct-pill${cardFilter === 'all' ? ' ct-pill--on' : ''}`} onClick={() => onCardFilterChange?.('all')}>Todas las tarjetas</button>
+                  <button className="s-chip" aria-pressed={cardFilter === 'all'} onClick={() => onCardFilterChange?.('all')}>Todas las tarjetas</button>
                   {cards.map(c => (
-                    <button key={c.id} className={`ct-pill${cardFilter === c.id ? ' ct-pill--on' : ''}`} onClick={() => onCardFilterChange?.(c.id)}>{c.name}</button>
+                    <button key={c.id} className="s-chip" aria-pressed={cardFilter === c.id} onClick={() => onCardFilterChange?.(c.id)}>{c.name}</button>
                   ))}
                 </>
               )}
             </div>
             <div className="ct-toolbar-end">
               {canExport
-                ? <button className="ct-export" onClick={exportCsv} disabled={exporting || total === 0} title="Descargar esta lista (con los filtros aplicados) para Excel">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                ? <button className="s-btn s-btn--secondary s-btn--sm" onClick={exportCsv} disabled={exporting || total === 0} title="Descargar esta lista (con los filtros aplicados) para Excel">
+                    <Icon name="descargar" size={14} />
                     {exporting ? 'Generando…' : 'Exportar'}
                   </button>
-                : <button className="ct-export ct-export--locked" onClick={isManager ? undefined : onChoosePlan} title="Exportar la lista con filtros está disponible desde Growth">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                : <button className="s-btn s-btn--secondary s-btn--sm ct-export--locked" onClick={isManager ? undefined : onChoosePlan} title="Exportar la lista con filtros está disponible desde Growth">
+                    <Icon name="candado" size={14} />
                     Exportar · Growth
                   </button>}
             </div>
@@ -684,7 +674,7 @@ export function CustomersTab({
                 ))
               : customers.length === 0
               ? <div className="ct-empty">
-                  <div className="ct-empty-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+                  <div className="ct-empty-icon"><Icon name="clientes" size={20} /></div>
                   <div className="ct-empty-txt">{search ? t('ct_no_match') : statusFilter === 'inactive' ? '¡Ningún cliente inactivo! Todos vinieron hace poco.' : statusFilter === 'ready' ? 'No hay premios pendientes de entregar.' : statusFilter === 'near' ? 'Nadie está a 1–2 sellos del premio ahora.' : 'No hay clientes con este filtro.'}</div>
                   {(search || statusFilter !== 'all' || cardFilter !== 'all') && (
                     <button className="ct-empty-btn" onClick={() => { if (search) { setSearchDraft(''); onSearchChange('') } if (statusFilter !== 'all') onStatusFilterChange('all'); if (cardFilter !== 'all') onCardFilterChange?.('all') }}>Ver todos los clientes</button>
@@ -733,7 +723,7 @@ export function CustomersTab({
                             {c.cards.map(card => (
                               <div key={card.customerId} className="ct-stack-line">
                                 {isReady(card)
-                                  ? <span className="ct-ready-tag">🎁 Para entregar{card.premio ? `: ${card.premio}` : ''}</span>
+                                  ? <span className="ct-ready-tag"><Icon name="premios" size={12} /> Para entregar{card.premio ? `: ${card.premio}` : ''}</span>
                                   : <span className="ct-dynamic">{card.premio || '—'}</span>}
                               </div>
                             ))}
@@ -742,7 +732,7 @@ export function CustomersTab({
                         <td>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                             <span className={`ct-status-badge ct-status-badge--${c.status}`}>{c.status === 'active' ? t('status_active') : t('status_inactive')}</span>
-                            {c.near && !c.ready && <span className="ct-near-badge">{t('ct_near_badge')}</span>}
+                            {c.near && !c.ready && <span className="ct-near-badge"><Icon name="unSello" size={12} /> {t('ct_near_badge')}</span>}
                           </div>
                         </td>
                         <td><span className={`ct-activity${activityClass(c)}`}>{c.lastActivity}</span></td>
@@ -756,9 +746,9 @@ export function CustomersTab({
 
           {totalPages > 1 && (
             <div className="ct-pagination">
-              <button className="ct-page-btn" disabled={page <= 1 || loading} onClick={() => onPageChange(page - 1)}>← Anterior</button>
+              <button className="s-btn s-btn--secondary s-btn--sm" disabled={page <= 1 || loading} onClick={() => onPageChange(page - 1)}><Icon name="anterior" size={14} /> Anterior</button>
               <span className="ct-page-label">Página {page} de {totalPages} · {total.toLocaleString('es-AR')} clientes</span>
-              <button className="ct-page-btn" disabled={page >= totalPages || loading} onClick={() => onPageChange(page + 1)}>Siguiente →</button>
+              <button className="s-btn s-btn--secondary s-btn--sm" disabled={page >= totalPages || loading} onClick={() => onPageChange(page + 1)}>Siguiente <Icon name="siguiente" size={14} /></button>
             </div>
           )}
         </div>

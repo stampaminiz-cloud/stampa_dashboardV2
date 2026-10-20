@@ -6,16 +6,18 @@ import React, { useEffect, useState } from 'react'
 import { getJson } from '@/lib/cache'
 import { apiUpdateBusiness } from '@/lib/api'
 import { usePlan } from '@/data/plans'
+import { Icon, type IconName } from '@/components/ui/Icon'
+import { Switch } from '@/components/ui/Switch'
 
 type Key = 'welcome' | 'nearReward' | 'winback' | 'review'
 interface Notice { enabled: boolean; message: string; defaultMessage: string; sentThisMonth: number; days?: number; url?: string; afterVisits?: number }
 type Notices = Record<Key, Notice>
 
-const INFO: Record<Key, { title: string; when: string; icon: string }> = {
-  welcome: { title: 'Bienvenida', when: 'Una hora después de que se registra.', icon: '👋' },
-  nearReward: { title: 'A un sello del premio', when: 'Al día siguiente de la visita que lo dejó a 1 sello. Solo tarjetas de sellos.', icon: '⭐' },
-  winback: { title: 'Te extrañamos', when: 'Cuando pasan esos días sin que venga. Una vez por ausencia.', icon: '💌' },
-  review: { title: 'Pedir reseña en Google', when: 'Unas horas después de la visita que elijas. Una vez por cliente.', icon: '★' },
+const INFO: Record<Key, { title: string; when: string; icon: IconName }> = {
+  welcome: { title: 'Bienvenida', when: 'Una hora después de que se registra.', icon: 'bienvenida' },
+  nearReward: { title: 'A un sello del premio', when: 'Al día siguiente de la visita que lo dejó a 1 sello. Solo tarjetas de sellos.', icon: 'unSello' },
+  winback: { title: 'Te extrañamos', when: 'Cuando pasan esos días sin que venga. Una vez por ausencia.', icon: 'teExtranamos' },
+  review: { title: 'Pedir reseña en Google', when: 'Unas horas después de la visita que elijas. Una vez por cliente.', icon: 'resena' },
 }
 const KEYS: Key[] = ['welcome', 'nearReward', 'winback', 'review']
 const MAX = 160
@@ -65,7 +67,7 @@ export function AutoNotices({ businessId, businessName, hasStamp, isManager = fa
           <div className="an-title">Avisos automáticos {!allowed && <span className="an-pro">Pro</span>}</div>
           <div className="an-sub">Salen solos, de día, una vez por cliente y motivo. No cuentan para tus envíos del mes.</div>
         </div>
-        {!allowed && !isManager && <button className="an-plan" onClick={onChoosePlan}>Ver plan Pro</button>}
+        {!allowed && !isManager && <button className="s-btn s-btn--primary s-btn--sm" onClick={onChoosePlan}>Ver plan Pro</button>}
       </div>
 
       <div className="an-list">
@@ -78,7 +80,7 @@ export function AutoNotices({ businessId, businessName, hasStamp, isManager = fa
           return (
             <div key={k} className={`an-item${n?.enabled ? ' is-on' : ''}${!allowed ? ' is-locked' : ''}`}>
               <div className="an-row">
-                <span className="an-icon" aria-hidden>{INFO[k].icon}</span>
+                <span className="an-icon"><Icon name={INFO[k].icon} size={18} /></span>
                 <div className="an-main">
                   <div className="an-name">{INFO[k].title}</div>
                   <div className="an-when">
@@ -88,16 +90,15 @@ export function AutoNotices({ businessId, businessName, hasStamp, isManager = fa
                   </div>
                 </div>
                 {n?.enabled && <span className="an-count" title="Avisos que salieron este mes">{n.sentThisMonth} este mes</span>}
-                {msg?.key === k && <span className={msg.ok ? 'an-ok' : 'an-err'}>{msg.ok ? `✓ ${msg.text}` : msg.text}</span>}
-                <button type="button" className="an-edit" disabled={!allowed || !n} onClick={() => setOpen(editing ? null : k)}>{editing ? 'Cerrar' : 'Editar'}</button>
-                <label className="an-switch" title={allowed ? '' : 'Disponible en Pro'}>
-                  <input type="checkbox" checked={!!n?.enabled} disabled={!allowed || !n || saving === k}
-                    onChange={e => {
-                      if (e.target.checked && k === 'review' && !n?.url) { setOpen('review'); setMsg({ key: k, ok: false, text: 'Pegá el link de reseñas para activarlo.' }); return }
-                      save(k, { enabled: e.target.checked })
+                {msg?.key === k && <span className={msg.ok ? 'an-ok' : 'an-err'}>{msg.ok ? <><Icon name="listo" size={12} /> {msg.text}</> : msg.text}</span>}
+                <button type="button" className="s-btn s-btn--secondary s-btn--sm" disabled={!allowed || !n} onClick={() => setOpen(editing ? null : k)}>{editing ? 'Cerrar' : 'Editar'}</button>
+                <span title={allowed ? '' : 'Disponible en Pro'}>
+                  <Switch checked={!!n?.enabled} disabled={!allowed || !n || saving === k} label={`${INFO[k].title}: ${n?.enabled ? 'activado' : 'desactivado'}`}
+                    onChange={on => {
+                      if (on && k === 'review' && !n?.url) { setOpen('review'); setMsg({ key: k, ok: false, text: 'Pegá el link de reseñas para activarlo.' }); return }
+                      save(k, { enabled: on })
                     }} />
-                  <span />
-                </label>
+                </span>
               </div>
 
               {editing && n && (
@@ -134,8 +135,8 @@ export function AutoNotices({ businessId, businessName, hasStamp, isManager = fa
                   </div>
                   <div className="an-preview"><span>Así le llega:</span> {sample(text, businessName)}</div>
                   <div className="an-actions">
-                    <button type="button" className="an-cancel" onClick={() => { setDraft(x => ({ ...x, [k]: undefined })); setOpen(null) }}>Cancelar</button>
-                    <button type="button" className="an-save" disabled={!dirty || saving === k} onClick={() => save(k, draft[k]!)}>{saving === k ? 'Guardando…' : 'Guardar'}</button>
+                    <button type="button" className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setDraft(x => ({ ...x, [k]: undefined })); setOpen(null) }}>Cancelar</button>
+                    <button type="button" className="s-btn s-btn--primary s-btn--sm" disabled={!dirty || saving === k} onClick={() => save(k, draft[k]!)}>{saving === k ? 'Guardando…' : 'Guardar'}</button>
                   </div>
                 </div>
               )}
@@ -148,47 +149,34 @@ export function AutoNotices({ businessId, businessName, hasStamp, isManager = fa
 }
 
 const CSS = `
-  .an{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:18px 20px;box-shadow:0 1px 8px rgba(43,38,32,.04);}
+  .an{background:#FFFFFF;border:1px solid rgba(34,32,27,.07);border-radius:14px;padding:18px 20px;box-shadow:0 1px 8px rgba(34,32,27,.04);}
   .an-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
-  .an-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:#2B2620;display:flex;align-items:center;gap:8px;}
-  .an-sub{font-size:11px;color:rgba(43,38,32,.5);margin-top:2px;line-height:1.5;}
-  .an-pro{font-size:10px;font-weight:700;background:#1B412F;color:#F7F0E4;border-radius:999px;padding:2px 8px;}
-  .an-plan{font-size:12px;font-weight:700;background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:8px 14px;cursor:pointer;font-family:inherit;}
+  .an-title{font-family:var(--font-display);font-weight:700;font-size:13px;color:var(--s-tinta);display:flex;align-items:center;gap:8px;}
+  .an-sub{font-size:11px;color:rgba(34,32,27,.5);margin-top:2px;line-height:1.5;}
+  .an-pro{font-size:10px;font-weight:700;background:var(--s-pino);color:#F7F0E4;border-radius:999px;padding:2px 8px;}
   .an-list{display:flex;flex-direction:column;gap:8px;}
-  .an-item{border:1px solid rgba(43,38,32,.09);border-radius:12px;padding:10px 12px;background:#fff;}
+  .an-item{border:1px solid rgba(34,32,27,.09);border-radius:12px;padding:10px 12px;background:#fff;}
   .an-item.is-on{border-color:rgba(199,93,58,.35);background:rgba(199,93,58,.03);}
   .an-item.is-locked{opacity:.6;}
   .an-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .an-icon{width:32px;height:32px;border-radius:9px;background:#FBF6EE;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;color:#C75D3A;}
+  .an-icon{width:32px;height:32px;border-radius:9px;background:var(--s-salvia);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;color:var(--s-brasa);}
   .an-main{flex:1;min-width:180px;}
-  .an-name{font-size:12.5px;font-weight:700;color:#2B2620;}
-  .an-when{font-size:11px;color:rgba(43,38,32,.55);margin-top:1px;line-height:1.4;}
-  .an-count{font-size:11px;font-weight:600;color:#3F6E3E;background:rgba(91,140,90,.1);border-radius:999px;padding:3px 9px;white-space:nowrap;}
-  .an-ok{font-size:11px;color:#2E7D4F;font-weight:600;}
-  .an-err{font-size:11px;color:#B4442A;}
-  .an-edit{font-size:11.5px;font-weight:600;border:1px solid rgba(43,38,32,.15);background:#fff;color:rgba(43,38,32,.7);border-radius:8px;padding:5px 10px;cursor:pointer;font-family:inherit;}
-  .an-edit:disabled{opacity:.45;cursor:not-allowed;}
-  .an-switch{display:inline-flex;cursor:pointer;}
-  .an-switch input{display:none;}
-  .an-switch span{width:34px;height:20px;border-radius:999px;background:rgba(43,38,32,.18);position:relative;transition:background .15s;}
-  .an-switch span::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2);}
-  .an-switch input:checked + span{background:#C75D3A;}
-  .an-switch input:checked + span::after{transform:translateX(14px);}
-  .an-switch input:disabled + span{cursor:not-allowed;}
-  .an-body{margin-top:12px;padding-top:12px;border-top:1px dashed rgba(43,38,32,.12);display:flex;flex-direction:column;gap:10px;}
-  .an-field{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;color:rgba(43,38,32,.7);font-weight:600;}
+  .an-name{font-size:12.5px;font-weight:700;color:var(--s-tinta);}
+  .an-when{font-size:11px;color:rgba(34,32,27,.55);margin-top:1px;line-height:1.4;}
+  .an-count{font-size:11px;font-weight:600;color:var(--s-listo);background:rgba(91,140,90,.1);border-radius:999px;padding:3px 9px;white-space:nowrap;}
+  .an-ok{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--s-listo);font-weight:600;}
+  .an-err{font-size:11px;color:var(--s-error);}
+  .an-body{margin-top:12px;padding-top:12px;border-top:1px dashed rgba(34,32,27,.12);display:flex;flex-direction:column;gap:10px;}
+  .an-field{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;color:rgba(34,32,27,.7);font-weight:600;}
   .an-field--col{flex-direction:column;align-items:stretch;gap:5px;}
-  .an-field small{font-weight:400;color:rgba(43,38,32,.45);}
-  .an-seg{display:inline-flex;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.1);border-radius:999px;padding:3px;gap:2px;}
-  .an-seg-btn{border:none;background:transparent;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;}
-  .an-seg-btn.is-on{background:#fff;color:#C75D3A;box-shadow:0 1px 3px rgba(43,38,32,.12);}
-  .an-input,.an-text{padding:8px 11px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:9px;background:#fff;color:#2B2620;outline:none;font-family:'Inter',sans-serif;font-weight:400;resize:vertical;}
-  .an-input:focus,.an-text:focus{border-color:#C75D3A;}
-  .an-preview{font-size:12px;color:#2B2620;background:#FBF6EE;border-radius:9px;padding:9px 11px;line-height:1.5;}
-  .an-preview span{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.45);margin-right:4px;}
+  .an-field small{font-weight:400;color:rgba(34,32,27,.45);}
+  .an-seg{display:inline-flex;background:var(--s-salvia);border:1.5px solid rgba(34,32,27,.1);border-radius:999px;padding:3px;gap:2px;}
+  .an-seg-btn{border:none;background:transparent;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:600;color:rgba(34,32,27,.55);cursor:pointer;font-family:var(--font-body);}
+  .an-seg-btn.is-on{background:#fff;color:var(--s-brasa);box-shadow:0 1px 3px rgba(34,32,27,.12);}
+  .an-input,.an-text{padding:8px 11px;font-size:12px;border:1px solid rgba(34,32,27,.15);border-radius:9px;background:#fff;color:var(--s-tinta);outline:none;font-family:var(--font-body);font-weight:400;resize:vertical;}
+  .an-input:focus,.an-text:focus{border-color:var(--s-brasa);}
+  .an-preview{font-size:12px;color:var(--s-tinta);background:var(--s-salvia);border-radius:9px;padding:9px 11px;line-height:1.5;}
+  .an-preview span{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(34,32,27,.45);margin-right:4px;}
   .an-actions{display:flex;justify-content:flex-end;gap:8px;}
-  .an-cancel{background:none;border:1px solid rgba(43,38,32,.15);border-radius:8px;padding:7px 13px;font-size:12px;cursor:pointer;color:rgba(43,38,32,.55);font-family:inherit;}
-  .an-save{background:#C75D3A;border:none;border-radius:8px;padding:7px 14px;font-size:12px;color:#fff;font-weight:700;cursor:pointer;font-family:inherit;}
-  .an-save:disabled{opacity:.5;cursor:default;}
   @media(max-width:600px){.an{padding:14px;}.an-main{min-width:0;flex-basis:calc(100% - 90px);}}
 `

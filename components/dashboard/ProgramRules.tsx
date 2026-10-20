@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from 'react'
 import { apiUpdateCard, apiUpdateBusiness } from '@/lib/api'
 import { InfoTooltip } from './InfoTooltip'
+import { Icon } from '@/components/ui/Icon'
+import { Switch } from '@/components/ui/Switch'
 
 // Reglas del programa (Configuración): vencimiento por inactividad (todas
 // las tarjetas; en membresía baja un nivel) y días dobles (sellos y puntos)
@@ -28,7 +30,7 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
   }, [cards]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const flash = (key: string, ok: boolean, text: string) => { setMsg({ key, ok, text }); if (ok) setTimeout(() => setMsg(m => m?.key === key ? null : m), 2000) }
-  const msgFor = (key: string) => msg?.key === key ? <span className={msg.ok ? 'pr-ok' : 'pr-err'}>{msg.ok ? '✓ Guardado' : msg.text}</span> : null
+  const msgFor = (key: string) => msg?.key === key ? <span className={msg.ok ? 'pr-ok' : 'pr-err'}>{msg.ok ? <><Icon name="listo" size={12} /> Guardado</> : msg.text}</span> : null
 
   async function saveCard(card: RulesCard, patch: Partial<{ expiryMonths: number; doubleDays: number[] }>, key: string) {
     if (!businessId) return
@@ -127,14 +129,13 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
           <InfoTooltip text="Agrega 'Fecha de cumpleaños' al formulario (opcional para el cliente). El día del cumple le llega un push y tiene 7 días para retirar el regalo, que se entrega desde la app de escaneo." />
         </div>
         <div className="pr-row">
-          <label className="pr-switch">
-            <input type="checkbox" checked={bEnabled} disabled={readOnly} onChange={e => saveBirthday({ enabled: e.target.checked })} />
-            <span />
+          <span className="pr-sw">
+            <Switch checked={bEnabled} disabled={readOnly} label={`Cumpleaños: ${bEnabled ? 'activado' : 'desactivado'}`} onChange={v => saveBirthday({ enabled: v })} />
             {bEnabled ? 'Activado' : 'Desactivado'}
-          </label>
+          </span>
           <input className="pr-input" value={gift} maxLength={60} disabled={readOnly} placeholder="Regalo (ej: Postre gratis)" onChange={e => setGift(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') saveBirthday({}) }} />
-          {gift.trim() !== giftSaved && <button type="button" className="pr-btn" disabled={readOnly} onClick={() => saveBirthday({})}>Guardar</button>}
+          {gift.trim() !== giftSaved && <button type="button" className="s-btn s-btn--primary s-btn--sm" disabled={readOnly} onClick={() => saveBirthday({})}>Guardar</button>}
           {msgFor('bday')}
         </div>
         {bEnabled && <div className="pr-note">Solo reciben el regalo los clientes que cargaron su fecha de cumpleaños al registrarse.</div>}
@@ -146,31 +147,25 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
 }
 
 const CSS = `
-  .pr{display:flex;flex-direction:column;gap:18px;margin-top:18px;padding-top:16px;border-top:1px solid rgba(43,38,32,.07);}
+  .pr-sw{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--s-tinta-2);}
+  .pr{display:flex;flex-direction:column;gap:18px;margin-top:18px;padding-top:16px;border-top:1px solid rgba(34,32,27,.07);}
   .pr-block{display:flex;flex-direction:column;gap:8px;}
-  .pr-title{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:#2B2620;}
+  .pr-title{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--s-tinta);}
   .pr-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .pr-card{font-size:12px;color:rgba(43,38,32,.75);min-width:130px;display:flex;align-items:center;gap:6px;}
-  .pr-off{font-size:10px;color:rgba(43,38,32,.4);background:rgba(43,38,32,.06);padding:1px 6px;border-radius:999px;}
-  .pr-seg{display:inline-flex;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.1);border-radius:999px;padding:3px;gap:2px;}
-  .pr-seg-btn{border:none;background:transparent;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;}
-  .pr-seg-btn.is-on{background:#fff;color:#C75D3A;box-shadow:0 1px 3px rgba(43,38,32,.12);}
+  .pr-card{font-size:12px;color:rgba(34,32,27,.75);min-width:130px;display:flex;align-items:center;gap:6px;}
+  .pr-off{font-size:10px;color:rgba(34,32,27,.4);background:rgba(34,32,27,.06);padding:1px 6px;border-radius:999px;}
+  .pr-seg{display:inline-flex;background:var(--s-salvia);border:1.5px solid rgba(34,32,27,.1);border-radius:999px;padding:3px;gap:2px;}
+  .pr-seg-btn{border:none;background:transparent;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:600;color:rgba(34,32,27,.55);cursor:pointer;font-family:var(--font-body);}
+  .pr-seg-btn.is-on{background:#fff;color:var(--s-brasa);box-shadow:0 1px 3px rgba(34,32,27,.12);}
   .pr-days{display:flex;align-items:center;gap:5px;}
-  .pr-day{width:30px;height:30px;border-radius:50%;border:1.5px solid rgba(43,38,32,.14);background:#fff;font-size:11.5px;font-weight:700;color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;padding:0;}
-  .pr-day.is-on{background:#C75D3A;border-color:#C75D3A;color:#fff;}
-  .pr-x2{font-size:11px;color:rgba(43,38,32,.45);margin-left:4px;}
-  .pr-switch{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:rgba(43,38,32,.7);cursor:pointer;}
-  .pr-switch input{display:none;}
-  .pr-switch span{width:32px;height:18px;border-radius:999px;background:rgba(43,38,32,.18);position:relative;transition:background .15s;}
-  .pr-switch span::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s;}
-  .pr-switch input:checked + span{background:#C75D3A;}
-  .pr-switch input:checked + span::after{transform:translateX(14px);}
-  .pr-input{flex:1;min-width:180px;max-width:280px;padding:7px 11px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:9px;background:#fff;color:#2B2620;outline:none;font-family:'Inter',sans-serif;}
-  .pr-input:focus{border-color:#C75D3A;}
-  .pr-btn{background:#C75D3A;border:none;border-radius:8px;padding:7px 13px;font-size:12px;color:#fff;font-weight:700;cursor:pointer;}
-  .pr-note{font-size:11px;color:rgba(43,38,32,.5);}
-  .pr-foot{font-size:11px;color:rgba(43,38,32,.45);}
-  .pr-ok{font-size:11px;color:#2E7D4F;font-weight:600;}
-  .pr-err{font-size:11px;color:#B4442A;}
+  .pr-day{width:30px;height:30px;border-radius:50%;border:1.5px solid rgba(34,32,27,.14);background:#fff;font-size:11.5px;font-weight:700;color:rgba(34,32,27,.55);cursor:pointer;font-family:var(--font-body);padding:0;}
+  .pr-day.is-on{background:var(--s-brasa);border-color:var(--s-brasa);color:#fff;}
+  .pr-x2{font-size:11px;color:rgba(34,32,27,.45);margin-left:4px;}
+  .pr-input{flex:1;min-width:180px;max-width:280px;padding:7px 11px;font-size:12px;border:1px solid rgba(34,32,27,.15);border-radius:9px;background:#fff;color:var(--s-tinta);outline:none;font-family:var(--font-body);}
+  .pr-input:focus{border-color:var(--s-brasa);}
+  .pr-note{font-size:11px;color:rgba(34,32,27,.5);}
+  .pr-foot{font-size:11px;color:rgba(34,32,27,.45);}
+  .pr-ok{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--s-listo);font-weight:600;}
+  .pr-err{font-size:11px;color:var(--s-error);}
   @media(max-width:600px){.pr-card{min-width:0;width:100%;}}
 `
