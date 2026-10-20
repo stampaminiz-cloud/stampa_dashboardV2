@@ -72,7 +72,7 @@ export function PassPreview({ platform, type, images, color, textColor = '#FFFFF
 }
 
 const CSS = `
-  .pp-apple,.pp-google{width:100%;max-width:300px;margin:0 auto;border-radius:18px;overflow:hidden;box-shadow:0 18px 50px rgba(43,38,32,.22);font-family:-apple-system,'Inter',sans-serif;}
+  .pp-apple,.pp-google{width:100%;max-width:300px;margin:0 auto;border-radius:18px;overflow:hidden;box-shadow:0 18px 50px rgba(43,38,32,.22);font-family:-apple-system,var(--font-body);}
   .pp-top{padding:20px 20px 10px;}
   .pp-logo{display:block;width:47%;height:auto;}
   .pp-logo.pp-skel{aspect-ratio:160/50;}

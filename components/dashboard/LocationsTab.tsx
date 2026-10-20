@@ -9,6 +9,7 @@
 // Para no equivocarse de sucursal: se muestran siempre todas, la que está
 // elegida en la barra lateral aparece abierta y marcada, y cada tarjeta
 // guarda lo suyo ("Guardar cambios de Playa"); no hay un guardar general.
+import { TimeField } from '@/components/ui/DateTime'
 import { SALES_EMAIL, mailLink, whatsappLink } from '@/lib/contact'
 import React, { useEffect, useState } from 'react'
 import { apiGetLocations, apiCreateLocation, apiUpdateLocation } from '@/lib/api'
@@ -37,21 +38,18 @@ function HoursEditor({ hours, onChange, disabled }: { hours: DayHours[]; onChang
       {hours.map((day, d) => (
         <div key={d} className="lt-hrow">
           <span className="lt-day">{DAYS[d]}</span>
-          <label className="lt-open">
-            <input type="checkbox" checked={!day.closed} disabled={disabled}
-              onChange={e => setDay(d, e.target.checked ? { closed: false, shifts: day.shifts.length ? day.shifts : [{ open: '09:00', close: '18:00' }] } : { closed: true, shifts: [] })} />
-            {day.closed ? 'Cerrado' : 'Abierto'}
-          </label>
+          <button type="button" role="switch" aria-checked={!day.closed} disabled={disabled} className={`lt-tog${day.closed ? '' : ' is-on'}`}
+            aria-label={`${DAYS[d]}: ${day.closed ? 'cerrado' : 'abierto'}`}
+            onClick={() => setDay(d, day.closed ? { closed: false, shifts: day.shifts.length ? day.shifts : [{ open: '09:00', close: '18:00' }] } : { closed: true, shifts: [] })} />
+          {day.closed && <span className="lt-closed">Cerrado</span>}
           {!day.closed && (
             <span className="lt-shifts">
               {day.shifts.map((s, k) => (
                 <span key={k} className="lt-shift">
                   {k > 0 && <span className="lt-y">y</span>}
-                  <input type="time" className="lt-time" value={s.open} disabled={disabled} aria-label={`${DAYS[d]}, turno ${k + 1}, abre`}
-                    onChange={e => setDay(d, { ...day, shifts: day.shifts.map((x, j) => (j === k ? { ...x, open: e.target.value } : x)) })} />
+                  <TimeField value={s.open} disabled={disabled} label={`${DAYS[d]}, turno ${k + 1}, abre`} onChange={v => setDay(d, { ...day, shifts: day.shifts.map((x, j) => (j === k ? { ...x, open: v } : x)) })} />
                   <span className="lt-a">a</span>
-                  <input type="time" className="lt-time" value={s.close} disabled={disabled} aria-label={`${DAYS[d]}, turno ${k + 1}, cierra`}
-                    onChange={e => setDay(d, { ...day, shifts: day.shifts.map((x, j) => (j === k ? { ...x, close: e.target.value } : x)) })} />
+                  <TimeField value={s.close} disabled={disabled} label={`${DAYS[d]}, turno ${k + 1}, cierra`} onChange={v => setDay(d, { ...day, shifts: day.shifts.map((x, j) => (j === k ? { ...x, close: v } : x)) })} />
                   {k === 1 && !disabled && <button type="button" className="lt-x" aria-label={`Quitar el segundo turno del ${DAYS[d].toLowerCase()}`} onClick={() => setDay(d, { ...day, shifts: day.shifts.slice(0, 1) })}>×</button>}
                 </span>
               ))}
@@ -291,13 +289,13 @@ const CSS = `
   .lt-card{background:#fff;border:1px solid rgba(43,38,32,.07);border-radius:14px;box-shadow:0 1px 8px rgba(43,38,32,.04);}
   .lt-card--here{border:2px solid rgba(199,93,58,.55);}
   .lt-card--dim .lt-name{color:rgba(43,38,32,.55);}
-  .lt-head{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;background:none;border:none;text-align:left;padding:16px 20px;cursor:pointer;font-family:'Inter',sans-serif;border-radius:14px;}
+  .lt-head{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;background:none;border:none;text-align:left;padding:16px 20px;cursor:pointer;font-family:var(--font-body);border-radius:14px;}
   .lt-head:focus-visible{outline:2px solid #C75D3A;outline-offset:-2px;}
   .lt-head-main{display:flex;flex-direction:column;gap:3px;min-width:0;}
-  .lt-name{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-family:'Plus Jakarta Sans',sans-serif;font-size:14.5px;font-weight:700;color:#2B2620;}
+  .lt-name{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-family:var(--font-display);font-size:14.5px;font-weight:700;color:#2B2620;}
   .lt-sum{font-size:12px;color:rgba(43,38,32,.55);}
   .lt-toggle{font-size:12px;font-weight:600;color:#C75D3A;flex-shrink:0;}
-  .lt-pill{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(43,38,32,.06);color:rgba(43,38,32,.6);}
+  .lt-pill{font-family:var(--font-body);font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(43,38,32,.06);color:rgba(43,38,32,.6);}
   .lt-pill--on{background:rgba(91,140,90,.12);color:#3E6B3D;}
   .lt-pill--here{background:rgba(199,93,58,.12);color:#A9472A;}
   .lt-pill--paused{background:rgba(212,162,76,.18);color:#8A6420;}
@@ -309,27 +307,31 @@ const CSS = `
   .lt-field{display:flex;flex-direction:column;gap:4px;min-width:0;}
   .lt-label{font-size:11.5px;font-weight:600;color:rgba(43,38,32,.7);}
   .lt-label em{font-style:normal;font-weight:400;color:rgba(43,38,32,.45);}
-  .lt-input{width:100%;box-sizing:border-box;padding:8px 10px;font-size:12.5px;border:1px solid rgba(43,38,32,.15);border-radius:8px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;outline:none;min-width:0;}
+  .lt-input{width:100%;box-sizing:border-box;padding:8px 10px;font-size:12.5px;border:1px solid rgba(43,38,32,.15);border-radius:8px;background:#F1F3EE;color:#2B2620;font-family:var(--font-body);outline:none;min-width:0;}
   .lt-input:focus{border-color:#C75D3A;}
   .lt-maps{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .lt-maps .lt-input{flex:1;min-width:220px;}
   .lt-hours{display:flex;flex-direction:column;gap:6px;}
   .lt-hrow{display:grid;grid-template-columns:86px 92px 1fr;align-items:center;gap:8px;min-height:32px;}
   .lt-day{font-size:12.5px;font-weight:600;color:#2B2620;}
-  .lt-open{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(43,38,32,.7);cursor:pointer;}
-  .lt-open input{accent-color:#C75D3A;}
+  .lt-tog{width:36px;height:21px;border-radius:999px;background:rgba(34,32,27,.18);position:relative;border:none;cursor:pointer;flex-shrink:0;padding:0;}
+  .lt-tog::after{content:'';position:absolute;top:2.5px;left:2.5px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s;}
+  .lt-tog.is-on{background:#1B412F;}
+  .lt-tog.is-on::after{transform:translateX(15px);}
+  .lt-tog:disabled{opacity:.5;cursor:default;}
+  .lt-closed{font-size:12.5px;color:rgba(34,32,27,.5);}
   .lt-shifts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
   .lt-shift{display:inline-flex;align-items:center;gap:5px;}
-  .lt-time{padding:5px 6px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:7px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;}
+  .lt-time{padding:5px 6px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:7px;background:#F1F3EE;color:#2B2620;font-family:var(--font-body);}
   .lt-a,.lt-y{font-size:11.5px;color:rgba(43,38,32,.5);}
   .lt-x{background:none;border:none;font-size:16px;line-height:1;color:rgba(43,38,32,.45);cursor:pointer;padding:0 2px;}
   .lt-hours-actions{display:flex;gap:16px;margin-top:6px;}
   .lt-empty-hours{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(43,38,32,.55);}
-  .lt-link{font-size:12px;color:#C75D3A;font-weight:600;background:none;border:none;cursor:pointer;padding:0;font-family:'Inter',sans-serif;}
+  .lt-link{font-size:12px;color:#C75D3A;font-weight:600;background:none;border:none;cursor:pointer;padding:0;font-family:var(--font-body);}
   .lt-link--muted{color:rgba(43,38,32,.5);}
-  .lt-btn{font-size:12.5px;background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:9px 16px;cursor:pointer;font-weight:700;font-family:'Inter',sans-serif;}
+  .lt-btn{font-size:12.5px;background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:9px 16px;cursor:pointer;font-weight:700;font-family:var(--font-body);}
   .lt-btn:disabled{opacity:.45;cursor:default;}
-  .lt-btn-ghost{font-size:12.5px;background:#fff;color:#C75D3A;border:1px solid rgba(199,93,58,.35);border-radius:9px;padding:8px 14px;cursor:pointer;font-weight:600;font-family:'Inter',sans-serif;}
+  .lt-btn-ghost{font-size:12.5px;background:#fff;color:#C75D3A;border:1px solid rgba(199,93,58,.35);border-radius:9px;padding:8px 14px;cursor:pointer;font-weight:600;font-family:var(--font-body);}
   a.lt-btn-ghost{text-decoration:none;display:inline-block;}
   .lt-contact{display:inline-flex;flex-direction:column;align-items:flex-end;gap:4px;}
   .lt-mail{font-size:11.5px;color:rgba(43,38,32,.55);text-decoration:none;}
@@ -342,7 +344,7 @@ const CSS = `
   .lt-add{padding:16px 20px;display:flex;flex-direction:column;gap:10px;}
   .lt-add .lt-actions{border-top:none;padding-top:0;}
   .lt-locked{padding:22px 24px;display:flex;flex-direction:column;gap:12px;align-items:flex-start;}
-  .lt-locked-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:#2B2620;}
+  .lt-locked-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:#2B2620;}
   .lt-locked-list{margin:0;padding-left:18px;font-size:12.5px;color:rgba(43,38,32,.7);line-height:1.6;display:flex;flex-direction:column;gap:4px;}
   .lt-skel{height:120px;border-radius:14px;background:rgba(43,38,32,.05);}
   @media(max-width:768px){

@@ -754,7 +754,7 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
       <style>{`
         .rw-shell{flex:1;display:flex;flex-direction:column;overflow:hidden;}
         .rw-toolbar{display:flex;align-items:center;gap:8px;padding:12px 24px;background:#FFFFFF;border-bottom:1px solid rgba(43,38,32,.08);flex-shrink:0;flex-wrap:wrap;}
-        .rw-card-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
+        .rw-card-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;font-family:var(--font-body);}
         .rw-card-pill--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;font-weight:600;}
         .rw-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
         .rw-empty-note{font-size:12px;color:rgba(43,38,32,.5);padding:8px 0;line-height:1.5;}
@@ -763,18 +763,18 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         .rw-warn{font-size:11.5px;color:#7A5A12;background:rgba(212,162,76,.12);border-radius:9px;padding:8px 11px;margin-top:10px;}
         .rw-hint{font-size:11px;color:rgba(43,38,32,.45);margin-top:10px;line-height:1.5;}
         .rw-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(43,38,32,.04);min-width:0;}
-        .rw-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
+        .rw-card-title{font-family:var(--font-display);font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
         .rw-card-sub{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:14px;}
         .rw-card-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
         .rw-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
         .rw-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
         .rw-stat-label{font-size:10.5px;color:rgba(43,38,32,.5);margin-bottom:6px;}
-        .rw-stat-val{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;color:#2B2620;}
+        .rw-stat-val{font-family:var(--font-display);font-size:24px;font-weight:800;color:#2B2620;}
         .rw-stat-sub{font-size:10.5px;color:rgba(43,38,32,.45);margin-top:3px;line-height:1.4;}
         .rw-stat--good{border-color:rgba(91,140,90,.3);background:rgba(91,140,90,.05);}
         .rw-stat--good .rw-stat-val{color:#3F6E3E;}
         .rw-reward-summary{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
-        .rw-reward-main{font-family:'Plus Jakarta Sans',sans-serif;font-size:17px;font-weight:800;color:#C75D3A;margin:4px 0 6px;}
+        .rw-reward-main{font-family:var(--font-display);font-size:17px;font-weight:800;color:#C75D3A;margin:4px 0 6px;}
         .rw-reward-sub{font-size:12px;color:rgba(43,38,32,.6);line-height:1.6;margin-top:2px;}
         .rw-chip{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;background:rgba(199,93,58,.1);color:#C75D3A;margin:0 4px 4px 0;}
         .rw-secondary-btn{font-size:12px;font-weight:600;border:1px solid rgba(43,38,32,.18);background:#fff;color:#2B2620;border-radius:9px;padding:8px 14px;cursor:pointer;font-family:inherit;white-space:nowrap;}
@@ -811,21 +811,21 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         .rw-mini-btn{font-size:11px;font-weight:600;border:1px solid rgba(43,38,32,.15);background:#fff;color:rgba(43,38,32,.7);border-radius:7px;padding:5px 9px;cursor:pointer;font-family:inherit;white-space:nowrap;}
         .rw-mini-btn--primary{background:#C75D3A;border-color:#C75D3A;color:#fff;}
         .rw-mini-btn--danger{background:#B23B3B;border-color:#B23B3B;color:#fff;}
-        .rw-add-btn{display:flex;align-items:center;gap:6px;font-size:12px;background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:8px 16px;cursor:pointer;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;white-space:nowrap;}
+        .rw-add-btn{display:flex;align-items:center;gap:6px;font-size:12px;background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:8px 16px;cursor:pointer;font-weight:700;font-family:var(--font-display);white-space:nowrap;}
         .rw-add-btn:disabled{opacity:.6;}
-        .rw-add-form{display:flex;gap:8px;align-items:center;padding:12px;background:#FBF6EE;border-radius:10px;margin-bottom:14px;flex-wrap:wrap;}
-        .rw-input{padding:8px 11px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:8px;background:#FFFFFF;color:#2B2620;font-family:'Inter',sans-serif;outline:none;flex:1;min-width:160px;}
+        .rw-add-form{display:flex;gap:8px;align-items:center;padding:12px;background:#F1F3EE;border-radius:10px;margin-bottom:14px;flex-wrap:wrap;}
+        .rw-input{padding:8px 11px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:8px;background:#FFFFFF;color:#2B2620;font-family:var(--font-body);outline:none;flex:1;min-width:160px;}
         .rw-input--sm{max-width:100px;min-width:80px;flex:none;}
         .rw-input:focus,.rw-inline-input:focus{border-color:#C75D3A;}
         .rw-confirm-btn{background:#C75D3A;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;font-weight:600;font-family:inherit;}
         .rw-confirm-btn:disabled{opacity:.5;cursor:default;}
         .rw-cancel-btn{background:none;border:1px solid rgba(43,38,32,.15);border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;color:rgba(43,38,32,.55);font-family:inherit;}
-        .rw-inline-input{padding:6px 9px;font-size:12px;border:1px solid rgba(43,38,32,.18);border-radius:7px;background:#fff;color:#2B2620;font-family:'Inter',sans-serif;outline:none;width:100%;min-width:0;}
+        .rw-inline-input{padding:6px 9px;font-size:12px;border:1px solid rgba(43,38,32,.18);border-radius:7px;background:#fff;color:#2B2620;font-family:var(--font-body);outline:none;width:100%;min-width:0;}
         .rw-inline-input:disabled{background:rgba(43,38,32,.04);color:rgba(43,38,32,.5);}
         .rw-inline-input--sm{max-width:74px;}
         .rw-tier-grid{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:12px;}
         .rw-tier-badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:8px;}
-        .rw-tier-members{font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:800;}
+        .rw-tier-members{font-family:var(--font-display);font-size:26px;font-weight:800;}
         .rw-tier-sub{font-size:11px;margin-top:2px;opacity:.75;}
         .rw-tier-editor{display:flex;flex-direction:column;gap:8px;}
         .rw-tier-row{display:grid;grid-template-columns:30px minmax(100px,1fr) 190px minmax(140px,2fr) 30px;gap:10px;align-items:center;}

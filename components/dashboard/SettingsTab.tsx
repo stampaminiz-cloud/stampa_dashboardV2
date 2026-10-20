@@ -390,28 +390,28 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         .st-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:18px 20px;box-shadow:0 1px 8px rgba(43,38,32,.04);}
         .st-card-head{display:flex;align-items:center;gap:8px;padding-bottom:14px;border-bottom:1px solid rgba(43,38,32,.07);margin-bottom:14px;}
         .st-card-head svg{color:rgba(43,38,32,.5);flex-shrink:0;}
-        .st-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;color:#2B2620;}
+        .st-card-title{font-family:var(--font-display);font-weight:700;font-size:13.5px;color:#2B2620;}
         .st-rule{display:flex;flex-direction:column;gap:8px;}
         .st-rule-title{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:#2B2620;}
         .st-rule-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
         .st-rule-text{font-size:12px;color:rgba(43,38,32,.75);min-width:130px;}
         .st-rule-presets{display:flex;gap:6px;}
-        .st-rule-chip{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid rgba(43,38,32,.14);background:#fff;color:rgba(43,38,32,.7);cursor:pointer;font-family:'Inter',sans-serif;}
+        .st-rule-chip{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid rgba(43,38,32,.14);background:#fff;color:rgba(43,38,32,.7);cursor:pointer;font-family:var(--font-body);}
         .st-rule-chip.is-on{background:rgba(199,93,58,.1);border-color:#C75D3A;color:#C75D3A;}
         .st-field-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(43,38,32,.05);min-height:42px;}
         .st-field-row:last-child{border-bottom:none;padding-bottom:0;}
         .st-field-label{font-size:12.5px;color:rgba(43,38,32,.6);}
         .st-field-value{display:flex;align-items:center;gap:8px;}
         .st-field-val{font-size:12.5px;font-weight:600;color:#2B2620;}
-        .st-timezone-select{font-size:12.5px;font-weight:600;color:#2B2620;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.12);border-radius:8px;padding:6px 10px;font-family:'Inter',sans-serif;cursor:pointer;}
-        .st-inline-input{padding:5px 9px;font-size:12.5px;border:1.5px solid #C75D3A;border-radius:7px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;width:180px;outline:none;}
-        .st-pw-input{padding:6px 10px;font-size:12.5px;border:1px solid rgba(43,38,32,.15);border-radius:7px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;width:200px;outline:none;}
+        .st-timezone-select{font-size:12.5px;font-weight:600;color:#2B2620;background:#F1F3EE;border:1.5px solid rgba(43,38,32,.12);border-radius:8px;padding:6px 10px;font-family:var(--font-body);cursor:pointer;}
+        .st-inline-input{padding:5px 9px;font-size:12.5px;border:1.5px solid #C75D3A;border-radius:7px;background:#F1F3EE;color:#2B2620;font-family:var(--font-body);width:180px;outline:none;}
+        .st-pw-input{padding:6px 10px;font-size:12.5px;border:1px solid rgba(43,38,32,.15);border-radius:7px;background:#F1F3EE;color:#2B2620;font-family:var(--font-body);width:200px;outline:none;}
         .st-pw-input:focus{border-color:#C75D3A;}
         .st-pw-error{font-size:11.5px;color:#B23B3B;background:rgba(178,59,59,.07);border:1px solid rgba(178,59,59,.2);border-radius:8px;padding:8px 12px;margin-top:10px;}
         .st-pw-success{font-size:11.5px;color:#2C5A2C;background:rgba(91,140,90,.1);border:1px solid rgba(91,140,90,.25);border-radius:8px;padding:8px 12px;margin-top:10px;}
         .st-edit-link{font-size:11px;color:#C75D3A;font-weight:600;background:none;border:none;cursor:pointer;padding:0;}
         .st-btn-sm{font-size:11px;background:#C75D3A;color:#fff;border:none;border-radius:7px;padding:5px 12px;cursor:pointer;font-weight:600;}
-        .st-number-input{width:60px;padding:5px 9px;font-size:12.5px;border:1px solid rgba(43,38,32,.15);border-radius:7px;text-align:center;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
+        .st-number-input{width:60px;padding:5px 9px;font-size:12.5px;border:1px solid rgba(43,38,32,.15);border-radius:7px;text-align:center;background:#F1F3EE;color:#2B2620;font-family:var(--font-body);outline:none;}
         .st-number-input:focus{border-color:#C75D3A;}
         .st-check-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgba(43,38,32,.05);cursor:pointer;user-select:none;}
         .st-check-row:last-child{border-bottom:none;padding-bottom:0;}
@@ -420,16 +420,16 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         .st-check-label{font-size:12.5px;color:#2B2620;font-weight:500;}
         .st-check-desc{font-size:11px;color:rgba(43,38,32,.45);margin-top:2px;}
         .st-plan-card{background:rgba(199,93,58,.07);border:1px solid rgba(199,93,58,.2);border-radius:11px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;}
-        .st-plan-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:800;color:#C75D3A;}
+        .st-plan-name{font-family:var(--font-display);font-size:14px;font-weight:800;color:#C75D3A;}
         .st-plan-sub{font-size:11px;color:rgba(43,38,32,.5);margin-top:2px;}
         .st-plan-dots{display:flex;gap:6px;margin-top:8px;}
         .st-plan-dot{width:9px;height:9px;border-radius:50%;}
         .st-plan-dot--on{background:#C75D3A;}
         .st-plan-dot--off{background:rgba(43,38,32,.15);}
-        .st-upgrade-btn{background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;}
+        .st-upgrade-btn{background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-display);}
         .st-danger-card{background:rgba(178,59,59,.04);border:1px solid rgba(178,59,59,.15);border-radius:14px;padding:18px 20px;}
         .st-danger-head{display:flex;align-items:center;gap:8px;color:#B23B3B;padding-bottom:14px;border-bottom:1px solid rgba(178,59,59,.1);margin-bottom:14px;}
-        .st-danger-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;color:#B23B3B;}
+        .st-danger-title{font-family:var(--font-display);font-weight:700;font-size:13.5px;color:#B23B3B;}
         .st-danger-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(178,59,59,.07);}
         .st-danger-row:last-child{border-bottom:none;padding-bottom:0;}
         .st-danger-label{font-size:12.5px;color:rgba(43,38,32,.65);}
@@ -448,7 +448,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         .st-alerts-note{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:12px;}
         .st-inline-error{font-size:11px;color:#B23B3B;font-weight:600;margin-top:4px;}
         .st-ok{font-size:11px;color:#5B8C5A;font-weight:600;}
-        .st-subform{display:flex;flex-direction:column;gap:8px;background:#FBF6EE;border-radius:10px;padding:12px;margin:8px 0;}
+        .st-subform{display:flex;flex-direction:column;gap:8px;background:#F1F3EE;border-radius:10px;padding:12px;margin:8px 0;}
         .st-subform .st-pw-input{width:100%;background:#fff;}
         @media(max-width:768px){
           .st-content{padding:14px 16px;}

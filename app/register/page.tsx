@@ -16,9 +16,9 @@ const PLANS: Record<string, { name: string; features: string[]; highlight: boole
 }
 
 const CSS = `
-  :root { --font-display: 'Plus Jakarta Sans', sans-serif; --font-body: 'Inter', sans-serif; }
+  
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: var(--font-body); background: #FBF6EE; color: #2B2620; }
+  body { font-family: var(--font-body); background: #F1F3EE; color: #2B2620; }
   .rg-shell { min-height: 100vh; display: flex; }
   .rg-left { width: 450px; flex-shrink: 0; background: #1B412F; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 40px; gap: 20px; }
   .rg-left-title { font-family: var(--font-display); font-weight: 700; font-size: 24px; color: #F7F0E4; line-height: 1.25; text-align: center; }
@@ -28,14 +28,14 @@ const CSS = `
   .rg-step-num { width: 28px; height: 28px; border-radius: 50%; background: #C75D3A; color: #fff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: var(--font-display); }
   .rg-step-title { font-size: 13px; font-weight: 600; color: #F7F0E4; display: block; }
   .rg-step-sub { font-size: 11.5px; color: rgba(247,240,228,.45); margin-top: 1px; }
-  .rg-right { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; background: #FBF6EE; position: relative; overflow: hidden; }
+  .rg-right { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; background: #F1F3EE; position: relative; overflow: hidden; }
   .rg-right::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: rgba(199,93,58,.06); top: -150px; right: -150px; pointer-events: none; }
   .rg-right::after { content: ''; position: absolute; width: 350px; height: 350px; border-radius: 50%; background: rgba(27,65,47,.04); bottom: -120px; left: -80px; pointer-events: none; }
   .rg-card { background: #FFFFFF; border: 1px solid rgba(43,38,32,.08); border-radius: 24px; padding: 36px; width: 100%; max-width: 420px; box-shadow: 0 8px 40px rgba(43,38,32,.1); position: relative; z-index: 1; }
   .rg-card-title { font-family: var(--font-display); font-weight: 700; font-size: 20px; color: #2B2620; margin-bottom: 4px; }
   .rg-card-sub { font-size: 13px; color: rgba(43,38,32,.45); margin-bottom: 20px; }
   /* Plan block */
-  .rg-plan { background: #FBF6EE; border: 1.5px solid rgba(43,38,32,.12); border-radius: 14px; padding: 14px 16px; margin-bottom: 20px; }
+  .rg-plan { background: #F1F3EE; border: 1.5px solid rgba(43,38,32,.12); border-radius: 14px; padding: 14px 16px; margin-bottom: 20px; }
   .rg-plan--highlight { background: rgba(199,93,58,.05); border-color: rgba(199,93,58,.35); }
   .rg-plan-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
   .rg-plan-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: #2B2620; }
@@ -48,7 +48,7 @@ const CSS = `
   /* Form */
   .rg-field { margin-bottom: 14px; }
   .rg-label { font-size: 11px; font-weight: 700; color: rgba(43,38,32,.5); text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 7px; }
-  .rg-input { width: 100%; padding: 13px 14px; font-size: 14px; border: 1.5px solid rgba(43,38,32,.12); border-radius: 12px; background: #FBF6EE; color: #2B2620; font-family: var(--font-body); outline: none; transition: border-color .15s; }
+  .rg-input { width: 100%; padding: 13px 14px; font-size: 14px; border: 1.5px solid rgba(43,38,32,.12); border-radius: 12px; background: #F1F3EE; color: #2B2620; font-family: var(--font-body); outline: none; transition: border-color .15s; }
   .rg-input:focus { border-color: #C75D3A; background: #FFFFFF; }
   .rg-input--error { border-color: #B23B3B; }
   .rg-error { font-size: 11px; color: #B23B3B; margin-top: 5px; line-height: 1.5; }
@@ -214,8 +214,6 @@ function RegisterForm() {
 export default function RegisterPage() {
   return (
     <>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="rg-shell">
         <div className="rg-left">

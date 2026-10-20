@@ -5,6 +5,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import QRCode from 'qrcode'
 import type { Location } from '@/lib/location'
 import { OptionsEditor } from './OptionsEditor'
+import { Icon, type IconName } from '@/components/ui/Icon'
 import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields } from '@/lib/api'
 import { usePlan } from '@/data/plans'
 
@@ -35,7 +36,7 @@ interface CardInfo {
 }
 
 const TYPE_LABEL: Record<FieldType, string> = { text: 'Texto', number: 'Número', date: 'Fecha', select: 'Lista de opciones', tel: 'Teléfono' }
-const TYPE_ICON: Record<FieldType, string> = { text: 'T', number: '#', date: '📅', select: '≡', tel: '📱' }
+const TYPE_ICON: Record<FieldType, IconName> = { text: 'texto', number: 'numero', date: 'fecha', select: 'lista', tel: 'telefono' }
 const REWARD_QUESTION = '¿Qué premio querés cuando completes la tarjeta?'
 let fieldKey = 0
 
@@ -141,6 +142,11 @@ function Share({ businessName, slug, card, whiteLabel, locations = [], selectedL
     if (!link) return
     setMaking(true)
     try {
+      // Las letras del sistema (next/font les pone otro nombre: se leen de las variables).
+      await document.fonts.ready
+      const css = getComputedStyle(document.documentElement)
+      const FD = css.getPropertyValue('--font-display').trim() || 'sans-serif'
+      const FB = css.getPropertyValue('--font-body').trim() || 'sans-serif'
       const W = 1240, H = 1748
       const c = document.createElement('canvas'); c.width = W; c.height = H
       const g = c.getContext('2d')!
@@ -156,22 +162,22 @@ function Share({ businessName, slug, card, whiteLabel, locations = [], selectedL
         const s = Math.min(160 / logo.width, 160 / logo.height)
         g.drawImage(logo, W / 2 - (logo.width * s) / 2, 180 - (logo.height * s) / 2, logo.width * s, logo.height * s)
       } else {
-        g.fillStyle = text; g.font = '800 96px "Plus Jakarta Sans", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'
+        g.fillStyle = text; g.font = `800 96px ${FD}`; g.textAlign = 'center'; g.textBaseline = 'middle'
         g.fillText(businessName.charAt(0).toUpperCase(), W / 2, 184)
       }
       g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillStyle = text
-      g.font = '800 76px "Plus Jakarta Sans", sans-serif'; g.fillText(businessName.slice(0, 26), W / 2, 400)
-      g.font = '600 44px Inter, sans-serif'; g.globalAlpha = .85
+      g.font = `800 76px ${FD}`; g.fillText(businessName.slice(0, 26), W / 2, 400)
+      g.font = `600 44px ${FB}`; g.globalAlpha = .85
       g.fillText(card?.type === 'points' ? 'Sumá puntos y canjealos por premios' : card?.type === 'membership' ? 'Sumate y subí de nivel con cada visita' : 'Juntá sellos y ganá tu premio', W / 2, 480)
       g.globalAlpha = 1
-      g.fillStyle = '#2B2620'; g.font = '800 88px "Plus Jakarta Sans", sans-serif'
+      g.fillStyle = '#2B2620'; g.font = `800 88px ${FD}`
       g.fillText('¡Sumate a nuestra tarjeta!', W / 2, 760)
       const qrImg = await loadImage(await QRCode.toDataURL(link, { width: 720, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#2B2620', light: '#FFFFFF' } }))
       if (qrImg) g.drawImage(qrImg, W / 2 - 330, 830, 660, 660)
-      g.fillStyle = 'rgba(43,38,32,.75)'; g.font = '500 42px Inter, sans-serif'
+      g.fillStyle = 'rgba(43,38,32,.75)'; g.font = `500 42px ${FB}`
       g.fillText('Escaneá con la cámara de tu celular', W / 2, 1570)
-      g.fillStyle = color; g.font = '700 40px Inter, sans-serif'; g.fillText(qrLoc && !qrLoc.isPrimary ? `${shortLink.split('?')[0]} · ${qrLoc.name}` : shortLink, W / 2, 1635)
-      if (!whiteLabel) { g.fillStyle = 'rgba(43,38,32,.35)'; g.font = '600 28px Inter, sans-serif'; g.fillText('Powered by Stampa', W / 2, 1712) }
+      g.fillStyle = color; g.font = `700 40px ${FB}`; g.fillText(qrLoc && !qrLoc.isPrimary ? `${shortLink.split('?')[0]} · ${qrLoc.name}` : shortLink, W / 2, 1635)
+      if (!whiteLabel) { g.fillStyle = 'rgba(43,38,32,.35)'; g.font = `600 28px ${FB}`; g.fillText('Powered by Stampa', W / 2, 1712) }
       download(c.toDataURL('image/png'), `cartel-${slug}${qrLoc && !qrLoc.isPrimary ? `-${qrLoc.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : ''}.png`)
     } finally {
       setMaking(false)
@@ -398,7 +404,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
 
             {isStamp && (
               <div className="fm-card fm-design-note">
-                <span className="fm-reward-star">★</span>
+                <span className="fm-reward-star"><Icon name="premios" size={18} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="fm-card-title">Premio</div>
                   <div className="fm-card-sub" style={{ margin: 0 }}>
@@ -417,7 +423,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
               <div className="fm-list">
                 {['Nombre completo', 'Email'].map(l => (
                   <div key={l} className="fm-row fm-row--fixed">
-                    <div className="fm-row-main"><span className="fm-type">{l === 'Email' ? '@' : 'T'}</span><span className="fm-fixed-label">{l}</span><span className="fm-badge">Fijo · obligatorio</span></div>
+                    <div className="fm-row-main"><span className="fm-type"><Icon name={l === 'Email' ? 'email' : 'texto'} size={14} /></span><span className="fm-fixed-label">{l}</span><span className="fm-badge">Fijo · obligatorio</span></div>
                   </div>
                 ))}
                 {draft === null ? [0, 1].map(i => <div key={i} className="fm-skel" style={{ height: 56 }} />) : draft.map((f, i) => {
@@ -429,7 +435,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
                           <button onClick={() => move(f.key, -1)} disabled={i === 0} aria-label="Subir">▲</button>
                           <button onClick={() => move(f.key, 1)} disabled={i === draft.length - 1} aria-label="Bajar">▼</button>
                         </div>
-                        <span className="fm-type" title={TYPE_LABEL[f.type]}>{TYPE_ICON[f.type]}</span>
+                        <span className="fm-type" title={TYPE_LABEL[f.type]}><Icon name={TYPE_ICON[f.type]} size={14} /></span>
                         <input className="fm-label-input" value={f.label} placeholder="Nombre del campo (ej: Fecha de cumpleaños)" maxLength={80} onChange={e => patch(f.key, { label: e.target.value })} />
                         {!f.id && !f.isLocked && !f.isRewardSource ? (
                           <select className="fm-type-select" value={f.type} onChange={e => patch(f.key, { type: e.target.value as FieldType })}>
@@ -452,7 +458,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
                             <label className="fm-switch"><input type="checkbox" checked={f.isRequired} disabled={!f.isActive} onChange={e => patch(f.key, { isRequired: e.target.checked })} /><span />Obligatorio</label>
                           </>
                         )}
-                        {f.isBirthday && <span className="fm-badge" title="La usa la regla Cumpleaños (Configuración)">🎂 Regla de cumpleaños</span>}
+                        {f.isBirthday && <span className="fm-badge" title="La usa la regla Cumpleaños (Configuración)"><Icon name="cumple" size={14} /> Regla de cumpleaños</span>}
                         <div style={{ flex: 1 }} />
                         {(f.isCustom || !f.id) && !f.isLocked && !f.isBirthday && (
                           confirmDel === f.key
@@ -493,10 +499,10 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
 const CSS = `
   .fm-shell{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
   .fm-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-  .fm-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:17px;color:#2B2620;}
+  .fm-title{font-family:var(--font-display);font-weight:700;font-size:17px;color:#2B2620;}
   .fm-sub{font-size:12px;color:rgba(43,38,32,.5);margin-top:2px;}
   .fm-top-actions{display:flex;gap:8px;}
-  .fm-primary{background:#C75D3A;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;white-space:nowrap;}
+  .fm-primary{background:#C75D3A;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-display);white-space:nowrap;}
   .fm-primary:disabled{opacity:.45;cursor:not-allowed;}
   .fm-secondary{background:#fff;color:#2B2620;border:1px solid rgba(43,38,32,.18);border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
   .fm-secondary:disabled{opacity:.45;cursor:not-allowed;}
@@ -505,11 +511,11 @@ const CSS = `
   .fm-error{font-size:12.5px;color:#8E2F2F;background:rgba(178,59,59,.07);border:1px solid rgba(178,59,59,.2);border-radius:10px;padding:9px 12px;}
   .fm-notice{font-size:12.5px;color:#3F6E3E;background:rgba(91,140,90,.1);border:1px solid rgba(91,140,90,.25);border-radius:10px;padding:9px 12px;}
   .fm-pills{display:flex;gap:6px;flex-wrap:wrap;}
-  .fm-pill{font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(43,38,32,.12);background:#fff;color:rgba(43,38,32,.6);cursor:pointer;font-family:'Inter',sans-serif;}
+  .fm-pill{font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(43,38,32,.12);background:#fff;color:rgba(43,38,32,.6);cursor:pointer;font-family:var(--font-body);}
   .fm-pill--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;font-weight:600;}
   .fm-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start;}
   .fm-card{background:#fff;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:16px 18px;box-shadow:0 1px 8px rgba(43,38,32,.04);min-width:0;}
-  .fm-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
+  .fm-card-title{font-family:var(--font-display);font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
   .fm-card-sub{font-size:11.5px;color:rgba(43,38,32,.5);margin-bottom:12px;line-height:1.5;}
   .fm-design-note{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
   .fm-swatch{width:34px;height:34px;border-radius:10px;flex-shrink:0;}
@@ -537,11 +543,11 @@ const CSS = `
   .fm-move button:disabled{opacity:.25;cursor:default;}
   .fm-type{width:26px;height:26px;border-radius:7px;background:rgba(43,38,32,.06);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:rgba(43,38,32,.55);flex-shrink:0;}
   .fm-fixed-label{flex:1;font-size:12.5px;font-weight:600;color:#2B2620;}
-  .fm-label-input{flex:1;min-width:0;border:1px solid transparent;border-radius:7px;padding:6px 8px;font-size:12.5px;font-weight:600;color:#2B2620;font-family:'Inter',sans-serif;background:transparent;outline:none;}
+  .fm-label-input{flex:1;min-width:0;border:1px solid transparent;border-radius:7px;padding:6px 8px;font-size:12.5px;font-weight:600;color:#2B2620;font-family:var(--font-body);background:transparent;outline:none;}
   .fm-label-input:hover{border-color:rgba(43,38,32,.12);}
   .fm-label-input:focus{border-color:#C75D3A;background:#fff;}
   .fm-type-select{border:1px solid rgba(43,38,32,.15);border-radius:7px;padding:6px 8px;font-size:12px;background:#fff;color:#2B2620;font-family:inherit;}
-  .fm-ph-input{border:1px dashed rgba(43,38,32,.15);border-radius:7px;padding:6px 9px;font-size:11.5px;color:rgba(43,38,32,.7);font-family:'Inter',sans-serif;outline:none;margin-left:34px;}
+  .fm-ph-input{border:1px dashed rgba(43,38,32,.15);border-radius:7px;padding:6px 9px;font-size:11.5px;color:rgba(43,38,32,.7);font-family:var(--font-body);outline:none;margin-left:34px;}
   .fm-ph-input:focus{border-color:#C75D3A;border-style:solid;}
   .fm-opts{margin-left:34px;}
   .fm-row-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-left:34px;}
@@ -552,7 +558,7 @@ const CSS = `
   .fm-switch input:checked + span{background:#5B8C5A;}
   .fm-switch input:checked + span::after{left:14px;}
   .fm-switch input:disabled + span{opacity:.4;}
-  .fm-badge{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:rgba(43,38,32,.07);color:rgba(43,38,32,.55);white-space:nowrap;}
+  .fm-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:rgba(43,38,32,.07);color:rgba(43,38,32,.55);white-space:nowrap;}
   .fm-badge--reward{background:rgba(212,162,76,.18);color:#7A5A12;}
   .fm-confirm{font-size:11.5px;color:#8E2F2F;}
   .fm-add{margin-top:10px;width:100%;border:1.5px dashed rgba(43,38,32,.2);background:none;border-radius:10px;padding:10px;font-size:12.5px;font-weight:600;color:rgba(43,38,32,.65);cursor:pointer;font-family:inherit;}
@@ -562,31 +568,31 @@ const CSS = `
   .fm-preview-col{position:sticky;top:0;display:flex;flex-direction:column;align-items:center;gap:8px;}
   .fm-preview-title{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(43,38,32,.4);font-weight:700;}
   .fm-phone{width:280px;border-radius:34px;background:#1a1a18;padding:10px;box-shadow:0 12px 40px rgba(43,38,32,.2);}
-  .fm-phone-screen{border-radius:26px;overflow:hidden;background:#FBF6EE;max-height:560px;overflow-y:auto;}
+  .fm-phone-screen{border-radius:26px;overflow:hidden;background:#F1F3EE;max-height:560px;overflow-y:auto;}
   .fm-pv-head{padding:24px 18px 18px;text-align:center;}
   .fm-pv-logo{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;overflow:hidden;}
   .fm-pv-logo img{width:100%;height:100%;object-fit:contain;}
-  .fm-pv-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;}
+  .fm-pv-name{font-family:var(--font-display);font-weight:700;font-size:15px;}
   .fm-pv-sub{font-size:10.5px;opacity:.8;margin-top:2px;}
   .fm-pv-badge{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:rgba(255,255,255,.18);padding:3px 8px;border-radius:20px;margin-top:8px;}
   .fm-pv-body{background:#fff;padding:16px 16px 14px;}
   .fm-pv-field{margin-bottom:10px;}
   .fm-pv-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.5);margin-bottom:4px;}
-  .fm-pv-input{border:1px solid rgba(43,38,32,.12);border-radius:9px;background:#FBF6EE;padding:8px 10px;font-size:11px;color:rgba(43,38,32,.4);min-height:30px;display:flex;justify-content:space-between;}
+  .fm-pv-input{border:1px solid rgba(43,38,32,.12);border-radius:9px;background:#F1F3EE;padding:8px 10px;font-size:11px;color:rgba(43,38,32,.4);min-height:30px;display:flex;justify-content:space-between;}
   .fm-pv-btn{border-radius:10px;color:#fff;text-align:center;font-size:12px;font-weight:700;padding:10px;margin-top:4px;}
   .fm-pv-legal{font-size:9px;color:rgba(43,38,32,.45);text-align:center;margin-top:8px;line-height:1.4;}
   .fm-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(43,38,32,.38);font-weight:600;display:flex;align-items:center;gap:10px;margin-top:4px;}
   .fm-lbl::after{content:'';flex:1;height:1px;background:rgba(43,38,32,.1);}
   .fm-share{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .fm-link-row{display:flex;gap:8px;}
-  .fm-link-box{flex:1;min-width:0;font-size:13px;font-weight:600;color:#2B2620;background:#FBF6EE;border:1px solid rgba(43,38,32,.1);border-radius:9px;padding:9px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .fm-link-box{flex:1;min-width:0;font-size:13px;font-weight:600;color:#2B2620;background:#F1F3EE;border:1px solid rgba(43,38,32,.1);border-radius:9px;padding:9px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .fm-copy{background:#1B412F;color:#F7F0E4;border:none;border-radius:9px;padding:0 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;}
   .fm-copy--done{background:#5B8C5A;}
   .fm-open{display:inline-block;margin-top:10px;font-size:12px;font-weight:600;color:#C75D3A;text-decoration:none;}
   .fm-qr-card{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
   .fm-qr-loc{display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(43,38,32,.6);margin:10px 0 14px;white-space:nowrap;}
   .fm-qr-loc select{min-width:0;flex:1;}
-  .fm-qr-loc select{font-size:12.5px;font-weight:600;color:#2B2620;background:#FBF6EE;border:1px solid rgba(43,38,32,.15);border-radius:8px;padding:5px 8px;font-family:'Inter',sans-serif;}
+  .fm-qr-loc select{font-size:12.5px;font-weight:600;color:#2B2620;background:#F1F3EE;border:1px solid rgba(43,38,32,.15);border-radius:8px;padding:5px 8px;font-family:var(--font-body);}
   .fm-qr img{width:132px;height:132px;border-radius:10px;border:1px solid rgba(43,38,32,.08);display:block;}
   .fm-share-btns{display:flex;gap:8px;flex-wrap:wrap;}
   .fm-skel{background:rgba(43,38,32,.07);border-radius:10px;animation:fmPulse 1.2s ease-in-out infinite;}

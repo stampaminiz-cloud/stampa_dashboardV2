@@ -6,16 +6,17 @@ import React, { useEffect, useState } from 'react'
 import { getJson } from '@/lib/cache'
 import { apiUpdateBusiness } from '@/lib/api'
 import { usePlan } from '@/data/plans'
+import { Icon, type IconName } from '@/components/ui/Icon'
 
 type Key = 'welcome' | 'nearReward' | 'winback' | 'review'
 interface Notice { enabled: boolean; message: string; defaultMessage: string; sentThisMonth: number; days?: number; url?: string; afterVisits?: number }
 type Notices = Record<Key, Notice>
 
-const INFO: Record<Key, { title: string; when: string; icon: string }> = {
-  welcome: { title: 'Bienvenida', when: 'Una hora después de que se registra.', icon: '👋' },
-  nearReward: { title: 'A un sello del premio', when: 'Al día siguiente de la visita que lo dejó a 1 sello. Solo tarjetas de sellos.', icon: '⭐' },
-  winback: { title: 'Te extrañamos', when: 'Cuando pasan esos días sin que venga. Una vez por ausencia.', icon: '💌' },
-  review: { title: 'Pedir reseña en Google', when: 'Unas horas después de la visita que elijas. Una vez por cliente.', icon: '★' },
+const INFO: Record<Key, { title: string; when: string; icon: IconName }> = {
+  welcome: { title: 'Bienvenida', when: 'Una hora después de que se registra.', icon: 'bienvenida' },
+  nearReward: { title: 'A un sello del premio', when: 'Al día siguiente de la visita que lo dejó a 1 sello. Solo tarjetas de sellos.', icon: 'unSello' },
+  winback: { title: 'Te extrañamos', when: 'Cuando pasan esos días sin que venga. Una vez por ausencia.', icon: 'teExtranamos' },
+  review: { title: 'Pedir reseña en Google', when: 'Unas horas después de la visita que elijas. Una vez por cliente.', icon: 'resena' },
 }
 const KEYS: Key[] = ['welcome', 'nearReward', 'winback', 'review']
 const MAX = 160
@@ -78,7 +79,7 @@ export function AutoNotices({ businessId, businessName, hasStamp, isManager = fa
           return (
             <div key={k} className={`an-item${n?.enabled ? ' is-on' : ''}${!allowed ? ' is-locked' : ''}`}>
               <div className="an-row">
-                <span className="an-icon" aria-hidden>{INFO[k].icon}</span>
+                <span className="an-icon"><Icon name={INFO[k].icon} size={18} /></span>
                 <div className="an-main">
                   <div className="an-name">{INFO[k].title}</div>
                   <div className="an-when">
@@ -150,7 +151,7 @@ export function AutoNotices({ businessId, businessName, hasStamp, isManager = fa
 const CSS = `
   .an{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:18px 20px;box-shadow:0 1px 8px rgba(43,38,32,.04);}
   .an-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
-  .an-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:#2B2620;display:flex;align-items:center;gap:8px;}
+  .an-title{font-family:var(--font-display);font-weight:700;font-size:13px;color:#2B2620;display:flex;align-items:center;gap:8px;}
   .an-sub{font-size:11px;color:rgba(43,38,32,.5);margin-top:2px;line-height:1.5;}
   .an-pro{font-size:10px;font-weight:700;background:#1B412F;color:#F7F0E4;border-radius:999px;padding:2px 8px;}
   .an-plan{font-size:12px;font-weight:700;background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:8px 14px;cursor:pointer;font-family:inherit;}
@@ -159,7 +160,7 @@ const CSS = `
   .an-item.is-on{border-color:rgba(199,93,58,.35);background:rgba(199,93,58,.03);}
   .an-item.is-locked{opacity:.6;}
   .an-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .an-icon{width:32px;height:32px;border-radius:9px;background:#FBF6EE;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;color:#C75D3A;}
+  .an-icon{width:32px;height:32px;border-radius:9px;background:#F1F3EE;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;color:#C75D3A;}
   .an-main{flex:1;min-width:180px;}
   .an-name{font-size:12.5px;font-weight:700;color:#2B2620;}
   .an-when{font-size:11px;color:rgba(43,38,32,.55);margin-top:1px;line-height:1.4;}
@@ -179,12 +180,12 @@ const CSS = `
   .an-field{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;color:rgba(43,38,32,.7);font-weight:600;}
   .an-field--col{flex-direction:column;align-items:stretch;gap:5px;}
   .an-field small{font-weight:400;color:rgba(43,38,32,.45);}
-  .an-seg{display:inline-flex;background:#FBF6EE;border:1.5px solid rgba(43,38,32,.1);border-radius:999px;padding:3px;gap:2px;}
-  .an-seg-btn{border:none;background:transparent;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;}
+  .an-seg{display:inline-flex;background:#F1F3EE;border:1.5px solid rgba(43,38,32,.1);border-radius:999px;padding:3px;gap:2px;}
+  .an-seg-btn{border:none;background:transparent;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;font-family:var(--font-body);}
   .an-seg-btn.is-on{background:#fff;color:#C75D3A;box-shadow:0 1px 3px rgba(43,38,32,.12);}
-  .an-input,.an-text{padding:8px 11px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:9px;background:#fff;color:#2B2620;outline:none;font-family:'Inter',sans-serif;font-weight:400;resize:vertical;}
+  .an-input,.an-text{padding:8px 11px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:9px;background:#fff;color:#2B2620;outline:none;font-family:var(--font-body);font-weight:400;resize:vertical;}
   .an-input:focus,.an-text:focus{border-color:#C75D3A;}
-  .an-preview{font-size:12px;color:#2B2620;background:#FBF6EE;border-radius:9px;padding:9px 11px;line-height:1.5;}
+  .an-preview{font-size:12px;color:#2B2620;background:#F1F3EE;border-radius:9px;padding:9px 11px;line-height:1.5;}
   .an-preview span{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.45);margin-right:4px;}
   .an-actions{display:flex;justify-content:flex-end;gap:8px;}
   .an-cancel{background:none;border:1px solid rgba(43,38,32,.15);border-radius:8px;padding:7px 13px;font-size:12px;cursor:pointer;color:rgba(43,38,32,.55);font-family:inherit;}

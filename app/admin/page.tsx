@@ -131,7 +131,7 @@ export default function AdminPage() {
 }
 
 function Center({ children }: { children: React.ReactNode }) {
-  return <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'center', background: '#FBF6EE', color: '#2B2620', padding: 16, textAlign: 'center', fontFamily: 'Inter, sans-serif' }}><style dangerouslySetInnerHTML={{ __html: CSS }} />{children}</div>
+  return <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'center', background: '#F1F3EE', color: '#2B2620', padding: 16, textAlign: 'center', fontFamily: 'var(--font-body)' }}><style dangerouslySetInnerHTML={{ __html: CSS }} />{children}</div>
 }
 
 // ─── Piezas ────────────────────────────────────────────────────────────────
@@ -782,17 +782,16 @@ function ManualBilling({ id, current, onSaved }: { id: string; current: { amount
 }
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500;600;700&display=swap');
-  html,body{background:#FBF6EE!important;}
-  .t{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;color:#2B2620;}
-  .sa-shell{display:flex;min-height:100vh;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;font-size:13px;}
+  html,body{background:#F1F3EE!important;}
+  .t{font-family:var(--font-display);font-weight:800;color:#2B2620;}
+  .sa-shell{display:flex;min-height:100vh;background:#F1F3EE;color:#2B2620;font-family:var(--font-body);font-size:13px;}
   .sa-shell *{box-sizing:border-box;}
   .sa-side{width:230px;flex-shrink:0;background:#1B412F;color:#F7F0E4;padding:6px 12px 16px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;}
   .sa-brand{padding:18px 10px 22px;}
   .sa-brand img{display:block;}
-  .sa-brand small{display:block;font-size:11.5px;color:rgba(247,240,228,.5);margin-top:6px;font-family:'Inter',sans-serif;}
+  .sa-brand small{display:block;font-size:11.5px;color:rgba(247,240,228,.5);margin-top:6px;font-family:var(--font-body);}
   .sa-tabs{display:flex;flex-direction:column;gap:2px;flex:1;}
-  .sa-tab{display:flex;align-items:center;gap:12px;width:100%;border:none;background:transparent;color:rgba(247,240,228,.5);padding:11px 12px;border-radius:10px;font-family:'Inter',sans-serif;font-size:15px;font-weight:500;cursor:pointer;text-align:left;transition:all .15s;white-space:nowrap;}
+  .sa-tab{display:flex;align-items:center;gap:12px;width:100%;border:none;background:transparent;color:rgba(247,240,228,.5);padding:11px 12px;border-radius:10px;font-family:var(--font-body);font-size:15px;font-weight:500;cursor:pointer;text-align:left;transition:all .15s;white-space:nowrap;}
   .sa-tab svg{flex-shrink:0;}
   .sa-tab:hover{background:rgba(255,255,255,.07);color:rgba(247,240,228,.85);}
   .sa-tab.is-on{background:rgba(199,93,58,.22);color:#E8794F;font-weight:600;}
@@ -802,7 +801,7 @@ const CSS = `
   .sa-main{flex:1;min-width:0;padding:24px 28px 60px;max-width:1240px;}
   .sa-stale{opacity:.55;transition:opacity .2s;}
   .sa h1,.sa-main h1{font-size:22px;margin:0;}
-  .sa-main h3,.sa-drawer h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;margin:20px 0 6px;}
+  .sa-main h3,.sa-drawer h3{font-family:var(--font-display);font-size:14px;margin:20px 0 6px;}
   .sa-muted{color:rgba(43,38,32,.5);}
   .sa-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:18px;}
   .sa-head p{margin:4px 0 0;font-size:12px;}
@@ -823,12 +822,12 @@ const CSS = `
   .sa-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
   .sa-card-head .sa-csub{margin-bottom:0;}
   .sa-k{font-size:11.5px;color:rgba(43,38,32,.55);}
-  .sa-v{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;margin-top:4px;line-height:1.2;}
+  .sa-v{font-family:var(--font-display);font-size:22px;font-weight:800;margin-top:4px;line-height:1.2;}
   .sa-v2{font-size:13px;font-weight:700;color:rgba(43,38,32,.7);}
   .sa-sub{font-size:11px;color:rgba(43,38,32,.45);margin-top:4px;line-height:1.4;}
   .sa-delta{font-size:11px;font-weight:700;margin-top:5px;color:rgba(43,38,32,.45);}
   .up{color:#2E7D4F!important;} .dn{color:#B4442A!important;}
-  .sa-ct{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;}
+  .sa-ct{font-family:var(--font-display);font-weight:700;font-size:13px;}
   .sa-csub{font-size:11px;color:rgba(43,38,32,.45);margin:2px 0 10px;}
   .sa-empty{font-size:12px;color:rgba(43,38,32,.45);margin:8px 0 0;}
   .sa-line{position:relative;padding-bottom:16px;}
@@ -907,7 +906,7 @@ const CSS = `
   .sa-mini b{text-align:right;}
   .sa-mini--plain{margin-top:0;}
   .sa-overlay{position:fixed;inset:0;background:rgba(43,38,32,.35);display:flex;justify-content:flex-end;z-index:50;}
-  .sa-drawer{width:min(560px,100%);height:100%;overflow-y:auto;background:#FBF6EE;padding:22px 22px 40px;position:relative;font-family:'Inter',sans-serif;font-size:13px;color:#2B2620;}
+  .sa-drawer{width:min(560px,100%);height:100%;overflow-y:auto;background:#F1F3EE;padding:22px 22px 40px;position:relative;font-family:var(--font-body);font-size:13px;color:#2B2620;}
   .sa-drawer *{box-sizing:border-box;}
   .sa-close{position:absolute;top:10px;right:14px;border:none;background:none;font-size:26px;cursor:pointer;color:#2B2620;}
   .sa-tight{grid-template-columns:repeat(2,minmax(0,1fr));}

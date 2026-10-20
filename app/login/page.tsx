@@ -12,9 +12,9 @@ function afterLogin() {
 }
 
 const CSS = `
-  :root { --font-display: 'Plus Jakarta Sans', sans-serif; --font-body: 'Inter', sans-serif; }
+  
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: var(--font-body); background: #FBF6EE; color: #2B2620; }
+  body { font-family: var(--font-body); background: #F1F3EE; color: #2B2620; }
   .lg-shell { min-height: 100vh; display: flex; }
   /* Left */
   .lg-left { width: 450px; flex-shrink: 0; background: #1B412F; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 40px; gap: 22px; }
@@ -28,7 +28,7 @@ const CSS = `
   .lg-stat-label { font-size: 12.5px; color: rgba(247,240,228,.7); font-weight: 500; }
   .lg-stat-sub { font-size: 10.5px; color: rgba(247,240,228,.35); margin-top: 2px; }
   /* Right */
-  .lg-right { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; background: #FBF6EE; position: relative; overflow: hidden; }
+  .lg-right { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; background: #F1F3EE; position: relative; overflow: hidden; }
   .lg-right::before { content: ''; position: absolute; width: 600px; height: 600px; border-radius: 50%; background: rgba(199,93,58,.06); top: -200px; right: -200px; pointer-events: none; }
   .lg-right::after { content: ''; position: absolute; width: 400px; height: 400px; border-radius: 50%; background: rgba(27,65,47,.04); bottom: -150px; left: -100px; pointer-events: none; }
   .lg-card { background: #FFFFFF; border: 1px solid rgba(43,38,32,.08); border-radius: 24px; padding: 40px; width: 100%; max-width: 380px; box-shadow: 0 8px 40px rgba(43,38,32,.1); position: relative; z-index: 1; }
@@ -36,7 +36,7 @@ const CSS = `
   .lg-card-sub { font-size: 13px; color: rgba(43,38,32,.45); margin-bottom: 28px; }
   .lg-field { margin-bottom: 16px; }
   .lg-label { font-size: 11px; font-weight: 700; color: rgba(43,38,32,.5); text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 7px; }
-  .lg-input { width: 100%; padding: 13px 14px; font-size: 14px; border: 1.5px solid rgba(43,38,32,.12); border-radius: 12px; background: #FBF6EE; color: #2B2620; font-family: var(--font-body); outline: none; transition: border-color .15s; }
+  .lg-input { width: 100%; padding: 13px 14px; font-size: 14px; border: 1.5px solid rgba(43,38,32,.12); border-radius: 12px; background: #F1F3EE; color: #2B2620; font-family: var(--font-body); outline: none; transition: border-color .15s; }
   .lg-input:focus { border-color: #C75D3A; background: #FFFFFF; }
   .lg-error { font-size: 11.5px; color: #B23B3B; background: rgba(178,59,59,.07); border: 1px solid rgba(178,59,59,.2); border-radius: 9px; padding: 10px 14px; margin-bottom: 16px; }
   .lg-btn { width: 100%; background: #C75D3A; color: #fff; border: none; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-display); transition: background .15s; margin-top: 4px; }
@@ -82,8 +82,6 @@ export default function LoginPage() {
 
   return (
     <>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="lg-shell">
         <div className="lg-left">

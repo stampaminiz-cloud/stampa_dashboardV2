@@ -537,10 +537,10 @@ function Step6({ state, onBack, onFinish, finishing, error, currency }: { state:
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
-  :root { --font-d: 'Plus Jakarta Sans', sans-serif; --font-b: 'Inter', sans-serif; }
+  :root { --font-d: var(--font-display); --font-b: var(--font-body); }
   *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
   html, body { max-width:100vw; overflow-x:hidden; }
-  body { font-family:var(--font-b); background:#FBF6EE; color:#2B2620; }
+  body { font-family:var(--font-b); background:#F1F3EE; color:#2B2620; }
   button, a { -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
   button:focus { outline:none; }
   button:focus-visible { outline:2px solid rgba(199,93,58,.35); outline-offset:2px; }
@@ -597,12 +597,12 @@ const CSS = `
   /* Sector */
   .ob-sector-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
   .ob-sector-btn { display:flex; align-items:center; gap:14px; padding:16px 18px; background:#fff; border:2px solid rgba(43,38,32,.1); border-radius:13px; cursor:pointer; transition:all .15s; text-align:left; position:relative; box-shadow:none; }
-  .ob-sector-btn:hover { border-color:rgba(43,38,32,.25); background:#FBF6EE; }
+  .ob-sector-btn:hover { border-color:rgba(43,38,32,.25); background:#F1F3EE; }
   .ob-sector-btn--on { border-color:#C75D3A; background:rgba(199,93,58,.07); }
   .ob-sector-icon { color:rgba(43,38,32,.5); flex-shrink:0; }
   .ob-sector-btn--on .ob-sector-icon { color:#C75D3A; }
   .ob-sector-label { font-size:12.5px; font-weight:600; color:#2B2620; line-height:1.3; }
-  .ob-sector-check { position:absolute; top:-9px; right:-9px; width:22px; height:22px; border-radius:50%; background:#C75D3A; display:flex; align-items:center; justify-content:center; color:#fff; border:2.5px solid #FBF6EE; }
+  .ob-sector-check { position:absolute; top:-9px; right:-9px; width:22px; height:22px; border-radius:50%; background:#C75D3A; display:flex; align-items:center; justify-content:center; color:#fff; border:2.5px solid #F1F3EE; }
   /* Card types */
   .ob-card-types { display:flex; flex-direction:column; gap:10px; }
   .ob-type-card { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:16px 18px; background:#fff; border:2px solid rgba(43,38,32,.1); border-radius:14px; cursor:pointer; transition:all .15s; text-align:left; }
@@ -682,7 +682,7 @@ const CSS = `
   .ob-stepper-row { display:flex; align-items:center; gap:14px; margin-top:14px; }
   .ob-stepper-lbl { font-size:13px; color:rgba(43,38,32,.55); }
   .ob-stepper { display:inline-flex; align-items:center; border:1.5px solid rgba(43,38,32,.12); border-radius:12px; overflow:hidden; background:#fff; }
-  .ob-stepper button { width:40px; height:40px; border:none; background:#FBF6EE; font-size:18px; font-weight:700; color:#2B2620; cursor:pointer; }
+  .ob-stepper button { width:40px; height:40px; border:none; background:#F1F3EE; font-size:18px; font-weight:700; color:#2B2620; cursor:pointer; }
   .ob-stepper button:disabled { opacity:.35; cursor:not-allowed; }
   .ob-stepper input { width:64px; height:40px; border:none; text-align:center; font-size:15px; font-weight:700; color:#2B2620; font-family:var(--font-b); outline:none; -moz-appearance:textfield; }
   .ob-stepper input::-webkit-outer-spin-button, .ob-stepper input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
@@ -698,7 +698,7 @@ const CSS = `
   .ob-custom-color { display:flex; align-items:center; gap:10px; margin-top:14px; }
   .ob-custom-swatch { position:relative; width:34px; height:34px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1.5px rgba(43,38,32,.15); cursor:pointer; overflow:hidden; }
   .ob-custom-swatch input { position:absolute; inset:0; opacity:0; cursor:pointer; }
-  .ob-hex-input { width:96px; padding:8px 10px; border:1.5px solid rgba(43,38,32,.12); border-radius:10px; font-family:monospace; font-size:13px; background:#FBF6EE; color:#2B2620; outline:none; }
+  .ob-hex-input { width:96px; padding:8px 10px; border:1.5px solid rgba(43,38,32,.12); border-radius:10px; font-family:monospace; font-size:13px; background:#F1F3EE; color:#2B2620; outline:none; }
   .ob-hex-label { font-size:12px; color:rgba(43,38,32,.5); }
   .ob-field-error { font-size:11.5px; color:#B23B3B; margin-top:6px; max-width:140px; line-height:1.4; }
   .ob-logo-note { font-size:11px; color:rgba(43,38,32,.4); margin-top:6px; max-width:140px; line-height:1.4; }
@@ -818,8 +818,6 @@ export default function OnboardingPage() {
 
   return (
     <>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
       {/* Estilos en el render (llegan con la página): antes se inyectaban
           después de mostrarla y se veía un instante sin diseño. */}
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
