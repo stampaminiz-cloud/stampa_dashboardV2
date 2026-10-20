@@ -2,6 +2,32 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.3.0 (en staging, sin fecha) — sistema visual
+
+**Nuevo**
+- Letras propias: Familjen Grotesk (títulos) y Albert Sans (texto), cargadas una sola vez con next/font. Chau Inter, Plus Jakarta, Syne y DM Sans.
+- Fondo salvia en todo el sistema (antes crema).
+- Íconos de una sola familia (Tabler, un grosor), por nombre (`components/ui/Icon.tsx`): de 109 dibujados a mano quedan 3 que son dibujos (QR y gráfico). Sin emojis haciendo de ícono.
+- Base del sistema (`styles/sistema.css`): 12 colores con nombre, botones, interruptor, avisos y chips únicos.
+- Selectores propios de fecha y hora (`components/ui/DateTime.tsx`): programar envíos con horarios fuertes marcados, horarios de sucursal en 24 hs y cumpleaños con día, mes y año.
+- Todas las pestañas del panel, landing, login, registro, onboarding y formulario público migrados al sistema.
+
+**Arreglos**
+- Onboarding: íconos de rubro correctos (gym y panadería tenían íconos equivocados).
+- Login: textos en castellano (Bronce, Plata, Oro) e ícono de puntos correcto.
+- Landing: en el plan destacado las tildes se ven.
+- Clientes: las etiquetas no se parten en dos renglones.
+
+## 1.2.0 (19/10/2026)
+
+**Nuevo**
+- Onboarding: el último paso muestra el pase real (Apple y Google).
+- Premios → membresía: vista previa en vivo con los niveles que se están editando, y aviso si el logo no se ve sobre algún nivel (también en Diseño).
+
+**Cambios**
+- Inicio: el anillo muestra el período anterior en % (sin "pts").
+- Notificaciones: "74 de 78" y a cuántos no les llega.
+
 ## 1.1.0 (15/10/2026)
 
 **Nuevo**
