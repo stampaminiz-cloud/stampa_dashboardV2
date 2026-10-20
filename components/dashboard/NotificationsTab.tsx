@@ -1,4 +1,5 @@
 'use client'
+import { Icon, type IconName } from '@/components/ui/Icon'
 import { readCache, getJson } from '@/lib/cache'
 import React, { useState, useEffect, useRef } from 'react'
 import { usePlan } from '@/data/plans'
@@ -43,7 +44,7 @@ function localInputValue(d: Date) {
 const authHeaders = () => ({ 'Content-Type': 'application/json', Authorization: 'Bearer ' + localStorage.getItem('stampa_token') })
 
 function Lock() {
-  return <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+  return <Icon name="candado" size={12} />
 }
 
 export function NotificationsTab({ businessId, cards = [], businessName, inactiveDays = 60, isManager = false, onChoosePlan, selectedLocationId = null }: {
@@ -272,107 +273,103 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
     <>
       <style>{`
         .nt-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
-        .nt-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(43,38,32,.38);font-weight:600;display:flex;align-items:center;gap:10px;margin-top:4px;}
-        .nt-lbl::after{content:'';flex:1;height:1px;background:rgba(43,38,32,.1);}
-        .nt-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:18px 20px;box-shadow:0 1px 8px rgba(43,38,32,.04);min-width:0;}
-        .nt-card-title{font-family:var(--font-display);font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
-        .nt-card-sub{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:14px;line-height:1.5;}
+        .nt-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(34,32,27,.38);font-weight:600;display:flex;align-items:center;gap:10px;margin-top:4px;}
+        .nt-lbl::after{content:'';flex:1;height:1px;background:rgba(34,32,27,.1);}
+        .nt-card{background:#FFFFFF;border:1px solid rgba(34,32,27,.07);border-radius:14px;padding:18px 20px;box-shadow:0 1px 8px rgba(34,32,27,.04);min-width:0;}
+        .nt-card-title{font-family:var(--font-display);font-weight:700;font-size:13px;color:var(--s-tinta);margin-bottom:2px;}
+        .nt-card-sub{font-size:11px;color:rgba(34,32,27,.45);margin-bottom:14px;line-height:1.5;}
         .nt-2col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start;}
-        .nt-usage{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid rgba(43,38,32,.07);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(43,38,32,.65);}
-        .nt-usage strong{color:#2B2620;}
-        .nt-usage-bar{flex:1;min-width:120px;max-width:240px;height:5px;background:rgba(43,38,32,.07);border-radius:3px;overflow:hidden;}
-        .nt-usage-bar div{height:100%;background:#5B8C5A;border-radius:3px;}
+        .nt-usage{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid rgba(34,32,27,.07);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(34,32,27,.65);}
+        .nt-usage strong{color:var(--s-tinta);}
+        .nt-usage-bar{flex:1;min-width:120px;max-width:240px;height:5px;background:rgba(34,32,27,.07);border-radius:3px;overflow:hidden;}
+        .nt-usage-bar div{height:100%;background:var(--s-listo);border-radius:3px;}
         .nt-usage--full{background:rgba(178,59,59,.05);border-color:rgba(178,59,59,.2);}
-        .nt-usage--full .nt-usage-bar div{background:#B23B3B;}
-        .nt-plan-btn{font-size:11.5px;font-weight:700;background:#C75D3A;color:#fff;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;}
-        .nt-textarea{width:100%;padding:12px 14px;font-size:13px;border:1.5px solid rgba(43,38,32,.12);border-radius:11px;background:#F1F3EE;color:#2B2620;font-family:var(--font-body);resize:vertical;outline:none;line-height:1.6;min-height:90px;}
-        .nt-textarea:focus{border-color:#C75D3A;}
-        .nt-char{text-align:right;font-size:10.5px;color:rgba(43,38,32,.4);margin:4px 0 14px;}
-        .nt-char--warn{color:#C75D3A;font-weight:600;}
-        .nt-field{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.45);font-weight:700;margin-bottom:8px;}
+        .nt-usage--full .nt-usage-bar div{background:var(--s-error);}
+        .nt-textarea{width:100%;padding:12px 14px;font-size:13px;border:1.5px solid rgba(34,32,27,.12);border-radius:11px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);resize:vertical;outline:none;line-height:1.6;min-height:90px;}
+        .nt-textarea:focus{border-color:var(--s-brasa);}
+        .nt-char{text-align:right;font-size:10.5px;color:rgba(34,32,27,.4);margin:4px 0 14px;}
+        .nt-char--warn{color:var(--s-brasa);font-weight:600;}
+        .nt-field{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:rgba(34,32,27,.45);font-weight:700;margin-bottom:8px;}
         .nt-loc-hint{display:block;width:100%;text-align:left;font-size:12.5px;font-weight:600;color:#A9472A;background:rgba(199,93,58,.08);border:1px dashed rgba(199,93,58,.4);border-radius:10px;padding:9px 12px;margin-bottom:8px;cursor:pointer;font-family:var(--font-body);}
         .nt-auds{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
-        .nt-aud{border:1.5px solid rgba(43,38,32,.1);border-radius:11px;transition:border-color .15s;}
-        .nt-aud--on{border-color:#C75D3A;background:rgba(199,93,58,.04);}
+        .nt-aud{border:1.5px solid rgba(34,32,27,.1);border-radius:11px;transition:border-color .15s;}
+        .nt-aud--on{border-color:var(--s-brasa);background:rgba(199,93,58,.04);}
         .nt-aud--locked .nt-aud-main{opacity:.65;}
         .nt-aud-main{display:flex;align-items:center;gap:10px;padding:10px 13px;width:100%;background:none;border:none;cursor:pointer;text-align:left;font-family:inherit;}
-        .nt-radio{width:15px;height:15px;border-radius:50%;border:2px solid rgba(43,38,32,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
-        .nt-aud--on .nt-radio{border-color:#C75D3A;}
-        .nt-radio span{width:7px;height:7px;border-radius:50%;background:#C75D3A;}
-        .nt-aud-name{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:#2B2620;flex-wrap:wrap;}
-        .nt-aud-desc{display:block;font-size:10.5px;color:rgba(43,38,32,.5);margin-top:1px;line-height:1.4;}
-        .nt-aud-count{font-size:12px;font-weight:800;color:#2B2620;background:rgba(43,38,32,.06);padding:3px 9px;border-radius:20px;white-space:nowrap;}
-        .nt-aud-count small{font-weight:500;color:rgba(43,38,32,.45);font-size:10.5px;}
+        .nt-radio{width:15px;height:15px;border-radius:50%;border:2px solid rgba(34,32,27,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+        .nt-aud--on .nt-radio{border-color:var(--s-brasa);}
+        .nt-radio span{width:7px;height:7px;border-radius:50%;background:var(--s-brasa);}
+        .nt-aud-name{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--s-tinta);flex-wrap:wrap;}
+        .nt-aud-desc{display:block;font-size:10.5px;color:rgba(34,32,27,.5);margin-top:1px;line-height:1.4;}
+        .nt-aud-count{font-size:12px;font-weight:800;color:var(--s-tinta);background:rgba(34,32,27,.06);padding:3px 9px;border-radius:20px;white-space:nowrap;}
+        .nt-aud-count small{font-weight:500;color:rgba(34,32,27,.45);font-size:10.5px;}
         .nt-lock{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#9C7530;background:rgba(212,162,76,.15);padding:2px 8px;border-radius:20px;}
         .nt-aud-extra{padding:0 13px 12px 38px;display:flex;flex-direction:column;gap:8px;}
-        .nt-select,.nt-input{padding:8px 11px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:9px;background:#fff;color:#2B2620;font-family:var(--font-body);outline:none;width:100%;}
-        .nt-select:focus,.nt-input:focus{border-color:#C75D3A;}
+        .nt-select,.nt-input{padding:8px 11px;font-size:12px;border:1px solid rgba(34,32,27,.15);border-radius:9px;background:#fff;color:var(--s-tinta);font-family:var(--font-body);outline:none;width:100%;}
+        .nt-select:focus,.nt-input:focus{border-color:var(--s-brasa);}
         .nt-row{display:flex;gap:8px;}
-        .nt-results{display:flex;flex-direction:column;border:1px solid rgba(43,38,32,.1);border-radius:9px;overflow:hidden;}
-        .nt-result{display:flex;justify-content:space-between;gap:8px;padding:8px 11px;font-size:12px;background:#fff;border:none;border-bottom:1px solid rgba(43,38,32,.06);cursor:pointer;text-align:left;font-family:inherit;color:#2B2620;}
+        .nt-results{display:flex;flex-direction:column;border:1px solid rgba(34,32,27,.1);border-radius:9px;overflow:hidden;}
+        .nt-result{display:flex;justify-content:space-between;gap:8px;padding:8px 11px;font-size:12px;background:#fff;border:none;border-bottom:1px solid rgba(34,32,27,.06);cursor:pointer;text-align:left;font-family:inherit;color:var(--s-tinta);}
         .nt-result:last-child{border-bottom:none;}
-        .nt-result:hover{background:#F1F3EE;}
-        .nt-result small{color:rgba(43,38,32,.45);}
+        .nt-result:hover{background:var(--s-salvia);}
+        .nt-result small{color:rgba(34,32,27,.45);}
         .nt-chips{display:flex;flex-wrap:wrap;gap:6px;}
-        .nt-chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;background:rgba(199,93,58,.1);color:#C75D3A;border-radius:20px;padding:4px 6px 4px 10px;}
-        .nt-chip button{border:none;background:rgba(199,93,58,.15);color:#C75D3A;border-radius:50%;width:16px;height:16px;line-height:14px;cursor:pointer;font-size:12px;padding:0;}
-        .nt-hint{font-size:10.5px;color:rgba(43,38,32,.45);line-height:1.45;}
+        .nt-chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;background:rgba(199,93,58,.1);color:var(--s-brasa);border-radius:20px;padding:4px 6px 4px 10px;}
+        .nt-chip button{border:none;background:rgba(199,93,58,.15);color:var(--s-brasa);border-radius:50%;width:16px;height:16px;line-height:14px;cursor:pointer;font-size:12px;padding:0;}
+        .nt-hint{font-size:10.5px;color:rgba(34,32,27,.45);line-height:1.45;}
         .nt-types{display:flex;gap:6px;margin-bottom:10px;}
         .nt-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
-        .nt-chip{padding:6px 13px;border-radius:999px;border:1.5px solid rgba(43,38,32,.12);background:#fff;font-size:12px;font-weight:600;color:rgba(43,38,32,.65);cursor:pointer;font-family:var(--font-body);}
-        .nt-chip:hover:not(:disabled){border-color:rgba(43,38,32,.3);}
+        .nt-chip{padding:6px 13px;border-radius:999px;border:1.5px solid rgba(34,32,27,.12);background:#fff;font-size:12px;font-weight:600;color:rgba(34,32,27,.65);cursor:pointer;font-family:var(--font-body);}
+        .nt-chip:hover:not(:disabled){border-color:rgba(34,32,27,.3);}
         .nt-chip:disabled{opacity:.35;cursor:default;}
-        .nt-chip--on{background:rgba(199,93,58,.1);border-color:#C75D3A;color:#C75D3A;}
-        .nt-type{flex:1;padding:9px;border-radius:10px;border:1.5px solid rgba(43,38,32,.1);background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:rgba(43,38,32,.55);display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--font-body);}
-        .nt-type--on{border-color:#C75D3A;background:rgba(199,93,58,.06);color:#C75D3A;}
+        .nt-chip--on{background:rgba(199,93,58,.1);border-color:var(--s-brasa);color:var(--s-brasa);}
+        .nt-type{flex:1;padding:9px;border-radius:10px;border:1.5px solid rgba(34,32,27,.1);background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:rgba(34,32,27,.55);display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--font-body);}
+        .nt-type--on{border-color:var(--s-brasa);background:rgba(199,93,58,.06);color:var(--s-brasa);}
         .nt-actions{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;}
-        .nt-send{flex:1;min-width:180px;background:#C75D3A;color:#fff;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-display);}
-        .nt-send:disabled{opacity:.45;cursor:not-allowed;}
-        .nt-test{background:#fff;border:1.5px solid rgba(43,38,32,.15);color:#2B2620;border-radius:11px;padding:11px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;}
-        .nt-test:disabled{opacity:.45;cursor:not-allowed;}
+        .nt-send{flex:1;min-width:180px;}
         .nt-feedback{font-size:12.5px;border-radius:10px;padding:10px 12px;margin-top:10px;line-height:1.45;}
-        .nt-feedback--ok{background:rgba(91,140,90,.12);color:#3F6E3E;}
-        .nt-feedback--err{background:rgba(178,59,59,.08);color:#8E2F2F;}
-        .nt-wallet-note{font-size:10.5px;color:rgba(43,38,32,.45);margin-top:10px;line-height:1.5;}
+        .nt-feedback--ok{background:rgba(91,140,90,.12);color:var(--s-listo);}
+        .nt-feedback--err{background:rgba(178,59,59,.08);color:var(--s-error);}
+        .nt-wallet-note{font-size:10.5px;color:rgba(34,32,27,.45);margin-top:10px;line-height:1.5;}
         .nt-phone{background:linear-gradient(160deg,#2B3A4A,#1B2530);border-radius:18px;padding:18px 12px 14px;}
         .nt-phone-time{text-align:center;color:rgba(255,255,255,.85);font-family:var(--font-display);font-size:28px;font-weight:600;margin-bottom:14px;}
         .nt-notif{background:rgba(245,245,247,.92);border-radius:14px;padding:10px 12px;display:flex;gap:10px;}
-        .nt-notif-icon{width:30px;height:30px;border-radius:7px;background:#C75D3A;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;}
+        .nt-notif-icon{width:30px;height:30px;border-radius:7px;background:var(--s-brasa);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;}
         .nt-notif-icon img{width:100%;height:100%;object-fit:cover;}
         .nt-notif-head{display:flex;justify-content:space-between;font-size:11.5px;color:#1c1c1e;font-weight:600;}
         .nt-notif-head span{font-weight:400;color:rgba(60,60,67,.6);}
         .nt-notif-body{font-size:12.5px;color:#1c1c1e;line-height:1.35;margin-top:1px;word-break:break-word;}
         .nt-notif-empty{color:rgba(60,60,67,.45);font-style:italic;}
-        .nt-onpass{margin-top:12px;background:#fff;border:1px solid rgba(43,38,32,.08);border-radius:10px;padding:10px 12px;}
-        .nt-onpass-k{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:rgba(43,38,32,.45);font-weight:700;}
-        .nt-onpass-v{font-size:12px;color:#2B2620;margin-top:2px;word-break:break-word;}
-        .nt-tip{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(43,38,32,.06);font-size:11.5px;color:rgba(43,38,32,.65);line-height:1.5;}
+        .nt-onpass{margin-top:12px;background:#fff;border:1px solid rgba(34,32,27,.08);border-radius:10px;padding:10px 12px;}
+        .nt-onpass-k{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:rgba(34,32,27,.45);font-weight:700;}
+        .nt-onpass-v{font-size:12px;color:var(--s-tinta);margin-top:2px;word-break:break-word;}
+        .nt-tip{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(34,32,27,.06);font-size:11.5px;color:rgba(34,32,27,.65);line-height:1.5;}
         .nt-tip:last-child{border-bottom:none;}
-        .nt-list-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(43,38,32,.06);}
+        .nt-tip-ic{color:var(--s-brasa);flex-shrink:0;margin-top:1px;}
+        .nt-list-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(34,32,27,.06);}
         .nt-list-row:last-child{border-bottom:none;}
         .nt-list-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-        .nt-list-msg{font-size:12.5px;color:#2B2620;font-weight:500;margin-bottom:5px;word-break:break-word;}
-        .nt-list-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:rgba(43,38,32,.45);}
-        .nt-badge{font-size:10px;padding:2px 9px;border-radius:20px;font-weight:600;background:rgba(43,38,32,.06);color:rgba(43,38,32,.7);}
-        .nt-reached{font-weight:700;color:#5B8C5A;}
-        .nt-cancel{font-size:11px;color:#B23B3B;background:none;border:none;cursor:pointer;font-weight:600;padding:4px 8px;border-radius:6px;flex-shrink:0;}
-        .nt-empty{font-size:12px;color:rgba(43,38,32,.45);text-align:center;padding:18px 0;line-height:1.5;}
-        .nt-aud-miss{font-size:11px;color:rgba(43,38,32,.55);padding:0 14px 10px 40px;line-height:1.45;}
-        .nt-skel{background:rgba(43,38,32,.07);border-radius:8px;animation:ntPulse 1.2s ease-in-out infinite;}
+        .nt-list-msg{font-size:12.5px;color:var(--s-tinta);font-weight:500;margin-bottom:5px;word-break:break-word;}
+        .nt-list-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:rgba(34,32,27,.45);}
+        .nt-badge{font-size:10px;padding:2px 9px;border-radius:20px;font-weight:600;background:rgba(34,32,27,.06);color:rgba(34,32,27,.7);}
+        .nt-reached{font-weight:700;color:var(--s-listo);}
+        .nt-empty{font-size:12px;color:rgba(34,32,27,.45);text-align:center;padding:18px 0;line-height:1.5;}
+        .nt-aud-miss{font-size:11px;color:rgba(34,32,27,.55);padding:0 14px 10px 40px;line-height:1.45;}
+        .nt-skel{background:rgba(34,32,27,.07);border-radius:8px;animation:ntPulse 1.2s ease-in-out infinite;}
         @keyframes ntPulse{0%,100%{opacity:.45}50%{opacity:1}}
         @media(max-width:900px){.nt-2col{grid-template-columns:1fr;}}
         @media(max-width:768px){.nt-content{padding:14px 16px;}.nt-aud-extra{padding-left:13px;}}
       `}</style>
 
       <div className="nt-content">
-        {loadError && <div className="nt-feedback nt-feedback--err" style={{ marginTop: 0 }}>No pudimos cargar tus notificaciones. <button className="nt-cancel" onClick={load}>Reintentar</button></div>}
+        {loadError && <div className="nt-feedback nt-feedback--err" style={{ marginTop: 0 }}>No pudimos cargar tus notificaciones. <button className="s-btn s-btn--text s-btn--sm" onClick={load}>Reintentar</button></div>}
 
         {!unlimited && (
           <div className={`nt-usage${atLimit ? ' nt-usage--full' : ''}`}>
             <span><strong>{used} de {monthlyLimit} envíos</strong> este mes · plan {plan}</span>
             <div className="nt-usage-bar"><div style={{ width: `${Math.min(100, (used / monthlyLimit) * 100)}%` }} /></div>
             <span>{atLimit ? 'Se renuevan el 1° del mes que viene.' : 'Cada envío cuenta 1, llegue a quienes llegue.'}</span>
-            {(atLimit || used >= monthlyLimit - 1) && !isManager && <button className="nt-plan-btn" onClick={onChoosePlan}>Más envíos con otro plan</button>}
+            {(atLimit || used >= monthlyLimit - 1) && !isManager && <button className="s-btn s-btn--primary s-btn--sm" onClick={onChoosePlan}>Más envíos con otro plan</button>}
           </div>
         )}
 
@@ -380,7 +377,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
           <div className="nt-card">
             <div className="nt-card-title">Redactá tu mensaje</div>
             <div className="nt-card-sub">Le llega como notificación al celular y queda guardado en su tarjeta del Wallet.</div>
-            <textarea className="nt-textarea" placeholder="Ej: ¡Hoy 2x1 en café de 16 a 18! ☕" value={message} maxLength={MAX_CHARS}
+            <textarea className="nt-textarea" placeholder="Ej: ¡Hoy 2x1 en café de 16 a 18!" value={message} maxLength={MAX_CHARS}
               onChange={e => { setMessage(e.target.value); setFeedback(null) }} />
             <div className={`nt-char${message.length > MAX_CHARS * 0.8 ? ' nt-char--warn' : ''}`}>{message.length} / {MAX_CHARS}</div>
 
@@ -481,10 +478,10 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
             )}
 
             <div className="nt-actions">
-              <button className="nt-test" onClick={sendTestNotif} disabled={!message.trim() || !!busy} title="Te llega solo a vos (tu tarjeta registrada con tu email). No cuenta para el límite.">
+              <button className="s-btn s-btn--secondary nt-test" onClick={sendTestNotif} disabled={!message.trim() || !!busy} title="Te llega solo a vos (tu tarjeta registrada con tu email). No cuenta para el límite.">
                 {busy === 'test' ? 'Enviando…' : 'Enviarme una prueba'}
               </button>
-              <button className="nt-send" onClick={send}
+              <button className="s-btn s-btn--primary nt-send" onClick={send}
                 disabled={!message.trim() || !!busy || atLimit || !audienceReady || (sendType === 'now' && currentReach?.reachable === 0)}>
                 {busy === 'send' ? (sendType === 'later' ? 'Programando…' : 'Enviando…') : atLimit ? 'Límite del mes alcanzado' : sendLabel}
               </button>
@@ -520,11 +517,11 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
             <div className="nt-card">
               <div className="nt-card-title">Consejos</div>
               {[
-                ['🎯', 'Un mensaje concreto funciona mejor que uno general: una promo, un horario, un producto nuevo.'],
-                ['⏰', 'Mandalo cuando tus clientes pueden venir: antes del horario fuerte del local, no a la noche.'],
-                ['✍️', 'Corto y directo: en la pantalla bloqueada se leen las primeras líneas.'],
-                ['🎁', '"Cerca del premio" y "Premio para entregar" son los que más traen gente de vuelta.'],
-              ].map(([ic, tx]) => <div key={tx} className="nt-tip"><span>{ic}</span><span>{tx}</span></div>)}
+                ['objetivo', 'Un mensaje concreto funciona mejor que uno general: una promo, un horario, un producto nuevo.'],
+                ['hora', 'Mandalo cuando tus clientes pueden venir: antes del horario fuerte del local, no a la noche.'],
+                ['escribir', 'Corto y directo: en la pantalla bloqueada se leen las primeras líneas.'],
+                ['premios', '"Cerca del premio" y "Premio para entregar" son los que más traen gente de vuelta.'],
+              ].map(([ic, tx]) => <div key={tx} className="nt-tip"><span className="nt-tip-ic"><Icon name={ic as IconName} size={16} /></span><span>{tx}</span></div>)}
             </div>
           </div>
         </div>
@@ -544,13 +541,13 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
             : scheduled.map(n => (
                 <div key={n.index} className="nt-list-row">
                   <div className="nt-list-icon" style={{ background: 'rgba(24,95,165,.1)', color: '#185FA5' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <Icon name="fecha" size={14} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="nt-list-msg">{n.message}</div>
                     <div className="nt-list-meta"><span className="nt-badge">{n.audienceLabel || AUD_LABEL[n.audience] || n.audience}</span><span>{fmtDateTime(n.scheduledAt)}</span></div>
                   </div>
-                  <button className="nt-cancel" onClick={() => cancelScheduled(n.index)}>Cancelar</button>
+                  <button className="s-btn s-btn--text s-btn--sm" onClick={() => cancelScheduled(n.index)}>Cancelar</button>
                 </div>
               ))}
         </div>
@@ -562,7 +559,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
             : history.map((n, i) => (
                 <div key={i} className="nt-list-row">
                   <div className="nt-list-icon" style={{ background: 'rgba(91,140,90,.1)', color: '#5B8C5A' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <Icon name="listo" size={14} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="nt-list-msg">{n.message}</div>
