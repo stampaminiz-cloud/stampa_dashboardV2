@@ -1,4 +1,5 @@
 'use client'
+import { Icon } from '@/components/ui/Icon'
 import { PillSelect } from '@/components/ui/PillSelect'
 import { readCache, getJson } from '@/lib/cache'
 import { MascotLoader } from '@/components/ui/MascotLoader'
@@ -180,8 +181,8 @@ function StampRules({ businessId, card, data, onSaved }: { businessId: string; c
       <div className="rw-card-head-row">
         <div><div className="rw-card-title">Cómo se gana</div><div className="rw-card-sub" style={{ marginBottom: 0 }}>Cuántos sellos hacen falta y qué recibe el cliente al completar la tarjeta</div></div>
         <div className="rw-editor-foot" style={{ marginTop: 0 }}>
-          {dirty && <button className="rw-secondary-btn" onClick={discard} disabled={saving}>Descartar</button>}
-          <button className="rw-add-btn" onClick={() => save()} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button>
+          {dirty && <button className="s-btn s-btn--secondary s-btn--sm" onClick={discard} disabled={saving}>Descartar</button>}
+          <button className="s-btn s-btn--primary s-btn--sm" onClick={() => save()} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button>
         </div>
       </div>
       {error && <div className="rw-error">{error}</div>}
@@ -189,7 +190,7 @@ function StampRules({ businessId, card, data, onSaved }: { businessId: string; c
       {impact != null && (
         <div className="rw-warn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 0, marginBottom: 12 }}>
           <span>Con {stamps} sellos, <strong>{impact} cliente{impact === 1 ? '' : 's'}</strong> van a completar su tarjeta al guardar y tener el premio listo para entregar.</span>
-          <span style={{ display: 'flex', gap: 6 }}><button className="rw-mini-btn" onClick={() => setImpact(null)}>Cancelar</button><button className="rw-mini-btn rw-mini-btn--primary" onClick={() => save(true)}>Guardar igual</button></span>
+          <span style={{ display: 'flex', gap: 6 }}><button className="s-btn s-btn--secondary s-btn--sm" onClick={() => setImpact(null)}>Cancelar</button><button className="s-btn s-btn--primary s-btn--sm" onClick={() => save(true)}>Guardar igual</button></span>
         </div>
       )}
       <div className="rw-rules">
@@ -286,8 +287,8 @@ function PointsRules({ businessId, card, data, currency, catalog, onSaved }: { b
       <div className="rw-card-head-row">
         <div><div className="rw-card-title">Cómo se suman los puntos</div><div className="rw-card-sub" style={{ marginBottom: 0 }}>Lo que suma cada cliente cada vez que lo escaneás</div></div>
         <div className="rw-editor-foot" style={{ marginTop: 0 }}>
-          {dirty && <button className="rw-secondary-btn" onClick={() => { setRule(base); setVer(v => v + 1); setError(null) }} disabled={saving}>Descartar</button>}
-          <button className="rw-add-btn" onClick={save} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button>
+          {dirty && <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setRule(base); setVer(v => v + 1); setError(null) }} disabled={saving}>Descartar</button>}
+          <button className="s-btn s-btn--primary s-btn--sm" onClick={save} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button>
         </div>
       </div>
       {error && <div className="rw-error">{error}</div>}
@@ -432,8 +433,8 @@ function PointsRewards({ businessId, card, data, currency, onSaved, onOpenCustom
       <div className="rw-card">
         <div className="rw-card-head-row">
           <div><div className="rw-card-title">Catálogo de premios</div><div className="rw-card-sub" style={{ marginBottom: 0 }}>Lo que tus clientes pueden canjear con sus puntos</div></div>
-          <button className="rw-add-btn" onClick={() => { setShowAdd(!showAdd); setError(null) }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <button className="s-btn s-btn--primary s-btn--sm" onClick={() => { setShowAdd(!showAdd); setError(null) }}>
+            <Icon name="agregar" size={14} />
             Nuevo premio
           </button>
         </div>
@@ -441,8 +442,8 @@ function PointsRewards({ businessId, card, data, currency, onSaved, onOpenCustom
           <div className="rw-add-form">
             <input className="rw-input" placeholder="Nombre del premio (ej: Café gratis)" maxLength={40} value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} onKeyDown={e => e.key === 'Enter' && addItem()} autoFocus />
             <NumberStepper value={Number(newItem.points) || 50} onChange={n => setNewItem(it => ({ ...it, points: String(n) }))} min={1} max={100000} step={5} suffix="pts" size="sm" ariaLabel="Puntos del premio" />
-            <button className="rw-confirm-btn" onClick={addItem} disabled={saving}>{saving ? 'Guardando…' : 'Agregar'}</button>
-            <button className="rw-cancel-btn" onClick={() => { setShowAdd(false); setError(null) }}>Cancelar</button>
+            <button className="s-btn s-btn--primary s-btn--sm" onClick={addItem} disabled={saving}>{saving ? 'Guardando…' : 'Agregar'}</button>
+            <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setShowAdd(false); setError(null) }}>Cancelar</button>
           </div>
         )}
         {error && <div className="rw-error">{error}</div>}
@@ -463,8 +464,8 @@ function PointsRewards({ businessId, card, data, currency, onSaved, onOpenCustom
                       <td />
                       <td>
                         <div className="rw-actions">
-                          <button className="rw-mini-btn rw-mini-btn--primary" onClick={saveEdit} disabled={saving}>{saving ? '…' : 'Guardar'}</button>
-                          <button className="rw-mini-btn" onClick={() => { setEditing(null); setError(null) }}>Cancelar</button>
+                          <button className="s-btn s-btn--primary s-btn--sm" onClick={saveEdit} disabled={saving}>{saving ? '…' : 'Guardar'}</button>
+                          <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setEditing(null); setError(null) }}>Cancelar</button>
                         </div>
                       </td>
                     </>
@@ -473,8 +474,8 @@ function PointsRewards({ businessId, card, data, currency, onSaved, onOpenCustom
                       <div className="rw-confirm-row">
                         <span>¿Eliminar <strong>{item.name}</strong>? Si solo querés sacarlo un tiempo, mejor pausalo.</span>
                         <div className="rw-actions">
-                          <button className="rw-mini-btn" onClick={() => setConfirmDel(null)}>Cancelar</button>
-                          <button className="rw-mini-btn rw-mini-btn--danger" onClick={() => deleteItem(item._id)}>Eliminar</button>
+                          <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => setConfirmDel(null)}>Cancelar</button>
+                          <button className="s-btn s-btn--danger s-btn--sm" onClick={() => deleteItem(item._id)}>Eliminar</button>
                         </div>
                       </div>
                     </td>
@@ -485,9 +486,9 @@ function PointsRewards({ businessId, card, data, currency, onSaved, onOpenCustom
                       <td className="rw-muted">{stats[item._id] ?? 0}</td>
                       <td>
                         <div className="rw-actions">
-                          <button className="rw-mini-btn" onClick={() => toggleActive(item._id, item.isActive === false)} title={item.isActive === false ? 'Volver a ofrecerlo' : 'Dejar de ofrecerlo por un tiempo'}>{item.isActive === false ? 'Activar' : 'Pausar'}</button>
-                          <button className="rw-icon-btn" onClick={() => { setEditing({ id: item._id, name: item.name, points: String(item.pointsCost) }); setError(null) }} title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
-                          <button className="rw-icon-btn rw-icon-btn--danger" onClick={() => setConfirmDel(item._id)} title="Eliminar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+                          <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => toggleActive(item._id, item.isActive === false)} title={item.isActive === false ? 'Volver a ofrecerlo' : 'Dejar de ofrecerlo por un tiempo'}>{item.isActive === false ? 'Activar' : 'Pausar'}</button>
+                          <button className="rw-icon-btn" onClick={() => { setEditing({ id: item._id, name: item.name, points: String(item.pointsCost) }); setError(null) }} title="Editar"><Icon name="editar" size={14} /></button>
+                          <button className="rw-icon-btn rw-icon-btn--danger" onClick={() => setConfirmDel(item._id)} title="Eliminar"><Icon name="borrar" size={14} /></button>
                         </div>
                       </td>
                     </>
@@ -650,7 +651,7 @@ function MembershipRewards({ businessId, card, data, onChanged }: { businessId: 
         ) : draft.length === 0 ? (
           <div className="rw-empty-note">
             Esta membresía todavía no tiene niveles.
-            <div style={{ marginTop: 10 }}><button className="rw-add-btn" onClick={createDefaults} disabled={saving}>{saving ? 'Creando…' : 'Crear niveles sugeridos'}</button></div>
+            <div style={{ marginTop: 10 }}><button className="s-btn s-btn--primary s-btn--sm" onClick={createDefaults} disabled={saving}>{saving ? 'Creando…' : 'Crear niveles sugeridos'}</button></div>
           </div>
         ) : (
           <div className="rw-rules rw-rules--wide">
@@ -677,7 +678,7 @@ function MembershipRewards({ businessId, card, data, onChanged }: { businessId: 
                   </div>
                   <input className="rw-inline-input" placeholder="Ej: 10% de descuento" maxLength={80} value={t.perk} onChange={e => update(t.key, { perk: e.target.value })} aria-label="Beneficio" />
                   <button className="rw-icon-btn rw-icon-btn--danger" onClick={() => remove(t.key)} disabled={draft.length <= 2 || i === 0} title={i === 0 ? 'El primer nivel no se puede borrar' : draft.length <= 2 ? 'Mínimo 2 niveles' : 'Borrar nivel'}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                    <Icon name="borrar" size={14} />
                   </button>
                 </div>
               ))}
@@ -686,10 +687,10 @@ function MembershipRewards({ businessId, card, data, onChanged }: { businessId: 
               <div className="rw-warn">Al guardar, los clientes de {willDeleteWithMembers.map(x => `"${x.name}" (${x.count})`).join(', ')} pasan al nivel que les corresponde por sus visitas.</div>
             )}
             <div className="rw-editor-foot">
-              <button className="rw-secondary-btn" onClick={add} disabled={draft.length >= 6}>+ Agregar nivel</button>
+              <button className="s-btn s-btn--secondary s-btn--sm" onClick={add} disabled={draft.length >= 6}>+ Agregar nivel</button>
               <div style={{ flex: 1 }} />
-              {dirty && <button className="rw-cancel-btn" onClick={() => { setDraft(saved); setError(null) }} disabled={saving}>Descartar</button>}
-              <button className="rw-confirm-btn" onClick={save} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button>
+              {dirty && <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setDraft(saved); setError(null) }} disabled={saving}>Descartar</button>}
+              <button className="s-btn s-btn--primary s-btn--sm" onClick={save} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button>
             </div>
             <div className="rw-hint">Si bajás las visitas de un nivel, los clientes que ya las cumplen suben al guardar. Si las subís, nadie pierde el nivel que ya ganó.</div>
           </div>
@@ -753,75 +754,64 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
     <>
       <style>{`
         .rw-shell{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-        .rw-toolbar{display:flex;align-items:center;gap:8px;padding:12px 24px;background:#FFFFFF;border-bottom:1px solid rgba(43,38,32,.08);flex-shrink:0;flex-wrap:wrap;}
-        .rw-card-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;font-family:var(--font-body);}
-        .rw-card-pill--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;font-weight:600;}
+        .rw-toolbar{display:flex;align-items:center;gap:8px;padding:12px 24px;background:#FFFFFF;border-bottom:1px solid rgba(34,32,27,.08);flex-shrink:0;flex-wrap:wrap;}
+        .rw-card-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(34,32,27,.12);background:#FFFFFF;color:rgba(34,32,27,.55);cursor:pointer;transition:all .15s;font-family:var(--font-body);}
+        .rw-card-pill--on{background:var(--s-pino);border-color:var(--s-pino);color:#F7F0E4;font-weight:600;}
         .rw-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
-        .rw-empty-note{font-size:12px;color:rgba(43,38,32,.5);padding:8px 0;line-height:1.5;}
-        .rw-error{font-size:12px;color:#8E2F2F;background:rgba(178,59,59,.07);border:1px solid rgba(178,59,59,.2);border-radius:9px;padding:8px 11px;margin-bottom:12px;}
-        .rw-notice{font-size:12px;color:#3F6E3E;background:rgba(91,140,90,.1);border:1px solid rgba(91,140,90,.25);border-radius:9px;padding:8px 11px;margin-bottom:12px;}
+        .rw-empty-note{font-size:12px;color:rgba(34,32,27,.5);padding:8px 0;line-height:1.5;}
+        .rw-error{font-size:12px;color:var(--s-error);background:rgba(178,59,59,.07);border:1px solid rgba(178,59,59,.2);border-radius:9px;padding:8px 11px;margin-bottom:12px;}
+        .rw-notice{font-size:12px;color:var(--s-listo);background:rgba(91,140,90,.1);border:1px solid rgba(91,140,90,.25);border-radius:9px;padding:8px 11px;margin-bottom:12px;}
         .rw-warn{font-size:11.5px;color:#7A5A12;background:rgba(212,162,76,.12);border-radius:9px;padding:8px 11px;margin-top:10px;}
-        .rw-hint{font-size:11px;color:rgba(43,38,32,.45);margin-top:10px;line-height:1.5;}
-        .rw-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(43,38,32,.04);min-width:0;}
-        .rw-card-title{font-family:var(--font-display);font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
-        .rw-card-sub{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:14px;}
+        .rw-hint{font-size:11px;color:rgba(34,32,27,.45);margin-top:10px;line-height:1.5;}
+        .rw-card{background:#FFFFFF;border:1px solid rgba(34,32,27,.07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(34,32,27,.04);min-width:0;}
+        .rw-card-title{font-family:var(--font-display);font-weight:700;font-size:13px;color:var(--s-tinta);margin-bottom:2px;}
+        .rw-card-sub{font-size:11px;color:rgba(34,32,27,.45);margin-bottom:14px;}
         .rw-card-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
         .rw-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
         .rw-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-        .rw-stat-label{font-size:10.5px;color:rgba(43,38,32,.5);margin-bottom:6px;}
-        .rw-stat-val{font-family:var(--font-display);font-size:24px;font-weight:800;color:#2B2620;}
-        .rw-stat-sub{font-size:10.5px;color:rgba(43,38,32,.45);margin-top:3px;line-height:1.4;}
+        .rw-stat-label{font-size:10.5px;color:rgba(34,32,27,.5);margin-bottom:6px;}
+        .rw-stat-val{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--s-tinta);}
+        .rw-stat-sub{font-size:10.5px;color:rgba(34,32,27,.45);margin-top:3px;line-height:1.4;}
         .rw-stat--good{border-color:rgba(91,140,90,.3);background:rgba(91,140,90,.05);}
-        .rw-stat--good .rw-stat-val{color:#3F6E3E;}
+        .rw-stat--good .rw-stat-val{color:var(--s-listo);}
         .rw-reward-summary{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
-        .rw-reward-main{font-family:var(--font-display);font-size:17px;font-weight:800;color:#C75D3A;margin:4px 0 6px;}
-        .rw-reward-sub{font-size:12px;color:rgba(43,38,32,.6);line-height:1.6;margin-top:2px;}
-        .rw-chip{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;background:rgba(199,93,58,.1);color:#C75D3A;margin:0 4px 4px 0;}
-        .rw-secondary-btn{font-size:12px;font-weight:600;border:1px solid rgba(43,38,32,.18);background:#fff;color:#2B2620;border-radius:9px;padding:8px 14px;cursor:pointer;font-family:inherit;white-space:nowrap;}
-        .rw-secondary-btn:hover:not(:disabled){border-color:rgba(43,38,32,.35);}
-        .rw-secondary-btn:disabled{opacity:.45;cursor:not-allowed;}
+        .rw-reward-main{font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--s-brasa);margin:4px 0 6px;}
+        .rw-reward-sub{font-size:12px;color:rgba(34,32,27,.6);line-height:1.6;margin-top:2px;}
+        .rw-chip{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;background:rgba(199,93,58,.1);color:var(--s-brasa);margin:0 4px 4px 0;}
         .rw-dist-list{display:flex;flex-direction:column;gap:10px;}
         .rw-dist-row{display:flex;align-items:center;gap:12px;}
-        .rw-dist-name{font-size:12px;color:#2B2620;font-weight:500;width:140px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-        .rw-dist-bar-wrap{flex:1;height:12px;background:rgba(43,38,32,.06);border-radius:6px;overflow:hidden;}
-        .rw-dist-bar{height:100%;background:linear-gradient(90deg,#C75D3A,#D4A24C);border-radius:6px;transition:width .4s;}
-        .rw-dist-count{font-size:11px;font-weight:600;color:rgba(43,38,32,.5);width:80px;text-align:right;flex-shrink:0;}
+        .rw-dist-name{font-size:12px;color:var(--s-tinta);font-weight:500;width:140px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .rw-dist-bar-wrap{flex:1;height:12px;background:rgba(34,32,27,.06);border-radius:6px;overflow:hidden;}
+        .rw-dist-bar{height:100%;background:linear-gradient(90deg,var(--s-brasa),#D4A24C);border-radius:6px;transition:width .4s;}
+        .rw-dist-count{font-size:11px;font-weight:600;color:rgba(34,32,27,.5);width:80px;text-align:right;flex-shrink:0;}
         .rw-table{width:100%;border-collapse:collapse;}
-        .rw-table thead{border-bottom:1px solid rgba(43,38,32,.08);}
-        .rw-table th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.4);font-weight:700;padding:8px 10px;}
-        .rw-table td{padding:10px 10px;font-size:12px;color:rgba(43,38,32,.8);border-bottom:1px solid rgba(43,38,32,.05);vertical-align:middle;}
+        .rw-table thead{border-bottom:1px solid rgba(34,32,27,.08);}
+        .rw-table th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:rgba(34,32,27,.4);font-weight:700;padding:8px 10px;}
+        .rw-table td{padding:10px 10px;font-size:12px;color:rgba(34,32,27,.8);border-bottom:1px solid rgba(34,32,27,.05);vertical-align:middle;}
         .rw-table tr:last-child td{border-bottom:none;}
         .rw-row--off td{opacity:.55;}
-        .rw-time-col{color:rgba(43,38,32,.45);font-size:11px;text-align:right;white-space:nowrap;}
-        .rw-muted{color:rgba(43,38,32,.55);}
+        .rw-time-col{color:rgba(34,32,27,.45);font-size:11px;text-align:right;white-space:nowrap;}
+        .rw-muted{color:rgba(34,32,27,.55);}
         .rw-av-row{display:flex;align-items:center;gap:8px;}
-        .rw-av{width:26px;height:26px;border-radius:50%;background:#C75D3A;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;}
-        .rw-link{background:none;border:none;padding:0;cursor:pointer;font:inherit;color:#2B2620;text-align:left;}
-        .rw-link:hover{color:#C75D3A;text-decoration:underline;}
-        .rw-prize-tag{font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(199,93,58,.1);color:#C75D3A;font-weight:600;white-space:nowrap;}
-        .rw-pts-badge{font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(24,95,165,.1);color:#185FA5;font-weight:700;white-space:nowrap;}
-        .rw-item-name{font-size:12px;color:#2B2620;font-weight:500;}
-        .rw-paused{font-size:10px;font-weight:700;margin-left:8px;padding:2px 8px;border-radius:20px;background:rgba(43,38,32,.08);color:rgba(43,38,32,.55);}
+        .rw-av{width:26px;height:26px;border-radius:50%;background:var(--s-brasa);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;}
+        .rw-link{background:none;border:none;padding:0;cursor:pointer;font:inherit;color:var(--s-tinta);text-align:left;}
+        .rw-link:hover{color:var(--s-brasa);text-decoration:underline;}
+        .rw-prize-tag{font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(199,93,58,.1);color:var(--s-brasa);font-weight:600;white-space:nowrap;}
+        .rw-pts-badge{font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(24,95,165,.1);color:var(--s-info);font-weight:700;white-space:nowrap;}
+        .rw-item-name{font-size:12px;color:var(--s-tinta);font-weight:500;}
+        .rw-paused{font-size:10px;font-weight:700;margin-left:8px;padding:2px 8px;border-radius:20px;background:rgba(34,32,27,.08);color:rgba(34,32,27,.55);}
         .rw-actions{display:flex;gap:6px;justify-content:flex-end;align-items:center;}
-        .rw-confirm-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;color:#2B2620;background:rgba(178,59,59,.05);border-radius:8px;padding:6px 8px;}
-        .rw-icon-btn{background:none;border:none;cursor:pointer;color:rgba(43,38,32,.45);padding:5px;border-radius:6px;display:flex;align-items:center;transition:color .15s;}
-        .rw-icon-btn:hover:not(:disabled){color:#2B2620;background:rgba(43,38,32,.05);}
-        .rw-icon-btn--danger:hover:not(:disabled){color:#B23B3B;}
+        .rw-confirm-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--s-tinta);background:rgba(178,59,59,.05);border-radius:8px;padding:6px 8px;}
+        .rw-icon-btn{background:none;border:none;cursor:pointer;color:rgba(34,32,27,.45);padding:5px;border-radius:6px;display:flex;align-items:center;transition:color .15s;}
+        .rw-icon-btn:hover:not(:disabled){color:var(--s-tinta);background:rgba(34,32,27,.05);}
+        .rw-icon-btn--danger:hover:not(:disabled){color:var(--s-error);}
         .rw-icon-btn:disabled{opacity:.25;cursor:not-allowed;}
-        .rw-mini-btn{font-size:11px;font-weight:600;border:1px solid rgba(43,38,32,.15);background:#fff;color:rgba(43,38,32,.7);border-radius:7px;padding:5px 9px;cursor:pointer;font-family:inherit;white-space:nowrap;}
-        .rw-mini-btn--primary{background:#C75D3A;border-color:#C75D3A;color:#fff;}
-        .rw-mini-btn--danger{background:#B23B3B;border-color:#B23B3B;color:#fff;}
-        .rw-add-btn{display:flex;align-items:center;gap:6px;font-size:12px;background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:8px 16px;cursor:pointer;font-weight:700;font-family:var(--font-display);white-space:nowrap;}
-        .rw-add-btn:disabled{opacity:.6;}
-        .rw-add-form{display:flex;gap:8px;align-items:center;padding:12px;background:#F1F3EE;border-radius:10px;margin-bottom:14px;flex-wrap:wrap;}
-        .rw-input{padding:8px 11px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:8px;background:#FFFFFF;color:#2B2620;font-family:var(--font-body);outline:none;flex:1;min-width:160px;}
+        .rw-add-form{display:flex;gap:8px;align-items:center;padding:12px;background:var(--s-salvia);border-radius:10px;margin-bottom:14px;flex-wrap:wrap;}
+        .rw-input{padding:8px 11px;font-size:12px;border:1px solid rgba(34,32,27,.15);border-radius:8px;background:#FFFFFF;color:var(--s-tinta);font-family:var(--font-body);outline:none;flex:1;min-width:160px;}
         .rw-input--sm{max-width:100px;min-width:80px;flex:none;}
-        .rw-input:focus,.rw-inline-input:focus{border-color:#C75D3A;}
-        .rw-confirm-btn{background:#C75D3A;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;font-weight:600;font-family:inherit;}
-        .rw-confirm-btn:disabled{opacity:.5;cursor:default;}
-        .rw-cancel-btn{background:none;border:1px solid rgba(43,38,32,.15);border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;color:rgba(43,38,32,.55);font-family:inherit;}
-        .rw-inline-input{padding:6px 9px;font-size:12px;border:1px solid rgba(43,38,32,.18);border-radius:7px;background:#fff;color:#2B2620;font-family:var(--font-body);outline:none;width:100%;min-width:0;}
-        .rw-inline-input:disabled{background:rgba(43,38,32,.04);color:rgba(43,38,32,.5);}
+        .rw-input:focus,.rw-inline-input:focus{border-color:var(--s-brasa);}
+        .rw-inline-input{padding:6px 9px;font-size:12px;border:1px solid rgba(34,32,27,.18);border-radius:7px;background:#fff;color:var(--s-tinta);font-family:var(--font-body);outline:none;width:100%;min-width:0;}
+        .rw-inline-input:disabled{background:rgba(34,32,27,.04);color:rgba(34,32,27,.5);}
         .rw-inline-input--sm{max-width:74px;}
         .rw-tier-grid{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:12px;}
         .rw-tier-badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:8px;}
@@ -829,28 +819,28 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         .rw-tier-sub{font-size:11px;margin-top:2px;opacity:.75;}
         .rw-tier-editor{display:flex;flex-direction:column;gap:8px;}
         .rw-tier-row{display:grid;grid-template-columns:30px minmax(100px,1fr) 190px minmax(140px,2fr) 30px;gap:10px;align-items:center;}
-        .rw-tier-row--head span{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.4);font-weight:700;}
-        .rw-visits{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(43,38,32,.5);white-space:nowrap;}
+        .rw-tier-row--head span{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:rgba(34,32,27,.4);font-weight:700;}
+        .rw-visits{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(34,32,27,.5);white-space:nowrap;}
         .rw-swatch{width:26px;height:26px;border-radius:8px;border:2px solid;cursor:pointer;padding:0;}
-        .rw-palette{position:absolute;top:32px;left:0;z-index:20;background:#fff;border:1px solid rgba(43,38,32,.12);border-radius:10px;padding:8px;display:grid;grid-template-columns:repeat(4,26px);gap:6px;box-shadow:0 8px 24px rgba(43,38,32,.15);}
+        .rw-palette{position:absolute;top:32px;left:0;z-index:20;background:#fff;border:1px solid rgba(34,32,27,.12);border-radius:10px;padding:8px;display:grid;grid-template-columns:repeat(4,26px);gap:6px;box-shadow:0 8px 24px rgba(34,32,27,.15);}
         .rw-rules{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start;margin-top:4px;}
-        .rw-label{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:rgba(43,38,32,.5);margin-bottom:7px;}
+        .rw-label{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:rgba(34,32,27,.5);margin-bottom:7px;}
         .rw-rmodes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
-        .rw-rmode{display:flex;gap:9px;align-items:flex-start;border:1.5px solid rgba(43,38,32,.12);border-radius:10px;padding:10px 12px;cursor:pointer;background:#fff;}
-        .rw-rmode--on{border-color:#C75D3A;background:rgba(199,93,58,.04);}
-        .rw-rmode input{accent-color:#C75D3A;margin-top:3px;}
-        .rw-rmode strong{display:block;font-size:13px;color:#2B2620;}
-        .rw-rmode small{display:block;font-size:11.5px;color:rgba(43,38,32,.55);}
-        .rw-reach{margin-top:18px;padding-top:14px;border-top:1px solid rgba(43,38,32,.07);}
-        .rw-reach-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(43,38,32,.05);font-size:12px;}
+        .rw-rmode{display:flex;gap:9px;align-items:flex-start;border:1.5px solid rgba(34,32,27,.12);border-radius:10px;padding:10px 12px;cursor:pointer;background:#fff;}
+        .rw-rmode--on{border-color:var(--s-brasa);background:rgba(199,93,58,.04);}
+        .rw-rmode input{accent-color:var(--s-brasa);margin-top:3px;}
+        .rw-rmode strong{display:block;font-size:13px;color:var(--s-tinta);}
+        .rw-rmode small{display:block;font-size:11.5px;color:rgba(34,32,27,.55);}
+        .rw-reach{margin-top:18px;padding-top:14px;border-top:1px solid rgba(34,32,27,.07);}
+        .rw-reach-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(34,32,27,.05);font-size:12px;}
         .rw-reach-row:last-child{border-bottom:none;}
-        .rw-reach-name{flex:1;min-width:0;color:#2B2620;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-        .rw-reach-need{width:130px;text-align:right;color:rgba(43,38,32,.6);font-weight:600;flex-shrink:0;}
+        .rw-reach-name{flex:1;min-width:0;color:var(--s-tinta);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .rw-reach-need{width:130px;text-align:right;color:rgba(34,32,27,.6);font-weight:600;flex-shrink:0;}
         .rw-pv{position:sticky;top:0;}
         .rw-pv-tiers{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:12px;}
-        .rw-pv-tier{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;border:1.5px solid rgba(43,38,32,.15);background:#fff;color:rgba(43,38,32,.6);cursor:pointer;font-family:inherit;}
+        .rw-pv-tier{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;border:1.5px solid rgba(34,32,27,.15);background:#fff;color:rgba(34,32,27,.6);cursor:pointer;font-family:inherit;}
         @media(max-width:1180px){.rw-rules--wide{grid-template-columns:1fr;}.rw-rules--wide .rw-pv{position:static;max-width:320px;margin:0 auto;}}
-        .rw-pv-pass{border-radius:16px;overflow:hidden;box-shadow:0 12px 36px rgba(43,38,32,.2);}
+        .rw-pv-pass{border-radius:16px;overflow:hidden;box-shadow:0 12px 36px rgba(34,32,27,.2);}
         .rw-pv-top{padding:20px 20px 10px;}
         .rw-pv-logo{display:block;width:47%;height:auto;}
         .rw-pv-logo.rw-skel{aspect-ratio:160/50;background:rgba(255,255,255,.18);}
@@ -861,7 +851,7 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         .rw-pv-v{font-size:14px;font-weight:500;line-height:1.25;overflow-wrap:anywhere;}
         .rw-pv-fields > div{flex:1;min-width:0;}
         .rw-editor-foot{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;}
-        .rw-skel{background:rgba(43,38,32,.07);border-radius:8px;animation:rwPulse 1.2s ease-in-out infinite;}
+        .rw-skel{background:rgba(34,32,27,.07);border-radius:8px;animation:rwPulse 1.2s ease-in-out infinite;}
         @keyframes rwPulse{0%,100%{opacity:.45}50%{opacity:1}}
         @media(max-width:900px){.rw-tier-grid{grid-template-columns:repeat(3,1fr);}}
         @media(max-width:768px){
@@ -871,11 +861,10 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
           .rw-tier-grid{grid-template-columns:1fr 1fr;}
           .rw-content{padding:14px 16px;}
           .rw-card-head-row{flex-direction:column;}
-          .rw-add-btn{width:100%;justify-content:center;}
           .rw-toolbar{padding:10px 14px;}
           .rw-tier-row{grid-template-columns:30px 1fr 30px;grid-template-areas:"sw name del" "vis vis vis" "perk perk perk";}
           .rw-tier-row > :nth-child(1){grid-area:sw;} .rw-tier-row > :nth-child(2){grid-area:name;} .rw-tier-row > :nth-child(3){grid-area:vis;} .rw-tier-row > :nth-child(4){grid-area:perk;} .rw-tier-row > :nth-child(5){grid-area:del;}
-          .rw-tier-row:not(.rw-tier-row--head){padding:10px;border:1px solid rgba(43,38,32,.08);border-radius:10px;}
+          .rw-tier-row:not(.rw-tier-row--head){padding:10px;border:1px solid rgba(34,32,27,.08);border-radius:10px;}
           .rw-tier-row--head{display:none;}
           .rw-dist-name{width:100px;}
         }
@@ -888,9 +877,9 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
           </div>
         )}
         {!selected ? (
-          <div className="rw-content"><div className="rw-card"><div className="rw-empty-note">Activá una tarjeta en Diseño para configurar sus premios.</div><button className="rw-secondary-btn" onClick={onGoToDesign}>Ir a Diseño</button></div></div>
+          <div className="rw-content"><div className="rw-card"><div className="rw-empty-note">Activá una tarjeta en Diseño para configurar sus premios.</div><button className="s-btn s-btn--secondary s-btn--sm" onClick={onGoToDesign}>Ir a Diseño</button></div></div>
         ) : error && dataFor === selected.id ? (
-          <div className="rw-content"><div className="rw-error" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>No pudimos cargar los premios. <button className="rw-mini-btn" onClick={() => { setDataFor(null); setReload(n => n + 1) }}>Reintentar</button></div></div>
+          <div className="rw-content"><div className="rw-error" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>No pudimos cargar los premios. <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setDataFor(null); setReload(n => n + 1) }}>Reintentar</button></div></div>
         ) : !ready ? (
           <div className="rw-content"><MascotLoader text="Buscando tus premios…" /></div>
         ) : selected.type === 'stamp' ? (
