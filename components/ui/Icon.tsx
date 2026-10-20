@@ -7,7 +7,7 @@ import {
   IconHome, IconUsers, IconChartBar, IconGift, IconBell, IconClipboardList, IconPalette, IconUserCircle,
   IconMapPin, IconSettings, IconCalendar, IconClock, IconQrcode, IconRosetteDiscountCheck, IconHandStop,
   IconStar, IconHeartHandshake, IconAt, IconMessageStar, IconAbc, IconHash, IconList, IconPhone, IconCake,
-  IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconTrash, IconPencil, IconLock, IconCheck, IconX, IconUser, IconHelpCircle, IconLogout, IconMenu2, IconBolt, IconAlertTriangle, IconInfoCircle, IconCircleCheck, IconCoins, IconCrown, IconArrowUp, IconArrowDown, IconSearch, IconDownload, IconArrowBackUp, IconHourglass, IconRepeat, IconFlame, IconMoon, IconTarget, IconPencilMinus,
+  IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconTrash, IconPencil, IconLock, IconCheck, IconX, IconUser, IconHelpCircle, IconLogout, IconMenu2, IconBolt, IconAlertTriangle, IconInfoCircle, IconCircleCheck, IconCoins, IconCrown, IconArrowUp, IconArrowDown, IconSearch, IconDownload, IconArrowBackUp, IconHourglass, IconRepeat, IconFlame, IconMoon, IconTarget, IconUpload, IconPhoto, IconArrowLeft, IconStarFilled, IconPencilMinus,
   type Icon as TablerIcon,
 } from '@tabler/icons-react'
 
@@ -25,6 +25,7 @@ export const ICONS = {
   perfil: IconUser, ayuda: IconHelpCircle, salir: IconLogout, menu: IconMenu2, idea: IconBolt,
   puntos: IconCoins, membresia: IconCrown, flechaArriba: IconArrowUp, flechaAbajo: IconArrowDown, buscar: IconSearch,
   descargar: IconDownload, nivel: IconArrowUp, vencio: IconHourglass, deshacer: IconArrowBackUp,
+  subir: IconUpload, imagen: IconPhoto, volver: IconArrowLeft, estrella: IconStarFilled,
   objetivo: IconTarget, escribir: IconPencilMinus,
   vuelve: IconRepeat, fuerte: IconFlame, flojo: IconMoon,
   atencion: IconAlertTriangle, info: IconInfoCircle, hecho: IconCircleCheck,
