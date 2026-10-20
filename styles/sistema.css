@@ -1,0 +1,88 @@
+/* ═══════════════════════════════════════════════════════════════
+   SISTEMA VISUAL DE STAMPA (decidido el 19/10/2026)
+   Letras: Familjen Grotesk (títulos) + Albert Sans (texto), cargadas en
+   app/layout.tsx. Íconos: components/ui/Icon.tsx (Tabler, un solo grosor).
+   Fecha y hora: components/ui/DateTime.tsx.
+
+   Toda pantalla nueva usa estas variables y clases. Las pestañas viejas se
+   pasan de a una (colores fijos → variables, botones e interruptores →
+   las clases de acá).
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Colores (12, con nombre) ──────────────────────────────── */
+  --s-pino:        #1B412F;   /* marca, fondos oscuros, seleccionado */
+  --s-pino-2:      #24523D;
+  --s-brasa:       #C75D3A;   /* acción principal, acento */
+  --s-brasa-2:     #9E4529;   /* brasa sobre fondo claro (texto, hover) */
+  --s-tinta:       #22201B;   /* texto principal */
+  --s-tinta-2:     rgba(34, 32, 27, .62);  /* texto secundario */
+  --s-tinta-3:     rgba(34, 32, 27, .42);  /* ayudas, apagado */
+  --s-linea:       rgba(34, 32, 27, .12);  /* bordes y separadores */
+  --s-salvia:      #F1F3EE;   /* fondo de la app y de campos */
+  --s-blanco:      #FFFFFF;   /* tarjetas */
+  --s-listo:       #2E7D4F;
+  --s-aviso:       #9A6A12;
+  --s-error:       #B4442A;
+  --s-info:        #185FA5;
+  /* versiones suaves para fondos de avisos y chips */
+  --s-brasa-suave: rgba(199, 93, 58, .10);
+  --s-listo-suave: rgba(46, 125, 79, .10);
+  --s-aviso-suave: rgba(212, 162, 76, .14);
+  --s-error-suave: rgba(180, 68, 42, .08);
+  --s-info-suave:  rgba(24, 95, 165, .08);
+  --s-hueco:       rgba(34, 32, 27, .05);  /* fondos de hover y esqueletos */
+
+  /* ── Letra ─────────────────────────────────────────────────── */
+  --s-t-xs:  11px;   /* etiquetas en mayúscula, notas */
+  --s-t-sm:  12.5px; /* texto de apoyo, botones chicos */
+  --s-t-md:  14px;   /* texto */
+  --s-t-lg:  16px;   /* títulos de tarjeta */
+  --s-t-xl:  20px;   /* títulos de sección */
+  --s-t-2xl: 28px;   /* números grandes */
+
+  /* ── Bordes y espacios ─────────────────────────────────────── */
+  --s-r-sm: 8px;  --s-r-md: 12px;  --s-r-lg: 16px;  --s-r-pill: 999px;
+  --s-e-1: 4px;  --s-e-2: 8px;  --s-e-3: 12px;  --s-e-4: 16px;  --s-e-5: 24px;  --s-e-6: 32px;
+  --s-sombra: 0 1px 8px rgba(34, 32, 27, .05);
+  --s-sombra-alta: 0 14px 40px rgba(34, 32, 27, .16);
+}
+
+/* ── Botones ───────────────────────────────────────────────── */
+.s-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font: inherit; font-family: var(--font-body); font-size: var(--s-t-md); font-weight: 600; line-height: 1;
+  padding: 10px 16px; border-radius: 10px; border: 1.5px solid transparent; cursor: pointer;
+  text-decoration: none; white-space: nowrap; transition: background .15s, border-color .15s, color .15s;
+}
+.s-btn--sm { font-size: var(--s-t-sm); padding: 7px 12px; border-radius: var(--s-r-sm); }
+.s-btn--primary   { background: var(--s-brasa); color: #fff; }
+.s-btn--primary:hover:not(:disabled) { background: var(--s-brasa-2); }
+.s-btn--secondary { background: var(--s-blanco); color: var(--s-tinta); border-color: var(--s-linea); }
+.s-btn--secondary:hover:not(:disabled) { border-color: rgba(34, 32, 27, .3); }
+.s-btn--text      { background: transparent; color: var(--s-brasa-2); padding-inline: 4px; }
+.s-btn--text:hover:not(:disabled) { text-decoration: underline; }
+.s-btn--danger    { background: var(--s-error); color: #fff; }
+.s-btn:disabled   { opacity: .45; cursor: default; }
+.s-btn:focus-visible, .s-switch:focus-visible, .s-chip:focus-visible { outline: 2px solid var(--s-brasa); outline-offset: 2px; }
+
+/* ── Interruptor ───────────────────────────────────────────── */
+.s-switch { width: 36px; height: 21px; border-radius: var(--s-r-pill); background: rgba(34, 32, 27, .18); position: relative; border: none; padding: 0; cursor: pointer; flex-shrink: 0; transition: background .15s; }
+.s-switch::after { content: ''; position: absolute; top: 2.5px; left: 2.5px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .15s; }
+.s-switch[aria-checked="true"] { background: var(--s-pino); }
+.s-switch[aria-checked="true"]::after { transform: translateX(15px); }
+.s-switch:disabled { opacity: .5; cursor: default; }
+
+/* ── Avisos ────────────────────────────────────────────────── */
+.s-notice { display: flex; align-items: flex-start; gap: 8px; font-size: var(--s-t-sm); line-height: 1.45; padding: 9px 12px; border-radius: 10px; }
+.s-notice svg { flex-shrink: 0; margin-top: 1px; }
+.s-notice--ok    { background: var(--s-listo-suave); color: var(--s-listo); }
+.s-notice--warn  { background: var(--s-aviso-suave); color: var(--s-aviso); }
+.s-notice--error { background: var(--s-error-suave); color: var(--s-error); }
+.s-notice--info  { background: var(--s-info-suave); color: var(--s-info); }
+
+/* ── Chips ─────────────────────────────────────────────────── */
+.s-chip { font: inherit; font-size: var(--s-t-sm); font-weight: 600; padding: 6px 12px; border-radius: var(--s-r-pill); border: 1.5px solid var(--s-linea); background: var(--s-blanco); color: var(--s-tinta); cursor: pointer; }
+.s-chip[aria-pressed="true"] { border-color: var(--s-brasa); background: var(--s-brasa-suave); color: var(--s-brasa-2); }
+
+@media (prefers-reduced-motion: reduce) { .s-switch, .s-switch::after, .s-btn { transition: none; } }

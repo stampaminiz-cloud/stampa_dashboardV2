@@ -1,4 +1,5 @@
 'use client'
+import { Icon } from '@/components/ui/Icon'
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -65,11 +66,7 @@ export function InfoTooltip({ text, side = 'top' }: { text: string; side?: 'top'
       onMouseLeave={hide}
       onClick={(e) => { e.stopPropagation(); open ? hide() : show() }}
     >
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="info-tooltip-icon">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="16" x2="12" y2="11.5" />
-        <circle cx="12" cy="8" r="0.5" fill="currentColor" stroke="none" />
-      </svg>
+      <Icon name="info" size={14} className="info-tooltip-icon" />
       {open && pos && typeof document !== 'undefined' && createPortal(
         <span
           className="info-tooltip-bubble"

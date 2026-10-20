@@ -1,4 +1,6 @@
 'use client'
+import { Icon } from '@/components/ui/Icon'
+import { Switch } from '@/components/ui/Switch'
 import { readCache } from '@/lib/cache'
 import React, { useState, useRef, useEffect } from 'react'
 import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS } from '@/lib/colorPresets'
@@ -170,7 +172,7 @@ function LogoUpload({ label, hint, value, onChange }: {
       <div className={`dt-logo-zone${value ? ' dt-logo-zone--filled' : ''}`} onClick={() => ref.current?.click()}>
         {value
           ? <img src={value} className="dt-logo-preview" alt={label} />
-          : <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>{hint}</span></>
+          : <><Icon name="subir" size={16} /><span>{hint}</span></>
         }
         <input ref={ref} type="file" accept="image/png" onChange={handleFile} style={{ display: 'none' }} />
       </div>
@@ -312,10 +314,7 @@ function MiniPass({ design, businessName, logos, tiers }: { design: CardDesign; 
       {/* Antes era un cuadrado blanco vacío sin ningún ícono adentro —
           representaba "acá va el QR" pero no se entendía qué era. */}
       <div className="dt-mini-qr-hint" title="Acá va el código QR del cliente en el pase real">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2B2620" strokeWidth="1.6">
-          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-          <path d="M14 14h3v3h-3z"/><path d="M20 14v3"/><path d="M14 20h3"/><path d="M20 20h.01"/>
-        </svg>
+        <Icon name="qr" size={16} />
       </div>
     </div>
   )
@@ -468,7 +467,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
         {prizeImage
           ? <img src={prizeImage} className="dt-prize-img" alt="premio" />
           : <div className="dt-prize-img-placeholder">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <Icon name="imagen" size={24} className="dt-ic-faint" />
               <span className="dt-prize-img-hint">Subí una imagen de premio</span>
             </div>
         }
@@ -487,7 +486,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           <div className="dt-face-switch">
             <button className={`dt-face-btn${previewSide === 'front' ? ' dt-face-btn--on' : ''}`} onClick={() => switchSide('front')}>Cara principal</button>
             <button className={`dt-face-btn${previewSide === 'prize' ? ' dt-face-btn--on' : ''}`} onClick={() => switchSide('prize')}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill={previewSide === 'prize' ? '#C75D3A' : 'rgba(43,38,32,.4)'} stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <Icon name="estrella" size={12} className={previewSide === 'prize' ? 'dt-ic-brasa' : 'dt-ic-faint'} />
               Cara del premio
             </button>
           </div>
@@ -530,8 +529,8 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   return (
     <>
       <div className="dt-editor-header">
-        <button className="dt-back-btn" onClick={() => dirty ? setConfirmLeave(true) : onBack()}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        <button className="s-btn s-btn--text s-btn--sm dt-back" onClick={() => dirty ? setConfirmLeave(true) : onBack()}>
+          <Icon name="volver" size={14} />
           Mis tarjetas
         </button>
         <div className="dt-editor-title">{card.name}</div>
@@ -542,7 +541,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           <button className={`dt-mobile-tab${mobileView === 'preview' ? ' dt-mobile-tab--on' : ''}`} onClick={() => setMobileView('preview')}>Preview</button>
         </div>
 
-        <button className="dt-save-btn" onClick={() => handleSave()} disabled={saving || !dirty}>
+        <button className="s-btn s-btn--primary s-btn--sm" onClick={() => handleSave()} disabled={saving || !dirty}>
           {saving ? 'Guardando…' : saved ? '✓ Guardado' : dirty ? 'Guardar cambios' : 'Sin cambios'}
         </button>
       </div>
@@ -552,8 +551,8 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
         <div className="dt-save-warn">
           <span>Tenés cambios sin guardar en esta tarjeta.</span>
           <span style={{ display: 'flex', gap: 8 }}>
-            <button className="dt-warn-btn" onClick={() => { setConfirmLeave(false); onBack() }}>Salir sin guardar</button>
-            <button className="dt-warn-btn dt-warn-btn--primary" onClick={() => { setConfirmLeave(false); handleSave() }}>Guardar</button>
+            <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setConfirmLeave(false); onBack() }}>Salir sin guardar</button>
+            <button className="s-btn s-btn--primary s-btn--sm" onClick={() => { setConfirmLeave(false); handleSave() }}>Guardar</button>
           </span>
         </div>
       )}
@@ -669,7 +668,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           {card.type === 'stamp' && (
             <>
               <div className="dt-panel-section-title" style={{ marginTop: 20 }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="#C75D3A" stroke="none" style={{ marginRight: 5, verticalAlign: 'middle' }}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <Icon name="estrella" size={12} className="dt-ic-brasa dt-ic-inline" />
                 Cara del premio
               </div>
               <div style={{ fontSize: 10, color: 'rgba(43,38,32,.4)', marginBottom: 10, lineHeight: 1.5 }}>
@@ -683,7 +682,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
                 {prizeImage
                   ? <img src={prizeImage} className="dt-prize-upload-preview" alt="premio" />
                   : <>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(43,38,32,.35)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                      <Icon name="imagen" size={20} className="dt-ic-faint" />
                       <span className="dt-prize-upload-hint">Subir imagen del premio</span>
                       <span className="dt-prize-upload-sub">PNG, JPG · Se muestra centrada en la tarjeta</span>
                     </>
@@ -767,7 +766,7 @@ function NewCardModal({ onClose, onAdd, existingCount, currency = 'ARS' }: {
         <div className="dt-modal-header">
           <div className="dt-modal-title">Nueva tarjeta</div>
           <button className="dt-modal-close" onClick={onClose}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <Icon name="cerrar" size={14} />
           </button>
         </div>
 
@@ -792,9 +791,9 @@ function NewCardModal({ onClose, onAdd, existingCount, currency = 'ARS' }: {
             </div>
 
             <div className="dt-modal-footer">
-              <button className="dt-modal-cancel" onClick={onClose}>Cancelar</button>
-              <button className="dt-modal-next" onClick={() => setStep(2)}>
-                Siguiente →
+              <button className="s-btn s-btn--secondary" onClick={onClose}>Cancelar</button>
+              <button className="s-btn s-btn--primary" onClick={() => setStep(2)}>
+                Siguiente <Icon name="siguiente" size={16} />
               </button>
             </div>
           </>
@@ -854,8 +853,8 @@ function NewCardModal({ onClose, onAdd, existingCount, currency = 'ARS' }: {
               <div className="dt-modal-hint" style={{ color: '#B23B3B', marginBottom: 0 }}>{error}</div>
             )}
             <div className="dt-modal-footer" style={{ marginTop: 24 }}>
-              <button className="dt-modal-cancel" onClick={() => setStep(1)} disabled={saving}>← Atrás</button>
-              <button className="dt-modal-next" onClick={handleCreate} disabled={saving}>
+              <button className="s-btn s-btn--secondary" onClick={() => setStep(1)} disabled={saving}><Icon name="anterior" size={16} /> Atrás</button>
+              <button className="s-btn s-btn--primary" onClick={handleCreate} disabled={saving}>
                 {saving ? 'Creando…' : 'Crear tarjeta'}
               </button>
             </div>
@@ -992,7 +991,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
             <div key={i} className={`dt-plan-dot${i < activeCount ? ' dt-plan-dot--on' : ''}`} />
           ))}
         </div>
-        {onChoosePlan && planMaxCards < 999 && <button className="dt-upgrade-link" onClick={onChoosePlan}>Más tarjetas →</button>}
+        {onChoosePlan && planMaxCards < 999 && <button className="dt-upgrade-link" onClick={onChoosePlan}>Más tarjetas <Icon name="siguiente" size={14} /></button>}
       </div>
 
       {toggleError && (
@@ -1006,9 +1005,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
             <div className="dt-tile-info">
               <div className="dt-tile-name-row">
                 <span className="dt-tile-name">{card.name}</span>
-                <button className={`dt-tile-toggle${card.isActive ? ' dt-tile-toggle--on' : ''}`} onClick={() => toggleCard(card.id)}>
-                  <div className="dt-tile-toggle-thumb" />
-                </button>
+                <Switch checked={card.isActive} label={`${card.name}: ${card.isActive ? 'activa' : 'inactiva'}`} onChange={() => toggleCard(card.id)} />
               </div>
               <div className="dt-tile-sub">
                 {card.type === 'stamp'      && `${card.stampsRequired} sellos · ${card.rewardMode === 'dynamic' ? 'el cliente elige' : 'premio fijo'}`}
@@ -1018,9 +1015,9 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
                 {!card.isActive && ' · Inactiva'}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <button className="dt-tile-edit" onClick={() => onEdit(card)}>Editar →</button>
+                <button className="s-btn s-btn--text s-btn--sm" onClick={() => onEdit(card)}>Editar <Icon name="siguiente" size={14} /></button>
                 <button className="dt-tile-delete" onClick={() => setConfirmDelete(card.id)} title="Eliminar tarjeta">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  <Icon name="borrar" size={14} />
                 </button>
               </div>
             </div>
@@ -1034,7 +1031,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
           title={atLimit ? `Plan ${plan}: límite de ${planMaxCards} tarjeta${planMaxCards !== 1 ? 's' : ''}` : 'Crear nueva tarjeta'}
         >
           <div className="dt-add-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <Icon name="agregar" size={20} />
           </div>
           <div className="dt-add-label">
             {atLimit ? `Plan ${plan} · ${planMaxCards} tarjeta${planMaxCards === 1 ? '' : 's'} activa${planMaxCards === 1 ? '' : 's'} máx.` : t('dt_new_card' as any)}
@@ -1066,7 +1063,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
                 Deja de aparecer en tu formulario de registro, así que no se suman clientes nuevos. Los {n} cliente{n === 1 ? '' : 's'} que ya la tienen la siguen usando y podés seguir escaneándolos.
               </div>
               <div className="dt-modal-footer">
-                <button className="dt-modal-cancel" onClick={() => setConfirmDeactivate(null)}>Cancelar</button>
+                <button className="s-btn s-btn--secondary" onClick={() => setConfirmDeactivate(null)}>Cancelar</button>
                 <button onClick={() => toggleCard(card.id, true)} style={{ background: '#C75D3A', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 22px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Desactivar</button>
               </div>
             </div>
@@ -1085,7 +1082,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
               <div className="dt-modal-header">
                 <div className="dt-modal-title">Eliminar tarjeta</div>
                 <button className="dt-modal-close" onClick={() => setConfirmDelete(null)}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <Icon name="cerrar" size={14} />
                 </button>
               </div>
               {customers > 0
@@ -1095,7 +1092,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
                       {card.isActive && <> Podés <strong>desactivarla</strong>: deja de aparecer en el formulario de registro, pero quienes ya la tienen la siguen usando.</>}
                     </div>
                     <div className="dt-modal-footer">
-                      <button className="dt-modal-cancel" onClick={() => setConfirmDelete(null)}>Cerrar</button>
+                      <button className="s-btn s-btn--secondary" onClick={() => setConfirmDelete(null)}>Cerrar</button>
                       {card.isActive && !isOnlyActive && <button onClick={() => { setConfirmDelete(null); toggleCard(card.id, true) }} style={{ background: '#C75D3A', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 22px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Desactivar</button>}
                     </div>
                   </>
@@ -1106,7 +1103,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
                     </div>
                     <div className="dt-modal-footer">
                       <div />
-                      <button className="dt-modal-cancel" onClick={() => setConfirmDelete(null)}>Entendido</button>
+                      <button className="s-btn s-btn--secondary" onClick={() => setConfirmDelete(null)}>Entendido</button>
                     </div>
                   </>
                 : <>
@@ -1114,7 +1111,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
                       ¿Eliminar <strong>{card.name}</strong>? Todavía no tiene clientes. Esta acción no se puede deshacer.
                     </div>
                     <div className="dt-modal-footer">
-                      <button className="dt-modal-cancel" onClick={() => setConfirmDelete(null)}>Cancelar</button>
+                      <button className="s-btn s-btn--secondary" onClick={() => setConfirmDelete(null)}>Cancelar</button>
                       <button onClick={() => deleteCard(card.id)} style={{ background: '#B23B3B', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 22px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                         Sí, eliminar
                       </button>
@@ -1147,140 +1144,137 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
   return (
     <>
       <style>{`
+        .dt-ic-faint{color:var(--s-tinta-3);}
+        .dt-ic-brasa{color:var(--s-brasa);}
+        .dt-ic-inline{margin-right:5px;vertical-align:-2px;}
+        .dt-back{color:var(--s-tinta-2);}
         .dt-content{flex:1;overflow-y:auto;padding:24px 28px;display:flex;flex-direction:column;gap:18px;}
-        .dt-editor-header{height:54px;flex-shrink:0;background:#FFFFFF;border-bottom:1px solid rgba(43,38,32,.08);display:flex;align-items:center;padding:0 20px;gap:12px;}
-        .dt-back-btn{display:flex;align-items:center;gap:6px;font-size:13px;color:rgba(43,38,32,.55);background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:7px;transition:all .15s;white-space:nowrap;}
-        .dt-back-btn:hover{background:#F1F3EE;color:#2B2620;}
-        .dt-editor-title{font-family:var(--font-display);font-weight:700;font-size:15px;color:#2B2620;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .dt-save-btn{background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font-display);white-space:nowrap;}
-        .dt-save-btn:hover{background:#B14F2F;}
-        .dt-save-btn:disabled{opacity:.6;cursor:not-allowed;}
-        .dt-save-error{font-size:12px;color:#B23B3B;background:rgba(178,59,59,.07);border-bottom:1px solid rgba(178,59,59,.15);padding:8px 20px;}
-        .dt-save-notice{font-size:12px;color:#3F6E3E;background:rgba(91,140,90,.1);border-bottom:1px solid rgba(91,140,90,.2);padding:8px 20px;}
+        .dt-editor-header{height:54px;flex-shrink:0;background:#FFFFFF;border-bottom:1px solid rgba(34,32,27,.08);display:flex;align-items:center;padding:0 20px;gap:12px;}
+        .dt-editor-title{font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--s-tinta);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .dt-save-error{font-size:12px;color:var(--s-error);background:rgba(178,59,59,.07);border-bottom:1px solid rgba(178,59,59,.15);padding:8px 20px;}
+        .dt-save-notice{font-size:12px;color:var(--s-listo);background:rgba(91,140,90,.1);border-bottom:1px solid rgba(91,140,90,.2);padding:8px 20px;}
         .dt-save-warn{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12.5px;color:#7A5A12;background:rgba(212,162,76,.14);border-bottom:1px solid rgba(212,162,76,.3);padding:10px 20px;}
-        .dt-warn-btn{font-size:12px;font-weight:600;border:1px solid rgba(43,38,32,.2);background:#fff;color:#2B2620;border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;}
-        .dt-warn-btn--primary{background:#C75D3A;border-color:#C75D3A;color:#fff;}
         .dt-tier-chips{display:flex;flex-wrap:wrap;gap:6px;}
-        .dt-tier-chip{font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(43,38,32,.08);}
-        .dt-color-warn{font-size:11px;color:#9E4529;background:rgba(199,93,58,.08);border-radius:7px;padding:6px 9px;margin-top:6px;line-height:1.4;}
-        .dt-inline-link{background:none;border:none;padding:0;color:#C75D3A;font-weight:700;cursor:pointer;font-family:inherit;font-size:inherit;}
+        .dt-tier-chip{font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(34,32,27,.08);}
+        .dt-color-warn{font-size:11px;color:var(--s-brasa-2);background:rgba(199,93,58,.08);border-radius:7px;padding:6px 9px;margin-top:6px;line-height:1.4;}
+        .dt-inline-link{background:none;border:none;padding:0;color:var(--s-brasa);font-weight:700;cursor:pointer;font-family:inherit;font-size:inherit;}
         .dt-editor-body{flex:1;display:grid;grid-template-columns:300px 1fr;overflow:hidden;}
-        .dt-editor-panel{background:#FFFFFF;border-right:1px solid rgba(43,38,32,.08);padding:20px 18px;overflow-y:auto;}
-        .dt-panel-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:rgba(43,38,32,.45);font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+        .dt-editor-panel{background:#FFFFFF;border-right:1px solid rgba(34,32,27,.08);padding:20px 18px;overflow-y:auto;}
+        .dt-panel-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:rgba(34,32,27,.45);font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
         .dt-logo-row{display:flex;gap:8px;align-items:flex-start;}
         .dt-logo-upload{flex:1;display:flex;flex-direction:column;gap:4px;justify-content:flex-start;}
-        .dt-logo-label{font-size:11px;color:rgba(43,38,32,.55);font-weight:600;min-height:28px;}
-        .dt-logo-zone{width:100%;height:90px;border:1.5px dashed rgba(43,38,32,.2);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:all .15s;color:rgba(43,38,32,.4);font-size:9.5px;text-align:center;overflow:hidden;}
-        .dt-logo-zone:hover{border-color:#C75D3A;color:#C75D3A;}
+        .dt-logo-label{font-size:11px;color:rgba(34,32,27,.55);font-weight:600;min-height:28px;}
+        .dt-logo-zone{width:100%;height:90px;border:1.5px dashed rgba(34,32,27,.2);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:all .15s;color:rgba(34,32,27,.4);font-size:9.5px;text-align:center;overflow:hidden;}
+        .dt-logo-zone:hover{border-color:var(--s-brasa);color:var(--s-brasa);}
         /* Prize card upload */
-        .dt-prize-upload-zone{width:100%;min-height:120px;border:2px dashed rgba(43,38,32,.15);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .15s;background:#F1F3EE;overflow:hidden;margin-bottom:6px;}
-        .dt-prize-upload-zone:hover{border-color:#C75D3A;background:#F5EFE6;}
+        .dt-prize-upload-zone{width:100%;min-height:120px;border:2px dashed rgba(34,32,27,.15);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .15s;background:var(--s-salvia);overflow:hidden;margin-bottom:6px;}
+        .dt-prize-upload-zone:hover{border-color:var(--s-brasa);background:#F5EFE6;}
         .dt-prize-upload-preview{width:100%;height:140px;object-fit:cover;}
-        .dt-prize-upload-hint{font-size:12px;color:rgba(43,38,32,.5);font-weight:600;}
-        .dt-prize-upload-sub{font-size:10px;color:rgba(43,38,32,.35);}
-        .dt-logo-zone--filled{border-style:solid;border-color:rgba(43,38,32,.12);}
+        .dt-prize-upload-hint{font-size:12px;color:rgba(34,32,27,.5);font-weight:600;}
+        .dt-prize-upload-sub{font-size:10px;color:rgba(34,32,27,.35);}
+        .dt-logo-zone--filled{border-style:solid;border-color:rgba(34,32,27,.12);}
         .dt-logo-preview{width:100%;height:100%;object-fit:contain;padding:6px;}
-        .dt-logo-remove{font-size:9.5px;color:#B23B3B;background:none;border:none;cursor:pointer;text-align:center;}
-        .dt-logo-error{font-size:9.5px;color:#B23B3B;text-align:center;line-height:1.4;padding:0 4px;}
+        .dt-logo-remove{font-size:9.5px;color:var(--s-error);background:none;border:none;cursor:pointer;text-align:center;}
+        .dt-logo-error{font-size:9.5px;color:var(--s-error);text-align:center;line-height:1.4;padding:0 4px;}
         .dt-fields-list{display:flex;flex-direction:column;gap:4px;}
-        .dt-field-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#F1F3EE;border:1px solid rgba(43,38,32,.07);border-radius:9px;font-size:11.5px;color:#2B2620;transition:background .1s;}
+        .dt-field-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s-salvia);border:1px solid rgba(34,32,27,.07);border-radius:9px;font-size:11.5px;color:var(--s-tinta);transition:background .1s;}
         .dt-field-row:hover{background:#F5EFE6;}
         .dt-field-row--inactive{opacity:.4;}
-        .dt-field-row--selected{background:rgba(199,93,58,.08);border-color:#C75D3A;}
-        .dt-grip-wrap{display:flex;align-items:center;cursor:grab;color:rgba(43,38,32,.3);flex-shrink:0;}
+        .dt-field-row--selected{background:rgba(199,93,58,.08);border-color:var(--s-brasa);}
+        .dt-grip-wrap{display:flex;align-items:center;cursor:grab;color:rgba(34,32,27,.3);flex-shrink:0;}
         .dt-grip-wrap--locked{cursor:default;opacity:.25;}
         .dt-field-label-text{flex:1;font-size:13px;}
         .dt-field-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;}
-        .dt-locked-badge{font-size:10px;padding:2px 9px;border-radius:20px;background:rgba(43,38,32,.08);color:rgba(43,38,32,.5);}
-        .dt-toggle-field{background:none;border:none;cursor:pointer;color:rgba(43,38,32,.4);display:flex;align-items:center;padding:2px;border-radius:4px;}
-        .dt-toggle-field:hover{color:#C75D3A;}
-        .dt-radio-dot-outer{width:15px;height:15px;border-radius:50%;border:2px solid rgba(43,38,32,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
-        .dt-radio-dot-outer--on{border-color:#C75D3A;}
-        .dt-radio-dot-inner{width:7px;height:7px;border-radius:50%;background:#C75D3A;}
+        .dt-locked-badge{font-size:10px;padding:2px 9px;border-radius:20px;background:rgba(34,32,27,.08);color:rgba(34,32,27,.5);}
+        .dt-toggle-field{background:none;border:none;cursor:pointer;color:rgba(34,32,27,.4);display:flex;align-items:center;padding:2px;border-radius:4px;}
+        .dt-toggle-field:hover{color:var(--s-brasa);}
+        .dt-radio-dot-outer{width:15px;height:15px;border-radius:50%;border:2px solid rgba(34,32,27,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+        .dt-radio-dot-outer--on{border-color:var(--s-brasa);}
+        .dt-radio-dot-inner{width:7px;height:7px;border-radius:50%;background:var(--s-brasa);}
         .dt-reward-mode-box{display:flex;flex-direction:column;gap:6px;}
-        .dt-reward-opt{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border:1.5px solid rgba(43,38,32,.1);border-radius:11px;cursor:pointer;transition:all .15s;}
-        .dt-reward-opt:hover{border-color:rgba(43,38,32,.2);}
-        .dt-reward-opt--on{border-color:#C75D3A;background:rgba(199,93,58,.05);}
-        .dt-reward-radio{width:16px;height:16px;border-radius:50%;border:2px solid rgba(43,38,32,.2);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;}
-        .dt-reward-opt--on .dt-reward-radio{border-color:#C75D3A;}
-        .dt-reward-radio-dot{width:7px;height:7px;border-radius:50%;background:#C75D3A;}
-        .dt-reward-opt-title{font-size:12px;font-weight:700;color:#2B2620;}
-        .dt-reward-opt-desc{font-size:10px;color:rgba(43,38,32,.5);margin-top:2px;}
-        .dt-field-picker{padding:10px;background:#F1F3EE;border-radius:9px;display:flex;flex-direction:column;gap:4px;}
-        .dt-field-picker-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.4);font-weight:700;margin-bottom:4px;}
-        .dt-reward-current{font-size:12px;color:#2B2620;}
-        .dt-reward-current--empty{color:rgba(43,38,32,.5);font-style:italic;}
-        .dt-reward-goto-forms{font-size:10.5px;color:rgba(43,38,32,.5);margin-top:4px;line-height:1.5;}
-        .dt-prize-input{width:100%;padding:9px 12px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:9px;background:#FFFFFF;color:#2B2620;font-family:var(--font-body);outline:none;}
-        .dt-prize-input:focus{border-color:#C75D3A;}
+        .dt-reward-opt{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border:1.5px solid rgba(34,32,27,.1);border-radius:11px;cursor:pointer;transition:all .15s;}
+        .dt-reward-opt:hover{border-color:rgba(34,32,27,.2);}
+        .dt-reward-opt--on{border-color:var(--s-brasa);background:rgba(199,93,58,.05);}
+        .dt-reward-radio{width:16px;height:16px;border-radius:50%;border:2px solid rgba(34,32,27,.2);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;}
+        .dt-reward-opt--on .dt-reward-radio{border-color:var(--s-brasa);}
+        .dt-reward-radio-dot{width:7px;height:7px;border-radius:50%;background:var(--s-brasa);}
+        .dt-reward-opt-title{font-size:12px;font-weight:700;color:var(--s-tinta);}
+        .dt-reward-opt-desc{font-size:10px;color:rgba(34,32,27,.5);margin-top:2px;}
+        .dt-field-picker{padding:10px;background:var(--s-salvia);border-radius:9px;display:flex;flex-direction:column;gap:4px;}
+        .dt-field-picker-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:rgba(34,32,27,.4);font-weight:700;margin-bottom:4px;}
+        .dt-reward-current{font-size:12px;color:var(--s-tinta);}
+        .dt-reward-current--empty{color:rgba(34,32,27,.5);font-style:italic;}
+        .dt-reward-goto-forms{font-size:10.5px;color:rgba(34,32,27,.5);margin-top:4px;line-height:1.5;}
+        .dt-prize-input{width:100%;padding:9px 12px;font-size:12px;border:1px solid rgba(34,32,27,.15);border-radius:9px;background:#FFFFFF;color:var(--s-tinta);font-family:var(--font-body);outline:none;}
+        .dt-prize-input:focus{border-color:var(--s-brasa);}
         /* Points config */
         .dt-points-config{display:flex;flex-direction:column;gap:10px;}
-        .dt-points-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#F1F3EE;border-radius:10px;}
-        .dt-points-label{font-size:12px;color:#2B2620;font-weight:500;}
+        .dt-points-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--s-salvia);border-radius:10px;}
+        .dt-points-label{font-size:12px;color:var(--s-tinta);font-weight:500;}
         .dt-points-input-wrap{display:flex;align-items:center;gap:6px;}
-        .dt-points-input{width:60px;padding:5px 8px;font-size:14px;font-weight:700;border:1.5px solid rgba(43,38,32,.15);border-radius:8px;text-align:center;background:#FFFFFF;color:#2B2620;font-family:var(--font-display);outline:none;}
-        .dt-points-input:focus{border-color:#C75D3A;}
-        .dt-points-unit{font-size:11px;color:rgba(43,38,32,.5);font-weight:600;}
-        .dt-points-note{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:rgba(24,95,165,.06);border:1px solid rgba(24,95,165,.15);border-radius:10px;font-size:11px;color:rgba(43,38,32,.6);line-height:1.5;}
-        .dt-points-note svg{color:#185FA5;flex-shrink:0;margin-top:1px;}
-        .dt-points-note strong{color:#185FA5;}
+        .dt-points-input{width:60px;padding:5px 8px;font-size:14px;font-weight:700;border:1.5px solid rgba(34,32,27,.15);border-radius:8px;text-align:center;background:#FFFFFF;color:var(--s-tinta);font-family:var(--font-display);outline:none;}
+        .dt-points-input:focus{border-color:var(--s-brasa);}
+        .dt-points-unit{font-size:11px;color:rgba(34,32,27,.5);font-weight:600;}
+        .dt-points-note{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:rgba(24,95,165,.06);border:1px solid rgba(24,95,165,.15);border-radius:10px;font-size:11px;color:rgba(34,32,27,.6);line-height:1.5;}
+        .dt-points-note svg{color:var(--s-info);flex-shrink:0;margin-top:1px;}
+        .dt-points-note strong{color:var(--s-info);}
         /* Membership redirect note */
         .dt-membership-note{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:rgba(199,93,58,.06);border:1px solid rgba(199,93,58,.2);border-radius:11px;}
-        .dt-membership-note svg{color:#C75D3A;flex-shrink:0;margin-top:2px;}
-        .dt-membership-note-title{font-size:12px;font-weight:700;color:#C75D3A;margin-bottom:3px;}
-        .dt-membership-note-desc{font-size:10.5px;color:rgba(43,38,32,.6);line-height:1.5;}
+        .dt-membership-note svg{color:var(--s-brasa);flex-shrink:0;margin-top:2px;}
+        .dt-membership-note-title{font-size:12px;font-weight:700;color:var(--s-brasa);margin-bottom:3px;}
+        .dt-membership-note-desc{font-size:10.5px;color:rgba(34,32,27,.6);line-height:1.5;}
         /* Color picker */
-        .dt-appearance-label{font-size:11.5px;color:rgba(43,38,32,.55);margin-bottom:8px;font-weight:500;display:flex;align-items:center;gap:4px;}
+        .dt-appearance-label{font-size:11.5px;color:rgba(34,32,27,.55);margin-bottom:8px;font-weight:500;display:flex;align-items:center;gap:4px;}
         .dt-color-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
         .dt-color-dot{width:24px;height:24px;flex:0 0 24px;padding:0;aspect-ratio:1;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:all .15s;}
-        .dt-color-dot--on{border-color:#2B2620;transform:scale(1.12);}
+        .dt-color-dot--on{border-color:var(--s-tinta);transform:scale(1.12);}
         .dt-custom-color-row{display:flex;align-items:center;gap:8px;}
-        .dt-custom-swatch{width:26px;height:26px;border-radius:50%;border:2px solid rgba(43,38,32,.2);cursor:pointer;display:block;overflow:hidden;flex-shrink:0;}
+        .dt-custom-swatch{width:26px;height:26px;border-radius:50%;border:2px solid rgba(34,32,27,.2);cursor:pointer;display:block;overflow:hidden;flex-shrink:0;}
         .dt-color-native{opacity:0;width:1px;height:1px;border:none;padding:0;}
-        .dt-hex-input{width:80px;padding:5px 8px;font-size:11.5px;border:1px solid rgba(43,38,32,.15);border-radius:7px;background:#F1F3EE;color:#2B2620;font-family:monospace;outline:none;}
-        .dt-hex-input:focus{border-color:#C75D3A;}
-        .dt-hex-label{font-size:10px;color:rgba(43,38,32,.45);}
+        .dt-hex-input{width:80px;padding:5px 8px;font-size:11.5px;border:1px solid rgba(34,32,27,.15);border-radius:7px;background:var(--s-salvia);color:var(--s-tinta);font-family:monospace;outline:none;}
+        .dt-hex-input:focus{border-color:var(--s-brasa);}
+        .dt-hex-label{font-size:10px;color:rgba(34,32,27,.45);}
         .dt-opts{display:flex;flex-wrap:wrap;gap:6px;}
-        .dt-opt{display:inline-flex;align-items:center;gap:2px;background:#fff;border:1.5px solid rgba(43,38,32,.14);border-radius:999px;padding:3px 4px 3px 10px;}
-        .dt-opt:focus-within{border-color:#C75D3A;}
-        .dt-opt input{border:none;outline:none;background:transparent;font-size:12px;font-weight:600;color:#2B2620;font-family:var(--font-body);min-width:4ch;max-width:200px;padding:0;}
-        .dt-opt button{width:20px;height:20px;border-radius:50%;border:none;background:rgba(43,38,32,.07);color:rgba(43,38,32,.6);cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;}
-        .dt-opt button:hover{background:rgba(199,93,58,.15);color:#C75D3A;}
+        .dt-opt{display:inline-flex;align-items:center;gap:2px;background:#fff;border:1.5px solid rgba(34,32,27,.14);border-radius:999px;padding:3px 4px 3px 10px;}
+        .dt-opt:focus-within{border-color:var(--s-brasa);}
+        .dt-opt input{border:none;outline:none;background:transparent;font-size:12px;font-weight:600;color:var(--s-tinta);font-family:var(--font-body);min-width:4ch;max-width:200px;padding:0;}
+        .dt-opt button{width:20px;height:20px;border-radius:50%;border:none;background:rgba(34,32,27,.07);color:rgba(34,32,27,.6);cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;}
+        .dt-opt button:hover{background:rgba(199,93,58,.15);color:var(--s-brasa);}
         .dt-opt--new{border-style:dashed;padding-right:10px;}
         .dt-opt--new input{width:190px;font-weight:500;}
         .dt-swatches{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
-        .dt-swatch{width:26px;height:26px;flex:0 0 26px;padding:0;border-radius:50%;border:1.5px solid rgba(43,38,32,.18);cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;transition:transform .12s,box-shadow .12s;}
+        .dt-swatch{width:26px;height:26px;flex:0 0 26px;padding:0;border-radius:50%;border:1.5px solid rgba(34,32,27,.18);cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;transition:transform .12s,box-shadow .12s;}
         .dt-swatch:hover{transform:scale(1.08);}
-        .dt-swatch--on{box-shadow:0 0 0 2px #fff,0 0 0 4px #C75D3A;}
-        .dt-swatch--auto{background:#fff;font-size:11px;font-weight:800;color:rgba(43,38,32,.6);font-family:var(--font-display);}
+        .dt-swatch--on{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--s-brasa);}
+        .dt-swatch--auto{background:#fff;font-size:11px;font-weight:800;color:rgba(34,32,27,.6);font-family:var(--font-display);}
         .dt-swatch--custom{background:conic-gradient(#f43f5e,#f59e0b,#84cc16,#06b6d4,#6366f1,#d946ef,#f43f5e);overflow:hidden;}
-        .dt-upgrade-color-note{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(43,38,32,.45);padding:8px 10px;background:rgba(43,38,32,.04);border-radius:8px;margin-top:4px;}
+        .dt-upgrade-color-note{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(34,32,27,.45);padding:8px 10px;background:rgba(34,32,27,.04);border-radius:8px;margin-top:4px;}
         .dt-stamps-row{display:flex;gap:7px;}
-        .dt-stamp-count-btn{width:40px;height:32px;border-radius:8px;border:1px solid rgba(43,38,32,.12);background:#F1F3EE;font-size:13px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;}
-        .dt-stamp-count-btn--on{background:#C75D3A;color:#fff;border-color:#C75D3A;}
+        .dt-stamp-count-btn{width:40px;height:32px;border-radius:8px;border:1px solid rgba(34,32,27,.12);background:var(--s-salvia);font-size:13px;font-weight:600;color:rgba(34,32,27,.55);cursor:pointer;transition:all .15s;}
+        .dt-stamp-count-btn--on{background:var(--s-brasa);color:#fff;border-color:var(--s-brasa);}
         /* Mobile tabs */
         .dt-mobile-tabs{display:none;gap:4px;}
-        .dt-mobile-tab{padding:6px 12px;border-radius:8px;border:1.5px solid rgba(43,38,32,.12);background:#F1F3EE;font-size:12px;color:rgba(43,38,32,.5);cursor:pointer;font-family:var(--font-body);}
-        .dt-mobile-tab--on{background:#C75D3A;color:#fff;border-color:#C75D3A;font-weight:600;}
+        .dt-mobile-tab{padding:6px 12px;border-radius:8px;border:1.5px solid rgba(34,32,27,.12);background:var(--s-salvia);font-size:12px;color:rgba(34,32,27,.5);cursor:pointer;font-family:var(--font-body);}
+        .dt-mobile-tab--on{background:var(--s-brasa);color:#fff;border-color:var(--s-brasa);font-weight:600;}
         /* Preview panel */
-        .dt-preview-panel{background:#F1F3EE;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;padding:32px 24px;}
+        .dt-preview-panel{background:var(--s-salvia);overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;padding:32px 24px;}
         .dt-preview-inner{display:flex;flex-direction:column;align-items:center;width:100%;max-width:360px;}
         .dt-platform-switch{display:flex;gap:20px;margin-bottom:22px;}
-        .dt-platform-btn{font-size:13px;color:rgba(43,38,32,.4);background:none;border:none;cursor:pointer;padding-bottom:6px;border-bottom:2.5px solid transparent;font-family:var(--font-body);transition:all .15s;}
-        .dt-platform-btn--on{color:#2B2620;border-bottom-color:#C75D3A;font-weight:600;}
+        .dt-platform-btn{font-size:13px;color:rgba(34,32,27,.4);background:none;border:none;cursor:pointer;padding-bottom:6px;border-bottom:2.5px solid transparent;font-family:var(--font-body);transition:all .15s;}
+        .dt-platform-btn--on{color:var(--s-tinta);border-bottom-color:var(--s-brasa);font-weight:600;}
         .dt-tier-preview-selector{display:flex;align-items:center;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
-        .dt-tier-preview-label{font-size:10.5px;color:rgba(43,38,32,.45);margin-right:2px;}
-        .dt-tier-preview-btn{font-size:10.5px;padding:5px 12px;border-radius:20px;border:1.5px solid rgba(43,38,32,.15);background:#FFFFFF;color:rgba(43,38,32,.55);cursor:pointer;font-weight:600;transition:all .15s;}
-        .dt-preview-note{font-size:11px;color:rgba(43,38,32,.4);text-align:center;margin-top:16px;}
+        .dt-tier-preview-label{font-size:10.5px;color:rgba(34,32,27,.45);margin-right:2px;}
+        .dt-tier-preview-btn{font-size:10.5px;padding:5px 12px;border-radius:20px;border:1.5px solid rgba(34,32,27,.15);background:#FFFFFF;color:rgba(34,32,27,.55);cursor:pointer;font-weight:600;transition:all .15s;}
+        .dt-preview-note{font-size:11px;color:rgba(34,32,27,.4);text-align:center;margin-top:16px;}
         /* Real pass */
-        .dt-real-pass{width:300px;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(43,38,32,.25);}
+        .dt-real-pass{width:300px;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(34,32,27,.25);}
         /* Imágenes reales del pase (backend): logo 160×50 pt y franja 375×144 pt, en proporción al ancho del pase. */
         .dt-real-pass-logo-real{display:block;width:47%;height:auto;}
         .dt-real-pass-strip{display:block;width:100%;height:auto;}
         .dt-skel-logo{width:47%;aspect-ratio:160/50;border-radius:8px;background:rgba(255,255,255,.18);}
         .dt-skel-strip{width:100%;aspect-ratio:375/144;background:rgba(255,255,255,.12);}
         .dt-skel-dark{background:rgba(255,255,255,.18);}
-        .dt-gp{width:300px;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(43,38,32,.25);font-family:'Roboto',var(--font-body);}
+        .dt-gp{width:300px;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(34,32,27,.25);font-family:'Roboto',var(--font-body);}
         .dt-gp-head{display:flex;align-items:center;gap:10px;padding:16px 18px 6px;}
         .dt-gp-logo{width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;}
         .dt-gp-biz{font-size:13px;font-weight:500;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1341,7 +1335,7 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-real-pass-qr-section{background:#FFFFFF;border-radius:14px;padding:14px 18px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;margin:4px 24px 24px;}
         .dt-real-pass-powered{font-size:10px;color:#999;}
         /* Google pass */
-        .dt-gpass{width:300px;border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(43,38,32,.25);background:#FFFFFF;}
+        .dt-gpass{width:300px;border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(34,32,27,.25);background:#FFFFFF;}
         .dt-gpass-hero{height:100px;padding:14px 18px;display:flex;flex-direction:column;justify-content:space-between;}
         .dt-gpass-logo-row{display:flex;align-items:center;gap:8px;}
         .dt-gpass-logo-box{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.3);}
@@ -1362,15 +1356,15 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-gpass-qr-label{font-size:9px;color:#5f6368;}
         /* Card manager */
         .dt-plan-bar{display:flex;align-items:center;gap:14px;background:rgba(199,93,58,.07);border:1px solid rgba(199,93,58,.2);border-radius:12px;padding:12px 18px;}
-        .dt-toggle-error{background:rgba(178,59,59,.08);border:1px solid rgba(178,59,59,.25);color:#B23B3B;border-radius:10px;padding:10px 14px;font-size:12.5px;margin-top:12px;}
-        .dt-plan-text{font-size:12.5px;color:#2B2620;flex:1;}
-        .dt-plan-text strong{color:#C75D3A;}
+        .dt-toggle-error{background:rgba(178,59,59,.08);border:1px solid rgba(178,59,59,.25);color:var(--s-error);border-radius:10px;padding:10px 14px;font-size:12.5px;margin-top:12px;}
+        .dt-plan-text{font-size:12.5px;color:var(--s-tinta);flex:1;}
+        .dt-plan-text strong{color:var(--s-brasa);}
         .dt-plan-dots{display:flex;gap:6px;}
-        .dt-plan-dot{width:10px;height:10px;border-radius:50%;background:rgba(43,38,32,.12);}
-        .dt-plan-dot--on{background:#C75D3A;}
-        .dt-upgrade-link{font-size:11.5px;color:#C75D3A;font-weight:700;background:none;border:none;cursor:pointer;}
+        .dt-plan-dot{width:10px;height:10px;border-radius:50%;background:rgba(34,32,27,.12);}
+        .dt-plan-dot--on{background:var(--s-brasa);}
+        .dt-upgrade-link{font-size:11.5px;color:var(--s-brasa);font-weight:700;background:none;border:none;cursor:pointer;}
         .dt-cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
-        .dt-card-tile{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:16px;overflow:hidden;box-shadow:0 1px 8px rgba(43,38,32,.04);display:flex;flex-direction:column;}
+        .dt-card-tile{background:#FFFFFF;border:1px solid rgba(34,32,27,.07);border-radius:16px;overflow:hidden;box-shadow:0 1px 8px rgba(34,32,27,.04);display:flex;flex-direction:column;}
         .dt-mini-pass{padding:16px;display:flex;flex-direction:column;gap:10px;min-height:160px;}
         .dt-mini-pass-top{display:flex;justify-content:space-between;align-items:flex-start;}
         .dt-mini-logo-img{max-height:22px;max-width:80px;object-fit:contain;}
@@ -1382,44 +1376,38 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-mini-stamp-img{width:100%;height:100%;object-fit:contain;}
         .dt-mini-tier-row{display:flex;gap:4px;flex-wrap:wrap;}
         .dt-mini-tier-chip{font-size:8px;padding:2px 8px;border-radius:20px;background:rgba(255,255,255,.18);color:rgba(255,255,255,.7);font-weight:600;}
-        .dt-mini-tier-chip--active{background:rgba(255,255,255,.85);color:#2B2620;}
+        .dt-mini-tier-chip--active{background:rgba(255,255,255,.85);color:var(--s-tinta);}
         .dt-mini-points{font-size:22px;font-weight:800;color:#FFFFFF;}
         .dt-mini-qr-hint{width:28px;height:28px;background:rgba(255,255,255,.9);border-radius:4px;margin-top:auto;align-self:flex-end;display:flex;align-items:center;justify-content:center;}
         .dt-tile-info{padding:12px 14px;display:flex;flex-direction:column;gap:5px;}
         .dt-tile-name-row{display:flex;align-items:center;justify-content:space-between;}
-        .dt-tile-name{font-family:var(--font-display);font-weight:700;font-size:13px;color:#2B2620;}
-        .dt-tile-toggle{width:34px;height:19px;border-radius:20px;background:rgba(43,38,32,.15);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
-        .dt-tile-toggle--on{background:#5B8C5A;}
-        .dt-tile-toggle-thumb{width:15px;height:15px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;}
-        .dt-tile-toggle--on .dt-tile-toggle-thumb{left:17px;}
-        .dt-tile-sub{font-size:10.5px;color:rgba(43,38,32,.45);}
-        .dt-tile-edit{font-size:12px;color:#C75D3A;font-weight:700;background:none;border:none;cursor:pointer;padding:0;text-align:left;}
-        .dt-tile-delete{background:none;border:none;cursor:pointer;color:rgba(43,38,32,.25);display:flex;align-items:center;padding:3px;border-radius:5px;transition:all .15s;}
-        .dt-tile-delete:hover{color:#B23B3B;background:rgba(178,59,59,.08);}
-        .dt-tile-edit:hover{text-decoration:underline;}
-        .dt-add-tile{background:#FFFFFF;border:1.5px dashed rgba(43,38,32,.18);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:200px;cursor:pointer;transition:all .15s;}
-        .dt-add-tile:hover{border-color:#C75D3A;background:rgba(199,93,58,.03);}
+        .dt-tile-name{font-family:var(--font-display);font-weight:700;font-size:13px;color:var(--s-tinta);}
+        .dt-tile-sub{font-size:10.5px;color:rgba(34,32,27,.45);}
+        .dt-tile-delete{background:none;border:none;cursor:pointer;color:rgba(34,32,27,.25);display:flex;align-items:center;padding:3px;border-radius:5px;transition:all .15s;}
+        .dt-tile-delete:hover{color:var(--s-error);background:rgba(178,59,59,.08);}
+        .dt-add-tile{background:#FFFFFF;border:1.5px dashed rgba(34,32,27,.18);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:200px;cursor:pointer;transition:all .15s;}
+        .dt-add-tile:hover{border-color:var(--s-brasa);background:rgba(199,93,58,.03);}
         .dt-add-tile--disabled{opacity:.5;cursor:not-allowed;}
-        .dt-add-tile--disabled:hover{border-color:rgba(43,38,32,.18);background:#FFFFFF;}
-        .dt-add-icon{width:40px;height:40px;border-radius:50%;background:rgba(199,93,58,.1);display:flex;align-items:center;justify-content:center;color:#C75D3A;}
-        .dt-add-label{font-size:12.5px;color:rgba(43,38,32,.5);font-weight:600;text-align:center;}
+        .dt-add-tile--disabled:hover{border-color:rgba(34,32,27,.18);background:#FFFFFF;}
+        .dt-add-icon{width:40px;height:40px;border-radius:50%;background:rgba(199,93,58,.1);display:flex;align-items:center;justify-content:center;color:var(--s-brasa);}
+        .dt-add-label{font-size:12.5px;color:rgba(34,32,27,.5);font-weight:600;text-align:center;}
 
         /* ── RESPONSIVE ── */
         /* ── Flip card ── */
         .dt-face-switch{display:flex;gap:20px;margin-bottom:16px;}
-        .dt-face-btn{font-size:13px;color:rgba(43,38,32,.4);background:none;border:none;cursor:pointer;padding-bottom:6px;border-bottom:2.5px solid transparent;font-family:var(--font-body);transition:all .15s;display:flex;align-items:center;gap:5px;}
-        .dt-face-btn--on{color:#C75D3A;border-bottom-color:#C75D3A;font-weight:600;}
-        .dt-type-fixed{background:#F1F3EE;border:1.5px solid rgba(43,38,32,.1);border-radius:9px;padding:10px 12px;}
-        .dt-type-fixed-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#2B2620;}
-        .dt-type-fixed-note{font-size:10.5px;color:rgba(43,38,32,.4);line-height:1.5;}
-        .dt-membership-color-note{font-size:11px;color:rgba(43,38,32,.5);background:#F1F3EE;border-radius:9px;padding:10px 12px;line-height:1.5;}
-        .dt-public-desc-input{width:100%;padding:10px 12px;font-size:12.5px;border:1.5px solid rgba(43,38,32,.12);border-radius:9px;background:#F1F3EE;color:#2B2620;font-family:var(--font-body);outline:none;}
-        .dt-public-desc-input:focus{border-color:#C75D3A;background:#fff;}
-        .dt-public-desc-note{font-size:10px;color:rgba(43,38,32,.4);line-height:1.5;margin-top:6px;}
+        .dt-face-btn{font-size:13px;color:rgba(34,32,27,.4);background:none;border:none;cursor:pointer;padding-bottom:6px;border-bottom:2.5px solid transparent;font-family:var(--font-body);transition:all .15s;display:flex;align-items:center;gap:5px;}
+        .dt-face-btn--on{color:var(--s-brasa);border-bottom-color:var(--s-brasa);font-weight:600;}
+        .dt-type-fixed{background:var(--s-salvia);border:1.5px solid rgba(34,32,27,.1);border-radius:9px;padding:10px 12px;}
+        .dt-type-fixed-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--s-tinta);}
+        .dt-type-fixed-note{font-size:10.5px;color:rgba(34,32,27,.4);line-height:1.5;}
+        .dt-membership-color-note{font-size:11px;color:rgba(34,32,27,.5);background:var(--s-salvia);border-radius:9px;padding:10px 12px;line-height:1.5;}
+        .dt-public-desc-input{width:100%;padding:10px 12px;font-size:12.5px;border:1.5px solid rgba(34,32,27,.12);border-radius:9px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);outline:none;}
+        .dt-public-desc-input:focus{border-color:var(--s-brasa);background:#fff;}
+        .dt-public-desc-note{font-size:10px;color:rgba(34,32,27,.4);line-height:1.5;margin-top:6px;}
         .dt-pass-flip-wrap{transition:opacity .3s ease, transform .3s ease;}
         .dt-pass-flip-wrap--flipping{opacity:0;transform:scale(.96);}
         /* Prize card body */
-        .dt-prize-pass{width:300px;min-height:420px;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(43,38,32,.25);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:36px 28px;text-align:center;gap:18px;}
+        .dt-prize-pass{width:300px;min-height:420px;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(34,32,27,.25);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:36px 28px;text-align:center;gap:18px;}
         .dt-prize-top-msg{font-size:22px;font-weight:800;color:#FFFFFF;line-height:1.25;letter-spacing:-.01em;}
         .dt-prize-img-area{flex:1;width:100%;display:flex;align-items:center;justify-content:center;min-height:150px;}
         .dt-prize-img{width:100%;max-height:180px;object-fit:contain;border-radius:12px;}
@@ -1427,44 +1415,40 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-prize-img-hint{font-size:11.5px;color:rgba(255,255,255,.5);}
         .dt-prize-bottom-msg{font-size:12.5px;color:rgba(255,255,255,.7);line-height:1.6;max-width:230px;}
         /* Flip editor inputs */
-        .dt-flip-input{width:100%;padding:8px 11px;font-size:13px;border:1.5px solid rgba(43,38,32,.12);border-radius:9px;background:#FFFFFF;color:#2B2620;font-family:var(--font-body);outline:none;margin-bottom:2px;}
-        .dt-flip-input:focus{border-color:#C75D3A;}
-        .dt-flip-textarea{width:100%;padding:8px 11px;font-size:12.5px;border:1.5px solid rgba(43,38,32,.12);border-radius:9px;background:#FFFFFF;color:#2B2620;font-family:var(--font-body);outline:none;resize:none;margin-bottom:2px;line-height:1.5;}
-        .dt-flip-textarea:focus{border-color:#C75D3A;}
-        .dt-flip-char{font-size:10px;color:rgba(43,38,32,.35);text-align:right;margin-bottom:4px;}
-        .dt-flip-preview-btn{width:100%;margin-top:10px;padding:9px;background:rgba(199,93,58,.08);border:1.5px dashed rgba(199,93,58,.4);border-radius:10px;font-size:12px;color:#C75D3A;font-weight:700;cursor:pointer;transition:all .15s;}
+        .dt-flip-input{width:100%;padding:8px 11px;font-size:13px;border:1.5px solid rgba(34,32,27,.12);border-radius:9px;background:#FFFFFF;color:var(--s-tinta);font-family:var(--font-body);outline:none;margin-bottom:2px;}
+        .dt-flip-input:focus{border-color:var(--s-brasa);}
+        .dt-flip-textarea{width:100%;padding:8px 11px;font-size:12.5px;border:1.5px solid rgba(34,32,27,.12);border-radius:9px;background:#FFFFFF;color:var(--s-tinta);font-family:var(--font-body);outline:none;resize:none;margin-bottom:2px;line-height:1.5;}
+        .dt-flip-textarea:focus{border-color:var(--s-brasa);}
+        .dt-flip-char{font-size:10px;color:rgba(34,32,27,.35);text-align:right;margin-bottom:4px;}
+        .dt-flip-preview-btn{width:100%;margin-top:10px;padding:9px;background:rgba(199,93,58,.08);border:1.5px dashed rgba(199,93,58,.4);border-radius:10px;font-size:12px;color:var(--s-brasa);font-weight:700;cursor:pointer;transition:all .15s;}
         .dt-flip-preview-btn:hover{background:rgba(199,93,58,.14);}
         /* ── New card modal ── */
-        .dt-modal-overlay{position:fixed;inset:0;background:rgba(43,38,32,.45);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(3px);}
-        .dt-modal{background:#FFFFFF;border-radius:20px;padding:28px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(43,38,32,.2);}
+        .dt-modal-overlay{position:fixed;inset:0;background:rgba(34,32,27,.45);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(3px);}
+        .dt-modal{background:#FFFFFF;border-radius:20px;padding:28px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(34,32,27,.2);}
         .dt-modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
-        .dt-modal-title{font-family:var(--font-display);font-weight:700;font-size:17px;color:#2B2620;}
-        .dt-modal-close{background:none;border:none;cursor:pointer;color:rgba(43,38,32,.4);padding:4px;border-radius:6px;display:flex;align-items:center;}
-        .dt-modal-close:hover{background:#F1F3EE;color:#2B2620;}
-        .dt-modal-field-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(43,38,32,.5);margin-bottom:8px;}
-        .dt-modal-input{width:100%;padding:11px 14px;font-size:14px;border:1.5px solid rgba(43,38,32,.12);border-radius:11px;background:#F1F3EE;color:#2B2620;font-family:var(--font-body);outline:none;transition:border-color .15s;}
-        .dt-modal-input:focus{border-color:#C75D3A;background:#fff;}
+        .dt-modal-title{font-family:var(--font-display);font-weight:700;font-size:17px;color:var(--s-tinta);}
+        .dt-modal-close{background:none;border:none;cursor:pointer;color:rgba(34,32,27,.4);padding:4px;border-radius:6px;display:flex;align-items:center;}
+        .dt-modal-close:hover{background:var(--s-salvia);color:var(--s-tinta);}
+        .dt-modal-field-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(34,32,27,.5);margin-bottom:8px;}
+        .dt-modal-input{width:100%;padding:11px 14px;font-size:14px;border:1.5px solid rgba(34,32,27,.12);border-radius:11px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);outline:none;transition:border-color .15s;}
+        .dt-modal-input:focus{border-color:var(--s-brasa);background:#fff;}
         .dt-modal-types{display:flex;flex-direction:column;gap:8px;}
-        .dt-modal-type{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1.5px solid rgba(43,38,32,.1);border-radius:12px;cursor:pointer;transition:all .15s;}
-        .dt-modal-type:hover{border-color:rgba(43,38,32,.25);}
-        .dt-modal-type--on{border-color:#C75D3A;background:rgba(199,93,58,.05);}
-        .dt-modal-radio{width:18px;height:18px;border-radius:50%;border:2px solid rgba(43,38,32,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;}
-        .dt-modal-radio--on{border-color:#C75D3A;}
-        .dt-modal-radio-dot{width:9px;height:9px;border-radius:50%;background:#C75D3A;}
-        .dt-modal-type-name{font-size:13px;font-weight:700;color:#2B2620;margin-bottom:2px;}
-        .dt-modal-type-desc{font-size:11px;color:rgba(43,38,32,.5);}
+        .dt-modal-type{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1.5px solid rgba(34,32,27,.1);border-radius:12px;cursor:pointer;transition:all .15s;}
+        .dt-modal-type:hover{border-color:rgba(34,32,27,.25);}
+        .dt-modal-type--on{border-color:var(--s-brasa);background:rgba(199,93,58,.05);}
+        .dt-modal-radio{width:18px;height:18px;border-radius:50%;border:2px solid rgba(34,32,27,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+        .dt-modal-radio--on{border-color:var(--s-brasa);}
+        .dt-modal-radio-dot{width:9px;height:9px;border-radius:50%;background:var(--s-brasa);}
+        .dt-modal-type-name{font-size:13px;font-weight:700;color:var(--s-tinta);margin-bottom:2px;}
+        .dt-modal-type-desc{font-size:11px;color:rgba(34,32,27,.5);}
         .dt-modal-stamps{display:flex;gap:8px;flex-wrap:wrap;}
-        .dt-modal-stamp-btn{display:flex;flex-direction:column;align-items:center;gap:3px;width:64px;padding:12px 0;background:#F1F3EE;border:2px solid rgba(43,38,32,.1);border-radius:12px;cursor:pointer;font-family:var(--font-display);transition:all .15s;}
-        .dt-modal-stamp-btn:hover{border-color:rgba(43,38,32,.3);}
-        .dt-modal-stamp-btn--on{border-color:#C75D3A;background:#C75D3A;color:#fff;}
+        .dt-modal-stamp-btn{display:flex;flex-direction:column;align-items:center;gap:3px;width:64px;padding:12px 0;background:var(--s-salvia);border:2px solid rgba(34,32,27,.1);border-radius:12px;cursor:pointer;font-family:var(--font-display);transition:all .15s;}
+        .dt-modal-stamp-btn:hover{border-color:rgba(34,32,27,.3);}
+        .dt-modal-stamp-btn--on{border-color:var(--s-brasa);background:var(--s-brasa);color:#fff;}
         .dt-modal-reward-opts{display:flex;flex-direction:column;gap:8px;}
-        .dt-modal-hint{font-size:12px;color:rgba(43,38,32,.5);background:rgba(43,38,32,.04);padding:11px 14px;border-radius:10px;line-height:1.6;}
-        .dt-modal-footer{display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-top:20px;border-top:1px solid rgba(43,38,32,.08);}
-        .dt-modal-cancel{background:none;border:1.5px solid rgba(43,38,32,.15);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;font-family:var(--font-body);}
-        .dt-modal-cancel:hover{border-color:rgba(43,38,32,.3);color:#2B2620;}
-        .dt-modal-next{background:#C75D3A;color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-display);transition:background .15s;}
-        .dt-modal-next:hover{background:#B14F2F;}
-        .dt-add-upgrade{font-size:11px;color:#C75D3A;font-weight:700;}
+        .dt-modal-hint{font-size:12px;color:rgba(34,32,27,.5);background:rgba(34,32,27,.04);padding:11px 14px;border-radius:10px;line-height:1.6;}
+        .dt-modal-footer{display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-top:20px;border-top:1px solid rgba(34,32,27,.08);}
+        .dt-add-upgrade{font-size:11px;color:var(--s-brasa);font-weight:700;}
         @media (max-width: 768px) {
           .dt-mobile-tabs{display:flex;}
           .dt-editor-body{grid-template-columns:1fr;}
@@ -1475,7 +1459,6 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
           .dt-cards-grid{grid-template-columns:1fr 1fr;}
           .dt-content{padding:14px 16px;}
           .dt-editor-header{flex-wrap:wrap;height:auto;padding:12px 16px;gap:8px;}
-          .dt-back-btn{font-size:12px;}
           .dt-logo-row{flex-wrap:wrap;}
           .dt-plan-bar{flex-wrap:wrap;gap:8px;}
         }

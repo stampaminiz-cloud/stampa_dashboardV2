@@ -31,9 +31,9 @@ export function OptionsEditor({ options, onChange, max = 10 }: { options: string
 
 const CSS = `
   .fm-opts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
-  .fm-opt{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;background:rgba(199,93,58,.08);color:#9E4529;border-radius:20px;padding:3px 5px 3px 10px;}
-  .fm-opt button{border:none;background:rgba(199,93,58,.15);color:#9E4529;width:16px;height:16px;border-radius:50%;font-size:11px;line-height:14px;cursor:pointer;padding:0;}
-  .fm-opt-input{border:1px dashed rgba(43,38,32,.2);border-radius:20px;padding:4px 10px;font-size:11.5px;font-family:inherit;outline:none;min-width:150px;}
-  .fm-opt-input:focus{border-color:#C75D3A;border-style:solid;}
-  .fm-opt-hint{font-size:10.5px;color:#B23B3B;}
+  .fm-opt{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;background:rgba(199,93,58,.08);color:var(--s-brasa-2);border-radius:20px;padding:3px 5px 3px 10px;}
+  .fm-opt button{border:none;background:rgba(199,93,58,.15);color:var(--s-brasa-2);width:16px;height:16px;border-radius:50%;font-size:11px;line-height:14px;cursor:pointer;padding:0;}
+  .fm-opt-input{border:1px dashed rgba(34,32,27,.2);border-radius:20px;padding:4px 10px;font-size:11.5px;font-family:inherit;outline:none;min-width:150px;}
+  .fm-opt-input:focus{border-color:var(--s-brasa);border-style:solid;}
+  .fm-opt-hint{font-size:10.5px;color:var(--s-error);}
 `
