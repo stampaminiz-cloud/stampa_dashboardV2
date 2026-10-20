@@ -7,7 +7,7 @@ import {
   IconHome, IconUsers, IconChartBar, IconGift, IconBell, IconClipboardList, IconPalette, IconUserCircle,
   IconMapPin, IconSettings, IconCalendar, IconClock, IconQrcode, IconRosetteDiscountCheck, IconHandStop,
   IconStar, IconHeartHandshake, IconAt, IconMessageStar, IconAbc, IconHash, IconList, IconPhone, IconCake,
-  IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconTrash, IconPencil, IconLock, IconCheck, IconX, IconUser, IconHelpCircle, IconLogout, IconMenu2, IconBolt, IconAlertTriangle, IconInfoCircle, IconCircleCheck,
+  IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconTrash, IconPencil, IconLock, IconCheck, IconX, IconUser, IconHelpCircle, IconLogout, IconMenu2, IconBolt, IconAlertTriangle, IconInfoCircle, IconCircleCheck, IconCoins, IconCrown, IconArrowUp, IconArrowDown, IconSearch, IconDownload, IconArrowBackUp, IconHourglass,
   type Icon as TablerIcon,
 } from '@tabler/icons-react'
 
@@ -23,13 +23,15 @@ export const ICONS = {
   abrir: IconChevronDown, anterior: IconChevronLeft, siguiente: IconChevronRight, agregar: IconPlus,
   borrar: IconTrash, editar: IconPencil, candado: IconLock, listo: IconCheck, cerrar: IconX,
   perfil: IconUser, ayuda: IconHelpCircle, salir: IconLogout, menu: IconMenu2, idea: IconBolt,
+  puntos: IconCoins, membresia: IconCrown, flechaArriba: IconArrowUp, flechaAbajo: IconArrowDown, buscar: IconSearch,
+  descargar: IconDownload, nivel: IconArrowUp, vencio: IconHourglass, deshacer: IconArrowBackUp,
   atencion: IconAlertTriangle, info: IconInfoCircle, hecho: IconCircleCheck,
 } satisfies Record<string, TablerIcon>
 
 export type IconName = keyof typeof ICONS
 
-// Tamaños: 14 (en botones y tablas), 16 (por defecto) y 20 (menú y títulos).
-export function Icon({ name, size = 16, className, title }: { name: IconName; size?: 14 | 16 | 18 | 20 | 24; className?: string; title?: string }) {
+// Tamaños: 12 (en etiquetas chicas), 14 (botones y tablas), 16 (por defecto), 18-20 (menú y títulos).
+export function Icon({ name, size = 16, className, title }: { name: IconName; size?: 12 | 14 | 16 | 18 | 20 | 24; className?: string; title?: string }) {
   const C = ICONS[name]
   return <C size={size} stroke={1.75} className={className} aria-hidden={title ? undefined : true} aria-label={title} role={title ? 'img' : undefined} />
 }
