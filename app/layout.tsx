@@ -1,5 +1,11 @@
 // app/layout.tsx
 import type { Metadata } from 'next'
+// Estilos globales en este orden: variables de marca, sistema visual y base.
+// Van importados acá y no encadenados con @import dentro de globals.css: el
+// 20/10/2026 un build de Vercel con caché vieja sirvió globals.css sin
+// sistema.css y todo el panel quedó sin colores ni botones.
+import '@/styles/stampa-tokens.css'
+import '@/styles/sistema.css'
 import '@/app/globals.css'
 import { SITE_URL } from '@/lib/site'
 import { Familjen_Grotesk, Albert_Sans } from 'next/font/google'
