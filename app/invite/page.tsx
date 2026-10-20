@@ -8,19 +8,19 @@ import { apiAcceptInvite, apiGetInvite } from '@/lib/api'
 type Invite = { fullName: string; email: string; businessName: string }
 
 const CSS = `
-  .iv-root { min-height: 100vh; background: #F1F3EE; display: flex; align-items: center; justify-content: center; padding: 24px 16px; font-family: var(--font-body); color: #2B2620; }
-  .iv-card { background: #FFFFFF; border: 1px solid rgba(43,38,32,.08); border-radius: 24px; padding: 36px 32px; width: 100%; max-width: 400px; box-shadow: 0 8px 40px rgba(43,38,32,.1); }
-  .iv-logo { font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #C75D3A; margin-bottom: 22px; }
+  .iv-root { min-height: 100vh; background: var(--s-salvia); display: flex; align-items: center; justify-content: center; padding: 24px 16px; font-family: var(--font-body); color: var(--s-tinta); }
+  .iv-card { background: #FFFFFF; border: 1px solid rgba(34,32,27,.08); border-radius: 24px; padding: 36px 32px; width: 100%; max-width: 400px; box-shadow: 0 8px 40px rgba(34,32,27,.1); }
+  .iv-logo { font-family: var(--font-display); font-weight: 800; font-size: 20px; color: var(--s-brasa); margin-bottom: 22px; }
   .iv-title { font-family: var(--font-display); font-weight: 800; font-size: 24px; line-height: 1.2; margin: 0 0 8px; }
-  .iv-sub { font-size: 14px; color: rgba(43,38,32,.6); line-height: 1.55; margin: 0 0 22px; }
-  .iv-label { display: block; font-size: 11px; font-weight: 700; color: rgba(43,38,32,.5); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
-  .iv-input { width: 100%; padding: 12px 14px; font-size: 14px; border: 1.5px solid rgba(43,38,32,.12); border-radius: 12px; background: #F1F3EE; color: #2B2620; font-family: inherit; outline: none; margin-bottom: 14px; }
-  .iv-input:focus { border-color: #C75D3A; background: #FFFFFF; }
-  .iv-input[readonly] { color: rgba(43,38,32,.55); }
-  .iv-btn { width: 100%; background: #C75D3A; color: #FFFFFF; border: none; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-display); margin-top: 4px; }
+  .iv-sub { font-size: 14px; color: rgba(34,32,27,.6); line-height: 1.55; margin: 0 0 22px; }
+  .iv-label { display: block; font-size: 11px; font-weight: 700; color: rgba(34,32,27,.5); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .iv-input { width: 100%; padding: 12px 14px; font-size: 14px; border: 1.5px solid rgba(34,32,27,.12); border-radius: 12px; background: var(--s-salvia); color: var(--s-tinta); font-family: inherit; outline: none; margin-bottom: 14px; }
+  .iv-input:focus { border-color: var(--s-brasa); background: #FFFFFF; }
+  .iv-input[readonly] { color: rgba(34,32,27,.55); }
+  .iv-btn { width: 100%; background: var(--s-brasa); color: #FFFFFF; border: none; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-display); margin-top: 4px; }
   .iv-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .iv-error { font-size: 12.5px; color: #B23B3B; background: rgba(178,59,59,.07); border: 1px solid rgba(178,59,59,.2); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; line-height: 1.5; }
-  .iv-muted { font-size: 13px; color: rgba(43,38,32,.55); text-align: center; }
+  .iv-error { font-size: 12.5px; color: var(--s-error); background: rgba(178,59,59,.07); border: 1px solid rgba(178,59,59,.2); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; line-height: 1.5; }
+  .iv-muted { font-size: 13px; color: rgba(34,32,27,.55); text-align: center; }
 `
 
 export default function InvitePage() {

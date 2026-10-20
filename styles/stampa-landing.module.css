@@ -70,6 +70,7 @@
 
   /* Botón flotante de WhatsApp (ventas) */
   .whatsappFab {
+  color: #fff;
     position: fixed;
     right: 20px;
     bottom: 20px;
