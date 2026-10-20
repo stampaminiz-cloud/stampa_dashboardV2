@@ -7,7 +7,7 @@ import {
   IconHome, IconUsers, IconChartBar, IconGift, IconBell, IconClipboardList, IconPalette, IconUserCircle,
   IconMapPin, IconSettings, IconCalendar, IconClock, IconQrcode, IconRosetteDiscountCheck, IconHandStop,
   IconStar, IconHeartHandshake, IconAt, IconMessageStar, IconAbc, IconHash, IconList, IconPhone, IconCake,
-  IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconTrash, IconPencil, IconLock, IconCheck, IconX, IconUser, IconHelpCircle, IconLogout, IconMenu2, IconBolt, IconAlertTriangle, IconInfoCircle, IconCircleCheck, IconCoins, IconCrown, IconArrowUp, IconArrowDown, IconSearch, IconDownload, IconArrowBackUp, IconHourglass, IconRepeat, IconFlame, IconMoon, IconTarget, IconUpload, IconMinus, IconBuildingStore, IconListCheck, IconMail, IconCreditCard, IconBrandApple, IconBrandGooglePlay, IconPhoto, IconArrowLeft, IconStarFilled, IconPencilMinus,
+  IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconTrash, IconPencil, IconLock, IconCheck, IconX, IconUser, IconHelpCircle, IconLogout, IconMenu2, IconBolt, IconAlertTriangle, IconInfoCircle, IconCircleCheck, IconCoins, IconCrown, IconArrowUp, IconArrowDown, IconSearch, IconDownload, IconArrowBackUp, IconHourglass, IconRepeat, IconFlame, IconMoon, IconTarget, IconUpload, IconBrandWhatsapp, IconCoffee, IconToolsKitchen2, IconScissors, IconBarbell, IconBread, IconLeaf, IconShirt, IconBook, IconMinus, IconBuildingStore, IconListCheck, IconMail, IconCreditCard, IconBrandApple, IconBrandGooglePlay, IconPhoto, IconArrowLeft, IconStarFilled, IconPencilMinus,
   type Icon as TablerIcon,
 } from '@tabler/icons-react'
 
@@ -28,6 +28,10 @@ export const ICONS = {
   apple: IconBrandApple, googlePlay: IconBrandGooglePlay,
   negocio: IconBuildingStore, reglas: IconListCheck, mail: IconMail, plan: IconCreditCard,
   menos: IconMinus,
+  // Rubros
+  cafe: IconCoffee, restaurante: IconToolsKitchen2, peluqueria: IconScissors, gym: IconBarbell, panaderia: IconBread,
+  spa: IconLeaf, ropa: IconShirt, libreria: IconBook,
+  whatsapp: IconBrandWhatsapp,
   subir: IconUpload, imagen: IconPhoto, volver: IconArrowLeft, estrella: IconStarFilled,
   objetivo: IconTarget, escribir: IconPencilMinus,
   vuelve: IconRepeat, fuerte: IconFlame, flojo: IconMoon,
@@ -37,7 +41,7 @@ export const ICONS = {
 export type IconName = keyof typeof ICONS
 
 // Tamaños: 12 (en etiquetas chicas), 14 (botones y tablas), 16 (por defecto), 18-20 (menú y títulos).
-export function Icon({ name, size = 16, className, title }: { name: IconName; size?: 12 | 14 | 16 | 18 | 20 | 24; className?: string; title?: string }) {
+export function Icon({ name, size = 16, className, title }: { name: IconName; size?: 12 | 14 | 16 | 18 | 20 | 24 | 28; className?: string; title?: string }) {
   const C = ICONS[name]
   return <C size={size} stroke={1.75} className={className} aria-hidden={title ? undefined : true} aria-label={title} role={title ? 'img' : undefined} />
 }

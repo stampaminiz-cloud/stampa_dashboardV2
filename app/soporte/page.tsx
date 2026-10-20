@@ -1,3 +1,4 @@
+import { Icon } from '@/components/ui/Icon'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { SALES_EMAIL, mailLink, whatsappLink } from '@/lib/contact'
@@ -42,8 +43,8 @@ export default function SoportePage() {
   return (
     <div data-theme="cream" style={{ background: 'var(--stampa-cream)', minHeight: '100vh' }}>
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '64px 32px 96px' }}>
-        <Link href="/" style={{ color: 'var(--stampa-ember)', fontSize: 'var(--text-sm)', fontWeight: 700 }}>
-          ← Volver a Stampa
+        <Link href="/" style={{ color: 'var(--stampa-ember)', fontSize: 'var(--text-sm)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Icon name="anterior" size={14} /> Volver a Stampa
         </Link>
 
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, color: 'var(--stampa-ink)', margin: '24px 0 8px' }}>
