@@ -2,7 +2,7 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.3.1 (por salir)
+## 1.3.1 (20/10/2026)
 
 **Arreglos**
 - Los estilos de marca y del sistema visual se importan directo en `app/layout.tsx` y no encadenados desde `globals.css`. El 20/10 un build de producción con caché vieja dejó el panel sin colores ni botones.
