@@ -9,6 +9,8 @@
 // Para no equivocarse de sucursal: se muestran siempre todas, la que está
 // elegida en la barra lateral aparece abierta y marcada, y cada tarjeta
 // guarda lo suyo ("Guardar cambios de Playa"); no hay un guardar general.
+import { Icon } from '@/components/ui/Icon'
+import { Switch } from '@/components/ui/Switch'
 import { TimeField } from '@/components/ui/DateTime'
 import { SALES_EMAIL, mailLink, whatsappLink } from '@/lib/contact'
 import React, { useEffect, useState } from 'react'
@@ -28,7 +30,7 @@ function HoursEditor({ hours, onChange, disabled }: { hours: DayHours[]; onChang
     return (
       <div className="lt-empty-hours">
         <span>Sin horarios cargados.</span>
-        {!disabled && <button type="button" className="lt-link" onClick={() => onChange(DEFAULT_HOURS)}>Cargar horarios</button>}
+        {!disabled && <button type="button" className="s-btn s-btn--text s-btn--sm" onClick={() => onChange(DEFAULT_HOURS)}>Cargar horarios</button>}
       </div>
     )
   }
@@ -38,9 +40,8 @@ function HoursEditor({ hours, onChange, disabled }: { hours: DayHours[]; onChang
       {hours.map((day, d) => (
         <div key={d} className="lt-hrow">
           <span className="lt-day">{DAYS[d]}</span>
-          <button type="button" role="switch" aria-checked={!day.closed} disabled={disabled} className={`lt-tog${day.closed ? '' : ' is-on'}`}
-            aria-label={`${DAYS[d]}: ${day.closed ? 'cerrado' : 'abierto'}`}
-            onClick={() => setDay(d, day.closed ? { closed: false, shifts: day.shifts.length ? day.shifts : [{ open: '09:00', close: '18:00' }] } : { closed: true, shifts: [] })} />
+          <Switch checked={!day.closed} disabled={disabled} label={`${DAYS[d]}: ${day.closed ? 'cerrado' : 'abierto'}`}
+            onChange={() => setDay(d, day.closed ? { closed: false, shifts: day.shifts.length ? day.shifts : [{ open: '09:00', close: '18:00' }] } : { closed: true, shifts: [] })} />
           {day.closed && <span className="lt-closed">Cerrado</span>}
           {!day.closed && (
             <span className="lt-shifts">
@@ -54,13 +55,13 @@ function HoursEditor({ hours, onChange, disabled }: { hours: DayHours[]; onChang
                 </span>
               ))}
               {day.shifts.length === 1 && !disabled && (
-                <button type="button" className="lt-link" onClick={() => {
+                <button type="button" className="s-btn s-btn--text s-btn--sm" onClick={() => {
                   // Corte al mediodía: si el primer turno llega a la tarde, se acorta.
                   const first = day.shifts[0]
                   const fixed = first.close > '13:00' || first.close < first.open ? { ...first, close: '13:00' } : first
                   const second = { open: fixed.close < '16:00' ? '16:00' : fixed.close, close: '20:00' }
                   setDay(d, { ...day, shifts: [fixed, second] })
-                }}>+ turno</button>
+                }}><Icon name="agregar" size={14} /> turno</button>
               )}
             </span>
           )}
@@ -68,8 +69,8 @@ function HoursEditor({ hours, onChange, disabled }: { hours: DayHours[]; onChang
       ))}
       {!disabled && (
         <div className="lt-hours-actions">
-          <button type="button" className="lt-link" onClick={() => onChange(hours.map(() => JSON.parse(JSON.stringify(hours[0]))))}>Copiar lunes a todos los días</button>
-          <button type="button" className="lt-link lt-link--muted" onClick={() => onChange([])}>Quitar horarios</button>
+          <button type="button" className="s-btn s-btn--text s-btn--sm" onClick={() => onChange(hours.map(() => JSON.parse(JSON.stringify(hours[0]))))}>Copiar lunes a todos los días</button>
+          <button type="button" className="s-btn s-btn--text s-btn--sm lt-muted" onClick={() => onChange([])}>Quitar horarios</button>
         </div>
       )}
     </div>
@@ -125,7 +126,7 @@ function LocationCard({ loc, businessId, open, onToggle, selected, tools, isMana
           </span>
           {!open && summary && <span className="lt-sum">{summary}</span>}
         </span>
-        <span className="lt-toggle">{open ? 'Cerrar' : 'Ver y editar'} <span aria-hidden="true">{open ? '▴' : '▾'}</span></span>
+        <span className="lt-toggle">{open ? 'Cerrar' : 'Ver y editar'} <span aria-hidden="true" className={open ? 'lt-chev lt-chev--open' : 'lt-chev'}><Icon name="abrir" size={14} /></span></span>
       </button>
 
       {open && (
@@ -163,10 +164,10 @@ function LocationCard({ loc, businessId, open, onToggle, selected, tools, isMana
           {err && !err.field && <div className="lt-err">{err.error}</div>}
           {!readOnly && (
             <div className="lt-actions">
-              {!loc.isPrimary ? <button type="button" className="lt-link lt-link--muted" disabled={busy} onClick={toggleActive}>{loc.status === 'off' ? 'Reactivar sucursal' : 'Desactivar sucursal'}</button> : <span />}
+              {!loc.isPrimary ? <button type="button" className="s-btn s-btn--text s-btn--sm lt-muted" disabled={busy} onClick={toggleActive}>{loc.status === 'off' ? 'Reactivar sucursal' : 'Desactivar sucursal'}</button> : <span />}
               <span className="lt-actions-end">
                 {ok && !dirty && <span className="lt-ok">Guardado</span>}
-                <button type="button" className="lt-btn" disabled={busy || !dirty} onClick={save}>{busy ? 'Guardando…' : `Guardar cambios de ${loc.name}`}</button>
+                <button type="button" className="s-btn s-btn--primary s-btn--sm" disabled={busy || !dirty} onClick={save}>{busy ? 'Guardando…' : `Guardar cambios de ${loc.name}`}</button>
               </span>
             </div>
           )}
@@ -236,7 +237,7 @@ export function LocationsTab({ businessId, businessName, isManager = false, sele
               <li><strong>Horarios:</strong> aparecen en el dorso de la tarjeta y en el formulario de registro.</li>
               <li><strong>Sucursales:</strong> hasta 3 con Pro, todas con la misma tarjeta y los mismos clientes.</li>
             </ul>
-            {!isManager && onChoosePlan && <button type="button" className="lt-btn" onClick={onChoosePlan}>Disponible desde Growth</button>}
+            {!isManager && onChoosePlan && <button type="button" className="s-btn s-btn--primary s-btn--sm" onClick={onChoosePlan}>Disponible desde Growth</button>}
             {/* Bajó de un plan con sucursales: se ven, pausadas, para consultar su historial. */}
             {data.locations.some(l => l.status === 'paused') && (
               <div className="lt-note" style={{ marginBottom: 0 }}>
@@ -252,14 +253,14 @@ export function LocationsTab({ businessId, businessName, isManager = false, sele
             <div className="lt-top">
               <div className="lt-count">{multiPlan ? (data.max === null ? `${data.activeCount} sucursales activas` : `${data.activeCount} de ${data.max} en tu plan ${data.plan}`) : 'Tu plan incluye una sucursal'}</div>
               {!isManager && (canAdd
-                ? !adding && <button type="button" className="lt-btn" onClick={() => setAdding(true)}>+ Agregar sucursal</button>
+                ? !adding && <button type="button" className="s-btn s-btn--primary s-btn--sm" onClick={() => setAdding(true)}><Icon name="agregar" size={14} /> Agregar sucursal</button>
                 : multiPlan
                   // Enterprise no se contrata solo: se consulta por WhatsApp o mail.
                   ? <span className="lt-contact">
-                      <a className="lt-btn-ghost" href={whatsappLink(`Hola! Quiero más sucursales en Stampa (plan Enterprise).`)} target="_blank" rel="noopener noreferrer">Más sucursales con Enterprise</a>
+                      <a className="s-btn s-btn--secondary s-btn--sm" href={whatsappLink(`Hola! Quiero más sucursales en Stampa (plan Enterprise).`)} target="_blank" rel="noopener noreferrer">Más sucursales con Enterprise</a>
                       <a className="lt-mail" href={mailLink('Plan Enterprise · más sucursales')}>o escribinos a {SALES_EMAIL}</a>
                     </span>
-                  : onChoosePlan && <button type="button" className="lt-btn-ghost" onClick={onChoosePlan}>Hasta 3 sucursales con Pro</button>)}
+                  : onChoosePlan && <button type="button" className="s-btn s-btn--secondary s-btn--sm" onClick={onChoosePlan}>Hasta 3 sucursales con Pro</button>)}
             </div>
             {adding && (
               <form className="lt-card lt-add" onSubmit={add}>
@@ -267,7 +268,7 @@ export function LocationsTab({ businessId, businessName, isManager = false, sele
                   <input className="lt-input" autoFocus value={newName} maxLength={60} placeholder="Playa" onChange={e => setNewName(e.target.value)} /></label>
                 {addErr && <div className="lt-err">{addErr}</div>}
                 <div className="lt-actions"><span className="lt-sub">Después cargás la dirección, la ubicación y los horarios.</span>
-                  <span className="lt-actions-end"><button type="button" className="lt-btn-ghost" onClick={() => { setAdding(false); setAddErr('') }}>Cancelar</button><button type="submit" className="lt-btn" disabled={addBusy}>{addBusy ? 'Creando…' : 'Crear sucursal'}</button></span></div>
+                  <span className="lt-actions-end"><button type="button" className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setAdding(false); setAddErr('') }}>Cancelar</button><button type="submit" className="s-btn s-btn--primary s-btn--sm" disabled={addBusy}>{addBusy ? 'Creando…' : 'Crear sucursal'}</button></span></div>
               </form>
             )}
             {data.locations.map(loc => (
@@ -283,70 +284,63 @@ export function LocationsTab({ businessId, businessName, isManager = false, sele
 }
 
 const CSS = `
+  .lt-chev{display:inline-flex;vertical-align:-2px;transition:transform .15s;}
+  .lt-chev--open{transform:rotate(180deg);}
+  .lt-muted{color:var(--s-tinta-3);}
   .lt-content{flex:1;overflow-y:auto;padding:22px 24px;display:flex;flex-direction:column;gap:12px;}
   .lt-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
-  .lt-count{font-size:13px;color:rgba(43,38,32,.6);}
-  .lt-card{background:#fff;border:1px solid rgba(43,38,32,.07);border-radius:14px;box-shadow:0 1px 8px rgba(43,38,32,.04);}
+  .lt-count{font-size:13px;color:rgba(34,32,27,.6);}
+  .lt-card{background:#fff;border:1px solid rgba(34,32,27,.07);border-radius:14px;box-shadow:0 1px 8px rgba(34,32,27,.04);}
   .lt-card--here{border:2px solid rgba(199,93,58,.55);}
-  .lt-card--dim .lt-name{color:rgba(43,38,32,.55);}
+  .lt-card--dim .lt-name{color:rgba(34,32,27,.55);}
   .lt-head{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;background:none;border:none;text-align:left;padding:16px 20px;cursor:pointer;font-family:var(--font-body);border-radius:14px;}
-  .lt-head:focus-visible{outline:2px solid #C75D3A;outline-offset:-2px;}
+  .lt-head:focus-visible{outline:2px solid var(--s-brasa);outline-offset:-2px;}
   .lt-head-main{display:flex;flex-direction:column;gap:3px;min-width:0;}
-  .lt-name{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-family:var(--font-display);font-size:14.5px;font-weight:700;color:#2B2620;}
-  .lt-sum{font-size:12px;color:rgba(43,38,32,.55);}
-  .lt-toggle{font-size:12px;font-weight:600;color:#C75D3A;flex-shrink:0;}
-  .lt-pill{font-family:var(--font-body);font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(43,38,32,.06);color:rgba(43,38,32,.6);}
+  .lt-name{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-family:var(--font-display);font-size:14.5px;font-weight:700;color:var(--s-tinta);}
+  .lt-sum{font-size:12px;color:rgba(34,32,27,.55);}
+  .lt-toggle{font-size:12px;font-weight:600;color:var(--s-brasa);flex-shrink:0;}
+  .lt-pill{font-family:var(--font-body);font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(34,32,27,.06);color:rgba(34,32,27,.6);}
   .lt-pill--on{background:rgba(91,140,90,.12);color:#3E6B3D;}
   .lt-pill--here{background:rgba(199,93,58,.12);color:#A9472A;}
   .lt-pill--paused{background:rgba(212,162,76,.18);color:#8A6420;}
   .lt-body{padding:0 20px 18px;display:flex;flex-direction:column;}
-  .lt-sec{border-top:1px solid rgba(43,38,32,.07);padding:14px 0;}
-  .lt-sec-title{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:#2B2620;margin-bottom:4px;}
-  .lt-sub{font-size:11.5px;color:rgba(43,38,32,.55);line-height:1.5;margin-bottom:8px;}
+  .lt-sec{border-top:1px solid rgba(34,32,27,.07);padding:14px 0;}
+  .lt-sec-title{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--s-tinta);margin-bottom:4px;}
+  .lt-sub{font-size:11.5px;color:rgba(34,32,27,.55);line-height:1.5;margin-bottom:8px;}
   .lt-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:12px;}
   .lt-field{display:flex;flex-direction:column;gap:4px;min-width:0;}
-  .lt-label{font-size:11.5px;font-weight:600;color:rgba(43,38,32,.7);}
-  .lt-label em{font-style:normal;font-weight:400;color:rgba(43,38,32,.45);}
-  .lt-input{width:100%;box-sizing:border-box;padding:8px 10px;font-size:12.5px;border:1px solid rgba(43,38,32,.15);border-radius:8px;background:#F1F3EE;color:#2B2620;font-family:var(--font-body);outline:none;min-width:0;}
-  .lt-input:focus{border-color:#C75D3A;}
+  .lt-label{font-size:11.5px;font-weight:600;color:rgba(34,32,27,.7);}
+  .lt-label em{font-style:normal;font-weight:400;color:rgba(34,32,27,.45);}
+  .lt-input{width:100%;box-sizing:border-box;padding:8px 10px;font-size:12.5px;border:1px solid rgba(34,32,27,.15);border-radius:8px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);outline:none;min-width:0;}
+  .lt-input:focus{border-color:var(--s-brasa);}
   .lt-maps{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .lt-maps .lt-input{flex:1;min-width:220px;}
   .lt-hours{display:flex;flex-direction:column;gap:6px;}
-  .lt-hrow{display:grid;grid-template-columns:86px 92px 1fr;align-items:center;gap:8px;min-height:32px;}
-  .lt-day{font-size:12.5px;font-weight:600;color:#2B2620;}
-  .lt-tog{width:36px;height:21px;border-radius:999px;background:rgba(34,32,27,.18);position:relative;border:none;cursor:pointer;flex-shrink:0;padding:0;}
-  .lt-tog::after{content:'';position:absolute;top:2.5px;left:2.5px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s;}
-  .lt-tog.is-on{background:#1B412F;}
-  .lt-tog.is-on::after{transform:translateX(15px);}
-  .lt-tog:disabled{opacity:.5;cursor:default;}
+  .lt-hrow{display:grid;grid-template-columns:86px 48px 1fr;align-items:center;gap:8px;min-height:32px;}
+  .lt-day{font-size:12.5px;font-weight:600;color:var(--s-tinta);}
   .lt-closed{font-size:12.5px;color:rgba(34,32,27,.5);}
   .lt-shifts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
   .lt-shift{display:inline-flex;align-items:center;gap:5px;}
-  .lt-time{padding:5px 6px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:7px;background:#F1F3EE;color:#2B2620;font-family:var(--font-body);}
-  .lt-a,.lt-y{font-size:11.5px;color:rgba(43,38,32,.5);}
-  .lt-x{background:none;border:none;font-size:16px;line-height:1;color:rgba(43,38,32,.45);cursor:pointer;padding:0 2px;}
+  .lt-time{padding:5px 6px;font-size:12px;border:1px solid rgba(34,32,27,.15);border-radius:7px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);}
+  .lt-a,.lt-y{font-size:11.5px;color:rgba(34,32,27,.5);}
+  .lt-x{display:inline-flex;align-items:center;background:none;border:none;line-height:1;color:rgba(34,32,27,.45);cursor:pointer;padding:0 2px;}
   .lt-hours-actions{display:flex;gap:16px;margin-top:6px;}
-  .lt-empty-hours{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(43,38,32,.55);}
-  .lt-link{font-size:12px;color:#C75D3A;font-weight:600;background:none;border:none;cursor:pointer;padding:0;font-family:var(--font-body);}
-  .lt-link--muted{color:rgba(43,38,32,.5);}
-  .lt-btn{font-size:12.5px;background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:9px 16px;cursor:pointer;font-weight:700;font-family:var(--font-body);}
-  .lt-btn:disabled{opacity:.45;cursor:default;}
-  .lt-btn-ghost{font-size:12.5px;background:#fff;color:#C75D3A;border:1px solid rgba(199,93,58,.35);border-radius:9px;padding:8px 14px;cursor:pointer;font-weight:600;font-family:var(--font-body);}
+  .lt-empty-hours{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(34,32,27,.55);}
   a.lt-btn-ghost{text-decoration:none;display:inline-block;}
   .lt-contact{display:inline-flex;flex-direction:column;align-items:flex-end;gap:4px;}
-  .lt-mail{font-size:11.5px;color:rgba(43,38,32,.55);text-decoration:none;}
+  .lt-mail{font-size:11.5px;color:rgba(34,32,27,.55);text-decoration:none;}
   .lt-mail:hover{text-decoration:underline;}
-  .lt-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid rgba(43,38,32,.07);padding-top:14px;}
+  .lt-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid rgba(34,32,27,.07);padding-top:14px;}
   .lt-actions-end{display:flex;align-items:center;gap:10px;}
-  .lt-ok{font-size:11.5px;color:#5B8C5A;font-weight:600;}
-  .lt-err{font-size:11.5px;color:#B23B3B;font-weight:600;margin-top:6px;}
+  .lt-ok{font-size:11.5px;color:var(--s-listo);font-weight:600;}
+  .lt-err{font-size:11.5px;color:var(--s-error);font-weight:600;margin-top:6px;}
   .lt-note{font-size:12px;color:#7A5A12;background:rgba(212,162,76,.14);border:1px solid rgba(212,162,76,.3);border-radius:10px;padding:9px 14px;margin-bottom:10px;line-height:1.5;}
   .lt-add{padding:16px 20px;display:flex;flex-direction:column;gap:10px;}
   .lt-add .lt-actions{border-top:none;padding-top:0;}
   .lt-locked{padding:22px 24px;display:flex;flex-direction:column;gap:12px;align-items:flex-start;}
-  .lt-locked-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:#2B2620;}
-  .lt-locked-list{margin:0;padding-left:18px;font-size:12.5px;color:rgba(43,38,32,.7);line-height:1.6;display:flex;flex-direction:column;gap:4px;}
-  .lt-skel{height:120px;border-radius:14px;background:rgba(43,38,32,.05);}
+  .lt-locked-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--s-tinta);}
+  .lt-locked-list{margin:0;padding-left:18px;font-size:12.5px;color:rgba(34,32,27,.7);line-height:1.6;display:flex;flex-direction:column;gap:4px;}
+  .lt-skel{height:120px;border-radius:14px;background:rgba(34,32,27,.05);}
   @media(max-width:768px){
     .lt-content{padding:14px 16px;}
     .lt-grid{grid-template-columns:1fr;}
