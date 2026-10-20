@@ -2,7 +2,12 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.3.0 (en staging, sin fecha) — sistema visual
+## 1.3.1 (por salir)
+
+**Arreglos**
+- Los estilos de marca y del sistema visual se importan directo en `app/layout.tsx` y no encadenados desde `globals.css`. El 20/10 un build de producción con caché vieja dejó el panel sin colores ni botones.
+
+## 1.3.0 (20/10/2026) — sistema visual
 
 **Nuevo**
 - Letras propias: Familjen Grotesk (títulos) y Albert Sans (texto), cargadas una sola vez con next/font. Chau Inter, Plus Jakarta, Syne y DM Sans.
