@@ -300,7 +300,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
         .nt-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(43,38,32,.38);font-weight:600;display:flex;align-items:center;gap:10px;margin-top:4px;}
         .nt-lbl::after{content:'';flex:1;height:1px;background:rgba(43,38,32,.1);}
         .nt-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:18px 20px;box-shadow:0 1px 8px rgba(43,38,32,.04);min-width:0;}
-        .nt-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
+        .nt-card-title{font-family:var(--font-display);font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
         .nt-card-sub{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:14px;line-height:1.5;}
         .nt-2col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start;}
         .nt-usage{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid rgba(43,38,32,.07);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(43,38,32,.65);}
@@ -310,12 +310,12 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
         .nt-usage--full{background:rgba(178,59,59,.05);border-color:rgba(178,59,59,.2);}
         .nt-usage--full .nt-usage-bar div{background:#B23B3B;}
         .nt-plan-btn{font-size:11.5px;font-weight:700;background:#C75D3A;color:#fff;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;}
-        .nt-textarea{width:100%;padding:12px 14px;font-size:13px;border:1.5px solid rgba(43,38,32,.12);border-radius:11px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;resize:vertical;outline:none;line-height:1.6;min-height:90px;}
+        .nt-textarea{width:100%;padding:12px 14px;font-size:13px;border:1.5px solid rgba(43,38,32,.12);border-radius:11px;background:#F1F3EE;color:#2B2620;font-family:var(--font-body);resize:vertical;outline:none;line-height:1.6;min-height:90px;}
         .nt-textarea:focus{border-color:#C75D3A;}
         .nt-char{text-align:right;font-size:10.5px;color:rgba(43,38,32,.4);margin:4px 0 14px;}
         .nt-char--warn{color:#C75D3A;font-weight:600;}
         .nt-field{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.45);font-weight:700;margin-bottom:8px;}
-        .nt-loc-hint{display:block;width:100%;text-align:left;font-size:12.5px;font-weight:600;color:#A9472A;background:rgba(199,93,58,.08);border:1px dashed rgba(199,93,58,.4);border-radius:10px;padding:9px 12px;margin-bottom:8px;cursor:pointer;font-family:'Inter',sans-serif;}
+        .nt-loc-hint{display:block;width:100%;text-align:left;font-size:12.5px;font-weight:600;color:#A9472A;background:rgba(199,93,58,.08);border:1px dashed rgba(199,93,58,.4);border-radius:10px;padding:9px 12px;margin-bottom:8px;cursor:pointer;font-family:var(--font-body);}
         .nt-auds{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
         .nt-aud{border:1.5px solid rgba(43,38,32,.1);border-radius:11px;transition:border-color .15s;}
         .nt-aud--on{border-color:#C75D3A;background:rgba(199,93,58,.04);}
@@ -330,13 +330,13 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
         .nt-aud-count small{font-weight:500;color:rgba(43,38,32,.45);font-size:10.5px;}
         .nt-lock{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#9C7530;background:rgba(212,162,76,.15);padding:2px 8px;border-radius:20px;}
         .nt-aud-extra{padding:0 13px 12px 38px;display:flex;flex-direction:column;gap:8px;}
-        .nt-select,.nt-input{padding:8px 11px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:9px;background:#fff;color:#2B2620;font-family:'Inter',sans-serif;outline:none;width:100%;}
+        .nt-select,.nt-input{padding:8px 11px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:9px;background:#fff;color:#2B2620;font-family:var(--font-body);outline:none;width:100%;}
         .nt-select:focus,.nt-input:focus{border-color:#C75D3A;}
         .nt-row{display:flex;gap:8px;}
         .nt-results{display:flex;flex-direction:column;border:1px solid rgba(43,38,32,.1);border-radius:9px;overflow:hidden;}
         .nt-result{display:flex;justify-content:space-between;gap:8px;padding:8px 11px;font-size:12px;background:#fff;border:none;border-bottom:1px solid rgba(43,38,32,.06);cursor:pointer;text-align:left;font-family:inherit;color:#2B2620;}
         .nt-result:last-child{border-bottom:none;}
-        .nt-result:hover{background:#FBF6EE;}
+        .nt-result:hover{background:#F1F3EE;}
         .nt-result small{color:rgba(43,38,32,.45);}
         .nt-chips{display:flex;flex-wrap:wrap;gap:6px;}
         .nt-chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;background:rgba(199,93,58,.1);color:#C75D3A;border-radius:20px;padding:4px 6px 4px 10px;}
@@ -345,17 +345,17 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
         .nt-types{display:flex;gap:6px;margin-bottom:10px;}
         .nt-when{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
         .nt-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
-        .nt-chip{padding:6px 13px;border-radius:999px;border:1.5px solid rgba(43,38,32,.12);background:#fff;font-size:12px;font-weight:600;color:rgba(43,38,32,.65);cursor:pointer;font-family:'Inter',sans-serif;}
+        .nt-chip{padding:6px 13px;border-radius:999px;border:1.5px solid rgba(43,38,32,.12);background:#fff;font-size:12px;font-weight:600;color:rgba(43,38,32,.65);cursor:pointer;font-family:var(--font-body);}
         .nt-chip:hover:not(:disabled){border-color:rgba(43,38,32,.3);}
         .nt-chip:disabled{opacity:.35;cursor:default;}
         .nt-chip--on{background:rgba(199,93,58,.1);border-color:#C75D3A;color:#C75D3A;}
         .nt-when-input{width:auto;padding:6px 10px;border-radius:999px;}
         .nt-when-sum{font-size:11.5px;color:rgba(43,38,32,.6);}
         .nt-when-sum--bad{color:#B4442A;}
-        .nt-type{flex:1;padding:9px;border-radius:10px;border:1.5px solid rgba(43,38,32,.1);background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:rgba(43,38,32,.55);display:flex;align-items:center;justify-content:center;gap:7px;font-family:'Inter',sans-serif;}
+        .nt-type{flex:1;padding:9px;border-radius:10px;border:1.5px solid rgba(43,38,32,.1);background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:rgba(43,38,32,.55);display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--font-body);}
         .nt-type--on{border-color:#C75D3A;background:rgba(199,93,58,.06);color:#C75D3A;}
         .nt-actions{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;}
-        .nt-send{flex:1;min-width:180px;background:#C75D3A;color:#fff;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;}
+        .nt-send{flex:1;min-width:180px;background:#C75D3A;color:#fff;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-display);}
         .nt-send:disabled{opacity:.45;cursor:not-allowed;}
         .nt-test{background:#fff;border:1.5px solid rgba(43,38,32,.15);color:#2B2620;border-radius:11px;padding:11px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;}
         .nt-test:disabled{opacity:.45;cursor:not-allowed;}
@@ -364,7 +364,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
         .nt-feedback--err{background:rgba(178,59,59,.08);color:#8E2F2F;}
         .nt-wallet-note{font-size:10.5px;color:rgba(43,38,32,.45);margin-top:10px;line-height:1.5;}
         .nt-phone{background:linear-gradient(160deg,#2B3A4A,#1B2530);border-radius:18px;padding:18px 12px 14px;}
-        .nt-phone-time{text-align:center;color:rgba(255,255,255,.85);font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:600;margin-bottom:14px;}
+        .nt-phone-time{text-align:center;color:rgba(255,255,255,.85);font-family:var(--font-display);font-size:28px;font-weight:600;margin-bottom:14px;}
         .nt-notif{background:rgba(245,245,247,.92);border-radius:14px;padding:10px 12px;display:flex;gap:10px;}
         .nt-notif-icon{width:30px;height:30px;border-radius:7px;background:#C75D3A;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;}
         .nt-notif-icon img{width:100%;height:100%;object-fit:cover;}

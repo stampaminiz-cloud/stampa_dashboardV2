@@ -338,7 +338,7 @@ function AnalyticsLocked({ isManager, onChoosePlan }: { isManager: boolean; onCh
         <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(199,93,58,.1)', color: '#C75D3A', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
-        <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 17, fontWeight: 800, color: '#2B2620', marginBottom: 6 }}>Analítica está disponible desde Growth</div>
+        <div style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 800, color: '#2B2620', marginBottom: 6 }}>Analítica está disponible desde Growth</div>
         <div style={{ fontSize: 13, color: 'rgba(43,38,32,.55)', marginBottom: 18, lineHeight: 1.55 }}>En Inicio tenés el resumen del día. Con Growth ves cómo rinde tu programa en detalle:</div>
         <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 22px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {FEATURES.map(f => (
@@ -549,12 +549,12 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(43,38,32,.38);font-weight:600;display:flex;align-items:center;gap:10px;}
         .an-lbl::after{content:'';flex:1;height:1px;background:rgba(43,38,32,.1);}
         .an-block-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:6px;}
-        .an-block-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:800;color:#2B2620;}
+        .an-block-title{font-family:var(--font-display);font-size:16px;font-weight:800;color:#2B2620;}
         .an-block-sub{font-size:11.5px;color:rgba(43,38,32,.45);margin-top:2px;}
         .an-block-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
         .an-card{background:#FFFFFF;border:1px solid rgba(43,38,32,.07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(43,38,32,.04);min-width:0;}
         .an-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
-        .an-ctitle{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
+        .an-ctitle{font-family:var(--font-display);font-weight:700;font-size:13px;color:#2B2620;margin-bottom:2px;}
         .an-csub{font-size:11px;color:rgba(43,38,32,.45);margin-bottom:12px;}
         .an-card-head .an-csub{margin-bottom:0;}
         .an-empty-note{font-size:12px;color:rgba(43,38,32,.4);padding:20px 0;text-align:center;}
@@ -564,13 +564,13 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
 
         /* ── Toolbar ── */
         .an-card-selector{display:flex;gap:6px;flex-wrap:wrap;}
-        .an-card-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
+        .an-card-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;font-family:var(--font-body);}
         .an-card-pill:hover{border-color:rgba(43,38,32,.25);}
         .an-card-pill--on{background:#1B412F;border-color:#1B412F;color:#F7F0E4;font-weight:600;}
-        .an-rpill{font-size:11px;padding:6px 12px;border-radius:20px;border:1px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.5);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+        .an-rpill{font-size:11px;padding:6px 12px;border-radius:20px;border:1px solid rgba(43,38,32,.12);background:#FFFFFF;color:rgba(43,38,32,.5);cursor:pointer;font-family:var(--font-body);transition:all .15s;}
         .an-rpill:hover{border-color:rgba(43,38,32,.25);}
         .an-rpill--on{background:rgba(199,93,58,.1);border-color:#C75D3A;color:#C75D3A;font-weight:600;}
-        .an-export{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid rgba(43,38,32,.15);background:#fff;color:#2B2620;cursor:pointer;font-family:'Inter',sans-serif;}
+        .an-export{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid rgba(43,38,32,.15);background:#fff;color:#2B2620;cursor:pointer;font-family:var(--font-body);}
         .an-export--icon{width:34px;height:34px;padding:0;justify-content:center;}
         .an-export:hover{border-color:rgba(43,38,32,.3);}
         .an-export:disabled{opacity:.6;cursor:default;}
@@ -585,7 +585,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-4col{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
 
         /* ── Métricas ── */
-        .an-stat-now{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;color:#2B2620;}
+        .an-stat-now{font-family:var(--font-display);font-size:24px;font-weight:800;color:#2B2620;}
         .an-stat-name{font-size:12px;font-weight:600;color:#2B2620;margin-top:4px;}
         .an-stat-label{font-size:10.5px;color:rgba(43,38,32,.45);}
         .an-stat-prev{font-size:11px;color:rgba(43,38,32,.35);margin-left:5px;}
@@ -599,7 +599,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         /* ── Segmentos ── */
         .an-seg-card{border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:4px;}
         .an-seg-top{display:flex;align-items:baseline;gap:5px;}
-        .an-seg-val{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;}
+        .an-seg-val{font-family:var(--font-display);font-size:24px;font-weight:800;}
         .an-seg-pct{font-size:10px;font-weight:600;opacity:.7;}
         .an-seg-name{font-size:12px;font-weight:700;}
         .an-seg-desc{font-size:10px;opacity:.7;line-height:1.3;}
@@ -630,7 +630,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
 
         /* ── ¿Cuándo viene tu gente? ── */
         .an-seg-switch{display:flex;background:rgba(43,38,32,.05);border-radius:10px;padding:3px;gap:2px;}
-        .an-seg-switch button{border:none;background:none;font-size:11.5px;padding:5px 11px;border-radius:8px;color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;}
+        .an-seg-switch button{border:none;background:none;font-size:11.5px;padding:5px 11px;border-radius:8px;color:rgba(43,38,32,.55);cursor:pointer;font-family:var(--font-body);}
         .an-seg-switch button.on{background:#fff;color:#2B2620;font-weight:600;box-shadow:0 1px 3px rgba(43,38,32,.12);}
         .an-when-insights{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;font-size:12.5px;color:#2B2620;line-height:1.45;}
         .an-when-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:8px;vertical-align:middle;}
@@ -651,13 +651,13 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-tiers-item strong{color:#2B2620;font-weight:700;}
         .an-tabsbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 14px;}
         .an-tabs{display:flex;gap:4px;background:rgba(43,38,32,.05);border-radius:12px;padding:4px;}
-        .an-tab{border:none;background:transparent;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;}
+        .an-tab{border:none;background:transparent;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;font-family:var(--font-body);}
         .an-tab--on{background:#fff;color:#2B2620;box-shadow:0 1px 4px rgba(43,38,32,.1);}
         .an-highlights{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:12px;}
         .an-hl{background:#FFFBF5;border-color:rgba(199,93,58,.16);}
         .an-hl-k{display:flex;align-items:center;gap:7px;font-size:12px;color:rgba(43,38,32,.6);}
         .an-hl-k svg{color:#C75D3A;flex-shrink:0;}
-        .an-hl-v{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#2B2620;margin-top:6px;}
+        .an-hl-v{font-family:var(--font-display);font-size:22px;font-weight:800;color:#2B2620;margin-top:6px;}
         .an-hl-v--up{color:#2E7D4F;}
         .an-hl-v--down{color:#B4442A;}
         .an-hl-s{font-size:11.5px;color:rgba(43,38,32,.45);margin-top:2px;}
@@ -698,7 +698,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-tsub{font-size:10.5px;color:rgba(43,38,32,.45);margin-top:3px;}
 
         /* ── Frecuencia ── */
-        .an-freq-stat{font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:800;color:#2B2620;}
+        .an-freq-stat{font-family:var(--font-display);font-size:28px;font-weight:800;color:#2B2620;}
         .an-freq-unit{font-size:13px;color:rgba(43,38,32,.45);}
         .an-freq-trend{font-size:11px;font-weight:700;margin-bottom:12px;}
         .an-freq-bars{display:flex;flex-direction:column;gap:6px;}

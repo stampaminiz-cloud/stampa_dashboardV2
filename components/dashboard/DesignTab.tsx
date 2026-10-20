@@ -184,7 +184,7 @@ function LogoUpload({ label, hint, value, onChange }: {
 // Selector: ColorField (colores del logo, paleta sugerida y color libre, en
 // todos los planes). Para el texto, sugeridos que suelen leerse bien.
 const BG_SUGGESTIONS = [...COLOR_PRESETS, ...EXTRA_COLOR_PRESETS].map(p => ({ hex: p.start, label: p.label }))
-const TEXT_SUGGESTIONS = ['#FFFFFF', '#FBF6EE', '#F2D9A6', '#C9A84C', '#8A8580', '#2B2620', '#000000'].map(hex => ({ hex }))
+const TEXT_SUGGESTIONS = ['#FFFFFF', '#F1F3EE', '#F2D9A6', '#C9A84C', '#8A8580', '#2B2620', '#000000'].map(hex => ({ hex }))
 // Segundo color del degradé: el del preset si es uno, si no un tono más oscuro.
 // Membresía: el texto del formulario y de la app se elige solo (claro u oscuro).
 function autoTextFor(bg: string) {
@@ -1150,9 +1150,9 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-content{flex:1;overflow-y:auto;padding:24px 28px;display:flex;flex-direction:column;gap:18px;}
         .dt-editor-header{height:54px;flex-shrink:0;background:#FFFFFF;border-bottom:1px solid rgba(43,38,32,.08);display:flex;align-items:center;padding:0 20px;gap:12px;}
         .dt-back-btn{display:flex;align-items:center;gap:6px;font-size:13px;color:rgba(43,38,32,.55);background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:7px;transition:all .15s;white-space:nowrap;}
-        .dt-back-btn:hover{background:#FBF6EE;color:#2B2620;}
-        .dt-editor-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;color:#2B2620;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .dt-save-btn{background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;white-space:nowrap;}
+        .dt-back-btn:hover{background:#F1F3EE;color:#2B2620;}
+        .dt-editor-title{font-family:var(--font-display);font-weight:700;font-size:15px;color:#2B2620;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .dt-save-btn{background:#C75D3A;color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font-display);white-space:nowrap;}
         .dt-save-btn:hover{background:#B14F2F;}
         .dt-save-btn:disabled{opacity:.6;cursor:not-allowed;}
         .dt-save-error{font-size:12px;color:#B23B3B;background:rgba(178,59,59,.07);border-bottom:1px solid rgba(178,59,59,.15);padding:8px 20px;}
@@ -1173,7 +1173,7 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-logo-zone{width:100%;height:90px;border:1.5px dashed rgba(43,38,32,.2);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:all .15s;color:rgba(43,38,32,.4);font-size:9.5px;text-align:center;overflow:hidden;}
         .dt-logo-zone:hover{border-color:#C75D3A;color:#C75D3A;}
         /* Prize card upload */
-        .dt-prize-upload-zone{width:100%;min-height:120px;border:2px dashed rgba(43,38,32,.15);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .15s;background:#FBF6EE;overflow:hidden;margin-bottom:6px;}
+        .dt-prize-upload-zone{width:100%;min-height:120px;border:2px dashed rgba(43,38,32,.15);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .15s;background:#F1F3EE;overflow:hidden;margin-bottom:6px;}
         .dt-prize-upload-zone:hover{border-color:#C75D3A;background:#F5EFE6;}
         .dt-prize-upload-preview{width:100%;height:140px;object-fit:cover;}
         .dt-prize-upload-hint{font-size:12px;color:rgba(43,38,32,.5);font-weight:600;}
@@ -1183,7 +1183,7 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-logo-remove{font-size:9.5px;color:#B23B3B;background:none;border:none;cursor:pointer;text-align:center;}
         .dt-logo-error{font-size:9.5px;color:#B23B3B;text-align:center;line-height:1.4;padding:0 4px;}
         .dt-fields-list{display:flex;flex-direction:column;gap:4px;}
-        .dt-field-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#FBF6EE;border:1px solid rgba(43,38,32,.07);border-radius:9px;font-size:11.5px;color:#2B2620;transition:background .1s;}
+        .dt-field-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#F1F3EE;border:1px solid rgba(43,38,32,.07);border-radius:9px;font-size:11.5px;color:#2B2620;transition:background .1s;}
         .dt-field-row:hover{background:#F5EFE6;}
         .dt-field-row--inactive{opacity:.4;}
         .dt-field-row--selected{background:rgba(199,93,58,.08);border-color:#C75D3A;}
@@ -1206,19 +1206,19 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-reward-radio-dot{width:7px;height:7px;border-radius:50%;background:#C75D3A;}
         .dt-reward-opt-title{font-size:12px;font-weight:700;color:#2B2620;}
         .dt-reward-opt-desc{font-size:10px;color:rgba(43,38,32,.5);margin-top:2px;}
-        .dt-field-picker{padding:10px;background:#FBF6EE;border-radius:9px;display:flex;flex-direction:column;gap:4px;}
+        .dt-field-picker{padding:10px;background:#F1F3EE;border-radius:9px;display:flex;flex-direction:column;gap:4px;}
         .dt-field-picker-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:rgba(43,38,32,.4);font-weight:700;margin-bottom:4px;}
         .dt-reward-current{font-size:12px;color:#2B2620;}
         .dt-reward-current--empty{color:rgba(43,38,32,.5);font-style:italic;}
         .dt-reward-goto-forms{font-size:10.5px;color:rgba(43,38,32,.5);margin-top:4px;line-height:1.5;}
-        .dt-prize-input{width:100%;padding:9px 12px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:9px;background:#FFFFFF;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
+        .dt-prize-input{width:100%;padding:9px 12px;font-size:12px;border:1px solid rgba(43,38,32,.15);border-radius:9px;background:#FFFFFF;color:#2B2620;font-family:var(--font-body);outline:none;}
         .dt-prize-input:focus{border-color:#C75D3A;}
         /* Points config */
         .dt-points-config{display:flex;flex-direction:column;gap:10px;}
-        .dt-points-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#FBF6EE;border-radius:10px;}
+        .dt-points-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#F1F3EE;border-radius:10px;}
         .dt-points-label{font-size:12px;color:#2B2620;font-weight:500;}
         .dt-points-input-wrap{display:flex;align-items:center;gap:6px;}
-        .dt-points-input{width:60px;padding:5px 8px;font-size:14px;font-weight:700;border:1.5px solid rgba(43,38,32,.15);border-radius:8px;text-align:center;background:#FFFFFF;color:#2B2620;font-family:'Plus Jakarta Sans',sans-serif;outline:none;}
+        .dt-points-input{width:60px;padding:5px 8px;font-size:14px;font-weight:700;border:1.5px solid rgba(43,38,32,.15);border-radius:8px;text-align:center;background:#FFFFFF;color:#2B2620;font-family:var(--font-display);outline:none;}
         .dt-points-input:focus{border-color:#C75D3A;}
         .dt-points-unit{font-size:11px;color:rgba(43,38,32,.5);font-weight:600;}
         .dt-points-note{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:rgba(24,95,165,.06);border:1px solid rgba(24,95,165,.15);border-radius:10px;font-size:11px;color:rgba(43,38,32,.6);line-height:1.5;}
@@ -1237,13 +1237,13 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-custom-color-row{display:flex;align-items:center;gap:8px;}
         .dt-custom-swatch{width:26px;height:26px;border-radius:50%;border:2px solid rgba(43,38,32,.2);cursor:pointer;display:block;overflow:hidden;flex-shrink:0;}
         .dt-color-native{opacity:0;width:1px;height:1px;border:none;padding:0;}
-        .dt-hex-input{width:80px;padding:5px 8px;font-size:11.5px;border:1px solid rgba(43,38,32,.15);border-radius:7px;background:#FBF6EE;color:#2B2620;font-family:monospace;outline:none;}
+        .dt-hex-input{width:80px;padding:5px 8px;font-size:11.5px;border:1px solid rgba(43,38,32,.15);border-radius:7px;background:#F1F3EE;color:#2B2620;font-family:monospace;outline:none;}
         .dt-hex-input:focus{border-color:#C75D3A;}
         .dt-hex-label{font-size:10px;color:rgba(43,38,32,.45);}
         .dt-opts{display:flex;flex-wrap:wrap;gap:6px;}
         .dt-opt{display:inline-flex;align-items:center;gap:2px;background:#fff;border:1.5px solid rgba(43,38,32,.14);border-radius:999px;padding:3px 4px 3px 10px;}
         .dt-opt:focus-within{border-color:#C75D3A;}
-        .dt-opt input{border:none;outline:none;background:transparent;font-size:12px;font-weight:600;color:#2B2620;font-family:'Inter',sans-serif;min-width:4ch;max-width:200px;padding:0;}
+        .dt-opt input{border:none;outline:none;background:transparent;font-size:12px;font-weight:600;color:#2B2620;font-family:var(--font-body);min-width:4ch;max-width:200px;padding:0;}
         .dt-opt button{width:20px;height:20px;border-radius:50%;border:none;background:rgba(43,38,32,.07);color:rgba(43,38,32,.6);cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;}
         .dt-opt button:hover{background:rgba(199,93,58,.15);color:#C75D3A;}
         .dt-opt--new{border-style:dashed;padding-right:10px;}
@@ -1252,21 +1252,21 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-swatch{width:26px;height:26px;flex:0 0 26px;padding:0;border-radius:50%;border:1.5px solid rgba(43,38,32,.18);cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;transition:transform .12s,box-shadow .12s;}
         .dt-swatch:hover{transform:scale(1.08);}
         .dt-swatch--on{box-shadow:0 0 0 2px #fff,0 0 0 4px #C75D3A;}
-        .dt-swatch--auto{background:#fff;font-size:11px;font-weight:800;color:rgba(43,38,32,.6);font-family:'Plus Jakarta Sans',sans-serif;}
+        .dt-swatch--auto{background:#fff;font-size:11px;font-weight:800;color:rgba(43,38,32,.6);font-family:var(--font-display);}
         .dt-swatch--custom{background:conic-gradient(#f43f5e,#f59e0b,#84cc16,#06b6d4,#6366f1,#d946ef,#f43f5e);overflow:hidden;}
         .dt-upgrade-color-note{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(43,38,32,.45);padding:8px 10px;background:rgba(43,38,32,.04);border-radius:8px;margin-top:4px;}
         .dt-stamps-row{display:flex;gap:7px;}
-        .dt-stamp-count-btn{width:40px;height:32px;border-radius:8px;border:1px solid rgba(43,38,32,.12);background:#FBF6EE;font-size:13px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;}
+        .dt-stamp-count-btn{width:40px;height:32px;border-radius:8px;border:1px solid rgba(43,38,32,.12);background:#F1F3EE;font-size:13px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;transition:all .15s;}
         .dt-stamp-count-btn--on{background:#C75D3A;color:#fff;border-color:#C75D3A;}
         /* Mobile tabs */
         .dt-mobile-tabs{display:none;gap:4px;}
-        .dt-mobile-tab{padding:6px 12px;border-radius:8px;border:1.5px solid rgba(43,38,32,.12);background:#FBF6EE;font-size:12px;color:rgba(43,38,32,.5);cursor:pointer;font-family:'Inter',sans-serif;}
+        .dt-mobile-tab{padding:6px 12px;border-radius:8px;border:1.5px solid rgba(43,38,32,.12);background:#F1F3EE;font-size:12px;color:rgba(43,38,32,.5);cursor:pointer;font-family:var(--font-body);}
         .dt-mobile-tab--on{background:#C75D3A;color:#fff;border-color:#C75D3A;font-weight:600;}
         /* Preview panel */
-        .dt-preview-panel{background:#FBF6EE;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;padding:32px 24px;}
+        .dt-preview-panel{background:#F1F3EE;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;padding:32px 24px;}
         .dt-preview-inner{display:flex;flex-direction:column;align-items:center;width:100%;max-width:360px;}
         .dt-platform-switch{display:flex;gap:20px;margin-bottom:22px;}
-        .dt-platform-btn{font-size:13px;color:rgba(43,38,32,.4);background:none;border:none;cursor:pointer;padding-bottom:6px;border-bottom:2.5px solid transparent;font-family:'Inter',sans-serif;transition:all .15s;}
+        .dt-platform-btn{font-size:13px;color:rgba(43,38,32,.4);background:none;border:none;cursor:pointer;padding-bottom:6px;border-bottom:2.5px solid transparent;font-family:var(--font-body);transition:all .15s;}
         .dt-platform-btn--on{color:#2B2620;border-bottom-color:#C75D3A;font-weight:600;}
         .dt-tier-preview-selector{display:flex;align-items:center;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
         .dt-tier-preview-label{font-size:10.5px;color:rgba(43,38,32,.45);margin-right:2px;}
@@ -1280,7 +1280,7 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-skel-logo{width:47%;aspect-ratio:160/50;border-radius:8px;background:rgba(255,255,255,.18);}
         .dt-skel-strip{width:100%;aspect-ratio:375/144;background:rgba(255,255,255,.12);}
         .dt-skel-dark{background:rgba(255,255,255,.18);}
-        .dt-gp{width:300px;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(43,38,32,.25);font-family:'Roboto','Inter',sans-serif;}
+        .dt-gp{width:300px;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(43,38,32,.25);font-family:'Roboto',var(--font-body);}
         .dt-gp-head{display:flex;align-items:center;gap:10px;padding:16px 18px 6px;}
         .dt-gp-logo{width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;}
         .dt-gp-biz{font-size:13px;font-weight:500;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1387,7 +1387,7 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-mini-qr-hint{width:28px;height:28px;background:rgba(255,255,255,.9);border-radius:4px;margin-top:auto;align-self:flex-end;display:flex;align-items:center;justify-content:center;}
         .dt-tile-info{padding:12px 14px;display:flex;flex-direction:column;gap:5px;}
         .dt-tile-name-row{display:flex;align-items:center;justify-content:space-between;}
-        .dt-tile-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:#2B2620;}
+        .dt-tile-name{font-family:var(--font-display);font-weight:700;font-size:13px;color:#2B2620;}
         .dt-tile-toggle{width:34px;height:19px;border-radius:20px;background:rgba(43,38,32,.15);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
         .dt-tile-toggle--on{background:#5B8C5A;}
         .dt-tile-toggle-thumb{width:15px;height:15px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;}
@@ -1407,13 +1407,13 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         /* ── RESPONSIVE ── */
         /* ── Flip card ── */
         .dt-face-switch{display:flex;gap:20px;margin-bottom:16px;}
-        .dt-face-btn{font-size:13px;color:rgba(43,38,32,.4);background:none;border:none;cursor:pointer;padding-bottom:6px;border-bottom:2.5px solid transparent;font-family:'Inter',sans-serif;transition:all .15s;display:flex;align-items:center;gap:5px;}
+        .dt-face-btn{font-size:13px;color:rgba(43,38,32,.4);background:none;border:none;cursor:pointer;padding-bottom:6px;border-bottom:2.5px solid transparent;font-family:var(--font-body);transition:all .15s;display:flex;align-items:center;gap:5px;}
         .dt-face-btn--on{color:#C75D3A;border-bottom-color:#C75D3A;font-weight:600;}
-        .dt-type-fixed{background:#FBF6EE;border:1.5px solid rgba(43,38,32,.1);border-radius:9px;padding:10px 12px;}
+        .dt-type-fixed{background:#F1F3EE;border:1.5px solid rgba(43,38,32,.1);border-radius:9px;padding:10px 12px;}
         .dt-type-fixed-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#2B2620;}
         .dt-type-fixed-note{font-size:10.5px;color:rgba(43,38,32,.4);line-height:1.5;}
-        .dt-membership-color-note{font-size:11px;color:rgba(43,38,32,.5);background:#FBF6EE;border-radius:9px;padding:10px 12px;line-height:1.5;}
-        .dt-public-desc-input{width:100%;padding:10px 12px;font-size:12.5px;border:1.5px solid rgba(43,38,32,.12);border-radius:9px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;outline:none;}
+        .dt-membership-color-note{font-size:11px;color:rgba(43,38,32,.5);background:#F1F3EE;border-radius:9px;padding:10px 12px;line-height:1.5;}
+        .dt-public-desc-input{width:100%;padding:10px 12px;font-size:12.5px;border:1.5px solid rgba(43,38,32,.12);border-radius:9px;background:#F1F3EE;color:#2B2620;font-family:var(--font-body);outline:none;}
         .dt-public-desc-input:focus{border-color:#C75D3A;background:#fff;}
         .dt-public-desc-note{font-size:10px;color:rgba(43,38,32,.4);line-height:1.5;margin-top:6px;}
         .dt-pass-flip-wrap{transition:opacity .3s ease, transform .3s ease;}
@@ -1427,9 +1427,9 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-prize-img-hint{font-size:11.5px;color:rgba(255,255,255,.5);}
         .dt-prize-bottom-msg{font-size:12.5px;color:rgba(255,255,255,.7);line-height:1.6;max-width:230px;}
         /* Flip editor inputs */
-        .dt-flip-input{width:100%;padding:8px 11px;font-size:13px;border:1.5px solid rgba(43,38,32,.12);border-radius:9px;background:#FFFFFF;color:#2B2620;font-family:'Inter',sans-serif;outline:none;margin-bottom:2px;}
+        .dt-flip-input{width:100%;padding:8px 11px;font-size:13px;border:1.5px solid rgba(43,38,32,.12);border-radius:9px;background:#FFFFFF;color:#2B2620;font-family:var(--font-body);outline:none;margin-bottom:2px;}
         .dt-flip-input:focus{border-color:#C75D3A;}
-        .dt-flip-textarea{width:100%;padding:8px 11px;font-size:12.5px;border:1.5px solid rgba(43,38,32,.12);border-radius:9px;background:#FFFFFF;color:#2B2620;font-family:'Inter',sans-serif;outline:none;resize:none;margin-bottom:2px;line-height:1.5;}
+        .dt-flip-textarea{width:100%;padding:8px 11px;font-size:12.5px;border:1.5px solid rgba(43,38,32,.12);border-radius:9px;background:#FFFFFF;color:#2B2620;font-family:var(--font-body);outline:none;resize:none;margin-bottom:2px;line-height:1.5;}
         .dt-flip-textarea:focus{border-color:#C75D3A;}
         .dt-flip-char{font-size:10px;color:rgba(43,38,32,.35);text-align:right;margin-bottom:4px;}
         .dt-flip-preview-btn{width:100%;margin-top:10px;padding:9px;background:rgba(199,93,58,.08);border:1.5px dashed rgba(199,93,58,.4);border-radius:10px;font-size:12px;color:#C75D3A;font-weight:700;cursor:pointer;transition:all .15s;}
@@ -1438,11 +1438,11 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-modal-overlay{position:fixed;inset:0;background:rgba(43,38,32,.45);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(3px);}
         .dt-modal{background:#FFFFFF;border-radius:20px;padding:28px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(43,38,32,.2);}
         .dt-modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
-        .dt-modal-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:17px;color:#2B2620;}
+        .dt-modal-title{font-family:var(--font-display);font-weight:700;font-size:17px;color:#2B2620;}
         .dt-modal-close{background:none;border:none;cursor:pointer;color:rgba(43,38,32,.4);padding:4px;border-radius:6px;display:flex;align-items:center;}
-        .dt-modal-close:hover{background:#FBF6EE;color:#2B2620;}
+        .dt-modal-close:hover{background:#F1F3EE;color:#2B2620;}
         .dt-modal-field-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(43,38,32,.5);margin-bottom:8px;}
-        .dt-modal-input{width:100%;padding:11px 14px;font-size:14px;border:1.5px solid rgba(43,38,32,.12);border-radius:11px;background:#FBF6EE;color:#2B2620;font-family:'Inter',sans-serif;outline:none;transition:border-color .15s;}
+        .dt-modal-input{width:100%;padding:11px 14px;font-size:14px;border:1.5px solid rgba(43,38,32,.12);border-radius:11px;background:#F1F3EE;color:#2B2620;font-family:var(--font-body);outline:none;transition:border-color .15s;}
         .dt-modal-input:focus{border-color:#C75D3A;background:#fff;}
         .dt-modal-types{display:flex;flex-direction:column;gap:8px;}
         .dt-modal-type{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1.5px solid rgba(43,38,32,.1);border-radius:12px;cursor:pointer;transition:all .15s;}
@@ -1454,15 +1454,15 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-modal-type-name{font-size:13px;font-weight:700;color:#2B2620;margin-bottom:2px;}
         .dt-modal-type-desc{font-size:11px;color:rgba(43,38,32,.5);}
         .dt-modal-stamps{display:flex;gap:8px;flex-wrap:wrap;}
-        .dt-modal-stamp-btn{display:flex;flex-direction:column;align-items:center;gap:3px;width:64px;padding:12px 0;background:#FBF6EE;border:2px solid rgba(43,38,32,.1);border-radius:12px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .15s;}
+        .dt-modal-stamp-btn{display:flex;flex-direction:column;align-items:center;gap:3px;width:64px;padding:12px 0;background:#F1F3EE;border:2px solid rgba(43,38,32,.1);border-radius:12px;cursor:pointer;font-family:var(--font-display);transition:all .15s;}
         .dt-modal-stamp-btn:hover{border-color:rgba(43,38,32,.3);}
         .dt-modal-stamp-btn--on{border-color:#C75D3A;background:#C75D3A;color:#fff;}
         .dt-modal-reward-opts{display:flex;flex-direction:column;gap:8px;}
         .dt-modal-hint{font-size:12px;color:rgba(43,38,32,.5);background:rgba(43,38,32,.04);padding:11px 14px;border-radius:10px;line-height:1.6;}
         .dt-modal-footer{display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-top:20px;border-top:1px solid rgba(43,38,32,.08);}
-        .dt-modal-cancel{background:none;border:1.5px solid rgba(43,38,32,.15);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;font-family:'Inter',sans-serif;}
+        .dt-modal-cancel{background:none;border:1.5px solid rgba(43,38,32,.15);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;color:rgba(43,38,32,.55);cursor:pointer;font-family:var(--font-body);}
         .dt-modal-cancel:hover{border-color:rgba(43,38,32,.3);color:#2B2620;}
-        .dt-modal-next{background:#C75D3A;color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:background .15s;}
+        .dt-modal-next{background:#C75D3A;color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-display);transition:background .15s;}
         .dt-modal-next:hover{background:#B14F2F;}
         .dt-add-upgrade{font-size:11px;color:#C75D3A;font-weight:700;}
         @media (max-width: 768px) {

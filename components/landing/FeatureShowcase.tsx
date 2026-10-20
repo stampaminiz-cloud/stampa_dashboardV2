@@ -154,7 +154,7 @@ const CSS = `
   @media (hover:hover){.fs-flip:hover .fs-inner{transform:rotateY(180deg);}.fs-flip.is-flipped:hover .fs-inner{transform:rotateY(180deg);}}
   .fs-face{position:absolute;inset:0;border-radius:var(--radius-2xl);backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;display:flex;flex-direction:column;}
   .fs-front{background:rgba(255,255,255,0.04);border:1px solid var(--border);}
-  .fs-back{background:#FBF6EE;color:#2B2620;transform:rotateY(180deg);padding:28px 28px 22px;border:1px solid rgba(199,93,58,.35);justify-content:center;}
+  .fs-back{background:#F1F3EE;color:#2B2620;transform:rotateY(180deg);padding:28px 28px 22px;border:1px solid rgba(199,93,58,.35);justify-content:center;}
   .fs-kicker{font-size:var(--text-2xs);font-weight:700;letter-spacing:var(--tracking-eyebrow);text-transform:uppercase;color:#C75D3A;margin-bottom:10px;}
   .fs-back h3{font-family:var(--font-display);font-weight:700;font-size:24px;color:#2B2620;margin:0 0 18px;}
   .fs-back ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:14px;}
@@ -173,7 +173,7 @@ const CSS = `
   .fs-center{display:flex;align-items:center;justify-content:center;}
   .fs-sand{background:#EDE4D3;}
 
-  .fs-panel{background:#FBF6EE;color:#2B2620;padding:16px 18px;display:flex;flex-direction:column;gap:12px;}
+  .fs-panel{background:#F1F3EE;color:#2B2620;padding:16px 18px;display:flex;flex-direction:column;gap:12px;}
   .fs-panel-top{display:flex;justify-content:space-between;align-items:baseline;}
   .fs-panel-top b{font-size:15px;}
   .fs-panel-top span{font-size:12px;color:rgba(43,38,32,0.6);background:#fff;border:1px solid rgba(43,38,32,0.12);border-radius:999px;padding:3px 10px;}

@@ -156,16 +156,13 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
   return (
     <div className={styles.page} style={{ background: 'var(--stampa-ink)', minHeight: '100vh', fontFamily: 'var(--font-sans)' }}>
       {/* Mismas fuentes que el dashboard (ver app/login/page.tsx) */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       {/* HEADER */}
       <header
         style={{
           position: 'sticky',
           top: 0,
           zIndex: 50,
-          background: 'rgba(251, 246, 238, 0.92)',
+          background: 'rgba(241, 243, 238, 0.92)',
           backdropFilter: 'blur(12px)',
           borderBottom: '1px solid var(--cream-300)',
           display: 'flex',
@@ -490,7 +487,7 @@ export default function StampaLanding({ market = 'AR' }: { market?: Market }) {
             </div>
             {!isMobile && (
               <div style={{ flexShrink: 0, background: 'var(--stampa-cream)', borderRadius: 20, padding: 16, boxShadow: 'var(--shadow-lg)', textAlign: 'center' }}>
-                <QrImage value={demoUrl} size={150} margin={0} dark="#1B412F" light="#FBF6EE" alt="QR para probar una tarjeta Stampa" style={{ display: 'block' }} />
+                <QrImage value={demoUrl} size={150} margin={0} dark="#1B412F" light="#F1F3EE" alt="QR para probar una tarjeta Stampa" style={{ display: 'block' }} />
                 <div style={{ marginTop: 10, fontSize: 'var(--text-xs)', fontWeight: 700, color: '#2B2620' }}>Apuntá la cámara acá</div>
               </div>
             )}

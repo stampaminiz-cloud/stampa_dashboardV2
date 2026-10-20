@@ -5,10 +5,10 @@ import { apiGetPublicBusiness, apiGetPublicCardFields, apiRegisterCustomer, apiR
 import { QrImage } from '@/components/QrImage'
 
 const CSS = `
-  :root { --font-display: 'Plus Jakarta Sans', sans-serif; --font-body: 'Inter', sans-serif; --brand-color: #C75D3A; --brand-second: #993C1D; --brand-text: #FFFFFF; }
+  :root { --brand-color: #C75D3A; --brand-second: #993C1D; --brand-text: #FFFFFF; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { overflow-x: hidden; width: 100%; max-width: 100vw; }
-  body { font-family: var(--font-body); background: #FBF6EE; color: #2B2620; }
+  body { font-family: var(--font-body); background: #F1F3EE; color: #2B2620; }
   .rg-shell { min-height: 100vh; width: 100%; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-x: hidden; }
   .rg-card { background: #FFFFFF; border: 1px solid rgba(43,38,32,.08); border-radius: 22px; width: 100%; max-width: 380px; box-shadow: 0 8px 40px rgba(43,38,32,.12); overflow: hidden; }
   .rg-body { padding: 28px 26px; }
@@ -26,14 +26,14 @@ const CSS = `
 
   .rg-field { margin-bottom: 14px; }
   .rg-label { font-size: 11px; font-weight: 700; color: rgba(43,38,32,.5); text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 6px; }
-  .rg-input, .rg-select { width: 100%; max-width: 100%; padding: 12px 14px; font-size: 14px; border: 1.5px solid rgba(43,38,32,.12); border-radius: 12px; background: #FBF6EE; color: #2B2620; font-family: var(--font-body); outline: none; }
+  .rg-input, .rg-select { width: 100%; max-width: 100%; padding: 12px 14px; font-size: 14px; border: 1.5px solid rgba(43,38,32,.12); border-radius: 12px; background: #F1F3EE; color: #2B2620; font-family: var(--font-body); outline: none; }
   .rg-input:focus, .rg-select:focus { border-color: var(--brand-color); background: #FFFFFF; }
   .rg-btn { width: 100%; background: var(--brand-color); color: #fff; border: none; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-display); margin-top: 6px; box-shadow: 0 4px 14px rgba(0,0,0,.12); }
   .rg-btn:disabled { opacity: .6; cursor: not-allowed; box-shadow: none; }
   .rg-error { font-size: 11.5px; color: #B23B3B; background: rgba(178,59,59,.07); border: 1px solid rgba(178,59,59,.2); border-radius: 9px; padding: 10px 14px; margin-bottom: 16px; overflow-wrap: break-word; }
 
   .rg-card-pill-row { display: flex; flex-direction: column; gap: 8px; }
-  .rg-card-pill { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 13px 15px; border-radius: 12px; border: 1.5px solid rgba(43,38,32,.12); background: #FBF6EE; cursor: pointer; font-family: var(--font-body); font-size: 14px; color: #2B2620; text-align: left; width: 100%; max-width: 100%; }
+  .rg-card-pill { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 13px 15px; border-radius: 12px; border: 1.5px solid rgba(43,38,32,.12); background: #F1F3EE; cursor: pointer; font-family: var(--font-body); font-size: 14px; color: #2B2620; text-align: left; width: 100%; max-width: 100%; }
   .rg-card-pill:hover { border-color: var(--brand-color); }
   .rg-card-pill-name { font-weight: 600; overflow-wrap: break-word; word-break: break-word; }
   .rg-card-pill-desc { font-size: 12px; color: rgba(43,38,32,.5); overflow-wrap: break-word; word-break: break-word; }
@@ -185,8 +185,6 @@ export default function PublicRegisterPage() {
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
       <div className="rg-shell">
         <div className="rg-card">
           {loading ? (

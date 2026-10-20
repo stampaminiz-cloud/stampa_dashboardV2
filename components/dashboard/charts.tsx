@@ -32,8 +32,8 @@ const EMPTY_CSS = `
   .ch-empty--sm{padding:14px 8px;}
   .ch-empty-art{width:58px;height:58px;border-radius:50%;background:#FBF1EC;display:flex;align-items:center;justify-content:center;margin-bottom:4px;}
   .ch-empty-art img{opacity:.75;}
-  .ch-empty-title{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:#2B2620;}
-  .ch-empty-text{font-family:'Inter',sans-serif;font-size:12px;color:rgba(43,38,32,.5);max-width:300px;line-height:1.45;}
+  .ch-empty-title{font-family:var(--font-body);font-size:13px;font-weight:600;color:#2B2620;}
+  .ch-empty-text{font-family:var(--font-body);font-size:12px;color:rgba(43,38,32,.5);max-width:300px;line-height:1.45;}
 `
 
 const CORAL = '#C75D3A'
@@ -102,8 +102,8 @@ export function RetentionRing({ data }: { data: Retention }) {
           <circle cx="60" cy="60" r={R} fill="none" stroke={BLUE} strokeWidth="14" strokeDasharray={`${Math.max(0, C - retLen - gap * 2)} ${C}`} strokeDashoffset={-(retLen + gap)} transform="rotate(-90 60 60)" strokeLinecap="butt" />
           <circle cx="60" cy="60" r={R} fill="none" stroke={CORAL} strokeWidth="14" strokeDasharray={`${Math.max(0, retLen - gap)} ${C}`} transform="rotate(-90 60 60)" strokeLinecap="butt" />
         </>}
-        <text x="60" y="58" textAnchor="middle" fontSize="24" fontWeight="800" fill="#2B2620" fontFamily="Plus Jakarta Sans, sans-serif">{share}%</text>
-        <text x="60" y="76" textAnchor="middle" fontSize="10.5" fill="rgba(43,38,32,.55)" fontFamily="Inter, sans-serif">vuelven</text>
+        <text x="60" y="58" textAnchor="middle" fontSize="24" fontWeight="800" fill="#2B2620" style={{ fontFamily: 'var(--font-display)' }}>{share}%</text>
+        <text x="60" y="76" textAnchor="middle" fontSize="10.5" fill="rgba(43,38,32,.55)" style={{ fontFamily: 'var(--font-body)' }}>vuelven</text>
       </svg>
       {/* Sin frase: el número ya está en el anillo; al costado, los datos. */}
       <div className="ch-ring-tiles">
@@ -215,15 +215,15 @@ const CSS = `
   .ch-legend{display:flex;gap:16px;font-size:11.5px;color:rgba(43,38,32,.65);}
   .ch-ring{display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
   .ch-ring-tiles{flex:1;min-width:240px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
-  .ch-tile{background:#FBF6EE;border-radius:12px;padding:12px 14px;}
-  .ch-tile-k{display:flex;align-items:center;font-size:11.5px;color:rgba(43,38,32,.6);font-family:'Inter',sans-serif;}
+  .ch-tile{background:#F1F3EE;border-radius:12px;padding:12px 14px;}
+  .ch-tile-k{display:flex;align-items:center;font-size:11.5px;color:rgba(43,38,32,.6);font-family:var(--font-body);}
   .ch-tile-k i{display:inline-block;flex-shrink:0;width:9px;height:9px;border-radius:3px;margin-right:6px;}
-  .ch-tile-v{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#2B2620;margin-top:4px;}
+  .ch-tile-v{font-family:var(--font-display);font-size:22px;font-weight:800;color:#2B2620;margin-top:4px;}
   .ch-tile-v.up{color:#2E7D4F;}
   .ch-tile-v.down{color:#B4442A;}
   .ch-tile-s.up{color:#2E7D4F;font-weight:600;}
   .ch-tile-s.down{color:#B4442A;font-weight:600;}
-  .ch-tile-s{font-size:11px;color:rgba(43,38,32,.45);font-family:'Inter',sans-serif;}
+  .ch-tile-s{font-size:11px;color:rgba(43,38,32,.45);font-family:var(--font-body);}
   @media(max-width:600px){.ch-ring-tiles{grid-template-columns:1fr 1fr;}}
   .ch-legend i,.ch-row i,.ch-card i{display:inline-block;flex-shrink:0;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:middle;}
   .ch-legend strong{color:#2B2620;}
