@@ -7,7 +7,7 @@ import {
   IconHome, IconUsers, IconChartBar, IconGift, IconBell, IconClipboardList, IconPalette, IconUserCircle,
   IconMapPin, IconSettings, IconCalendar, IconClock, IconQrcode, IconRosetteDiscountCheck, IconHandStop,
   IconStar, IconHeartHandshake, IconAt, IconMessageStar, IconAbc, IconHash, IconList, IconPhone, IconCake,
-  IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconTrash, IconPencil, IconLock, IconCheck, IconX,
+  IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconTrash, IconPencil, IconLock, IconCheck, IconX, IconUser, IconHelpCircle, IconLogout, IconMenu2, IconBolt, IconAlertTriangle, IconInfoCircle, IconCircleCheck,
   type Icon as TablerIcon,
 } from '@tabler/icons-react'
 
@@ -22,6 +22,8 @@ export const ICONS = {
   // Acciones
   abrir: IconChevronDown, anterior: IconChevronLeft, siguiente: IconChevronRight, agregar: IconPlus,
   borrar: IconTrash, editar: IconPencil, candado: IconLock, listo: IconCheck, cerrar: IconX,
+  perfil: IconUser, ayuda: IconHelpCircle, salir: IconLogout, menu: IconMenu2, idea: IconBolt,
+  atencion: IconAlertTriangle, info: IconInfoCircle, hecho: IconCircleCheck,
 } satisfies Record<string, TablerIcon>
 
 export type IconName = keyof typeof ICONS
