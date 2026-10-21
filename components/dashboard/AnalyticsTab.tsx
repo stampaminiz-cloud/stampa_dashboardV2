@@ -364,9 +364,12 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   const fullAnalytics = can('analyticsLevel')
   const [range, setRange] = useState<Range>('30d')
   // Sección elegida (se recuerda entre visitas) y opciones de cada una.
-  type Section = 'summary' | 'customers' | 'hours' | 'cards'
+  // Programa: ¿funciona mi tarjeta? (lo que antes era Resumen, Horarios y
+  // Tarjetas). Clientes: ¿quiénes son y cuáles vuelven? Pedidos se suma
+  // cuando el negocio los use (docs/whatsapp-y-pedidos.md del backend).
+  type Section = 'program' | 'customers'
   const [section, setSection] = useState<Section>(() => {
-    try { const v = localStorage.getItem('stampa_analytics_section'); return (['summary', 'customers', 'hours', 'cards'].includes(v || '') ? v : 'summary') as Section } catch { return 'summary' }
+    try { return localStorage.getItem('stampa_analytics_section') === 'customers' ? 'customers' : 'program' } catch { return 'program' }
   })
   const pickSection = (sec: Section) => { setSection(sec); try { localStorage.setItem('stampa_analytics_section', sec) } catch { /* sin storage */ } }
   const [rankScope, setRankScope] = useState<'period' | 'all' | 'redeems'>('period')
@@ -509,11 +512,8 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
 
   // "Tarjetas" solo si hay 2 o más y no se está filtrando por una.
   const showCards = activeCards.length >= 2 && !selectedCard
-  const SECTIONS: { key: 'summary' | 'customers' | 'hours' | 'cards'; label: string }[] = [
-    { key: 'summary', label: 'Resumen' }, { key: 'customers', label: 'Clientes' }, { key: 'hours', label: 'Horarios' },
-    ...(showCards ? [{ key: 'cards' as const, label: 'Tarjetas' }] : []),
-  ]
-  const view = section === 'cards' && !showCards ? 'summary' : section
+  const SECTIONS: { key: Section; label: string }[] = [{ key: 'program', label: 'Programa' }, { key: 'customers', label: 'Clientes' }]
+  const view = section
 
   const onlyMembership = types.length > 0 && types.every(t => t === 'membership')
   const scope = onlyMembership && rankScope === 'redeems' ? 'period' : rankScope
@@ -754,8 +754,8 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         </div>
         {exportError && <div className="an-export-err">{exportError}</div>}
 
-        {/* ═══════════════ RESUMEN ═══════════════ */}
-        {view === 'summary' && <>
+        {/* ═══════════════ PROGRAMA ═══════════════ */}
+        {view === 'program' && <>
           {d && highlights.length > 0 && (
             <div className="an-highlights" style={{ ['--n' as any]: highlights.length }}>
               {highlights.map(h => (
@@ -950,8 +950,8 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           </div>
         </>}
 
-        {/* ═══════════════ HORARIOS ═══════════════ */}
-        {view === 'hours' && <>
+        {/* ═══════════════ PROGRAMA: horarios ═══════════════ */}
+        {view === 'program' && <>
           {!d ? <div className="an-card"><div className="an-ctitle">¿Cuándo viene tu gente?</div><Loading /></div> : <>
             <WhenHeatmap hourly={d.hourly} mode="visits" modes={['visits']} />
             {/* Un bloque sin datos no ocupa media fila: el otro va a todo el ancho. */}
@@ -964,8 +964,8 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           </>}
         </>}
 
-        {/* ═══════════════ TARJETAS ═══════════════ */}
-        {view === 'cards' && (
+        {/* ═══════════════ PROGRAMA: tarjetas (2 o más, sin filtro) ═══════════════ */}
+        {view === 'program' && showCards && (
           <div className="an-card">
             <div className="an-ctitle">Comparación entre tarjetas</div>
             <div className="an-csub">En los últimos {range.replace('d', '')} días (clientes: total)</div>
