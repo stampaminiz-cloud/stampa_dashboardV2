@@ -24,7 +24,7 @@ interface Redeemer extends Person { redemptions: number }
 interface FunnelStage { stage: string; value: number }
 interface CompItem    { label: string; current: number; previous: number; unit: string }
 interface FreqBucket  { label: string; count: number }
-interface Hourly      { visits: number[][]; redeems: number[][]; signups: number[][]; weekdayCount: number[] }
+interface Hourly      { visits: number[][]; redeems: number[][]; signups: number[][]; weekdayCount: number[]; open?: boolean[][] | null }
 interface CardDesign  { id: string; name: string; type: CardType; isActive: boolean }
 interface Detailed {
   visitsOverTime: Bucket[]
@@ -91,94 +91,73 @@ function BarChart({ data, valueKey, tooltip }: { data: Bucket[]; valueKey: keyof
   )
 }
 
-// ─── ¿Cuándo viene tu gente? ─────────────────────────────────────────────────
-// Día × franja de 2 hs, en promedio por día (en 30/90 días no todos los días
-// de la semana aparecen la misma cantidad de veces). Solo se muestran las
-// franjas donde hubo algo, así no quedan filas vacías de madrugada.
+// ─── ¿Cuándo viene tu gente? (y cuándo canjean / se registran) ──────────────
+// Dos gráficos simples: por día de la semana y por horario (franjas de 2 hs),
+// en promedio por día. Si el negocio cargó horarios, no aparecen los días ni
+// las franjas en que el local está cerrado (hourly.open, del backend). El día
+// y el horario más fuertes van en el verde de marca; el resto, más claro.
 const DAYS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-const DAYS_PLURAL = ['los lunes', 'los martes', 'los miércoles', 'los jueves', 'los viernes', 'los sábados', 'los domingos']
 const DAYS_SINGULAR = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
 type HeatMode = 'visits' | 'redeems' | 'signups'
-// Un bloque por tipo (antes era un selector): cada uno con su color.
-const HEAT_MODES: Record<HeatMode, { title: string; sub: string; unit: [string, string]; rgb: string }> = {
-  visits:  { title: '¿Cuándo viene tu gente?', sub: 'Visitas promedio por día, según la hora de los escaneos', unit: ['visita', 'visitas'], rgb: '199,93,58' },
-  redeems: { title: '¿Cuándo canjean?', sub: 'Premios entregados por día y horario', unit: ['canje', 'canjes'], rgb: '91,140,90' },
-  signups: { title: '¿Cuándo se registran?', sub: 'Clientes nuevos por día y horario', unit: ['registro', 'registros'], rgb: '24,95,165' },
+const HEAT_MODES: Record<HeatMode, { title: string; sub: string; unit: [string, string] }> = {
+  visits:  { title: '¿Cuándo viene tu gente?', sub: 'Visitas promedio por día, según la hora de los escaneos', unit: ['visita', 'visitas'] },
+  redeems: { title: '¿Cuándo canjean?', sub: 'Premios entregados, promedio por día', unit: ['canje', 'canjes'] },
+  signups: { title: '¿Cuándo se registran?', sub: 'Clientes nuevos, promedio por día', unit: ['registro', 'registros'] },
 }
 const slotLabel = (s: number) => `${s * 2}–${s * 2 + 2}`
 const fmt1 = (n: number) => (Math.round(n * 10) / 10).toLocaleString('es-AR')
 
-// Las tres grillas usan las mismas franjas horarias (las que tuvieron algo en
-// cualquiera de las tres), así se comparan de un vistazo y ninguna queda con
-// una sola columna estirada.
-function sharedSlots(hourly: Hourly, modes: HeatMode[] = ['visits', 'redeems', 'signups']) {
-  const tot = Array.from({ length: 12 }, (_, s) => modes.reduce((a, m) => a + hourly[m].reduce((b, row) => b + row[s], 0), 0))
-  const first = tot.findIndex(v => v > 0)
-  if (first === -1) return []
-  const last = 11 - [...tot].reverse().findIndex(v => v > 0)
-  return Array.from({ length: last - first + 1 }, (_, i) => first + i)
-}
-
-function WhenHeatmap({ hourly, mode, modes }: { hourly: Hourly; mode: HeatMode; modes?: HeatMode[] }) {
+function WhenBars({ hourly, mode }: { hourly: Hourly; mode: HeatMode }) {
+  const { title, sub, unit } = HEAT_MODES[mode]
   const grid = hourly[mode]
-  const { unit, rgb, title, sub } = HEAT_MODES[mode]
-  const avg = grid.map((row, d) => row.map(v => hourly.weekdayCount[d] > 0 ? v / hourly.weekdayCount[d] : 0))
-  const empty = !grid.some(row => row.some(v => v > 0))
-  const slots = empty ? [] : sharedSlots(hourly, modes)
-  const max = Math.max(0.0001, ...avg.flat())
-
-  let best = { d: 0, s: 0, v: -1 }
-  avg.forEach((row, d) => row.forEach((v, s) => { if (v > best.v) best = { d, s, v } }))
-  // Día más flojo: entre los días que tuvieron movimiento (un día en 0 puede
-  // ser que el local cierra).
-  const dayAvg = avg.map(row => row.reduce((a, b) => a + b, 0))
-  const openDays = dayAvg.map((v, d) => ({ v, d })).filter(x => x.v > 0)
-  const worst = openDays.length >= 2 ? openDays.reduce((a, b) => (b.v < a.v ? b : a)) : null
-  const verb = mode === 'visits' ? 'Tu momento más fuerte' : mode === 'redeems' ? 'Se canjea más' : 'Se registran más'
-
+  const open = hourly.open || null
+  const total = grid.reduce((a, row) => a + row.reduce((b, v) => b + v, 0), 0)
+  const daysInRange = hourly.weekdayCount.reduce((a, b) => a + b, 0) || 1
+  // Días: los que abre (o todos, sin horarios cargados) y los que tuvieron algo.
+  const dayShown = DAYS_SHORT.map((_, d) => (open ? open[d].some(Boolean) : true) || grid[d].some(v => v > 0))
+  const perDay = grid.map((row, d) => (hourly.weekdayCount[d] > 0 ? row.reduce((a, v) => a + v, 0) / hourly.weekdayCount[d] : 0))
+  // Franjas: las que abre algún día (o, sin horarios, de la primera a la
+  // última con movimiento), más cualquiera que haya tenido algo.
+  const bandHas = Array.from({ length: 12 }, (_, b) => grid.some(row => row[b] > 0))
+  let bands = Array.from({ length: 12 }, (_, b) => b).filter(b => (open ? open.some(row => row[b]) : false) || bandHas[b])
+  if (!open && bands.length) bands = Array.from({ length: bands[bands.length - 1] - bands[0] + 1 }, (_, i) => bands[0] + i)
+  const perBand = bands.map(b => grid.reduce((a, row) => a + row[b], 0) / daysInRange)
+  const days = DAYS_SHORT.map((l, d) => ({ l, d, v: perDay[d] })).filter(x => dayShown[x.d])
+  const dayMax = Math.max(0.0001, ...days.map(x => x.v))
+  const bandMax = Math.max(0.0001, ...perBand)
+  const bestDay = days.reduce((a, b) => (b.v > a.v ? b : a), days[0] || { d: 0, v: 0, l: '' })
+  const bestBandI = perBand.indexOf(Math.max(...perBand))
   return (
     <div className="an-card">
-      <div className="an-card-head">
-        <div>
-          <div className="an-ctitle">{title}</div>
-          <div className="an-csub">{sub}</div>
+      <div className="an-ctitle">{title}</div>
+      <div className="an-csub">{sub}{open ? ' · solo el horario en que abrís' : ''}</div>
+      {!total ? <EmptyState title={`Todavía sin ${unit[1]}`} text="En este período." compact /> : <>
+        <div className="an-wb-note">Más movimiento: {DAYS_SINGULAR[bestDay.d]}, de {slotLabel(bands[bestBandI])} hs.</div>
+        <div className="an-wb">
+          <div className="an-wb-chart">
+            <div className="an-wb-lbl">Por día</div>
+            <div className="an-wb-bars">
+              {days.map(x => (
+                <div key={x.d} className="an-wb-col" title={`${DAYS_SINGULAR[x.d]}: ${fmt1(x.v)} ${x.v === 1 ? unit[0] : unit[1]} por día`}>
+                  <div className="an-wb-track"><div className={x.d === bestDay.d ? 'is-top' : ''} style={{ height: `${Math.max(3, (x.v / dayMax) * 100)}%` }} /></div>
+                  <span>{x.l}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="an-wb-chart">
+            <div className="an-wb-lbl">Por horario</div>
+            <div className="an-wb-bars">
+              {bands.map((b, i) => (
+                <div key={b} className="an-wb-col" title={`${slotLabel(b)} hs: ${fmt1(perBand[i])} ${perBand[i] === 1 ? unit[0] : unit[1]} por día`}>
+                  <div className="an-wb-track"><div className={i === bestBandI ? 'is-top' : ''} style={{ height: `${Math.max(3, (perBand[i] / bandMax) * 100)}%` }} /></div>
+                  <span>{slotLabel(b)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
-      {empty
-        ? <EmptyState title={`Todavía sin ${unit[1]}`} text="En este período." />
-        : <>
-            <div className="an-when-insights">
-              <div><span className="an-when-dot an-when-dot--up" />{verb}: <strong>{DAYS_PLURAL[best.d]} de {slotLabel(best.s)} hs</strong> ({fmt1(best.v)} {best.v === 1 ? unit[0] : unit[1]} por día)</div>
-              {mode === 'visits' && worst && worst.d !== best.d && (
-                <div><span className="an-when-dot an-when-dot--down" />El día más flojo: <strong>{DAYS_PLURAL[worst.d]}</strong> — buen momento para una promo o una notificación.</div>
-              )}
-            </div>
-            <div className="an-when-scroll">
-              <div className="an-when" style={{ gridTemplateColumns: `34px repeat(${slots.length}, minmax(26px, 1fr))` }}>
-                <div />
-                {slots.map(s => <div key={s} className="an-when-h">{slotLabel(s)}</div>)}
-                {DAYS_SHORT.map((dn, d) => (
-                  <React.Fragment key={dn}>
-                    <div className="an-when-d">{dn}</div>
-                    {slots.map(s => {
-                      const v = avg[d][s]
-                      return (
-                        <div key={s} className="an-when-cell"
-                          title={`${DAYS_SINGULAR[d][0].toUpperCase() + DAYS_SINGULAR[d].slice(1)} ${slotLabel(s)} hs · ${fmt1(v)} ${v === 1 ? unit[0] : unit[1]} por día en promedio`}
-                          style={{ background: v > 0 ? `rgba(${rgb},${(0.12 + (v / max) * 0.88).toFixed(2)})` : 'rgba(43,38,32,.04)' }} />
-                      )
-                    })}
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
-            <div className="an-hlegend">
-              <span>Menos</span>
-              <div className="an-hscale">{[.12, .34, .56, .78, 1].map(o => <div key={o} className="an-hsdot" style={{ background: `rgba(${rgb},${o})` }} />)}</div>
-              <span>Más</span>
-            </div>
-          </>
-      }
+      </>}
     </div>
   )
 }
@@ -186,45 +165,6 @@ function WhenHeatmap({ hourly, mode, modes }: { hourly: Hourly; mode: HeatMode; 
 // Íconos de los datos destacados (sistema: components/ui/Icon).
 function HlIcon({ name }: { name: 'repeat' | 'flame' | 'moon' }) {
   return <Icon name={name === 'repeat' ? 'vuelve' : name === 'flame' ? 'fuerte' : 'flojo'} size={16} />
-}
-
-// Canjes y registros (Horarios): barras por día de la semana (promedio por
-// día) y una franja por horario. El mapa de calor queda solo para visitas.
-function DayHourBars({ hourly, mode }: { hourly: Hourly; mode: 'redeems' | 'signups' }) {
-  const { title, sub, unit, rgb } = HEAT_MODES[mode]
-  const grid = hourly[mode]
-  const total = grid.reduce((a, row) => a + row.reduce((b, v) => b + v, 0), 0)
-  const perDay = grid.map((row, di) => { const t = row.reduce((a, v) => a + v, 0); return hourly.weekdayCount[di] > 0 ? t / hourly.weekdayCount[di] : 0 })
-  const dayMax = Math.max(0.0001, ...perDay)
-  const slots = sharedSlots(hourly, ['visits', mode])
-  const perSlot = slots.map(sl => grid.reduce((a, row) => a + row[sl], 0))
-  const slotMax = Math.max(1, ...perSlot)
-  const bestDay = perDay.indexOf(Math.max(...perDay))
-  const bestSlot = slots[perSlot.indexOf(Math.max(...perSlot))]
-  return (
-    <div className="an-card">
-      <div className="an-ctitle">{title}</div>
-      <div className="an-csub">{sub}</div>
-      {!total ? <EmptyState title={`Todavía sin ${unit[1]}`} text="En este período." compact /> : <>
-        <div className="an-dh-lbl">Por día de la semana · más {DAYS_PLURAL[bestDay]}</div>
-        <div className="an-dh-days">
-          {perDay.map((v, di) => (
-            <div key={di} className="an-dh-col" title={`${DAYS_SINGULAR[di]}: ${fmt1(v)} ${v === 1 ? unit[0] : unit[1]} por día`}>
-              <div className="an-dh-track"><div style={{ height: `${Math.max(4, (v / dayMax) * 100)}%`, background: `rgb(${rgb})`, opacity: v > 0 ? 1 : 0.15 }} /></div>
-              <span>{DAYS_SHORT[di][0]}</span>
-            </div>
-          ))}
-        </div>
-        <div className="an-dh-lbl">Por horario · más de {slotLabel(bestSlot)} hs</div>
-        <div className="an-dh-hours">
-          {slots.map((sl, i) => (
-            <span key={sl} title={`${slotLabel(sl)} hs: ${perSlot[i]} ${perSlot[i] === 1 ? unit[0] : unit[1]}`} style={{ background: `rgba(${rgb},${perSlot[i] ? (0.15 + (perSlot[i] / slotMax) * 0.85).toFixed(2) : 0.06})` }} />
-          ))}
-        </div>
-        <div className="an-dh-ends"><span>{slots[0] * 2} hs</span><span>{slots[slots.length - 1] * 2 + 2} hs</span></div>
-      </>}
-    </div>
-  )
 }
 
 // Misma escala que ProgressDistribution (más oscuro = más cerca del premio).
@@ -697,6 +637,19 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         /* ── Frecuencia ── */
         .an-freq-stat{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--s-tinta);}
         .an-freq-unit{font-size:13px;color:rgba(34,32,27,.45);}
+        .an-wb-note{font-size:12.5px;color:var(--s-tinta-2);margin:10px 0 4px;}
+        .an-wb{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,9fr);gap:28px;margin-top:8px;}
+        .an-wb-chart{min-width:0;}
+        .an-wb-lbl{font-size:11px;color:var(--s-tinta-3);margin-bottom:8px;}
+        .an-wb-bars{display:flex;gap:6px;align-items:flex-end;}
+        .an-wb-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;}
+        .an-wb-col span{font-size:10.5px;color:var(--s-tinta-2);white-space:nowrap;font-variant-numeric:tabular-nums;}
+        .an-wb-track{width:100%;height:110px;display:flex;align-items:flex-end;background:var(--s-hueco);border-radius:4px;overflow:hidden;}
+        .an-wb-track div{width:100%;background:rgba(27,65,47,.38);border-radius:4px 4px 0 0;}
+        .an-wb-track div.is-top{background:var(--s-pino);}
+        .an-when-pair .an-wb{grid-template-columns:1fr;gap:18px;}
+        .an-when-pair .an-wb-track{height:80px;}
+        @media(max-width:700px){.an-wb{grid-template-columns:1fr;gap:18px;}.an-wb-col span{font-size:9.5px;}}
         .an-freq-trend{font-size:12px;color:var(--s-tinta-2);margin-bottom:12px;}
         .an-freq-bars{display:flex;flex-direction:column;gap:6px;}
         .an-freq-row{display:flex;align-items:center;gap:8px;}
@@ -969,13 +922,13 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         {/* ═══════════════ PROGRAMA: horarios ═══════════════ */}
         {view === 'program' && <>
           {!d ? <div className="an-card"><div className="an-ctitle">¿Cuándo viene tu gente?</div><Loading /></div> : <>
-            <WhenHeatmap hourly={d.hourly} mode="visits" modes={['visits']} />
+            <WhenBars hourly={d.hourly} mode="visits" />
             {/* Un bloque sin datos no ocupa media fila: el otro va a todo el ancho. */}
             {(() => {
               const has = (m: 'redeems' | 'signups') => d.hourly[m].some(row => row.some(v => v > 0))
               const modes = (['redeems', 'signups'] as const).filter(m => has(m) && !(m === 'redeems' && onlyMembership))
               const shown = modes.length ? modes : (['signups'] as const)
-              return <div className={shown.length === 2 ? 'an-when-pair' : ''}>{shown.map(m => <DayHourBars key={m} hourly={d.hourly} mode={m} />)}</div>
+              return <div className={shown.length === 2 ? 'an-when-pair' : ''}>{shown.map(m => <WhenBars key={m} hourly={d.hourly} mode={m} />)}</div>
             })()}
           </>}
         </>}
