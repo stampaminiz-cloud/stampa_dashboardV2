@@ -1,5 +1,5 @@
 'use client'
-import { Icon } from '@/components/ui/Icon'
+import { Icon, type IconName } from '@/components/ui/Icon'
 import { PillSelect } from '@/components/ui/PillSelect'
 import React, { useState, useEffect } from 'react'
 import { readCache, getJson } from '@/lib/cache'
@@ -475,13 +475,13 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   const few = segTotal < 5
   const pctV = (v?: number | null) => (few ? '—' : `${v ?? 0}%`)
   const PROGRAM = ([
-    { v: pctV(m?.recurringRate), l: 'Clientes que volvieron', sub: 'vinieron 2 veces o más', color: 'var(--s-listo)' },
-    types.some(t => t !== 'membership') && { v: pctV(m?.redemptionRate), l: 'Tasa de canje', sub: 'canjearon al menos una vez', color: 'var(--s-brasa)' },
-    types.includes('stamp') && m?.avgStampProgress != null && { v: pctV(m.avgStampProgress), l: 'Progreso promedio', sub: 'de la tarjeta de sellos', color: 'var(--s-info)' },
-    types.includes('stamp') && { v: `${m?.nearPrize ?? 0}`, l: 'A 1–2 sellos del premio', sub: `${m?.toDeliver ?? 0} con la tarjeta completa`, color: 'var(--s-aviso)' },
-    types.includes('points') && { v: `${m?.canRedeem ?? 0}`, l: 'Pueden canjear un premio', sub: 'ya les alcanzan los puntos', color: 'var(--s-aviso)' },
-    types.includes('membership') && { v: `${m?.nearLevel ?? 0}`, l: 'Cerca de subir de nivel', sub: 'a 2 visitas o menos', color: 'var(--s-pino)' },
-  ].filter(Boolean)) as { v: string; l: string; sub: string; color: string }[]
+    { v: pctV(m?.recurringRate), l: 'Clientes que volvieron', sub: 'vinieron 2 veces o más', color: 'var(--s-listo)', icon: 'vuelve' },
+    types.some(t => t !== 'membership') && { v: pctV(m?.redemptionRate), l: 'Tasa de canje', sub: 'canjearon al menos una vez', color: 'var(--s-brasa)', icon: 'premios' },
+    types.includes('stamp') && m?.avgStampProgress != null && { v: pctV(m.avgStampProgress), l: 'Progreso promedio', sub: 'de la tarjeta de sellos', color: 'var(--s-info)', icon: 'sello' },
+    types.includes('stamp') && { v: `${m?.nearPrize ?? 0}`, l: 'A 1–2 sellos del premio', sub: `${m?.toDeliver ?? 0} con la tarjeta completa`, color: 'var(--s-aviso)', icon: 'objetivo' },
+    types.includes('points') && { v: `${m?.canRedeem ?? 0}`, l: 'Pueden canjear un premio', sub: 'ya les alcanzan los puntos', color: 'var(--s-aviso)', icon: 'puntos' },
+    types.includes('membership') && { v: `${m?.nearLevel ?? 0}`, l: 'Cerca de subir de nivel', sub: 'a 2 visitas o menos', color: 'var(--s-pino)', icon: 'membresia' },
+  ].filter(Boolean)) as { v: string; l: string; sub: string; color: string; icon: IconName }[]
 
   const inactiveDays = m?.inactiveDays ?? 60
   const SEGMENTS = [
@@ -582,6 +582,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-4col{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
 
         /* ── Métricas ── */
+        .an-stat-ic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
         .an-stat-now{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--s-tinta);}
         .an-stat-name{font-size:12px;font-weight:600;color:var(--s-tinta);margin-top:4px;}
         .an-stat-label{font-size:10.5px;color:rgba(34,32,27,.45);}
@@ -766,6 +767,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           <div className="an-program" style={{ ['--cols' as any]: PROGRAM.length <= 4 ? PROGRAM.length : 3 }}>
             {PROGRAM.map(p => (
               <div key={p.l} className="an-card">
+                <div className="an-stat-ic" style={{ background: `color-mix(in srgb, ${p.color} 12%, transparent)`, color: p.color }}><Icon name={p.icon} size={18} /></div>
                 {metricsLoading
                   ? <div className="an-skel" style={{ width: 54, height: 26 }} />
                   : <div className="an-stat-now">{p.v}</div>}

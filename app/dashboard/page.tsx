@@ -449,10 +449,10 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
 
       <div className="ov-section-label">{t('section_summary' as any)}</div>
       <div className="ov-metric-grid">
-        {METRICS.map(({ label, value, delta, deltaTitle, icon, sub }) => (
+        {METRICS.map(({ label, value, delta, deltaTitle, color, icon, sub }) => (
           <div key={label} className="ov-metric-card">
             <div className="ov-metric-top">
-              <div className="ov-metric-dot">
+              <div className="ov-metric-dot" style={{ background: `${color}1A`, color }}>
                 <Icon name={icon} size={18} />
               </div>
               {delta != null && (
@@ -820,7 +820,7 @@ const CSS = `
   .ov-metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
   .ov-metric-card{background:#FFFFFF;border:1px solid rgba(34,32,27,.07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(34,32,27,.04);}
   .ov-metric-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-  .ov-metric-dot{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--s-hueco);color:var(--s-tinta-2);}
+  .ov-metric-dot{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;}
   .ov-delta{font-size:11.5px;font-weight:600;}
   .ov-delta--up{color:var(--s-listo);}.ov-delta--down{color:var(--s-error);}
   .ov-metric-value{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--s-tinta);line-height:1;margin-bottom:4px;}
