@@ -9,7 +9,8 @@ import React, { useState } from 'react'
 
 export interface NvrBucket { label: string; newCustomers: number; returning: number }
 export interface ProgressDist { kind: 'stamp' | 'points'; segments: { label: string; count: number }[] }
-export interface FormAnswer { fieldId: string; label: string; cardName: string; total: number; options: { value: string; count: number }[] }
+// active, avgVisits y redeemed: qué hace cada grupo (backend: analytics.js, extraCharts).
+export interface FormAnswer { fieldId: string; label: string; cardName: string; total: number; options: { value: string; count: number; active?: number; avgVisits?: number; redeemed?: number }[] }
 export interface CardRow { cardId: string; name: string; type: string; color: string; isActive: boolean; visits: number; redeems: number; signups: number; customers: number }
 
 // Estado vacío único (todas las secciones de Analítica): la mascota y un
@@ -150,7 +151,7 @@ export function ProgressDistribution({ data }: { data: ProgressDist }) {
 }
 
 // ── Respuestas del formulario: barras horizontales por pregunta ──────────────
-export function FormAnswers({ data }: { data: FormAnswer[] }) {
+export function FormAnswers({ data, onNotify }: { data: FormAnswer[]; onNotify?: (fieldId: string, value: string) => void }) {
   const [idx, setIdx] = useState(0)
   if (!data.length) return <EmptyState title="Todavía sin respuestas" text="Aparece cuando respondan preguntas de lista del formulario, como talle o bebida favorita." />
   const f = data[Math.min(idx, data.length - 1)]
@@ -166,17 +167,40 @@ export function FormAnswers({ data }: { data: FormAnswer[] }) {
       {data.length === 1 && <div className="ch-q">{f.label}</div>}
       <div className="ch-rows">
         {f.options.slice(0, 8).map(o => (
-          <div key={o.value} className="ch-ans" title={`${o.value}: ${o.count} (${pct(o.count, f.total)}%)`}>
-            <span className="ch-ans-label">{o.value}</span>
-            <div className="ch-ans-track"><div style={{ width: `${(o.count / max) * 100}%` }} /></div>
-            <span className="ch-row-val">{o.count}</span>
-            <span className="ch-row-pct">{pct(o.count, f.total)}%</span>
+          <div key={o.value} className="ch-ans-wrap">
+            <div className="ch-ans" title={`${o.value}: ${o.count} (${pct(o.count, f.total)}%)`}>
+              <span className="ch-ans-label">{o.value}</span>
+              <div className="ch-ans-track"><div style={{ width: `${(o.count / max) * 100}%` }} /></div>
+              <span className="ch-row-val">{o.count}</span>
+              <span className="ch-row-pct">{pct(o.count, f.total)}%</span>
+            </div>
+            {o.active != null && (
+              <div className="ch-ans-sub">
+                <span>{pct(o.active, o.count)}% activos · {fmtVisits(o.avgVisits || 0)} en promedio · {o.redeemed || 0} {o.redeemed === 1 ? 'canjeó' : 'canjearon'}</span>
+                {onNotify && <button type="button" className="s-btn s-btn--text s-btn--sm" onClick={() => onNotify(f.fieldId, o.value)}>Mandarles un aviso</button>}
+              </div>
+            )}
           </div>
         ))}
       </div>
-      <div className="ch-note">{f.total} respuestas. Podés mandarles una notificación según lo que respondieron (Notificaciones → Por respuesta).</div>
+      {insight(f) && <div className="ch-ans-insight">{insight(f)}</div>}
+      <div className="ch-note">{f.total} respuestas.{onNotify ? '' : ' Podés mandarles una notificación según lo que respondieron (Notificaciones → Por respuesta).'}</div>
     </div>
   )
+}
+
+const fmtVisits = (n: number) => `${String(n).replace('.', ',')} ${n === 1 ? 'visita' : 'visitas'}`
+
+// El grupo que más vuelve frente al resto, solo con grupos de 3 o más
+// clientes y una diferencia clara (no se destaca un empate).
+function insight(f: FormAnswer): string | null {
+  const opts = f.options.filter(o => o.count >= 3 && o.avgVisits != null)
+  if (opts.length < 2) return null
+  const best = opts.reduce((a, b) => ((b.avgVisits || 0) > (a.avgVisits || 0) ? b : a))
+  const rest = opts.filter(o => o !== best)
+  const restAvg = rest.reduce((a, o) => a + (o.avgVisits || 0) * o.count, 0) / rest.reduce((a, o) => a + o.count, 0)
+  if (!restAvg || (best.avgVisits || 0) < restAvg * 1.3) return null
+  return `Los que eligieron "${best.value}" vienen ${fmtVisits(best.avgVisits || 0)} en promedio; el resto, ${fmtVisits(Math.round(restAvg * 10) / 10)}.`
 }
 
 // ── Comparación entre tarjetas: tabla con barra en cada métrica ──────────────
@@ -243,6 +267,11 @@ const CSS = `
   .ch-select{align-self:flex-start;font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid rgba(43,38,32,.15);background:#fff;color:#2B2620;font-family:inherit;max-width:100%;}
   .ch-q{font-size:12px;font-weight:600;color:#2B2620;}
   .ch-ans{display:flex;align-items:center;gap:10px;font-size:12px;}
+  .ch-ans-wrap{display:flex;flex-direction:column;gap:2px;}
+  .ch-ans-sub{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding-left:100px;font-size:11px;color:rgba(43,38,32,.55);}
+  .ch-ans-sub .s-btn{font-size:11px;padding-block:2px;}
+  .ch-ans-insight{font-size:12px;color:var(--s-pino);background:rgba(27,65,47,.07);border-radius:8px;padding:8px 10px;line-height:1.45;}
+  @media(max-width:480px){.ch-ans-sub{padding-left:0;}}
   .ch-ans-label{width:90px;color:rgba(43,38,32,.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ch-ans-track{flex:1;height:10px;background:rgba(43,38,32,.05);border-radius:3px;overflow:hidden;}
   .ch-ans-track div{height:100%;background:#C75D3A;border-radius:0 4px 4px 0;}

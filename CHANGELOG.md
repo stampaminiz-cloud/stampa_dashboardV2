@@ -2,6 +2,13 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.4.0 (por salir)
+
+**Nuevo**
+- Analítica en dos secciones: **Programa** (lo que antes eran Resumen, Horarios y Tarjetas) y **Clientes**. La sección Pedidos se suma con Pedidos.
+- Analítica → Clientes: en Respuestas del formulario, cada respuesta muestra cuántos siguen activos, sus visitas promedio y cuántos canjearon, y destaca el grupo que vuelve más.
+- "Mandarles un aviso" desde cada respuesta: abre Notificaciones con la audiencia "Por respuesta" ya elegida.
+
 ## 1.3.1 (20/10/2026)
 
 **Arreglos**
