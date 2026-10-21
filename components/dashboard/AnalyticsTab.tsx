@@ -321,7 +321,7 @@ function AnalyticsLocked({ isManager, onChoosePlan }: { isManager: boolean; onCh
     'Evolución de tu programa en 7, 30 y 90 días',
     'Tasa de canje, progreso promedio y clientes por nivel',
     '¿Cuándo viene tu gente? Tus días y horarios fuertes y flojos',
-    'Funnel: registro → 1ra visita → vuelve → premio',
+    'Recorrido: registro, primera visita, vuelve y premio',
     'Tus clientes más fieles y los que más canjean',
     'Exportar los movimientos a Excel (CSV)',
   ]
@@ -336,7 +336,7 @@ function AnalyticsLocked({ isManager, onChoosePlan }: { isManager: boolean; onCh
         <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 22px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {FEATURES.map(f => (
             <li key={f} style={{ display: 'flex', gap: 9, fontSize: 13, color: 'var(--s-tinta)', lineHeight: 1.4 }}>
-              <span style={{ color: 'var(--s-listo)', fontWeight: 800 }}>✓</span>{f}
+              <span style={{ color: 'var(--s-tinta-3)', display: 'inline-flex' }}><Icon name="listo" size={14} /></span>{f}
             </li>
           ))}
         </ul>
@@ -469,12 +469,15 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   const multiType = !selectedCard && types.length > 1
 
   const segTotal = (m?.active ?? 0) + (m?.inactive ?? 0)
-  const pctOf = (v: number) => segTotal > 0 ? `${Math.round((v / segTotal) * 100)}%` : '0%'
+  const pctOf = (v: number) => segTotal >= 5 ? `${Math.round((v / segTotal) * 100)}%` : ''
 
+  // Con menos de 5 clientes los porcentajes no dicen nada: se muestra "—".
+  const few = segTotal < 5
+  const pctV = (v?: number | null) => (few ? '—' : `${v ?? 0}%`)
   const PROGRAM = ([
-    { v: `${m?.recurringRate ?? 0}%`, l: 'Clientes que volvieron', sub: 'vinieron 2 veces o más', color: 'var(--s-listo)' },
-    types.some(t => t !== 'membership') && { v: `${m?.redemptionRate ?? 0}%`, l: 'Tasa de canje', sub: 'canjearon al menos una vez', color: 'var(--s-brasa)' },
-    types.includes('stamp') && m?.avgStampProgress != null && { v: `${m.avgStampProgress}%`, l: 'Progreso promedio', sub: 'de la tarjeta de sellos', color: 'var(--s-info)' },
+    { v: pctV(m?.recurringRate), l: 'Clientes que volvieron', sub: 'vinieron 2 veces o más', color: 'var(--s-listo)' },
+    types.some(t => t !== 'membership') && { v: pctV(m?.redemptionRate), l: 'Tasa de canje', sub: 'canjearon al menos una vez', color: 'var(--s-brasa)' },
+    types.includes('stamp') && m?.avgStampProgress != null && { v: pctV(m.avgStampProgress), l: 'Progreso promedio', sub: 'de la tarjeta de sellos', color: 'var(--s-info)' },
     types.includes('stamp') && { v: `${m?.nearPrize ?? 0}`, l: 'A 1–2 sellos del premio', sub: `${m?.toDeliver ?? 0} con la tarjeta completa`, color: 'var(--s-aviso)' },
     types.includes('points') && { v: `${m?.canRedeem ?? 0}`, l: 'Pueden canjear un premio', sub: 'ya les alcanzan los puntos', color: 'var(--s-aviso)' },
     types.includes('membership') && { v: `${m?.nearLevel ?? 0}`, l: 'Cerca de subir de nivel', sub: 'a 2 visitas o menos', color: 'var(--s-pino)' },
@@ -593,10 +596,11 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         /* ── Segmentos ── */
         .an-seg-card{border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:4px;}
         .an-seg-top{display:flex;align-items:baseline;gap:5px;}
-        .an-seg-val{font-family:var(--font-display);font-size:24px;font-weight:800;}
-        .an-seg-pct{font-size:10px;font-weight:600;opacity:.7;}
-        .an-seg-name{font-size:12px;font-weight:700;}
-        .an-seg-desc{font-size:10px;opacity:.7;line-height:1.3;}
+        .an-seg-val{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--s-tinta);}
+        .an-seg-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px;}
+        .an-seg-pct{font-size:11px;color:var(--s-tinta-2);}
+        .an-seg-name{font-size:12px;font-weight:700;color:var(--s-tinta);}
+        .an-seg-desc{font-size:11px;color:var(--s-tinta-2);line-height:1.35;}
 
         /* ── Funnel ── */
         .an-funnel{display:flex;flex-direction:column;gap:12px;}
@@ -649,8 +653,8 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-hl-k{display:flex;align-items:center;gap:7px;font-size:12px;color:rgba(34,32,27,.6);}
         .an-hl-k svg{color:var(--s-brasa);flex-shrink:0;}
         .an-hl-v{font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--s-tinta);margin-top:6px;}
-        .an-hl-v--up{color:var(--s-listo);}
-        .an-hl-v--down{color:var(--s-error);}
+        .an-hl-v--up{color:var(--s-tinta);}
+        .an-hl-v--down{color:var(--s-tinta);}
         .an-hl-s{font-size:11.5px;color:rgba(34,32,27,.45);margin-top:2px;}
         @media(max-width:768px){.an-highlights{grid-template-columns:1fr;}}
         .an-subhead{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(34,32,27,.45);margin:18px 0 10px;}
@@ -761,26 +765,26 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           )}
           <div className="an-program" style={{ ['--cols' as any]: PROGRAM.length <= 4 ? PROGRAM.length : 3 }}>
             {PROGRAM.map(p => (
-              <div key={p.l} className="an-card" style={{ borderTop: `3px solid ${p.color}` }}>
+              <div key={p.l} className="an-card">
                 {metricsLoading
                   ? <div className="an-skel" style={{ width: 54, height: 26 }} />
-                  : <div className="an-stat-now" style={{ color: p.color }}>{p.v}</div>}
+                  : <div className="an-stat-now">{p.v}</div>}
                 <div className="an-stat-name">{p.l}</div>
                 <div className="an-stat-label">{p.sub}</div>
               </div>
             ))}
           </div>
           <div className="an-4col">
-            {SEGMENTS.map(({ label, desc, color, bg, val, pct }) => (
-              <div key={label} className="an-card an-seg-card" style={{ background: bg, border: `1px solid ${color}22` }}>
+            {SEGMENTS.map(({ label, desc, color, val, pct }) => (
+              <div key={label} className="an-card an-seg-card">
                 <div className="an-seg-top">
                   {metricsLoading
                     ? <div className="an-skel" style={{ width: 36, height: 24 }} />
-                    : <span className="an-seg-val" style={{ color }}>{val.toLocaleString('es-AR')}</span>}
-                  {pct && !metricsLoading && <span className="an-seg-pct" style={{ color }}>({pctOf(val)})</span>}
+                    : <span className="an-seg-val">{val.toLocaleString('es-AR')}</span>}
+                  {pct && !metricsLoading && <span className="an-seg-pct">{pctOf(val)}</span>}
                 </div>
-                <div className="an-seg-name" style={{ color }}>{label}</div>
-                <div className="an-seg-desc" style={{ color }}>{desc}</div>
+                <div className="an-seg-name"><i className="an-seg-dot" style={{ background: color }} />{label}</div>
+                <div className="an-seg-desc">{desc}</div>
               </div>
             ))}
           </div>

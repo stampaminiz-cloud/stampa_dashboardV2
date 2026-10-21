@@ -531,7 +531,7 @@ export function CustomersTab({
         .ct-near-badge{white-space:nowrap;display:inline-flex;align-items:center;gap:4px;font-size:10.5px;padding:3px 10px;border-radius:20px;font-weight:600;background:var(--s-aviso-suave);color:var(--s-aviso);}
         .ct-ready-badge{white-space:nowrap;display:inline-flex;align-items:center;gap:4px;font-size:10.5px;padding:3px 10px;border-radius:20px;font-weight:700;background:var(--s-listo-suave);color:var(--s-listo);}
         .ct-activity{font-size:11.5px;color:rgba(34,32,27,.55);white-space:nowrap;}
-        .ct-activity--recent{color:var(--s-listo);font-weight:600;}
+        .ct-activity--recent{color:var(--s-tinta);font-weight:600;}
         .ct-activity--old{color:var(--s-error);}
         .ct-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:60px 20px;text-align:center;}
         .ct-empty-icon{width:44px;height:44px;border-radius:50%;background:rgba(34,32,27,.06);display:flex;align-items:center;justify-content:center;color:rgba(34,32,27,.3);}

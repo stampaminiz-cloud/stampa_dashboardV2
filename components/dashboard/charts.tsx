@@ -90,7 +90,8 @@ export function RetentionRing({ data }: { data: Retention }) {
   const total = r + n
   const share = total ? Math.round((r / total) * 100) : 0
   const pt = data.previous.returning + data.previous.newCustomers
-  const prevShare = pt ? Math.round((data.previous.returning / pt) * 100) : null
+  // Con menos de 5 clientes no se muestra porcentaje (ni la comparación).
+  const prevShare = pt >= 5 ? Math.round((data.previous.returning / pt) * 100) : null
   const diff = prevShare == null ? null : share - prevShare
   const R = 46, C = 2 * Math.PI * R
   const retLen = total ? (r / total) * C : 0
@@ -104,7 +105,7 @@ export function RetentionRing({ data }: { data: Retention }) {
           <circle cx="60" cy="60" r={R} fill="none" stroke={BLUE} strokeWidth="14" strokeDasharray={`${Math.max(0, C - retLen - gap * 2)} ${C}`} strokeDashoffset={-(retLen + gap)} transform="rotate(-90 60 60)" strokeLinecap="butt" />
           <circle cx="60" cy="60" r={R} fill="none" stroke={CORAL} strokeWidth="14" strokeDasharray={`${Math.max(0, retLen - gap)} ${C}`} transform="rotate(-90 60 60)" strokeLinecap="butt" />
         </>}
-        <text x="60" y="58" textAnchor="middle" fontSize="24" fontWeight="800" fill="#2B2620" style={{ fontFamily: 'var(--font-display)' }}>{share}%</text>
+        <text x="60" y="58" textAnchor="middle" fontSize="24" fontWeight="800" fill="#2B2620" style={{ fontFamily: 'var(--font-display)' }}>{total >= 5 ? `${share}%` : `${r} de ${total}`}</text>
         <text x="60" y="76" textAnchor="middle" fontSize="10.5" fill="rgba(43,38,32,.55)" style={{ fontFamily: 'var(--font-body)' }}>vuelven</text>
       </svg>
       {/* Sin frase: el número ya está en el anillo; al costado, los datos. */}
@@ -115,7 +116,7 @@ export function RetentionRing({ data }: { data: Retention }) {
           {/* Antes decía "−14 pts" (puntos porcentuales) y se confundía con los puntos de las tarjetas. */}
           <div className="ch-tile-k">Período anterior</div>
           <div className="ch-tile-v">{prevShare == null ? '—' : `${prevShare}%`}</div>
-          <div className={`ch-tile-s ${diff == null || diff === 0 ? '' : diff > 0 ? 'up' : 'down'}`}>{prevShare == null ? 'sin datos para comparar' : diff === 0 ? 'igual que ahora' : `${diff! > 0 ? '↑ subió' : '↓ bajó'} a ${share}%`}</div>
+          <div className="ch-tile-s">{prevShare == null ? (pt ? 'pocos clientes para comparar' : 'sin datos para comparar') : diff === 0 ? 'igual que ahora' : total < 5 ? 'ahora hay pocos clientes' : `ahora ${share}%`}</div>
         </div>
       </div>
     </div>
@@ -259,8 +260,6 @@ const CSS = `
   .ch-tile-v{font-family:var(--font-display);font-size:22px;font-weight:800;color:#2B2620;margin-top:4px;}
   .ch-tile-v.up{color:#2E7D4F;}
   .ch-tile-v.down{color:#B4442A;}
-  .ch-tile-s.up{color:#2E7D4F;font-weight:600;}
-  .ch-tile-s.down{color:#B4442A;font-weight:600;}
   .ch-tile-s{font-size:11px;color:rgba(43,38,32,.45);font-family:var(--font-body);}
   @media(max-width:600px){.ch-ring-tiles{grid-template-columns:1fr 1fr;}}
   .ch-legend i,.ch-row i,.ch-card i{display:inline-block;flex-shrink:0;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:middle;}

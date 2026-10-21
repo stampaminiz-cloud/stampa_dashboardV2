@@ -13,6 +13,12 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
 - Barras de un solo color (verde de marca) en Analítica, Inicio, Premios y Clientes; sin degradés.
 - Recorrido de clientes: el porcentaje va en gris y dice sobre quiénes se calcula ("97% de los registrados").
 - Frecuencia de visita: la comparación con el período anterior va en una frase en gris.
+- Mismo criterio en todo el sistema:
+  - textos de apoyo en gris (el verde y el rojo quedan para estados: guardado, error, activo o inactivo, subió o bajó);
+  - acciones sin flechas ("Ver clientes", "Mejorar plan");
+  - textos sin rayas;
+  - tarjetas de Inicio y Analítica sin un color distinto para cada una.
+- Grupos chicos: con menos de 5 clientes no se muestran porcentajes en Inicio (comparación con el período anterior), Analítica (programa y segmentos) ni en el anillo de retención; se muestra la cantidad.
 
 **Arreglos**
 - Botones, campos y menús toman la letra del sistema (algunos quedaban en Arial, por ejemplo "Cancelar suscripción").

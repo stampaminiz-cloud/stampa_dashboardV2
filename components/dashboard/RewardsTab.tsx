@@ -321,7 +321,7 @@ function StampRewards({ businessId, card, data, onSaved, onOpenCustomer }: { bus
       {dynamic && (
         <div className="rw-card">
           <div className="rw-card-title">Premios más elegidos</div>
-          <div className="rw-card-sub">Lo que eligieron tus clientes al registrarse — para tener stock de lo que más sale</div>
+          <div className="rw-card-sub">Lo que eligieron tus clientes al registrarse</div>
           {chosen.length === 0 ? (
             <div className="rw-empty-note">Aparece cuando tus clientes elijan su premio al registrarse.</div>
           ) : (
@@ -773,7 +773,7 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         .rw-stat-val{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--s-tinta);}
         .rw-stat-sub{font-size:10.5px;color:rgba(34,32,27,.45);margin-top:3px;line-height:1.4;}
         .rw-stat--good{border-color:rgba(91,140,90,.3);background:rgba(91,140,90,.05);}
-        .rw-stat--good .rw-stat-val{color:var(--s-listo);}
+        .rw-stat--good .rw-stat-val{color:var(--s-tinta);}
         .rw-reward-summary{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
         .rw-reward-main{font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--s-brasa);margin:4px 0 6px;}
         .rw-reward-sub{font-size:12px;color:rgba(34,32,27,.6);line-height:1.6;margin-top:2px;}
