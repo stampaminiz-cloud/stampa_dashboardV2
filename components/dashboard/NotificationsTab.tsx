@@ -25,7 +25,7 @@ const MAX_CHARS = 160
 const BASE: { key: BaseAudience; label: string; desc: (d: number) => string; stampOnly?: boolean }[] = [
   { key: 'all',      label: 'Todos los clientes',   desc: () => 'Novedades generales, horarios, lanzamientos' },
   { key: 'active',   label: 'Activos',              desc: d => `Vinieron en los últimos ${d} días o se registraron hace poco` },
-  { key: 'inactive', label: 'Inactivos',            desc: d => `Hace más de ${d} días que no vienen — ideal para un "te extrañamos"` },
+  { key: 'inactive', label: 'Inactivos',            desc: d => `Hace más de ${d} días que no vienen` },
   { key: 'near',     label: 'Cerca del premio',     desc: () => 'A 1–2 sellos de completar la tarjeta', stampOnly: true },
   { key: 'ready',    label: 'Premio para entregar', desc: () => 'Completaron la tarjeta y todavía no retiraron su premio', stampOnly: true },
 ]
@@ -360,7 +360,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
         .nt-list-msg{font-size:12.5px;color:var(--s-tinta);font-weight:500;margin-bottom:5px;word-break:break-word;}
         .nt-list-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:rgba(34,32,27,.45);}
         .nt-badge{font-size:10px;padding:2px 9px;border-radius:20px;font-weight:600;background:rgba(34,32,27,.06);color:rgba(34,32,27,.7);}
-        .nt-reached{font-weight:700;color:var(--s-listo);}
+        .nt-reached{font-weight:700;color:var(--s-tinta);}
         .nt-empty{font-size:12px;color:rgba(34,32,27,.45);text-align:center;padding:18px 0;line-height:1.5;}
         .nt-aud-miss{font-size:11px;color:rgba(34,32,27,.55);padding:0 14px 10px 40px;line-height:1.45;}
         .nt-skel{background:rgba(34,32,27,.07);border-radius:8px;animation:ntPulse 1.2s ease-in-out infinite;}
@@ -397,7 +397,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
               if (!loaded || !here || (audience === 'location' && locPick?.id === here.id)) return null
               return (
                 <button type="button" className="nt-loc-hint" onClick={() => { setLocId(here.id); setAudience('location') }}>
-                  Estás viendo {here.name}. ¿Mandar solo a clientes de {here.name}? →
+                  Estás viendo {here.name}. Mandar solo a clientes de {here.name}
                 </button>
               )
             })()}

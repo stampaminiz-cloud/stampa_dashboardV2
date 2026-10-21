@@ -164,7 +164,7 @@ function SectorField({ value, saving, saved, t, onSave }: { value: string; savin
       </div>
       {confirming && (
         <div className="st-sector-confirm">
-          <p>Cambiar el rubro no modifica tu tarjeta ni los campos del formulario que ya tenés configurados — solo actualiza las recomendaciones de aquí en más. Podés ajustar la tarjeta y el formulario manualmente cuando quieras desde Diseño y Formulario.</p>
+          <p>Cambiar el rubro no modifica tu tarjeta ni los campos del formulario que ya tenés configurados. Solo actualiza las recomendaciones de aquí en más. Podés ajustar la tarjeta y el formulario manualmente cuando quieras desde Diseño y Formulario.</p>
           <div className="st-delete-actions">
             <button className="s-btn s-btn--secondary s-btn--sm" onClick={cancel}>{t('cancel')}</button>
             <button className="s-btn s-btn--primary s-btn--sm" onClick={confirmSave}>Sí, cambiar rubro</button>

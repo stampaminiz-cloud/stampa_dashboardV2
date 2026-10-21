@@ -396,7 +396,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
 
   async function handleSave() {
     if (!businessId) {
-      setSaveError('No se encontró el negocio — recargá la página e intentá de nuevo.')
+      setSaveError('No se encontró el negocio. Recargá la página y probá de nuevo.')
       return
     }
     setSaveError(''); setSaveNotice('')
@@ -1037,7 +1037,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
             {atLimit ? `Plan ${plan} · ${planMaxCards} tarjeta${planMaxCards === 1 ? '' : 's'} activa${planMaxCards === 1 ? '' : 's'} máx.` : t('dt_new_card' as any)}
           </div>
           {atLimit && onChoosePlan && (
-            <div className="dt-add-upgrade" onClick={e => { e.stopPropagation(); onChoosePlan() }}>Mejorar plan →</div>
+            <div className="dt-add-upgrade" onClick={e => { e.stopPropagation(); onChoosePlan() }}>Mejorar plan</div>
           )}
         </div>
       </div>

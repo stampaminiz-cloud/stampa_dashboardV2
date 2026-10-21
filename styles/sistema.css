@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    SISTEMA VISUAL DE STAMPA (decidido el 19/10/2026)
-   Letras: Familjen Grotesk (títulos) + Albert Sans (texto), cargadas en
+   Letras: Red Hat Display (títulos) + Red Hat Text (texto), cargadas en
    app/layout.tsx. Íconos: components/ui/Icon.tsx (Tabler, un solo grosor).
    Fecha y hora: components/ui/DateTime.tsx.
 
@@ -47,6 +47,10 @@
   --s-sombra: 0 1px 8px rgba(34, 32, 27, .05);
   --s-sombra-alta: 0 14px 40px rgba(34, 32, 27, .16);
 }
+
+/* Botones, campos y menús no heredan la letra en el navegador: sin esto
+   algunos quedaban en Arial. */
+button, input, select, textarea { font-family: inherit; }
 
 /* ── Botones ───────────────────────────────────────────────── */
 .s-btn {

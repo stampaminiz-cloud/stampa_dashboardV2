@@ -5,10 +5,10 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Fonts ─────────────────────────────────────────────────────
-   Familjen Grotesk para títulos y Albert Sans para texto (decidido el
+   Red Hat Display para títulos y Red Hat Text para texto (cambiado el 21/10/2026; antes Familjen Grotesk y Albert Sans, decidido el
    19/10/2026, "Mostrador"). Se cargan una sola vez con next/font en
-   app/layout.tsx, que define --ff-display y --ff-body. Se cargan desde Google Fonts en
-   components/StampaLanding.tsx (mismo patrón que app/login/page.tsx).
+   app/layout.tsx, que define --ff-display y --ff-body, y las usan el panel,
+   la landing y el login.
    Paleta "Botanica Daylight" del dashboard — antes eran los colores del
    handoff original (#E46C31 / #F7EFE8 / #01231A). */
 

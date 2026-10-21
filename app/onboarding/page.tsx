@@ -88,13 +88,13 @@ const SECTORS = [
 const STEP_INFO: Record<number, { title: string; subtitle: string; tip: string }> = {
   1: {
     title: 'Contanos sobre tu negocio',
-    subtitle: 'Nombre y rubro — con esto configuramos todo lo demás.',
+    subtitle: 'Nombre y rubro. Con esto configuramos todo lo demás.',
     tip: 'Elegí bien el rubro, lo usamos para recomendarte el programa de fidelización ideal para vos.',
   },
   2: {
     title: '¿Qué tipo de programa querés?',
     subtitle: 'Te recomendamos uno según tu rubro, pero podés elegir el que quieras.',
-    tip: 'La tarjeta de sellos es la más usada — simple, efectiva y los clientes la entienden al instante.',
+    tip: 'La tarjeta de sellos es la más usada: los clientes la entienden al instante.',
   },
   3: {
     title: 'Configurá tu programa',
@@ -114,7 +114,7 @@ const STEP_INFO: Record<number, { title: string; subtitle: string; tip: string }
   6: {
     title: '¡Casi listo!',
     subtitle: 'Así queda tu tarjeta. Esto es lo que van a ver tus clientes.',
-    tip: 'Una vez en el dashboard podés editar todo esto cuando quieras — el programa nunca es fijo.',
+    tip: 'Después podés cambiar todo esto desde el panel, cuando quieras.',
   },
 }
 

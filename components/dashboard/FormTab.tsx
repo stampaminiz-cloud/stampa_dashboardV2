@@ -91,7 +91,7 @@ function Preview({ card, businessName, fields, askReward, whiteLabel }: { card?:
                 : <div className="fm-pv-input">{f.type === 'select' ? <>Elegir…<span>▾</span></> : f.placeholder}</div>}
             </div>
           ))}
-          <div className="fm-pv-btn" style={{ background: color }}>Obtener mi tarjeta →</div>
+          <div className="fm-pv-btn" style={{ background: color }}>Obtener mi tarjeta</div>
           <div className="fm-pv-legal">Al registrarte aceptás que {businessName} use tus datos para tu tarjeta. <u>Privacidad</u></div>
           {!whiteLabel && <div className="fm-pv-legal" style={{ opacity: .6 }}>Powered by Stampa</div>}
         </div>

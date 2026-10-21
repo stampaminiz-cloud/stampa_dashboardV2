@@ -255,7 +255,7 @@ function Header({ title, t, setMobileOpen, setActive, recentActivity: realActivi
             <div className="hd-dropdown hd-notif-dropdown">
               <div className="hd-drop-head">
                 <span className="hd-drop-title">Actividad reciente</span>
-                <button className="hd-mark-read" onClick={() => { setShowNotif(false); setActive?.('customers') }}>Ver clientes →</button>
+                <button className="hd-mark-read" onClick={() => { setShowNotif(false); setActive?.('customers') }}>Ver clientes</button>
               </div>
               {recentActivity.length === 0 ? (
                 <div style={{padding:'20px 16px',fontSize:12,color:'rgba(43,38,32,.4)',textAlign:'center'}}>Todavía no hay actividad reciente.</div>
@@ -367,14 +367,17 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
 
   // ── Resumen: 4 tarjetas, cada flecha compara contra un período real ──
   const fmt = (n: number | undefined) => (n ?? 0).toLocaleString('es-AR')
+  // Con menos de MIN_BASE en el período anterior no se muestra el porcentaje
+  // (de 2 a 14 daba "↑ 600%"); el número anterior ya está en la línea de abajo.
+  const MIN_BASE = 5
   const METRICS: { label: string; value?: number; color: string; icon: IconName; delta: number | null; deltaTitle?: string; sub: string }[] = [
     { label: 'Clientes', value: a?.total, color: '#C75D3A', icon: 'clientes', delta: null,
       sub: `${fmt(a?.active)} activos · ${fmt(a?.inactive)} inactivos` },
-    { label: 'Nuevos este mes', value: a?.newThisMonth, color: '#185FA5', icon: 'agregar', delta: a?.newLastMonth > 0 ? a.newDelta : null, deltaTitle: 'Respecto al mismo período del mes pasado',
+    { label: 'Nuevos este mes', value: a?.newThisMonth, color: '#185FA5', icon: 'agregar', delta: a?.newLastMonth >= MIN_BASE ? a.newDelta : null, deltaTitle: 'Respecto al mismo período del mes pasado',
       sub: `mes pasado a esta fecha: ${fmt(a?.newLastMonth)}` },
-    { label: 'Visitas · 7 días', value: a?.visitsThisWeek, color: '#5B8C5A', icon: 'sello', delta: a?.visitsWeekDelta ?? null, deltaTitle: 'Respecto a los 7 días anteriores',
+    { label: 'Visitas · 7 días', value: a?.visitsThisWeek, color: '#5B8C5A', icon: 'sello', delta: a?.visitsPrevWeek >= MIN_BASE ? a.visitsWeekDelta ?? null : null, deltaTitle: 'Respecto a los 7 días anteriores',
       sub: `hoy: ${fmt(a?.visitsToday)} · ${new Date().toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', '')}. pasado: ${fmt(a?.visitsSameDayLastWeek)}` },
-    { label: 'Premios entregados este mes', value: a?.rewardsThisMonth, color: '#9C7530', icon: 'premios', delta: a?.rewardsDelta ?? null, deltaTitle: 'Respecto al mismo período del mes pasado',
+    { label: 'Premios entregados este mes', value: a?.rewardsThisMonth, color: '#9C7530', icon: 'premios', delta: a?.rewardsLastMonth >= MIN_BASE ? a.rewardsDelta ?? null : null, deltaTitle: 'Respecto al mismo período del mes pasado',
       sub: `mes pasado a esta fecha: ${fmt(a?.rewardsLastMonth)}` },
   ]
 
@@ -446,10 +449,10 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
 
       <div className="ov-section-label">{t('section_summary' as any)}</div>
       <div className="ov-metric-grid">
-        {METRICS.map(({ label, value, delta, deltaTitle, color, icon, sub }) => (
+        {METRICS.map(({ label, value, delta, deltaTitle, icon, sub }) => (
           <div key={label} className="ov-metric-card">
             <div className="ov-metric-top">
-              <div className="ov-metric-dot" style={{ background: `${color}1A`, color }}>
+              <div className="ov-metric-dot">
                 <Icon name={icon} size={18} />
               </div>
               {delta != null && (
@@ -505,7 +508,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
               </div>
           }
           {fullAnalytics && (
-            <button className="ov-more-link" onClick={() => setActive('analytics')}>Ver analítica completa →</button>
+            <button className="ov-more-link" onClick={() => setActive('analytics')}>Ver analítica completa</button>
           )}
         </div>
         <div className="db-card">
@@ -817,7 +820,7 @@ const CSS = `
   .ov-metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
   .ov-metric-card{background:#FFFFFF;border:1px solid rgba(34,32,27,.07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(34,32,27,.04);}
   .ov-metric-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-  .ov-metric-dot{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;}
+  .ov-metric-dot{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--s-hueco);color:var(--s-tinta-2);}
   .ov-delta{font-size:11.5px;font-weight:600;}
   .ov-delta--up{color:var(--s-listo);}.ov-delta--down{color:var(--s-error);}
   .ov-metric-value{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--s-tinta);line-height:1;margin-bottom:4px;}
@@ -865,7 +868,7 @@ const CSS = `
   .ov-reward-info{flex:1;}
   .ov-reward-name{font-size:12px;color:var(--s-tinta);margin-bottom:4px;}
   .ov-reward-bar{height:5px;background:rgba(34,32,27,.07);border-radius:3px;overflow:hidden;}
-  .ov-reward-fill{height:100%;background:linear-gradient(90deg,var(--s-brasa),#D4A24C);border-radius:3px;}
+  .ov-reward-fill{height:100%;background:var(--s-pino);border-radius:3px;}
   .ov-reward-count{font-size:11px;font-weight:600;color:rgba(34,32,27,.5);flex-shrink:0;}
   .ov-activity-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid rgba(34,32,27,.06);}
   .ov-activity-row:last-child{border-bottom:none;}
