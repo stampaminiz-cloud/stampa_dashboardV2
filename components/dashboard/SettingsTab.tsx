@@ -1,6 +1,7 @@
 'use client'
 import { Icon } from '@/components/ui/Icon'
 import { Switch } from '@/components/ui/Switch'
+import { WhatsappSettings } from './WhatsappSettings'
 import React, { useState, useEffect } from 'react'
 import type { BillingStatus } from '@/lib/api'
 import { apiUpdateBusiness, apiChangePassword, apiUpdateProfile, apiExportCustomers, apiRequestDeletion, apiCancelDeletion, apiChangeEmail } from '@/lib/api'
@@ -28,6 +29,7 @@ const SECTOR_LABELS: Record<string, string> = {
   spa: 'Spa / Belleza',
   clothing: 'Ropa / Indumentaria',
   bookstore: 'Librería',
+  carniceria: 'Carnicería / Almacén',
   other: 'Otro rubro',
 }
 
@@ -480,6 +482,12 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
             </span>
             {onOpenLocations && <button className="s-btn s-btn--text s-btn--sm" onClick={onOpenLocations}>Administrar</button>}
           </FieldRow>
+        </Section>
+
+        <Section title="WhatsApp en la tarjeta" icon={<Icon name="whatsapp" size={16} />}>
+          {(() => { const c = (cards as any[] || []).find((x: any) => x.isActive) || (cards as any[] || [])[0]; return (
+            <WhatsappSettings businessId={businessId} isManager={isManager} onSaved={onSave} color={c?.color} textColor={c?.textColor || undefined} />
+          ) })()}
         </Section>
 
         <Section title="Seguridad" icon={<Icon name="candado" size={16} />}>

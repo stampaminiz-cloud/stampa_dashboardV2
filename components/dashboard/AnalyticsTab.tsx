@@ -40,6 +40,7 @@ interface Detailed {
   progressByCard?: { cardId: string; name: string; type: CardType; total: number | null; segments: { label: string; count: number }[] }[]
   progressDistribution?: ProgressDist | null
   formAnswers?: FormAnswerData[]
+  whatsappTaps?: { label: string; count: number }[]
   cardComparison?: CardRow[]
   locationComparison?: LocationRow[]
 }
@@ -945,6 +946,23 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
               <div className="an-csub">Lo que contestaron al registrarse, y cuáles vuelven más</div>
               {!d ? <Loading /> : <FormAnswers data={d.formAnswers || []} onNotify={onNotifyAnswer} />}
             </div>
+          </div>
+          <div className="an-card">
+            <div className="an-ctitle">Toques en WhatsApp</div>
+            <div className="an-csub">Veces que tocaron los botones de WhatsApp de su tarjeta, en los últimos {range.replace('d', '')} días</div>
+            {!d ? <Loading /> : (d.whatsappTaps || []).length
+              ? (() => { const taps = d.whatsappTaps!; const max = Math.max(1, ...taps.map(t => t.count)); return (
+                  <div className="an-freq-bars" style={{ marginTop: 12 }}>
+                    {taps.map(t => (
+                      <div key={t.label} className="an-freq-row">
+                        <span className="an-freq-lbl" style={{ width: 130 }}>{t.label}</span>
+                        <div className="an-freq-bar"><div className="an-freq-fill" style={{ width: `${(t.count / max) * 100}%` }} /></div>
+                        <span className="an-freq-cnt">{t.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) })()
+              : <EmptyState title="Todavía sin toques" text="Aparece cuando tus clientes toquen los botones de WhatsApp de su tarjeta. El número se carga en Configuración." />}
           </div>
         </>}
 
