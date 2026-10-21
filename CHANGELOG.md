@@ -9,6 +9,13 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
 - Analítica → Clientes: Toques en WhatsApp, por botón.
 - Inicio → Primeros pasos: "Cargá tu WhatsApp".
 - Rubro nuevo en el onboarding y en Configuración: Carnicería / Almacén.
+- Configuración → WhatsApp: dos columnas, con la vista en vivo de cómo lo ve el cliente (frente y dorso). Cada botón es una fila con su tipo y su texto; el título en la tarjeta sale del primer botón.
+- Configuración → Reglas del programa en dos columnas: lo de todo el negocio a la izquierda y lo de cada tarjeta a la derecha.
+- Analítica → "¿Cuándo viene tu gente?", "¿Cuándo canjean?" y "¿Cuándo se registran?": dos gráficos simples (por día y por horario) en lugar del mapa de calor, sin las horas en que el local está cerrado.
+- Diseño (tarjetas de puntos): foto de fondo opcional.
+
+**Arreglos**
+- Formulario público: el desplegable mide y se ve igual que los campos de nombre y email (en el iPhone quedaba más chico).
 
 ## 1.4.0 (21/10/2026)
 

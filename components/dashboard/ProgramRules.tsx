@@ -18,7 +18,10 @@ const EXPIRY = [0, 3, 6, 12]
 const WEEK = [{ d: 1, l: 'L' }, { d: 2, l: 'M' }, { d: 3, l: 'M' }, { d: 4, l: 'J' }, { d: 5, l: 'V' }, { d: 6, l: 'S' }, { d: 0, l: 'D' }]
 const DAY_FULL = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
-export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBusinessChanged, readOnly = false }: {
+// part: 'cards' = vencimiento y días dobles (por tarjeta); 'business' =
+// cumpleaños (todo el negocio). Configuración las muestra en dos columnas.
+export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBusinessChanged, readOnly = false, part = 'all' }: {
+  part?: 'all' | 'cards' | 'business'
   businessId?: string; cards: RulesCard[]; birthday: BirthdayRule
   onCardsChanged?: () => void; onBusinessChanged?: () => void; readOnly?: boolean
 }) {
@@ -66,9 +69,10 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
   }
 
   return (
-    <div className="pr">
+    <div className={`pr${part === 'all' ? '' : ' pr--bare'}`}>
       <style>{CSS}</style>
 
+      {part !== 'business' && <>
       {/* Vencimiento */}
       <div className="pr-block">
         <div className="pr-title">
@@ -122,6 +126,9 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
         })}
       </div>
 
+      </>}
+
+      {part !== 'cards' && <>
       {/* Cumpleaños */}
       <div className="pr-block">
         <div className="pr-title">
@@ -140,8 +147,9 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
         </div>
         {bEnabled && <div className="pr-note">Solo reciben el regalo los clientes que cargaron su fecha de cumpleaños al registrarse.</div>}
       </div>
+      </>}
 
-      <div className="pr-foot">Los avisos automáticos de estas reglas no cuentan para tus envíos del mes.</div>
+      {part === 'all' && <div className="pr-foot">Los avisos automáticos de estas reglas no cuentan para tus envíos del mes.</div>}
     </div>
   )
 }
@@ -149,6 +157,7 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
 const CSS = `
   .pr-sw{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--s-tinta-2);}
   .pr{display:flex;flex-direction:column;gap:18px;margin-top:18px;padding-top:16px;border-top:1px solid rgba(34,32,27,.07);}
+  .pr--bare{margin-top:0;padding-top:0;border-top:none;}
   .pr-block{display:flex;flex-direction:column;gap:8px;}
   .pr-title{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--s-tinta);}
   .pr-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
