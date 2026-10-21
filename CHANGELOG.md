@@ -2,7 +2,7 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.4.0 (por salir)
+## 1.4.0 (21/10/2026)
 
 **Nuevo**
 - Letras nuevas en todo el sistema: Red Hat Display (títulos) y Red Hat Text (texto), en lugar de Familjen Grotesk y Albert Sans.
