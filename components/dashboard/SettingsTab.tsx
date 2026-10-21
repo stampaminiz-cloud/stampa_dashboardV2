@@ -1,6 +1,7 @@
 'use client'
 import { Icon } from '@/components/ui/Icon'
 import { Switch } from '@/components/ui/Switch'
+import { WhatsappSettings } from './WhatsappSettings'
 import React, { useState, useEffect } from 'react'
 import type { BillingStatus } from '@/lib/api'
 import { apiUpdateBusiness, apiChangePassword, apiUpdateProfile, apiExportCustomers, apiRequestDeletion, apiCancelDeletion, apiChangeEmail } from '@/lib/api'
@@ -28,6 +29,7 @@ const SECTOR_LABELS: Record<string, string> = {
   spa: 'Spa / Belleza',
   clothing: 'Ropa / Indumentaria',
   bookstore: 'Librería',
+  carniceria: 'Carnicería / Almacén',
   other: 'Otro rubro',
 }
 
@@ -402,6 +404,11 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         .st-field-row:last-child{border-bottom:none;padding-bottom:0;}
         .st-field-label{font-size:12.5px;color:rgba(34,32,27,.6);}
         .st-field-value{display:flex;align-items:center;gap:8px;}
+        .st-rules-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px 36px;align-items:start;}
+        .st-rules-col{display:flex;flex-direction:column;gap:18px;min-width:0;}
+        .st-rules-col .st-rule{margin:0;}
+        .st-rules-foot{font-size:11px;color:var(--s-tinta-3);margin-top:18px;}
+        @media(max-width:980px){.st-rules-grid{grid-template-columns:1fr;}}
         .st-field-val{font-size:12.5px;font-weight:600;color:var(--s-tinta);}
         .st-timezone-select{font-size:12.5px;font-weight:600;color:var(--s-tinta);background:var(--s-salvia);border:1.5px solid rgba(34,32,27,.12);border-radius:8px;padding:6px 10px;font-family:var(--font-body);cursor:pointer;}
         .st-inline-input{padding:5px 9px;font-size:12.5px;border:1.5px solid var(--s-brasa);border-radius:7px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);width:180px;outline:none;}
@@ -482,12 +489,22 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           </FieldRow>
         </Section>
 
+        <Section title="WhatsApp en la tarjeta" icon={<Icon name="whatsapp" size={16} />}>
+          {(() => { const c = (cards as any[] || []).find((x: any) => x.isActive) || (cards as any[] || [])[0]; return (
+            <WhatsappSettings businessId={businessId} isManager={isManager} onSaved={onSave} color={c?.color} textColor={c?.textColor || undefined} />
+          ) })()}
+        </Section>
+
         <Section title="Seguridad" icon={<Icon name="candado" size={16} />}>
           <PasswordSection />
         </Section>
 
         <Section title={t('st_rules')} icon={<Icon name="reglas" size={16} />}>
-          {/* Mismo formato que las demás reglas (ProgramRules): título con ⓘ y el control debajo. */}
+          {/* Dos columnas: a la izquierda, lo de todo el negocio (cliente
+              inactivo, cumpleaños); a la derecha, lo de cada tarjeta
+              (vencimiento, días dobles). En el celular, una columna. */}
+          <div className="st-rules-grid">
+          <div className="st-rules-col">
           <div className="st-rule">
             <div className="st-rule-title">
               Cliente inactivo
@@ -505,7 +522,13 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
               {msgFor('inactiveDays')}
             </div>
           </div>
-          <ProgramRules businessId={businessId} cards={cards} birthday={birthday} onCardsChanged={onCardsChanged} onBusinessChanged={onSave} />
+          <ProgramRules part="business" businessId={businessId} cards={cards} birthday={birthday} onCardsChanged={onCardsChanged} onBusinessChanged={onSave} />
+          </div>
+          <div className="st-rules-col">
+            <ProgramRules part="cards" businessId={businessId} cards={cards} birthday={birthday} onCardsChanged={onCardsChanged} onBusinessChanged={onSave} />
+          </div>
+          </div>
+          <div className="st-rules-foot">Los avisos automáticos de estas reglas no cuentan para tus envíos del mes.</div>
         </Section>
 
         <Section title={t('st_alerts')} icon={<Icon name="mail" size={16} />}>

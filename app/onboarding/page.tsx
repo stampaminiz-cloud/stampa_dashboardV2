@@ -35,7 +35,7 @@ interface OBState {
 const SECTOR_CARD: Record<string, CardType> = {
   cafe: 'stamp', restaurant: 'stamp', hair: 'membership',
   gym: 'points', bakery: 'stamp', spa: 'points',
-  clothing: 'membership', bookstore: 'stamp', other: 'stamp',
+  clothing: 'membership', bookstore: 'stamp', carniceria: 'stamp', other: 'stamp',
 }
 
 // Sugerencias de premio por rubro para "El cliente elige su premio". Son un
@@ -49,6 +49,7 @@ const SECTOR_REWARD_SUGGESTIONS: Record<string, string[]> = {
   spa:        ['Masaje de 30 min', 'Limpieza facial', 'Manicura'],
   clothing:   ['10% de descuento', 'Accesorio de regalo', 'Envío gratis'],
   bookstore:  ['Libro de regalo', 'Señalador', '10% de descuento'],
+  carniceria: ['Chorizos de regalo', 'Carbón de regalo', '10% de descuento'],
   other:      ['10% de descuento', 'Producto de regalo', 'Servicio gratis'],
 }
 
@@ -62,7 +63,7 @@ function stepsFor(cardType: CardType): number[] {
 const STORAGE_KEY = 'stampa_onboarding_v1'
 
 const SECTOR_STAMPS: Record<string, number> = {
-  cafe: 8, restaurant: 8, bakery: 6, bookstore: 10,
+  cafe: 8, restaurant: 8, bakery: 6, bookstore: 10, carniceria: 8,
   hair: 8, gym: 10, spa: 10, clothing: 8, other: 8,
 }
 
@@ -80,6 +81,7 @@ const SECTORS = [
   { id: 'spa',       label: 'Spa / Belleza',           icon: <Icon name="spa" size={20} /> },
   { id: 'clothing',  label: 'Ropa / Indumentaria',     icon: <Icon name="ropa" size={20} /> },
   { id: 'bookstore', label: 'Librería',                icon: <Icon name="libreria" size={20} /> },
+  { id: 'carniceria', label: 'Carnicería / Almacén',  icon: <Icon name="carniceria" size={20} /> },
   { id: 'other',     label: 'Otro rubro',              icon: <Icon name="negocio" size={20} /> },
 ]
 

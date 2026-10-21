@@ -30,6 +30,7 @@ interface CardDesign {
   emptyIcon?: string | null
   pointsIcon?: string | null
   flipImageUrl?: string | null
+  stripImageUrl?: string | null
   flipMessage?: string | null
   flipSubMessage?: string | null
   pointsPerVisit?: number | null
@@ -370,6 +371,9 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const [flipSubMessage, setFlipSubMessage] = useState(init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio')
   const [isFlipping, setIsFlipping]         = useState(false)
   const [prizeImage, setPrizeImage]           = useState<string | null>(card.flipImageUrl || null)
+  // Foto de fondo de la imagen de puntos (opcional; el backend la oscurece abajo).
+  const [stripImage, setStripImage]           = useState<string | null>(card.stripImageUrl || null)
+  const stripImageRef                         = useRef<HTMLInputElement>(null)
   const prizeImageRef                         = useRef<HTMLInputElement>(null)
 
   function switchSide(side: 'front' | 'prize') {
@@ -386,10 +390,10 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   // Cambios sin guardar: se compara con lo que había al abrir.
   const snapshot = (c: CardDesign, l: LogoState, fm: string, fs: string, img: string | null, ppv: string) =>
     JSON.stringify([c.name, c.color, c.secondColor, c.textColor || null, c.labelColor || null, c.publicDescription || '', c.stampsRequired, c.rewardMode, c.rewardField || '', l, fm, fs, img, ppv])
-  const [baseline, setBaseline] = useState(() => snapshot(init, { businessLogo: init.logoUrl || null, earnedIcon: init.earnedIcon || null, emptyIcon: init.emptyIcon || null, pointsIcon: init.pointsIcon || null }, init.flipMessage || '¡Lo lograste!', init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio', init.flipImageUrl || null, JSON.stringify({ pointsMode: init.pointsMode === 'amount' ? 'amount' : 'visit', pointsPerVisit: init.pointsPerVisit || 10, pointsPerAmount: init.pointsPerAmount || 1, pointsAmountUnit: init.pointsAmountUnit || DEFAULT_UNIT[currency] })))
+  const [baseline, setBaseline] = useState(() => snapshot(init, { businessLogo: init.logoUrl || null, earnedIcon: init.earnedIcon || null, emptyIcon: init.emptyIcon || null, pointsIcon: init.pointsIcon || null }, init.flipMessage || '¡Lo lograste!', init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio', JSON.stringify([init.flipImageUrl || null, init.stripImageUrl || null]), JSON.stringify({ pointsMode: init.pointsMode === 'amount' ? 'amount' : 'visit', pointsPerVisit: init.pointsPerVisit || 10, pointsPerAmount: init.pointsPerAmount || 1, pointsAmountUnit: init.pointsAmountUnit || DEFAULT_UNIT[currency] })))
 
   function setLogo(key: keyof LogoState) { return (url: string | null) => setLogos({ ...logos, [key]: url }) }
-  const dirty = snapshot(card, logos, flipMessage, flipSubMessage, prizeImage, pointsPerVisit) !== baseline
+  const dirty = snapshot(card, logos, flipMessage, flipSubMessage, JSON.stringify([prizeImage, stripImage]), pointsPerVisit) !== baseline
   const textColorBad = !!card.textColor && !isHex(card.textColor)
   const labelColorBad = !!card.labelColor && !isHex(card.labelColor)
   const logoColors = useLogoColors(logos.businessLogo)
@@ -416,6 +420,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
         flipSubMessage,
         // null = se quitó (antes mandaba undefined y "Quitar" nunca se guardaba)
         flipImageUrl: prizeImage || null,
+        stripImageUrl: stripImage || null,
         logoUrl: logos.businessLogo || null,
         earnedIcon: logos.earnedIcon || null,
         emptyIcon: logos.emptyIcon || null,
@@ -423,7 +428,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
       })
 
       setSaved(true)
-      setBaseline(snapshot(card, logos, flipMessage, flipSubMessage, prizeImage, pointsPerVisit))
+      setBaseline(snapshot(card, logos, flipMessage, flipSubMessage, JSON.stringify([prizeImage, stripImage]), pointsPerVisit))
       setSaveNotice(res?.passUpdates ? `Guardado. Se actualizó la tarjeta en ${res.passUpdates} celular${res.passUpdates === 1 ? '' : 'es'}.` : 'Guardado.')
       onSaved?.()
       setTimeout(() => setSaved(false), 2000)
@@ -444,7 +449,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const previewDesign = JSON.stringify({
     name: card.name, color: card.color, secondColor: card.secondColor, textColor: card.textColor,
     stampsRequired: card.stampsRequired, ...pointsRule, logoUrl: logos.businessLogo, earnedIcon: logos.earnedIcon, emptyIcon: logos.emptyIcon,
-    flipImageUrl: prizeImage, flipMessage, flipSubMessage,
+    flipImageUrl: prizeImage, flipMessage, flipSubMessage, stripImageUrl: stripImage,
   })
   useEffect(() => {
     if (!businessId || !card.id) return
@@ -661,6 +666,29 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
               </div>
               <ColorField ariaLabel="Color de las etiquetas" value={card.labelColor || null} auto suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
                 contrastWith={card.color} onChange={v => setCard({ ...card, labelColor: v })} />
+            </>
+          )}
+
+          {/* ── Foto de fondo (puntos) ── */}
+          {card.type === 'points' && (
+            <>
+              <div className="dt-panel-section-title" style={{ marginTop: 20 }}>
+                <Icon name="imagen" size={12} className="dt-ic-brasa dt-ic-inline" />
+                Foto de fondo
+              </div>
+              <div className="dt-prize-upload-zone" onClick={() => stripImageRef.current?.click()}>
+                {stripImage
+                  ? <img src={stripImage} className="dt-prize-upload-preview" alt="Foto de fondo" />
+                  : <>
+                      <Icon name="imagen" size={20} className="dt-ic-faint" />
+                      <span className="dt-prize-upload-hint">Subir una foto (opcional)</span>
+                      <span className="dt-prize-upload-sub">JPG o PNG horizontal · va detrás de los puntos, oscurecida para que se lean</span>
+                    </>
+                }
+                <input ref={stripImageRef} type="file" accept="image/*" style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (!f) return; compressImage(f, 1100, false).then(setStripImage).catch(err => setSaveError(err.message)); e.target.value = '' }} />
+              </div>
+              {stripImage && <button className="dt-logo-remove" onClick={() => setStripImage(null)} style={{ marginBottom: 12 }}>Quitar foto</button>}
             </>
           )}
 

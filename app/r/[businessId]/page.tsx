@@ -30,6 +30,11 @@ const CSS = `
   .rg-label { font-size: 11px; font-weight: 700; color: rgba(34,32,27,.5); text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 6px; }
   .rg-input, .rg-select { width: 100%; max-width: 100%; padding: 12px 14px; font-size: 14px; border: 1.5px solid rgba(34,32,27,.12); border-radius: 12px; background: var(--s-salvia); color: var(--s-tinta); font-family: var(--font-body); outline: none; }
   .rg-input:focus, .rg-select:focus { border-color: var(--brand-color); background: #FFFFFF; }
+  /* El iPhone dibuja el desplegable más chico y con otro borde que los campos
+     de texto: se le saca el estilo nativo para que mida y se vea igual. */
+  .rg-input, .rg-select { box-sizing: border-box; height: 48px; }
+  .rg-select { -webkit-appearance: none; appearance: none; padding-right: 38px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2322201B' stroke-opacity='.55' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
+  .rg-select:focus { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2322201B' stroke-opacity='.55' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
   .rg-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; background: var(--brand-color); color: #fff; border: none; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-display); margin-top: 6px; box-shadow: 0 4px 14px rgba(0,0,0,.12); }
   .rg-btn:disabled { opacity: .6; cursor: not-allowed; box-shadow: none; }
   .rg-error { font-size: 11.5px; color: var(--s-error); background: rgba(178,59,59,.07); border: 1px solid rgba(178,59,59,.2); border-radius: 9px; padding: 10px 14px; margin-bottom: 16px; overflow-wrap: break-word; }
