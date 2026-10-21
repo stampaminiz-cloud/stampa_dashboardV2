@@ -105,8 +105,6 @@ export function RetentionRing({ data }: { data: Retention }) {
           <circle cx="60" cy="60" r={R} fill="none" stroke={BLUE} strokeWidth="14" strokeDasharray={`${Math.max(0, C - retLen - gap * 2)} ${C}`} strokeDashoffset={-(retLen + gap)} transform="rotate(-90 60 60)" strokeLinecap="butt" />
           <circle cx="60" cy="60" r={R} fill="none" stroke={CORAL} strokeWidth="14" strokeDasharray={`${Math.max(0, retLen - gap)} ${C}`} transform="rotate(-90 60 60)" strokeLinecap="butt" />
         </>}
-        <text x="60" y="58" textAnchor="middle" fontSize="24" fontWeight="800" fill="#2B2620" style={{ fontFamily: 'var(--font-display)' }}>{total >= 5 ? `${share}%` : `${r} de ${total}`}</text>
-        <text x="60" y="76" textAnchor="middle" fontSize="10.5" fill="rgba(43,38,32,.55)" style={{ fontFamily: 'var(--font-body)' }}>vuelven</text>
       </svg>
       {/* Sin frase: el número ya está en el anillo; al costado, los datos. */}
       <div className="ch-ring-tiles">
