@@ -354,10 +354,11 @@ function AnalyticsLocked({ isManager, onChoosePlan }: { isManager: boolean; onCh
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoosePlan, onOpenCustomer }: {
+export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoosePlan, onOpenCustomer, onNotifyAnswer }: {
   analyticsData?: any; cards?: any[]; isManager?: boolean
   onChoosePlan: () => void
   onOpenCustomer?: (email: string) => void
+  onNotifyAnswer?: (fieldId: string, answer: string) => void
 }) {
   const { can } = usePlan()
   const fullAnalytics = can('analyticsLevel')
@@ -943,8 +944,8 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
             </div>
             <div className="an-card">
               <div className="an-ctitle">Respuestas del formulario</div>
-              <div className="an-csub">Lo que contestaron tus clientes al registrarse</div>
-              {!d ? <Loading /> : <FormAnswers data={d.formAnswers || []} />}
+              <div className="an-csub">Lo que contestaron al registrarse, y cuáles vuelven más</div>
+              {!d ? <Loading /> : <FormAnswers data={d.formAnswers || []} onNotify={onNotifyAnswer} />}
             </div>
           </div>
         </>}

@@ -47,8 +47,10 @@ function Lock() {
   return <Icon name="candado" size={12} />
 }
 
-export function NotificationsTab({ businessId, cards = [], businessName, inactiveDays = 60, isManager = false, onChoosePlan, selectedLocationId = null }: {
+export function NotificationsTab({ businessId, cards = [], businessName, inactiveDays = 60, isManager = false, onChoosePlan, selectedLocationId = null, preset = null, onPresetUsed }: {
   selectedLocationId?: string | null
+  preset?: { fieldId: string; answer: string } | null
+  onPresetUsed?: () => void
   businessId?: string | null
   cards?: any[]
   businessName: string
@@ -122,6 +124,12 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
   const [answerFieldId, setAnswerFieldId] = useState('')
   const [answer, setAnswer] = useState('')
   const answerField = answerFields.find(f => f.fieldId === answerFieldId) || answerFields[0]
+  // Llegando desde Analítica: audiencia "Por respuesta" con esa respuesta.
+  useEffect(() => {
+    if (!preset || !answerFields.some(f => f.fieldId === preset.fieldId)) return
+    setAudience('answer'); setAnswerFieldId(preset.fieldId); setAnswer(preset.answer)
+    onPresetUsed?.()
+  }, [preset, answerFields]) // eslint-disable-line react-hooks/exhaustive-deps
   const [picked, setPicked] = useState<Picked[]>([])
   const [locId, setLocId] = useState('')
   const locPick = locationOpts.find(l => l.id === locId) || locationOpts[0]

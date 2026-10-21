@@ -1265,6 +1265,10 @@ export default function DashboardPage() {
 
   // Abre Clientes filtrado por ese email, con la ficha abierta (desde los
   // rankings de Analítica y los canjes de Premios).
+  // Desde Analítica (respuestas del formulario): abre Notificaciones con
+  // esa audiencia ya elegida.
+  const [notifPreset, setNotifPreset] = useState<{ fieldId: string; answer: string } | null>(null)
+
   function openCustomerByEmail(email: string) {
     setCustomersSearch(email); setCustomersStatus('all'); setCustomersCardFilter('all')
     loadCustomers(1, email, 'all', customersSortKey, customersSortDir, 'all')
@@ -1313,7 +1317,8 @@ export default function DashboardPage() {
           /></div>
       case 'analytics': return analyticsData?.total > 0 || PLAN_LIMITS[(owner?.plan || 'Starter') as keyof typeof PLAN_LIMITS]?.analyticsLevel !== 'full'
         ? <AnalyticsTab key={locationId ?? 'all'} analyticsData={analyticsData} cards={cards} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)}
-            onOpenCustomer={openCustomerByEmail} />
+            onOpenCustomer={openCustomerByEmail}
+            onNotifyAnswer={(fieldId, answer) => { setNotifPreset({ fieldId, answer }); setActive('notifications'); localStorage.setItem('stampa_active_tab', 'notifications') }} />
         : <div className="db-content"><EmptyState
             icon={<Icon name="analitica" size={24} />}
             title="Las métricas aparecen cuando tenés clientes"
@@ -1330,6 +1335,8 @@ export default function DashboardPage() {
           isManager={owner?.role === 'manager'}
           onChoosePlan={() => setShowPlans(true)}
           selectedLocationId={locationId}
+          preset={notifPreset}
+          onPresetUsed={() => setNotifPreset(null)}
         />
       case 'form':          return <FormTab businessName={business?.name || 'Tu negocio'} businessSlug={business?.slug} cards={cards} businessId={businessId}
           isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} locations={locations} selectedLocationId={locationId} 
