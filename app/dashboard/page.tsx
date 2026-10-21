@@ -406,6 +406,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
     !isManager && { done: setup.hasScanner, title: 'Creá un empleado para la app de escaneo', body: 'Cada empleado entra con su propio PIN.', cta: 'Ir a Equipo', tab: 'users' as TabId },
     !isManager && { done: setup.scannerUsed, title: 'Activá el celular del local', body: 'Equipo → "Activar dispositivo de escaneo" y escaneá el QR con la app.', cta: 'Ir a Equipo', tab: 'users' as TabId },
     { done: setup.hasVisits, title: 'Escaneá la tarjeta de tu primer cliente', body: 'Con la app, sumale su primer sello, puntos o visita.', cta: null, tab: null },
+    !isManager && setup.hasWhatsapp !== undefined && { done: setup.hasWhatsapp, title: 'Cargá tu WhatsApp', body: 'La tarjeta de tus clientes trae un botón que abre el chat con vos.', cta: 'Ir a Configuración', tab: 'settings' as TabId },
   ].filter(Boolean) as { done: boolean; title: string; body: string; cta: string | null; tab: TabId | null }[] : []
   const stepsDone = STEPS.filter(s => s.done).length
   const showSetup = STEPS.length > 0 && stepsDone < STEPS.length

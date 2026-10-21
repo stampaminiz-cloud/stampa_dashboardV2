@@ -2,6 +2,14 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.5.0 (por salir) — WhatsApp en la tarjeta
+
+**Nuevo**
+- Configuración → WhatsApp en la tarjeta: número, hasta 2 botones sugeridos según el rubro (con el texto editable) y la línea del frente con vista previa. Todos los planes.
+- Analítica → Clientes: Toques en WhatsApp, por botón.
+- Inicio → Primeros pasos: "Cargá tu WhatsApp".
+- Rubro nuevo en el onboarding y en Configuración: Carnicería / Almacén.
+
 ## 1.4.0 (21/10/2026)
 
 **Nuevo**
