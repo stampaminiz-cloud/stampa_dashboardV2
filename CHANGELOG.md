@@ -2,6 +2,28 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.4.0 (por salir)
+
+**Nuevo**
+- Letras nuevas en todo el sistema: Red Hat Display (títulos) y Red Hat Text (texto), en lugar de Familjen Grotesk y Albert Sans.
+- Analítica en dos secciones: **Programa** (lo que antes eran Resumen, Horarios y Tarjetas) y **Clientes**. La sección Pedidos se suma con Pedidos.
+- Respuestas del formulario en tabla: por respuesta, clientes, % activos, visitas promedio y canjes. Con menos de 5 clientes no se muestran porcentajes ni promedios. La cantidad de clientes abre Notificaciones con esa audiencia ya elegida.
+
+**Cambios**
+- Barras de un solo color (verde de marca) en Analítica, Inicio, Premios y Clientes; sin degradés.
+- Recorrido de clientes: el porcentaje va en gris y dice sobre quiénes se calcula ("97% de los registrados").
+- Frecuencia de visita: la comparación con el período anterior va en una frase en gris.
+- Mismo criterio en todo el sistema:
+  - textos de apoyo en gris (el verde y el rojo quedan para estados: guardado, error, activo o inactivo, subió o bajó);
+  - acciones sin flechas ("Ver clientes", "Mejorar plan");
+  - textos sin rayas.
+- Tarjetas del programa en Analítica con ícono del color de cada dato, igual que las de Inicio.
+- Anillo de retención sin texto adentro: los números van en las tarjetas del costado.
+- Grupos chicos: con menos de 5 clientes no se muestran porcentajes en Inicio (comparación con el período anterior), Analítica (programa y segmentos) ni en la comparación del anillo de retención.
+
+**Arreglos**
+- Botones, campos y menús toman la letra del sistema (algunos quedaban en Arial, por ejemplo "Cancelar suscripción").
+
 ## 1.3.1 (20/10/2026)
 
 **Arreglos**

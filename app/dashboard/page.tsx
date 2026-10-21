@@ -255,7 +255,7 @@ function Header({ title, t, setMobileOpen, setActive, recentActivity: realActivi
             <div className="hd-dropdown hd-notif-dropdown">
               <div className="hd-drop-head">
                 <span className="hd-drop-title">Actividad reciente</span>
-                <button className="hd-mark-read" onClick={() => { setShowNotif(false); setActive?.('customers') }}>Ver clientes →</button>
+                <button className="hd-mark-read" onClick={() => { setShowNotif(false); setActive?.('customers') }}>Ver clientes</button>
               </div>
               {recentActivity.length === 0 ? (
                 <div style={{padding:'20px 16px',fontSize:12,color:'rgba(43,38,32,.4)',textAlign:'center'}}>Todavía no hay actividad reciente.</div>
@@ -367,14 +367,17 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
 
   // ── Resumen: 4 tarjetas, cada flecha compara contra un período real ──
   const fmt = (n: number | undefined) => (n ?? 0).toLocaleString('es-AR')
+  // Con menos de MIN_BASE en el período anterior no se muestra el porcentaje
+  // (de 2 a 14 daba "↑ 600%"); el número anterior ya está en la línea de abajo.
+  const MIN_BASE = 5
   const METRICS: { label: string; value?: number; color: string; icon: IconName; delta: number | null; deltaTitle?: string; sub: string }[] = [
     { label: 'Clientes', value: a?.total, color: '#C75D3A', icon: 'clientes', delta: null,
       sub: `${fmt(a?.active)} activos · ${fmt(a?.inactive)} inactivos` },
-    { label: 'Nuevos este mes', value: a?.newThisMonth, color: '#185FA5', icon: 'agregar', delta: a?.newLastMonth > 0 ? a.newDelta : null, deltaTitle: 'Respecto al mismo período del mes pasado',
+    { label: 'Nuevos este mes', value: a?.newThisMonth, color: '#185FA5', icon: 'agregar', delta: a?.newLastMonth >= MIN_BASE ? a.newDelta : null, deltaTitle: 'Respecto al mismo período del mes pasado',
       sub: `mes pasado a esta fecha: ${fmt(a?.newLastMonth)}` },
-    { label: 'Visitas · 7 días', value: a?.visitsThisWeek, color: '#5B8C5A', icon: 'sello', delta: a?.visitsWeekDelta ?? null, deltaTitle: 'Respecto a los 7 días anteriores',
+    { label: 'Visitas · 7 días', value: a?.visitsThisWeek, color: '#5B8C5A', icon: 'sello', delta: a?.visitsPrevWeek >= MIN_BASE ? a.visitsWeekDelta ?? null : null, deltaTitle: 'Respecto a los 7 días anteriores',
       sub: `hoy: ${fmt(a?.visitsToday)} · ${new Date().toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', '')}. pasado: ${fmt(a?.visitsSameDayLastWeek)}` },
-    { label: 'Premios entregados este mes', value: a?.rewardsThisMonth, color: '#9C7530', icon: 'premios', delta: a?.rewardsDelta ?? null, deltaTitle: 'Respecto al mismo período del mes pasado',
+    { label: 'Premios entregados este mes', value: a?.rewardsThisMonth, color: '#9C7530', icon: 'premios', delta: a?.rewardsLastMonth >= MIN_BASE ? a.rewardsDelta ?? null : null, deltaTitle: 'Respecto al mismo período del mes pasado',
       sub: `mes pasado a esta fecha: ${fmt(a?.rewardsLastMonth)}` },
   ]
 
@@ -505,7 +508,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
               </div>
           }
           {fullAnalytics && (
-            <button className="ov-more-link" onClick={() => setActive('analytics')}>Ver analítica completa →</button>
+            <button className="ov-more-link" onClick={() => setActive('analytics')}>Ver analítica completa</button>
           )}
         </div>
         <div className="db-card">
@@ -865,7 +868,7 @@ const CSS = `
   .ov-reward-info{flex:1;}
   .ov-reward-name{font-size:12px;color:var(--s-tinta);margin-bottom:4px;}
   .ov-reward-bar{height:5px;background:rgba(34,32,27,.07);border-radius:3px;overflow:hidden;}
-  .ov-reward-fill{height:100%;background:linear-gradient(90deg,var(--s-brasa),#D4A24C);border-radius:3px;}
+  .ov-reward-fill{height:100%;background:var(--s-pino);border-radius:3px;}
   .ov-reward-count{font-size:11px;font-weight:600;color:rgba(34,32,27,.5);flex-shrink:0;}
   .ov-activity-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid rgba(34,32,27,.06);}
   .ov-activity-row:last-child{border-bottom:none;}
@@ -1265,6 +1268,10 @@ export default function DashboardPage() {
 
   // Abre Clientes filtrado por ese email, con la ficha abierta (desde los
   // rankings de Analítica y los canjes de Premios).
+  // Desde Analítica (respuestas del formulario): abre Notificaciones con
+  // esa audiencia ya elegida.
+  const [notifPreset, setNotifPreset] = useState<{ fieldId: string; answer: string } | null>(null)
+
   function openCustomerByEmail(email: string) {
     setCustomersSearch(email); setCustomersStatus('all'); setCustomersCardFilter('all')
     loadCustomers(1, email, 'all', customersSortKey, customersSortDir, 'all')
@@ -1313,7 +1320,8 @@ export default function DashboardPage() {
           /></div>
       case 'analytics': return analyticsData?.total > 0 || PLAN_LIMITS[(owner?.plan || 'Starter') as keyof typeof PLAN_LIMITS]?.analyticsLevel !== 'full'
         ? <AnalyticsTab key={locationId ?? 'all'} analyticsData={analyticsData} cards={cards} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)}
-            onOpenCustomer={openCustomerByEmail} />
+            onOpenCustomer={openCustomerByEmail}
+            onNotifyAnswer={(fieldId, answer) => { setNotifPreset({ fieldId, answer }); setActive('notifications'); localStorage.setItem('stampa_active_tab', 'notifications') }} />
         : <div className="db-content"><EmptyState
             icon={<Icon name="analitica" size={24} />}
             title="Las métricas aparecen cuando tenés clientes"
@@ -1330,6 +1338,8 @@ export default function DashboardPage() {
           isManager={owner?.role === 'manager'}
           onChoosePlan={() => setShowPlans(true)}
           selectedLocationId={locationId}
+          preset={notifPreset}
+          onPresetUsed={() => setNotifPreset(null)}
         />
       case 'form':          return <FormTab businessName={business?.name || 'Tu negocio'} businessSlug={business?.slug} cards={cards} businessId={businessId}
           isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} locations={locations} selectedLocationId={locationId} 
