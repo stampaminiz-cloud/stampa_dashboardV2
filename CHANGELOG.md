@@ -5,9 +5,17 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
 ## 1.4.0 (por salir)
 
 **Nuevo**
+- Letras nuevas en todo el sistema: Red Hat Display (títulos) y Red Hat Text (texto), en lugar de Familjen Grotesk y Albert Sans.
 - Analítica en dos secciones: **Programa** (lo que antes eran Resumen, Horarios y Tarjetas) y **Clientes**. La sección Pedidos se suma con Pedidos.
-- Analítica → Clientes: en Respuestas del formulario, cada respuesta muestra cuántos siguen activos, sus visitas promedio y cuántos canjearon, y destaca el grupo que vuelve más.
-- "Mandarles un aviso" desde cada respuesta: abre Notificaciones con la audiencia "Por respuesta" ya elegida.
+- Respuestas del formulario en tabla: por respuesta, clientes, % activos, visitas promedio y canjes. Con menos de 5 clientes no se muestran porcentajes ni promedios. La cantidad de clientes abre Notificaciones con esa audiencia ya elegida.
+
+**Cambios**
+- Barras de un solo color (verde de marca) en Analítica, Inicio, Premios y Clientes; sin degradés.
+- Recorrido de clientes: el porcentaje va en gris y dice sobre quiénes se calcula ("97% de los registrados").
+- Frecuencia de visita: la comparación con el período anterior va en una frase en gris.
+
+**Arreglos**
+- Botones, campos y menús toman la letra del sistema (algunos quedaban en Arial, por ejemplo "Cancelar suscripción").
 
 ## 1.3.1 (20/10/2026)
 

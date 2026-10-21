@@ -865,7 +865,7 @@ const CSS = `
   .ov-reward-info{flex:1;}
   .ov-reward-name{font-size:12px;color:var(--s-tinta);margin-bottom:4px;}
   .ov-reward-bar{height:5px;background:rgba(34,32,27,.07);border-radius:3px;overflow:hidden;}
-  .ov-reward-fill{height:100%;background:linear-gradient(90deg,var(--s-brasa),#D4A24C);border-radius:3px;}
+  .ov-reward-fill{height:100%;background:var(--s-pino);border-radius:3px;}
   .ov-reward-count{font-size:11px;font-weight:600;color:rgba(34,32,27,.5);flex-shrink:0;}
   .ov-activity-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid rgba(34,32,27,.06);}
   .ov-activity-row:last-child{border-bottom:none;}

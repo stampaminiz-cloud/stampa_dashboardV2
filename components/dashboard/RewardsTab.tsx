@@ -782,7 +782,7 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         .rw-dist-row{display:flex;align-items:center;gap:12px;}
         .rw-dist-name{font-size:12px;color:var(--s-tinta);font-weight:500;width:140px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
         .rw-dist-bar-wrap{flex:1;height:12px;background:rgba(34,32,27,.06);border-radius:6px;overflow:hidden;}
-        .rw-dist-bar{height:100%;background:linear-gradient(90deg,var(--s-brasa),#D4A24C);border-radius:6px;transition:width .4s;}
+        .rw-dist-bar{height:100%;background:var(--s-pino);border-radius:6px;transition:width .4s;}
         .rw-dist-count{font-size:11px;font-weight:600;color:rgba(34,32,27,.5);width:80px;text-align:right;flex-shrink:0;}
         .rw-table{width:100%;border-collapse:collapse;}
         .rw-table thead{border-bottom:1px solid rgba(34,32,27,.08);}

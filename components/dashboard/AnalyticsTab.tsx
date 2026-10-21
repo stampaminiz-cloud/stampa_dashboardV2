@@ -230,27 +230,22 @@ function DayHourBars({ hourly, mode }: { hourly: Hourly; mode: 'redeems' | 'sign
 const PSEQ = ['#F3D6CB', '#E6AE98', '#D98565', '#C75D3A', '#8E3B20']
 
 // ─── Funnel ───────────────────────────────────────────────────────────────────
+// Barras de un solo color; abajo de cada una, en gris, el porcentaje sobre la
+// etapa anterior dicho con palabras ("97% de los registrados").
+const FUNNEL_NAMES = ['Se registraron', 'Primera visita', 'Volvieron', 'Canjearon']
+const FUNNEL_OF = ['', 'de los registrados', 'de los que vinieron', 'de los que volvieron']
 function Funnel({ data }: { data: FunnelStage[] }) {
   const max = data[0]?.value || 1
   return (
     <div className="an-funnel">
       {data.map((stage, i) => {
-        const pct = Math.round((stage.value / max) * 100)
-        const conv = i > 0 ? (data[i - 1].value > 0 ? Math.round((stage.value / data[i - 1].value) * 100) : 0) : null
+        const conv = i > 0 && data[i - 1].value > 0 ? Math.round((stage.value / data[i - 1].value) * 100) : null
         return (
           <div key={stage.stage} className="an-fstage">
-            {conv !== null && (
-              <div className="an-fconv">
-                <span className="an-fconv-line" />
-                <span className="an-fconv-pct">{conv}% llegó a esta etapa</span>
-                <span className="an-fconv-line" />
-              </div>
-            )}
-            <div className="an-fbar-wrap"><div className="an-fbar" style={{ width: `${pct}%` }} /></div>
-            <div className="an-finfo">
-              <span className="an-fname">{stage.stage}</span>
-              <span className="an-fval">{stage.value.toLocaleString('es-AR')}</span>
-            </div>
+            <span className="an-fname">{FUNNEL_NAMES[i] || stage.stage}</span>
+            <div className="an-fbar-wrap"><div className="an-fbar" style={{ width: `${Math.round((stage.value / max) * 100)}%` }} /></div>
+            <span className="an-fval">{stage.value.toLocaleString('es-AR')}</span>
+            {conv !== null && <span className="an-fconv">{conv}% {FUNNEL_OF[i]}</span>}
           </div>
         )
       })}
@@ -604,16 +599,13 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-seg-desc{font-size:10px;opacity:.7;line-height:1.3;}
 
         /* ── Funnel ── */
-        .an-funnel{display:flex;flex-direction:column;gap:6px;}
-        .an-fstage{display:flex;flex-direction:column;gap:5px;}
-        .an-fconv{display:flex;align-items:center;gap:8px;}
-        .an-fconv-line{flex:1;height:1px;background:rgba(34,32,27,.08);}
-        .an-fconv-pct{font-size:10px;color:var(--s-listo);font-weight:700;white-space:nowrap;flex-shrink:0;}
-        .an-fbar-wrap{height:11px;background:rgba(34,32,27,.06);border-radius:6px;overflow:hidden;}
-        .an-fbar{height:100%;background:linear-gradient(90deg,var(--s-brasa),#D4A24C);border-radius:6px;transition:width .4s;}
-        .an-finfo{display:flex;justify-content:space-between;margin-top:1px;}
-        .an-fname{font-size:11px;color:rgba(34,32,27,.55);}
-        .an-fval{font-size:11px;font-weight:700;color:var(--s-tinta);}
+        .an-funnel{display:flex;flex-direction:column;gap:12px;}
+        .an-fstage{display:grid;grid-template-columns:minmax(96px,auto) 1fr 44px;gap:4px 12px;align-items:center;}
+        .an-fname{font-size:12.5px;color:var(--s-tinta);}
+        .an-fbar-wrap{height:20px;background:var(--s-hueco);border-radius:4px;overflow:hidden;}
+        .an-fbar{height:100%;background:var(--s-pino);border-radius:4px;transition:width .4s;}
+        .an-fval{font-size:13px;font-weight:600;color:var(--s-tinta);text-align:right;font-variant-numeric:tabular-nums;}
+        .an-fconv{grid-column:2 / 4;font-size:11.5px;color:var(--s-tinta-2);}
 
         /* ── Barras ── */
         .an-bars-wrap{display:flex;gap:8px;height:170px;}
@@ -693,18 +685,18 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-tn--link:hover{color:var(--s-brasa);text-decoration:underline;}
         .an-tv{font-size:12px;font-weight:700;color:var(--s-brasa);white-space:nowrap;}
         .an-tbar{height:4px;background:rgba(34,32,27,.06);border-radius:2px;overflow:hidden;margin-top:3px;}
-        .an-tfill{height:100%;background:linear-gradient(90deg,var(--s-brasa),#D4A24C);border-radius:2px;}
+        .an-tfill{height:100%;background:var(--s-pino);border-radius:2px;}
         .an-tsub{font-size:10.5px;color:rgba(34,32,27,.45);margin-top:3px;}
 
         /* ── Frecuencia ── */
         .an-freq-stat{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--s-tinta);}
         .an-freq-unit{font-size:13px;color:rgba(34,32,27,.45);}
-        .an-freq-trend{font-size:11px;font-weight:700;margin-bottom:12px;}
+        .an-freq-trend{font-size:12px;color:var(--s-tinta-2);margin-bottom:12px;}
         .an-freq-bars{display:flex;flex-direction:column;gap:6px;}
         .an-freq-row{display:flex;align-items:center;gap:8px;}
         .an-freq-lbl{font-size:10.5px;color:rgba(34,32,27,.5);width:92px;flex-shrink:0;}
         .an-freq-bar{flex:1;height:9px;background:rgba(34,32,27,.06);border-radius:4px;overflow:hidden;}
-        .an-freq-fill{height:100%;background:linear-gradient(90deg,var(--s-info),var(--s-listo));border-radius:4px;}
+        .an-freq-fill{height:100%;background:var(--s-pino);border-radius:4px;}
         .an-freq-cnt{font-size:10.5px;font-weight:600;color:rgba(34,32,27,.5);width:22px;text-align:right;}
 
         @media(max-width:900px){
@@ -924,12 +916,12 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
                 <span className="an-freq-stat">{d.frequency.avgDays.toLocaleString('es-AR')}</span>
                 <span className="an-freq-unit"> días en promedio</span>
               </div>
-              <div className={`an-freq-trend ${d.frequency.trend < 0 ? 'an-delta-up' : d.frequency.trend > 0 ? 'an-delta-down' : 'an-delta-flat'}`}>
+              <div className="an-freq-trend">
                 {d.frequency.trend < 0
-                  ? `↓ ${Math.abs(d.frequency.trend).toLocaleString('es-AR')} días menos que antes — vuelven más seguido`
+                  ? `Vuelven ${Math.abs(d.frequency.trend).toLocaleString('es-AR')} días antes que en el período anterior.`
                   : d.frequency.trend > 0
-                  ? `↑ ${d.frequency.trend.toLocaleString('es-AR')} días más que antes — tardan más en volver`
-                  : 'Sin datos del período anterior para comparar'}
+                  ? `Tardan ${d.frequency.trend.toLocaleString('es-AR')} días más en volver que en el período anterior.`
+                  : 'Sin datos del período anterior para comparar.'}
               </div>
               <div className="an-freq-bars">
                 {d.frequency.distribution.map(b => (

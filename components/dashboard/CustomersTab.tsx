@@ -577,7 +577,7 @@ export function CustomersTab({
         .ct-panel-stamp{width:18px;height:18px;border-radius:50%;background:rgba(34,32,27,.08);}
         .ct-panel-stamp--filled{background:var(--s-brasa);}
         .ct-panel-progress-bar{width:100%;height:5px;background:rgba(34,32,27,.08);border-radius:3px;overflow:hidden;margin-bottom:8px;}
-        .ct-panel-progress-fill{height:100%;background:linear-gradient(90deg,var(--s-brasa),#D4A24C);border-radius:3px;transition:width .3s;}
+        .ct-panel-progress-fill{height:100%;background:var(--s-pino);border-radius:3px;transition:width .3s;}
         .ct-near-note{font-size:11px;color:#9C7530;font-weight:600;background:rgba(212,162,76,.12);padding:6px 10px;border-radius:8px;}
         .ct-ready-note{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--s-listo);background:rgba(91,140,90,.1);border:1px solid rgba(91,140,90,.25);padding:9px 11px;border-radius:9px;line-height:1.45;}
         .ct-panel-field-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(34,32,27,.05);font-size:11.5px;}

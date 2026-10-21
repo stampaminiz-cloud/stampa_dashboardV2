@@ -1,5 +1,6 @@
 'use client'
 import React, { useState } from 'react'
+import { Icon } from '@/components/ui/Icon'
 
 // Gráficos de la última ronda (Analítica e Inicio). Datos de
 // /analytics/detailed: newVsReturning, progressDistribution, formAnswers,
@@ -150,12 +151,18 @@ export function ProgressDistribution({ data }: { data: ProgressDist }) {
   )
 }
 
-// ── Respuestas del formulario: barras horizontales por pregunta ──────────────
+// ── Respuestas del formulario: tabla por pregunta ───────────────────────────
+// Por respuesta: clientes, % activos, visitas promedio y canjes. Con menos de
+// MIN_GROUP clientes no se muestran porcentajes ni promedios (no dicen nada).
+// La cantidad de clientes es el botón para mandarles un aviso.
+const MIN_GROUP = 5
 export function FormAnswers({ data, onNotify }: { data: FormAnswer[]; onNotify?: (fieldId: string, value: string) => void }) {
   const [idx, setIdx] = useState(0)
   if (!data.length) return <EmptyState title="Todavía sin respuestas" text="Aparece cuando respondan preguntas de lista del formulario, como talle o bebida favorita." />
   const f = data[Math.min(idx, data.length - 1)]
   const max = Math.max(1, ...f.options.map(o => o.count))
+  const withStats = f.options.some(o => o.active != null)
+  const small = f.options.some(o => o.count < MIN_GROUP)
   return (
     <div className="ch">
       <style>{CSS}</style>
@@ -165,42 +172,49 @@ export function FormAnswers({ data, onNotify }: { data: FormAnswer[]; onNotify?:
         </select>
       )}
       {data.length === 1 && <div className="ch-q">{f.label}</div>}
-      <div className="ch-rows">
-        {f.options.slice(0, 8).map(o => (
-          <div key={o.value} className="ch-ans-wrap">
-            <div className="ch-ans" title={`${o.value}: ${o.count} (${pct(o.count, f.total)}%)`}>
-              <span className="ch-ans-label">{o.value}</span>
-              <div className="ch-ans-track"><div style={{ width: `${(o.count / max) * 100}%` }} /></div>
-              <span className="ch-row-val">{o.count}</span>
-              <span className="ch-row-pct">{pct(o.count, f.total)}%</span>
+      <div className="ch-at" role="table" aria-label={f.label}>
+        <div className="ch-at-row ch-at-head" role="row">
+          <span role="columnheader">Respuesta</span>
+          {withStats && <><span role="columnheader">Activos</span><span role="columnheader">Visitas prom.</span><span role="columnheader">Canjearon</span></>}
+          <span role="columnheader">Clientes</span>
+        </div>
+        {f.options.slice(0, 8).map(o => {
+          const show = o.count >= MIN_GROUP
+          return (
+            <div key={o.value} className="ch-at-row" role="row">
+              <span className="ch-at-name" role="cell">{o.value}<span className="ch-at-bar"><i style={{ width: `${(o.count / max) * 100}%` }} /></span></span>
+              {withStats && <>
+                <span role="cell">{show ? `${pct(o.active || 0, o.count)}%` : '—'}</span>
+                <span role="cell">{show ? String(o.avgVisits ?? 0).replace('.', ',') : '—'}</span>
+                <span role="cell">{show ? o.redeemed || 0 : '—'}</span>
+              </>}
+              <span role="cell">
+                {onNotify
+                  ? <button type="button" className="ch-at-cnt" onClick={() => onNotify(f.fieldId, o.value)} title={`Mandar un aviso a los ${o.count} que respondieron "${o.value}"`} aria-label={`${o.count} clientes. Mandarles un aviso`}>{o.count}<Icon name="notificaciones" size={12} /></button>
+                  : o.count}
+              </span>
             </div>
-            {o.active != null && (
-              <div className="ch-ans-sub">
-                <span>{pct(o.active, o.count)}% activos · {fmtVisits(o.avgVisits || 0)} en promedio · {o.redeemed || 0} {o.redeemed === 1 ? 'canjeó' : 'canjearon'}</span>
-                {onNotify && <button type="button" className="s-btn s-btn--text s-btn--sm" onClick={() => onNotify(f.fieldId, o.value)}>Mandarles un aviso</button>}
-              </div>
-            )}
-          </div>
-        ))}
+          )
+        })}
       </div>
-      {insight(f) && <div className="ch-ans-insight">{insight(f)}</div>}
-      <div className="ch-note">{f.total} respuestas.{onNotify ? '' : ' Podés mandarles una notificación según lo que respondieron (Notificaciones → Por respuesta).'}</div>
+      {insight(f) && <div className="ch-note">{insight(f)}</div>}
+      <div className="ch-note">{onNotify ? 'Tocá la cantidad de clientes para mandarles un aviso.' : `${f.total} respuestas.`}{withStats && small ? ` Con menos de ${MIN_GROUP} clientes no se muestran porcentajes ni promedios.` : ''}</div>
     </div>
   )
 }
 
 const fmtVisits = (n: number) => `${String(n).replace('.', ',')} ${n === 1 ? 'visita' : 'visitas'}`
 
-// El grupo que más vuelve frente al resto, solo con grupos de 3 o más
+// El grupo que más vuelve frente al resto, solo con grupos de MIN_GROUP o más
 // clientes y una diferencia clara (no se destaca un empate).
 function insight(f: FormAnswer): string | null {
-  const opts = f.options.filter(o => o.count >= 3 && o.avgVisits != null)
+  const opts = f.options.filter(o => o.count >= MIN_GROUP && o.avgVisits != null)
   if (opts.length < 2) return null
   const best = opts.reduce((a, b) => ((b.avgVisits || 0) > (a.avgVisits || 0) ? b : a))
   const rest = opts.filter(o => o !== best)
   const restAvg = rest.reduce((a, o) => a + (o.avgVisits || 0) * o.count, 0) / rest.reduce((a, o) => a + o.count, 0)
   if (!restAvg || (best.avgVisits || 0) < restAvg * 1.3) return null
-  return `Los que eligieron "${best.value}" vienen ${fmtVisits(best.avgVisits || 0)} en promedio; el resto, ${fmtVisits(Math.round(restAvg * 10) / 10)}.`
+  return `Los que respondieron "${best.value}" vienen ${fmtVisits(best.avgVisits || 0)} en promedio; el resto, ${fmtVisits(Math.round(restAvg * 10) / 10)}.`
 }
 
 // ── Comparación entre tarjetas: tabla con barra en cada métrica ──────────────
@@ -267,11 +281,17 @@ const CSS = `
   .ch-select{align-self:flex-start;font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid rgba(43,38,32,.15);background:#fff;color:#2B2620;font-family:inherit;max-width:100%;}
   .ch-q{font-size:12px;font-weight:600;color:#2B2620;}
   .ch-ans{display:flex;align-items:center;gap:10px;font-size:12px;}
-  .ch-ans-wrap{display:flex;flex-direction:column;gap:2px;}
-  .ch-ans-sub{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding-left:100px;font-size:11px;color:rgba(43,38,32,.55);}
-  .ch-ans-sub .s-btn{font-size:11px;padding-block:2px;}
-  .ch-ans-insight{font-size:12px;color:var(--s-pino);background:rgba(27,65,47,.07);border-radius:8px;padding:8px 10px;line-height:1.45;}
-  @media(max-width:480px){.ch-ans-sub{padding-left:0;}}
+  .ch-at{display:flex;flex-direction:column;}
+  .ch-at-row{display:grid;grid-template-columns:minmax(0,1fr) repeat(3,minmax(52px,auto)) 64px;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--s-linea);font-size:12.5px;color:var(--s-tinta);font-variant-numeric:tabular-nums;}
+  .ch-at-row>span:not(:first-child){text-align:right;}
+  .ch-at-head{border-top:none;padding-top:0;font-size:11px;color:var(--s-tinta-3);}
+  .ch-at-name{display:flex;flex-direction:column;gap:5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ch-at-bar{display:block;height:4px;background:var(--s-hueco);border-radius:2px;}
+  .ch-at-bar i{display:block;height:100%;background:var(--s-pino);border-radius:2px;}
+  .ch-at-cnt{display:inline-flex;align-items:center;gap:4px;font:inherit;font-weight:600;color:var(--s-tinta);background:var(--s-blanco);border:1px solid var(--s-linea);border-radius:6px;padding:3px 7px;cursor:pointer;}
+  .ch-at-cnt:hover{border-color:rgba(34,32,27,.3);}
+  .ch-at-cnt:focus-visible{outline:2px solid var(--s-brasa);outline-offset:2px;}
+  @media(max-width:480px){.ch-at-row{grid-template-columns:minmax(0,1fr) 44px 44px 44px 56px;gap:6px;font-size:12px;}}
   .ch-ans-label{width:90px;color:rgba(43,38,32,.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ch-ans-track{flex:1;height:10px;background:rgba(43,38,32,.05);border-radius:3px;overflow:hidden;}
   .ch-ans-track div{height:100%;background:#C75D3A;border-radius:0 4px 4px 0;}
