@@ -1,7 +1,7 @@
 'use client'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { PillSelect } from '@/components/ui/PillSelect'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { readCache, getJson } from '@/lib/cache'
 import { withLoc } from '@/lib/location'
 import { MascotLoader } from '@/components/ui/MascotLoader'
@@ -91,71 +91,90 @@ function BarChart({ data, valueKey, tooltip }: { data: Bucket[]; valueKey: keyof
   )
 }
 
-// ─── ¿Cuándo viene tu gente? (y cuándo canjean / se registran) ──────────────
-// Dos gráficos simples: por día de la semana y por horario (franjas de 2 hs),
-// en promedio por día. Si el negocio cargó horarios, no aparecen los días ni
-// las franjas en que el local está cerrado (hourly.open, del backend). El día
-// y el horario más fuertes van en el verde de marca; el resto, más claro.
+// ─── ¿Cuándo viene tu gente? ─────────────────────────────────────────────────
+// Un solo gráfico de líneas: visitas, canjes y registros por horario (franjas
+// de 2 hs), en promedio por día del período. Si el negocio cargó horarios, solo
+// las franjas en que abre (hourly.open, del backend). Va debajo de los
+// destacados, que ya dicen el momento más fuerte y el día más flojo.
 const DAYS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const DAYS_SINGULAR = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
-type HeatMode = 'visits' | 'redeems' | 'signups'
-const HEAT_MODES: Record<HeatMode, { title: string; sub: string; unit: [string, string] }> = {
-  visits:  { title: '¿Cuándo viene tu gente?', sub: 'Visitas promedio por día, según la hora de los escaneos', unit: ['visita', 'visitas'] },
-  redeems: { title: '¿Cuándo canjean?', sub: 'Premios entregados, promedio por día', unit: ['canje', 'canjes'] },
-  signups: { title: '¿Cuándo se registran?', sub: 'Clientes nuevos, promedio por día', unit: ['registro', 'registros'] },
-}
 const slotLabel = (s: number) => `${s * 2}–${s * 2 + 2}`
 const fmt1 = (n: number) => (Math.round(n * 10) / 10).toLocaleString('es-AR')
+const LINES = [
+  { key: 'visits', label: 'Visitas', unit: ['visita', 'visitas'], color: 'var(--s-pino)', width: 3 },
+  { key: 'redeems', label: 'Canjes', unit: ['canje', 'canjes'], color: 'var(--s-brasa)', width: 2.5 },
+  { key: 'signups', label: 'Registros', unit: ['registro', 'registros'], color: '#D4A24C', width: 2.5 },
+] as const
 
-function WhenBars({ hourly, mode }: { hourly: Hourly; mode: HeatMode }) {
-  const { title, sub, unit } = HEAT_MODES[mode]
-  const grid = hourly[mode]
+function niceStep(max: number) {
+  const raw = max / 4
+  const pow = Math.pow(10, Math.floor(Math.log10(raw || 1)))
+  const n = raw / pow
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * pow
+}
+
+function HoursLines({ hourly, withRedeems }: { hourly: Hourly; withRedeems: boolean }) {
+  // El gráfico toma el ancho real de la tarjeta (así las letras no se agrandan
+  // en pantallas anchas).
+  const boxRef = useRef<HTMLDivElement>(null)
+  const [boxW, setBoxW] = useState(640)
+  useEffect(() => {
+    const el = boxRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(([e]) => setBoxW(Math.max(280, Math.round(e.contentRect.width))))
+    ro.observe(el)
+    return () => ro.disconnect()
+  })
   const open = hourly.open || null
-  const total = grid.reduce((a, row) => a + row.reduce((b, v) => b + v, 0), 0)
   const daysInRange = hourly.weekdayCount.reduce((a, b) => a + b, 0) || 1
-  // Días: los que abre (o todos, sin horarios cargados) y los que tuvieron algo.
-  const dayShown = DAYS_SHORT.map((_, d) => (open ? open[d].some(Boolean) : true) || grid[d].some(v => v > 0))
-  const perDay = grid.map((row, d) => (hourly.weekdayCount[d] > 0 ? row.reduce((a, v) => a + v, 0) / hourly.weekdayCount[d] : 0))
-  // Franjas: las que abre algún día (o, sin horarios, de la primera a la
-  // última con movimiento), más cualquiera que haya tenido algo.
-  const bandHas = Array.from({ length: 12 }, (_, b) => grid.some(row => row[b] > 0))
-  let bands = Array.from({ length: 12 }, (_, b) => b).filter(b => (open ? open.some(row => row[b]) : false) || bandHas[b])
+  const series = LINES.filter(l => l.key !== 'redeems' || withRedeems)
+  const has = (b: number) => series.some(l => hourly[l.key].some(row => row[b] > 0))
+  let bands = Array.from({ length: 12 }, (_, b) => b).filter(b => (open ? open.some(row => row[b]) : false) || has(b))
   if (!open && bands.length) bands = Array.from({ length: bands[bands.length - 1] - bands[0] + 1 }, (_, i) => bands[0] + i)
-  const perBand = bands.map(b => grid.reduce((a, row) => a + row[b], 0) / daysInRange)
-  const days = DAYS_SHORT.map((l, d) => ({ l, d, v: perDay[d] })).filter(x => dayShown[x.d])
-  const dayMax = Math.max(0.0001, ...days.map(x => x.v))
-  const bandMax = Math.max(0.0001, ...perBand)
-  const bestDay = days.reduce((a, b) => (b.v > a.v ? b : a), days[0] || { d: 0, v: 0, l: '' })
-  const bestBandI = perBand.indexOf(Math.max(...perBand))
+  const vals = Object.fromEntries(series.map(l => [l.key, bands.map(b => hourly[l.key].reduce((a, row) => a + row[b], 0) / daysInRange)])) as Record<string, number[]>
+  const empty = !bands.length || !series.some(l => vals[l.key].some(v => v > 0))
+
+  const W = boxW, H = 240, L = 40, R = 16, T = 26, B = 30
+  const max = Math.max(0.0001, ...series.flatMap(l => vals[l.key]))
+  const step = niceStep(max), top = Math.ceil(max / step) * step
+  const ticks = Array.from({ length: Math.round(top / step) + 1 }, (_, i) => i * step)
+  const x = (i: number) => (bands.length === 1 ? (L + W - R) / 2 : L + 10 + (i * (W - L - R - 20)) / (bands.length - 1))
+  const y = (v: number) => T + (1 - v / top) * (H - T - B)
+  const peak = (k: string) => { const a = vals[k] || []; const i = a.indexOf(Math.max(...a)); return a[i] > 0 ? i : -1 }
+  const pv = peak('visits'), pr = withRedeems ? peak('redeems') : -1
+
   return (
     <div className="an-card">
-      <div className="an-ctitle">{title}</div>
-      <div className="an-csub">{sub}{open ? ' · solo el horario en que abrís' : ''}</div>
-      {!total ? <EmptyState title={`Todavía sin ${unit[1]}`} text="En este período." compact /> : <>
-        <div className="an-wb-note">Más movimiento: {DAYS_SINGULAR[bestDay.d]}, de {slotLabel(bands[bestBandI])} hs.</div>
-        <div className="an-wb">
-          <div className="an-wb-chart">
-            <div className="an-wb-lbl">Por día</div>
-            <div className="an-wb-bars">
-              {days.map(x => (
-                <div key={x.d} className="an-wb-col" title={`${DAYS_SINGULAR[x.d]}: ${fmt1(x.v)} ${x.v === 1 ? unit[0] : unit[1]} por día`}>
-                  <div className="an-wb-track"><div className={x.d === bestDay.d ? 'is-top' : ''} style={{ height: `${Math.max(3, (x.v / dayMax) * 100)}%` }} /></div>
-                  <span>{x.l}</span>
-                </div>
+      <div className="an-ctitle">¿Cuándo viene tu gente?</div>
+      <div className="an-csub">Promedio por día, por horario{open ? ' · solo el horario en que abrís' : ''}</div>
+      {empty ? <EmptyState title="Todavía sin movimiento" text="Aparece cuando escaneás tarjetas o se registran clientes." compact /> : <>
+        <div className="an-hl-legend">
+          {series.map(l => <span key={l.key}><i style={{ background: l.color }} />{l.label}</span>)}
+        </div>
+        <div ref={boxRef}>
+        <svg className="an-hlines" width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img"
+          aria-label={`Por horario: visitas con el pico de ${slotLabel(bands[Math.max(pv, 0)])} hs${pr >= 0 ? `, canjes de ${slotLabel(bands[pr])} hs` : ''}`}>
+          {ticks.map(t => (
+            <g key={t}>
+              <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="rgba(34,32,27,.08)" />
+              <text x={L - 8} y={y(t) + 4} textAnchor="end" fontSize="11" fill="rgba(34,32,27,.5)">{fmt1(t)}</text>
+            </g>
+          ))}
+          {bands.map((b, i) => <text key={b} x={x(i)} y={H - 8} textAnchor="middle" fontSize="11" fill="rgba(34,32,27,.55)">{slotLabel(b)}</text>)}
+          {series.map(l => (
+            <g key={l.key}>
+              <polyline fill="none" stroke={l.color} strokeWidth={l.width} strokeLinejoin="round" strokeLinecap="round"
+                points={vals[l.key].map((v, i) => `${x(i)},${y(v)}`).join(' ')} />
+              {vals[l.key].map((v, i) => (
+                <circle key={i} cx={x(i)} cy={y(v)} r={l.key === 'visits' && i === pv ? 5 : 3} fill={l.color}>
+                  <title>{`${slotLabel(bands[i])} hs · ${fmt1(v)} ${v === 1 ? l.unit[0] : l.unit[1]} por día`}</title>
+                </circle>
               ))}
-            </div>
-          </div>
-          <div className="an-wb-chart">
-            <div className="an-wb-lbl">Por horario</div>
-            <div className="an-wb-bars">
-              {bands.map((b, i) => (
-                <div key={b} className="an-wb-col" title={`${slotLabel(b)} hs: ${fmt1(perBand[i])} ${perBand[i] === 1 ? unit[0] : unit[1]} por día`}>
-                  <div className="an-wb-track"><div className={i === bestBandI ? 'is-top' : ''} style={{ height: `${Math.max(3, (perBand[i] / bandMax) * 100)}%` }} /></div>
-                  <span>{slotLabel(b)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+            </g>
+          ))}
+          {pv >= 0 && <text x={x(pv)} y={y(vals.visits[pv]) - 11} textAnchor="middle" fontSize="11.5" fontWeight="600" fill="var(--s-pino)">{fmt1(vals.visits[pv])} visitas</text>}
+          {pr >= 0 && <text x={x(pr)} y={y(vals.redeems[pr]) + (pr === pv ? 20 : -11)} textAnchor="middle" fontSize="11.5" fontWeight="600" fill="var(--s-brasa-2)">{fmt1(vals.redeems[pr])} canjes</text>}
+        </svg>
         </div>
       </>}
     </div>
@@ -637,6 +656,9 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         /* ── Frecuencia ── */
         .an-freq-stat{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--s-tinta);}
         .an-freq-unit{font-size:13px;color:rgba(34,32,27,.45);}
+        .an-hl-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--s-tinta-2);margin:10px 0 2px;}
+        .an-hl-legend i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:6px;vertical-align:3px;}
+        .an-hlines{display:block;max-width:100%;}
         .an-wb-note{font-size:12.5px;color:var(--s-tinta-2);margin:10px 0 4px;}
         .an-wb{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,9fr);gap:28px;margin-top:8px;}
         .an-wb-chart{min-width:0;}
@@ -718,6 +740,8 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
               ))}
             </div>
           )}
+          {!d ? <div className="an-card"><div className="an-ctitle">¿Cuándo viene tu gente?</div><Loading /></div>
+            : <HoursLines hourly={d.hourly} withRedeems={!onlyMembership} />}
           <div className="an-program" style={{ ['--cols' as any]: PROGRAM.length <= 4 ? PROGRAM.length : 3 }}>
             {PROGRAM.map(p => (
               <div key={p.l} className="an-card">
@@ -727,20 +751,6 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
                   : <div className="an-stat-now">{p.v}</div>}
                 <div className="an-stat-name">{p.l}</div>
                 <div className="an-stat-label">{p.sub}</div>
-              </div>
-            ))}
-          </div>
-          <div className="an-4col">
-            {SEGMENTS.map(({ label, desc, color, val, pct }) => (
-              <div key={label} className="an-card an-seg-card">
-                <div className="an-seg-top">
-                  {metricsLoading
-                    ? <div className="an-skel" style={{ width: 36, height: 24 }} />
-                    : <span className="an-seg-val">{val.toLocaleString('es-AR')}</span>}
-                  {pct && !metricsLoading && <span className="an-seg-pct">{pctOf(val)}</span>}
-                </div>
-                <div className="an-seg-name"><i className="an-seg-dot" style={{ background: color }} />{label}</div>
-                <div className="an-seg-desc">{desc}</div>
               </div>
             ))}
           </div>
@@ -794,13 +804,20 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
 
         {/* ═══════════════ CLIENTES ═══════════════ */}
         {view === 'customers' && <>
-          {types.includes('membership') && (
-            <div className="an-card">
-              <div className="an-ctitle">Clientes por nivel</div>
-              <div className="an-csub">Miembros en cada nivel hoy{m?.tierDistribution?.length ? ` · ${(m.tierDistribution as any[]).reduce((a: number, t: any) => a + t.count, 0)} en total` : ''}</div>
-              {metricsLoading ? <Loading /> : <TierDistribution tiers={m?.tierDistribution ?? []} />}
-            </div>
-          )}
+          <div className="an-4col">
+            {SEGMENTS.map(({ label, desc, color, val, pct }) => (
+              <div key={label} className="an-card an-seg-card">
+                <div className="an-seg-top">
+                  {metricsLoading
+                    ? <div className="an-skel" style={{ width: 36, height: 24 }} />
+                    : <span className="an-seg-val">{val.toLocaleString('es-AR')}</span>}
+                  {pct && !metricsLoading && <span className="an-seg-pct">{pctOf(val)}</span>}
+                </div>
+                <div className="an-seg-name"><i className="an-seg-dot" style={{ background: color }} />{label}</div>
+                <div className="an-seg-desc">{desc}</div>
+              </div>
+            ))}
+          </div>
           {/* "¿Hasta dónde llegan?" y el ranking, uno al lado del otro. */}
           <div className="an-2even">
             {/* Progreso + embudo: los dos responden "¿hasta dónde llegan?" */}
@@ -917,20 +934,13 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
                 ) })()
               : <EmptyState title="Todavía sin toques" text="Aparece cuando tus clientes toquen los botones de WhatsApp de su tarjeta. El número se carga en Configuración." />}
           </div>
-        </>}
-
-        {/* ═══════════════ PROGRAMA: horarios ═══════════════ */}
-        {view === 'program' && <>
-          {!d ? <div className="an-card"><div className="an-ctitle">¿Cuándo viene tu gente?</div><Loading /></div> : <>
-            <WhenBars hourly={d.hourly} mode="visits" />
-            {/* Un bloque sin datos no ocupa media fila: el otro va a todo el ancho. */}
-            {(() => {
-              const has = (m: 'redeems' | 'signups') => d.hourly[m].some(row => row.some(v => v > 0))
-              const modes = (['redeems', 'signups'] as const).filter(m => has(m) && !(m === 'redeems' && onlyMembership))
-              const shown = modes.length ? modes : (['signups'] as const)
-              return <div className={shown.length === 2 ? 'an-when-pair' : ''}>{shown.map(m => <WhenBars key={m} hourly={d.hourly} mode={m} />)}</div>
-            })()}
-          </>}
+          {types.includes('membership') && (
+            <div className="an-card">
+              <div className="an-ctitle">Clientes por nivel</div>
+              <div className="an-csub">Miembros en cada nivel hoy{m?.tierDistribution?.length ? ` · ${(m.tierDistribution as any[]).reduce((a: number, t: any) => a + t.count, 0)} en total` : ''}</div>
+              {metricsLoading ? <Loading /> : <TierDistribution tiers={m?.tierDistribution ?? []} />}
+            </div>
+          )}
         </>}
 
         {/* ═══════════════ PROGRAMA: tarjetas (2 o más, sin filtro) ═══════════════ */}
