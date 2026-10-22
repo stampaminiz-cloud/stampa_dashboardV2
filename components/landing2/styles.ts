@@ -4,11 +4,11 @@
 export const CSS = `
 .l2{--l2-pino:#1B412F;--l2-pino2:#24533D;--l2-brasa:#C75D3A;--l2-brasa2:#B04F2F;--l2-mostaza:#E7C46A;--l2-salvia:#EDEFE8;--l2-fondo:#E4E6E0;--l2-papel:#F7F7F4;--l2-tinta:#1E1D1A;--l2-t2:#5E5C55;--l2-t3:#9A988F;--l2-linea:#E3E4DE;--l2-wa:#1F7A4A;--l2-r:20px;
   background:var(--l2-fondo);color:var(--l2-tinta);font-family:var(--font-body);-webkit-font-smoothing:antialiased;min-height:100vh;padding:12px 0}
-.l2 *{box-sizing:border-box}
-.l2 img{display:block;max-width:100%}
-.l2 a{color:inherit;text-decoration:none}
-.l2 button{font:inherit;cursor:pointer}
-.l2 h1,.l2 h2,.l2 h3,.l2 p,.l2 ul,.l2 blockquote{margin:0;padding:0}
+:where(.l2) *{box-sizing:border-box}
+:where(.l2) img{display:block;max-width:100%}
+:where(.l2) a{color:inherit;text-decoration:none}
+:where(.l2) button{font:inherit;cursor:pointer}
+:where(.l2) :is(h1,h2,h3,h4,h5,p,ul,blockquote){margin:0;padding:0}
 .l2-frame{max-width:1240px;margin:0 auto;background:var(--l2-papel);border-radius:28px;padding:14px;overflow:hidden}
 @media(max-width:700px){.l2{padding:6px 0}.l2-frame{margin:0 6px;border-radius:22px;padding:10px}}
 
@@ -352,9 +352,6 @@ export const CSS = `
 .l2-ft-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:clamp(24px,4vw,56px)}
 @media(max-width:900px){.l2-ft-top{grid-template-columns:1fr}}
 .l2-ft-claim{font-size:16px;line-height:1.5;color:var(--l2-t2);max-width:320px;margin-bottom:18px}
-.l2-ft-country{display:flex;width:max-content;background:var(--l2-salvia);border-radius:999px;padding:4px;margin-top:18px}
-.l2-ft-country button{border:none;background:transparent;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;color:var(--l2-t2)}
-.l2-ft-country button[aria-pressed=true]{background:#fff;color:var(--l2-tinta);box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .l2-ft-cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
 @media(max-width:700px){.l2-ft-cols{grid-template-columns:1fr 1fr}}
 .l2-ft-cols div{display:flex;flex-direction:column;gap:10px;font-size:14px}
@@ -363,7 +360,7 @@ export const CSS = `
 .l2-ft-cols a:hover{color:var(--l2-tinta)}
 .l2-store{background:var(--l2-tinta);color:#fff!important;border-radius:12px;padding:7px 12px;align-self:flex-start;gap:8px!important}
 .l2-store span{display:flex;flex-direction:column;line-height:1.1;font-weight:600}.l2-store small{font-size:10px;font-weight:400;opacity:.8}
-.l2-ft-word{font-family:var(--font-display);font-weight:800;font-size:clamp(70px,18vw,250px);line-height:.8;letter-spacing:-.05em;color:var(--l2-brasa);text-align:center;margin:clamp(28px,4vw,48px) 0 10px;user-select:none}
+.l2-ft-bottom{margin-top:clamp(28px,4vw,44px)}
 .l2-ft-bottom{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--l2-t3);border-top:1px solid var(--l2-linea);padding-top:16px}
 .l2-ft-bottom nav{display:flex;gap:16px}
 
