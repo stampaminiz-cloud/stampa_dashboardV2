@@ -2,7 +2,7 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.6.0 (por salir) — Pedidos, landing nueva y Empresas
+## 1.6.0 (22/10/2026) — Pedidos, landing nueva y Empresas
 
 **Landing nueva** (components/landing2)
 - Una sola hoja con marco, menú en píldora y el mismo sistema en todas las secciones: títulos en dos tonos, etiqueta chica en brasa y tarjetas como las del Wallet de hoy, en los tres modelos (sellos, puntos y membresía).
@@ -38,7 +38,7 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
 - El selector de vistas de Pedidos es como el de Analítica, y todos los desplegables tienen la flecha con su margen.
 - Vista previa de WhatsApp: los links del dorso dicen "Tocá para…" y el saludo lleva el nombre del negocio.
 
-## 1.5.0 (por salir) — WhatsApp en la tarjeta
+## 1.5.0 (21/10/2026) — WhatsApp en la tarjeta
 
 **Nuevo**
 - Configuración → WhatsApp en la tarjeta: número, hasta 2 botones sugeridos según el rubro (con el texto editable) y la línea del frente con vista previa. Todos los planes.
