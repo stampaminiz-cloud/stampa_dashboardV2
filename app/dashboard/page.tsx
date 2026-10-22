@@ -20,23 +20,24 @@ import { FormTab }           from '@/components/dashboard/FormTab'
 import { DesignTab }         from '@/components/dashboard/DesignTab'
 import { UsersTab }          from '@/components/dashboard/UsersTab'
 import { LocationsTab }      from '@/components/dashboard/LocationsTab'
+import { OrdersTab }         from '@/components/dashboard/OrdersTab'
 import { currencyFor, formatMoney } from '@/lib/money'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type TabId = 'overview' | 'customers' | 'analytics' | 'rewards' | 'notifications' | 'design' | 'form' | 'users' | 'locations' | 'settings'
-type CustomerStatusFilter = 'all' | 'active' | 'inactive' | 'near' | 'ready'
+type TabId = 'overview' | 'customers' | 'analytics' | 'rewards' | 'orders' | 'notifications' | 'design' | 'form' | 'users' | 'locations' | 'settings'
+type CustomerStatusFilter = 'all' | 'active' | 'inactive' | 'near' | 'ready' | 'ordered'
 
 // ─── Nav items ────────────────────────────────────────────────────────────────
 function NavIcon({ id }: { id: TabId }) {
   const names: Record<TabId, IconName> = {
-    overview: 'inicio', customers: 'clientes', analytics: 'analitica', rewards: 'premios', notifications: 'notificaciones',
+    overview: 'inicio', customers: 'clientes', analytics: 'analitica', rewards: 'premios', orders: 'pedidos', notifications: 'notificaciones',
     form: 'formulario', design: 'diseno', users: 'equipo', locations: 'sucursales', settings: 'configuracion',
   }
   return <Icon name={names[id]} size={18} />
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-const NAV_IDS: TabId[] = ['overview','customers','analytics','rewards','notifications','form','design','users','locations','settings']
+const NAV_IDS: TabId[] = ['overview','customers','analytics','rewards','orders','notifications','form','design','users','locations','settings']
 
 function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, setMobileOpen, owner, business, loading, locations = [], locationId = null, onLocation }: {
   locations?: Location[]
@@ -72,7 +73,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
 
   const NAV_KEYS: Record<TabId, string> = {
     overview:'nav_overview', customers:'nav_customers', analytics:'nav_analytics',
-    rewards:'nav_rewards', notifications:'nav_notifications', form:'nav_form',
+    rewards:'nav_rewards', orders:'nav_orders', notifications:'nav_notifications', form:'nav_form',
     design:'nav_design', users:'nav_users', locations:'nav_locations', settings:'nav_settings',
   }
 
@@ -300,6 +301,17 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
   // Growth+ tiene Analítica: Inicio queda como lectura rápida y el detalle
   // vive allá. Starter ve lo básico y el resto con candado.
   const fullAnalytics = usePlan().can('analyticsLevel')
+  // Pedidos (Pro): con pedidos configurados, Inicio muestra los de la semana
+  // y los que hay que entregar hoy.
+  const canOrders = usePlan().can('orders')
+  const [orderStats, setOrderStats] = useState<any>(null)
+  useEffect(() => {
+    const bid = getBusinessId()
+    if (!canOrders || !bid) return
+    fetch(`${BASE_URL}/api/businesses/${bid}/orders/stats?range=7d`, { headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') } })
+      .then(r => (r.ok ? r.json() : null)).then(d => setOrderStats(d)).catch(() => {})
+  }, [canOrders])
+  const showOrders = !!orderStats && (orderStats.week.count > 0 || orderStats.toDeliverToday > 0 || orderStats.opened > 0)
   const loadingData = !a
   const activeCards = (cards || []).filter((c: any) => c.isActive)
   const types: string[] = a?.cardTypes?.length ? a.cardTypes : [...new Set(activeCards.map((c: any) => c.type))] as string[]
@@ -373,8 +385,13 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
   const METRICS: { label: string; value?: number; color: string; icon: IconName; delta: number | null; deltaTitle?: string; sub: string }[] = [
     { label: 'Clientes', value: a?.total, color: '#C75D3A', icon: 'clientes', delta: null,
       sub: `${fmt(a?.active)} activos · ${fmt(a?.inactive)} inactivos` },
-    { label: 'Nuevos este mes', value: a?.newThisMonth, color: '#185FA5', icon: 'agregar', delta: a?.newLastMonth >= MIN_BASE ? a.newDelta : null, deltaTitle: 'Respecto al mismo período del mes pasado',
-      sub: `mes pasado a esta fecha: ${fmt(a?.newLastMonth)}` },
+    // Con Pedidos en uso, esta tarjeta pasa a ser la de pedidos (los nuevos
+    // del mes siguen en Analítica → Clientes).
+    showOrders
+      ? { label: 'Pedidos esta semana', value: orderStats.week.count, color: '#1B412F', icon: 'pedidos', delta: null,
+          sub: `${formatMoney(orderStats.week.total, orderStats.currency)} aprox.` }
+      : { label: 'Nuevos este mes', value: a?.newThisMonth, color: '#185FA5', icon: 'agregar', delta: a?.newLastMonth >= MIN_BASE ? a.newDelta : null, deltaTitle: 'Respecto al mismo período del mes pasado',
+          sub: `mes pasado a esta fecha: ${fmt(a?.newLastMonth)}` },
     { label: 'Visitas · 7 días', value: a?.visitsThisWeek, color: '#5B8C5A', icon: 'sello', delta: a?.visitsPrevWeek >= MIN_BASE ? a.visitsWeekDelta ?? null : null, deltaTitle: 'Respecto a los 7 días anteriores',
       sub: `hoy: ${fmt(a?.visitsToday)} · ${new Date().toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', '')}. pasado: ${fmt(a?.visitsSameDayLastWeek)}` },
     { label: 'Premios entregados este mes', value: a?.rewardsThisMonth, color: '#9C7530', icon: 'premios', delta: a?.rewardsLastMonth >= MIN_BASE ? a.rewardsDelta ?? null : null, deltaTitle: 'Respecto al mismo período del mes pasado',
@@ -387,6 +404,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
     hasStamp && { key: 'near', value: a?.nearPrize ?? 0, label: 'A 1–2 sellos del premio', hint: 'Buen momento para una notificación.' },
     hasPoints && { key: 'redeem', value: a?.canRedeem ?? 0, label: 'Pueden canjear un premio', hint: 'Ya les alcanzan los puntos.' },
     hasMembership && { key: 'level', value: a?.nearLevel ?? 0, label: 'Cerca de subir de nivel', hint: 'A 2 visitas o menos.' },
+    showOrders && { key: 'orders', value: orderStats.toDeliverToday, label: 'Pedidos para entregar hoy', hint: 'Están en la pestaña Pedidos.', strong: true },
   ].filter(Boolean) as { key: string; value: number; label: string; hint: string; strong?: boolean }[]
 
   // ── Métricas avanzadas (solo las que aplican) ──
@@ -1109,6 +1127,8 @@ export default function DashboardPage() {
             ...(first?.type === 'points' ? [`${B}/cards/${first._id}/points-catalog`] : []),
             ...(first?.type === 'membership' ? [`${B}/cards/${first._id}/tiers`] : []),
             `${B}/notifications`,
+            `${B}/whatsapp`,
+            `${B}/orders/settings`,
             ...active.map(c => `${B}/cards/${c._id}/fields`),
             `${B}/cards/stats`,
           ])
@@ -1211,7 +1231,8 @@ export default function DashboardPage() {
     try {
       const params = new URLSearchParams({ page: String(page), limit: '50', sortBy: sortKey, sortDir })
       if (search) params.set('search', search)
-      if (status !== 'all') params.set('status', status)
+      if (status === 'ordered') params.set('ordered', '1')
+      else if (status !== 'all') params.set('status', status)
       if (cardFilter !== 'all') params.set('cardId', cardFilter)
       const res = await fetch(`${BASE_URL}${withLoc(`/api/businesses/${businessId}/customers?${params.toString()}`)}`, {
         headers: {
@@ -1265,7 +1286,7 @@ export default function DashboardPage() {
 
   const TITLES: Record<TabId, string> = {
     overview:'nav_overview', customers:'nav_customers', analytics:'nav_analytics',
-    rewards:'nav_rewards', notifications:'nav_notifications', design:'nav_design',
+    rewards:'nav_rewards', orders:'nav_orders', notifications:'nav_notifications', design:'nav_design',
     form:'nav_form', users:'nav_users', locations:'nav_locations', settings:'nav_settings',
   } as any
 
@@ -1333,6 +1354,10 @@ export default function DashboardPage() {
             onCta={() => { setActive('form'); localStorage.setItem('stampa_active_tab', 'form') }}
           /></div>
       case 'rewards': return <RewardsTab key={locationId ?? 'all'} cards={cards} businessId={businessId} region={owner?.region} onSaved={refreshCards} onGoToDesign={() => { setActive('design'); localStorage.setItem('stampa_active_tab', 'design') }} onOpenCustomer={openCustomerByEmail} />
+      case 'orders': return <OrdersTab businessId={businessId} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)}
+          businessName={business?.name || 'Tu negocio'}
+          cardColor={(cards.find((c: any) => c.isActive) as any)?.color} cardText={(cards.find((c: any) => c.isActive) as any)?.textColor || undefined}
+          onOpenSettings={() => { setActive('settings'); localStorage.setItem('stampa_active_tab', 'settings') }} />
           case 'notifications': return <NotificationsTab
           businessId={businessId}
           cards={cards}

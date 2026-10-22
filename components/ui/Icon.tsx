@@ -7,7 +7,8 @@ import {
   IconHome, IconUsers, IconChartBar, IconGift, IconBell, IconClipboardList, IconPalette, IconUserCircle,
   IconMapPin, IconSettings, IconCalendar, IconClock, IconQrcode, IconRosetteDiscountCheck, IconHandStop,
   IconStar, IconHeartHandshake, IconAt, IconMessageStar, IconAbc, IconHash, IconList, IconPhone, IconCake,
-  IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconTrash, IconPencil, IconLock, IconCheck, IconX, IconUser, IconHelpCircle, IconLogout, IconMenu2, IconBolt, IconAlertTriangle, IconInfoCircle, IconCircleCheck, IconCoins, IconCrown, IconArrowUp, IconArrowDown, IconSearch, IconDownload, IconArrowBackUp, IconHourglass, IconRepeat, IconFlame, IconMoon, IconTarget, IconUpload, IconBrandWhatsapp, IconMeat, IconCoffee, IconToolsKitchen2, IconScissors, IconBarbell, IconBread, IconLeaf, IconShirt, IconBook, IconMinus, IconBuildingStore, IconListCheck, IconMail, IconCreditCard, IconBrandApple, IconBrandGooglePlay, IconPhoto, IconArrowLeft, IconStarFilled, IconPencilMinus,
+  IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconTrash, IconPencil, IconLock, IconCheck, IconX, IconUser, IconHelpCircle, IconLogout, IconMenu2, IconBolt, IconAlertTriangle, IconInfoCircle, IconCircleCheck, IconCoins, IconCrown, IconArrowUp, IconArrowDown, IconSearch, IconDownload, IconArrowBackUp, IconHourglass, IconRepeat, IconFlame, IconMoon, IconTarget, IconUpload, IconBrandWhatsapp, IconMeat, IconShoppingBag, IconCoffee, IconToolsKitchen2, IconScissors, IconBarbell, IconBread, IconLeaf, IconShirt, IconBook, IconMinus, IconBuildingStore, IconListCheck, IconMail, IconCreditCard, IconBrandApple, IconBrandGooglePlay, IconPhoto, IconArrowLeft, IconStarFilled, IconPencilMinus,
+  IconPizza, IconDroplet, IconPaw, IconGlassFull, IconEyeglass, IconCarrot, IconIceCream, IconBellRinging, IconWallet, IconBrandInstagram, IconSparkles, IconScale, IconReceiptOff, IconMessageCircle, IconHandFinger, IconMoodSad,
   type Icon as TablerIcon,
 } from '@tabler/icons-react'
 
@@ -30,12 +31,16 @@ export const ICONS = {
   menos: IconMinus,
   // Rubros
   cafe: IconCoffee, restaurante: IconToolsKitchen2, peluqueria: IconScissors, gym: IconBarbell, panaderia: IconBread,
-  spa: IconLeaf, ropa: IconShirt, libreria: IconBook, carniceria: IconMeat,
+  spa: IconLeaf, ropa: IconShirt, libreria: IconBook, carniceria: IconMeat, pedidos: IconShoppingBag,
   whatsapp: IconBrandWhatsapp,
   subir: IconUpload, imagen: IconPhoto, volver: IconArrowLeft, estrella: IconStarFilled,
   objetivo: IconTarget, escribir: IconPencilMinus,
   vuelve: IconRepeat, fuerte: IconFlame, flojo: IconMoon,
   atencion: IconAlertTriangle, info: IconInfoCircle, hecho: IconCircleCheck,
+  // Landing: rubros de ejemplo y lo que hace la tarjeta
+  pizzeria: IconPizza, heladeria: IconIceCream, veterinaria: IconPaw, vinoteca: IconGlassFull, optica: IconEyeglass,
+  verduleria: IconCarrot, gota: IconDroplet, avisos: IconBellRinging, wallet: IconWallet, instagram: IconBrandInstagram,
+  nuevo: IconSparkles, balanza: IconScale, sinComision: IconReceiptOff, mensaje: IconMessageCircle, tocar: IconHandFinger, triste: IconMoodSad,
 } satisfies Record<string, TablerIcon>
 
 export type IconName = keyof typeof ICONS
