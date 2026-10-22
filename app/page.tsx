@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
-import StampaLanding from '@/components/StampaLanding'
+import Landing from '@/components/landing2/Landing'
 import { marketFromCountry } from '@/lib/market'
 
 // La imagen para compartir (WhatsApp, Instagram, LinkedIn) es
@@ -25,5 +25,5 @@ export const metadata: Metadata = {
 // Argentina en pesos; el resto en euros + IVA. En local no hay header: AR.
 export default async function Page() {
   const country = (await headers()).get('x-vercel-ip-country')
-  return <StampaLanding market={marketFromCountry(country)} />
+  return <Landing market={marketFromCountry(country)} />
 }

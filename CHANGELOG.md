@@ -2,7 +2,20 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.6.0 (por salir) — Pedidos
+## 1.6.0 (por salir) — Pedidos, landing nueva y Empresas
+
+**Landing nueva** (components/landing2)
+- Una sola hoja con marco, menú en píldora y el mismo sistema en todas las secciones: títulos en dos tonos, etiqueta chica en brasa y tarjetas como las del Wallet de hoy, en los tres modelos (sellos, puntos y membresía).
+- Inicio: maqueta blanca de un barrio que se va llenando de negocios con Stampa. Cada uno que se suma se pinta, cae su pin y aparece un chip; arriba, los negocios del barrio y las visitas del día.
+- Cómo funciona con un celular que guarda la tarjeta y la escanean; "Lo que pasa después" con la analítica al frente, avisos, la app de escaneo, WhatsApp y locales.
+- "Lo que hace tu tarjeta sola": pestañas de avisos automáticos (cumpleaños desde Growth; bienvenida, te extrañamos y reseñas en Pro), cercanía (desde Growth, iPhone) y pedidos (Pro).
+- Vidriera de negocios con el caso de Surge; Probala con rubro y modelo y el QR del negocio demo; precios reales por país con selector Argentina / España; preguntas nuevas sobre WhatsApp y pedidos; pie de página completo.
+- Se borró la landing anterior (StampaLanding y components/landing).
+
+**Empresas** (/empresas)
+- Página para marcas con 4 locales o más: maqueta con los locales de una marca y lo que pasa en vivo, Pro contra Enterprise, los tres modelos, el panel por local, lo que necesita una empresa y cómo arrancamos.
+- El pedido de demo se manda por WhatsApp con los datos ya escritos.
+
 
 **Nuevo**
 - Pestaña Pedidos (Pro):
