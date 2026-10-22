@@ -6,7 +6,7 @@
 // ADMIN_EMAILS (el backend responde 404 al resto), solo lectura y sin datos
 // de los clientes finales. Backend: routes/admin.js, services/adminMetrics.js.
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { apiAdminBusiness, apiAdminOverview, apiAdminSetManualBilling, apiAdminSetRegion, getToken, type AdminBusinessDetail, type AdminBusinessRow, type AdminModels, type AdminOverview, type Money } from '@/lib/api'
+import { apiAdminBusiness, apiAdminOverview, apiAdminSetManualBilling, apiAdminSetSpecialPlan, apiAdminSetRegion, getToken, type AdminBusinessDetail, type AdminBusinessRow, type AdminModels, type AdminOverview, type Money } from '@/lib/api'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 
 const COUNTRY: Record<string, string> = { AR: 'Argentina', ES: 'España', UY: 'Uruguay', CL: 'Chile', MX: 'México' }
@@ -667,6 +667,7 @@ function Detail({ id, days, onClose, onChanged }: { id: string; days: number; on
             </div>
             {d.owner && <RegionPicker id={d.id} region={d.owner.region} provider={d.owner.provider} onSaved={() => { apiAdminBusiness(id, days).then(setD).catch(() => {}); onChanged() }} />}
             <ManualBilling id={d.id} current={d.owner?.manualBilling || null} onSaved={() => { apiAdminBusiness(id, days).then(setD).catch(() => {}); onChanged() }} />
+            <SpecialPlan id={d.id} current={d.owner?.mpSpecialPlan || null} onSaved={() => { apiAdminBusiness(id, days).then(setD).catch(() => {}); onChanged() }} />
             <div className="sa-card sa-gap">
               <div className="sa-ct">Escaneos por semana</div>
               <div className="sa-csub">Últimas 12 semanas</div>
@@ -773,6 +774,49 @@ function ManualBilling({ id, current, onSaved }: { id: string; current: { amount
           </select>
           <button className="sa-btn" type="submit" disabled={state === 'saving'}>{state === 'saving' ? 'Guardando…' : 'Guardar'}</button>
           {current && <button type="button" className="sa-link" onClick={() => save(0)}>Quitar</button>}
+          <button type="button" className="sa-link sa-muted" onClick={() => { setOpen(false); setState('idle') }}>Cancelar</button>
+          {state === 'error' && <p className="sa-err">{msg}</p>}
+        </form>
+      )}
+    </div>
+  )
+}
+
+// Plan especial de Mercado Pago: un plan de MP con otro precio que da un plan
+// de Stampa (ej. Raíz Criolla: Pro al precio de Growth). Se crea en Mercado
+// Pago y acá se pega su id; el dueño lo contrata desde "Elegir plan".
+function SpecialPlan({ id, current, onSaved }: { id: string; current: { plan: string; planId: string } | null; onSaved: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [plan, setPlan] = useState(current?.plan || 'pro')
+  const [planId, setPlanId] = useState(current?.planId || '')
+  const [state, setState] = useState<'idle' | 'saving' | 'error'>('idle')
+  const [msg, setMsg] = useState('')
+  async function save(value: string) {
+    setState('saving')
+    try {
+      await apiAdminSetSpecialPlan(id, plan, value)
+      setState('idle'); setOpen(false); onSaved()
+    } catch (e) {
+      setState('error'); setMsg((e as { error?: string })?.error || 'No se pudo guardar.')
+    }
+  }
+  return (
+    <div className="sa-card sa-gap sa-manual">
+      <div className="sa-card-head" style={{ marginBottom: open ? 10 : 0 }}>
+        <div>
+          <div className="sa-ct">Plan especial de Mercado Pago</div>
+          <div className="sa-csub">{current ? `${current.plan[0].toUpperCase() + current.plan.slice(1)} con el plan ${current.planId}` : 'Para darle un plan a otro precio (ej. Pro al precio de Growth)'}</div>
+        </div>
+        {!open && <button className="sa-link" onClick={() => setOpen(true)}>{current ? 'Cambiar' : 'Cargar'}</button>}
+      </div>
+      {open && (
+        <form className="sa-manual-form" onSubmit={e => { e.preventDefault(); save(planId.trim()) }}>
+          <select value={plan} onChange={e => setPlan(e.target.value)} aria-label="Plan de Stampa">
+            <option value="pro">Pro</option><option value="growth">Growth</option><option value="starter">Starter</option>
+          </select>
+          <input placeholder="Id del plan de Mercado Pago" value={planId} onChange={e => { setPlanId(e.target.value); setState('idle') }} aria-label="Id del plan de Mercado Pago" />
+          <button className="sa-btn" type="submit" disabled={state === 'saving' || !planId.trim()}>{state === 'saving' ? 'Guardando…' : 'Guardar'}</button>
+          {current && <button type="button" className="sa-link" onClick={() => save('')}>Quitar</button>}
           <button type="button" className="sa-link sa-muted" onClick={() => { setOpen(false); setState('idle') }}>Cancelar</button>
           {state === 'error' && <p className="sa-err">{msg}</p>}
         </form>

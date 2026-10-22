@@ -5,6 +5,7 @@ import { useLang } from '@/data/i18n'
 import { PLAN_LIMITS, type Plan } from '@/data/plans'
 import { BASE_URL, apiGetPointsCatalog, apiRedeemPoints } from '@/lib/api'
 import { InfoTooltip } from './InfoTooltip'
+import { formatMoney } from '@/lib/money'
 
 interface CardEntry {
   customerId: string; cardId: string | null
@@ -25,7 +26,7 @@ interface Customer {
   location?: string | null // sucursal habitual (con 2+ sucursales)
 }
 
-type StatusFilter = 'all' | 'active' | 'inactive' | 'near' | 'ready'
+type StatusFilter = 'all' | 'active' | 'inactive' | 'near' | 'ready' | 'ordered'
 type SortKey = 'name' | 'progress' | 'status' | 'lastActivity' | 'card'
 type SortDir = 'asc' | 'desc'
 
@@ -234,6 +235,39 @@ function CardSection({ customer, card, canDelete, onDelete, onChanged }: {
   )
 }
 
+// ─── Pedidos del cliente (Pedidos, Pro) ──────────────────────────────────────
+function CustomerOrders({ customer }: { customer: Customer }) {
+  const [data, setData] = useState<{ address: string; orders: any[] } | null>(null)
+  const id = customer.cards[0]?.customerId
+  useEffect(() => {
+    const businessId = localStorage.getItem('stampa_business_id')
+    if (!businessId || !id) return
+    let cancelled = false
+    fetch(`${BASE_URL}/api/businesses/${businessId}/customers/${id}/orders`, { headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') } })
+      .then(r => (r.ok ? r.json() : null)).then(d => { if (!cancelled) setData(d) }).catch(() => {})
+    return () => { cancelled = true }
+  }, [id])
+  if (!data || (!data.orders.length && !data.address)) return null
+  const fmtDay = (ymd: string) => { const [, m, d] = ymd.split('-'); return `${d}/${m}` }
+  const total = data.orders.filter(o => o.status !== 'cancelado').reduce((a: number, o: any) => a + o.total, 0)
+  return (
+    <div className="ct-panel-section">
+      <div className="ct-panel-section-title">Pedidos</div>
+      <div className="ct-hist-text">{data.orders.length} {data.orders.length === 1 ? 'pedido' : 'pedidos'}{data.orders.length ? ` · ${formatMoney(total, data.orders[0].currency)} aprox. en total` : ''}</div>
+      {data.address && <div className="ct-hist-meta" style={{ marginTop: 4 }}>Dirección: {data.address}</div>}
+      {data.orders.slice(0, 3).map((o: any) => (
+        <div key={o._id} className="ct-hist-row">
+          <span className="ct-hist-ic"><Icon name="pedidos" size={14} /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="ct-hist-text">{o.items.map((i: any) => i.name).join(', ')}</div>
+            <div className="ct-hist-meta">Entrega {fmtDay(o.deliveryDate)} · {formatMoney(o.total, o.currency)} · {o.status === 'entregado' ? 'entregado' : o.status === 'cancelado' ? 'cancelado' : 'por entregar'}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── Historial de movimientos ─────────────────────────────────────────────────
 const HISTORY_ICON: Record<string, IconName> = { stamp: 'sello', points: 'puntos', visit: 'listo', redeem: 'premios', tier_change: 'nivel', expire: 'vencio' }
 function History({ customer }: { customer: Customer }) {
@@ -321,6 +355,7 @@ function CustomerPanel({ customer, canDelete, onClose, onDelete, onChanged }: {
           <CardSection key={card.customerId} customer={customer} card={card} canDelete={canDelete} onDelete={onDelete} onChanged={onChanged} />
         ))}
 
+        <CustomerOrders customer={customer} />
         <History customer={customer} />
       </div>
     </>
@@ -460,12 +495,15 @@ export function CustomersTab({
     else onSortChange(key, key === 'name' ? 'asc' : 'desc')
   }
 
+  const canOrders = !!PLAN_LIMITS[(plan || 'Starter') as Plan]?.orders
   const FILTERS: { key: StatusFilter; label: string; count?: number; hideIfZero?: boolean }[] = [
     { key: 'all', label: t('ct_all'), count: counts?.all },
     { key: 'active', label: t('ct_active'), count: counts?.active },
     { key: 'inactive', label: t('ct_inactive'), count: counts?.inactive },
     { key: 'ready', label: 'Para entregar', count: counts?.ready, hideIfZero: true },
     { key: 'near', label: t('ct_near_prize'), count: counts?.near, hideIfZero: true },
+    // Pedidos (Pro): los que mandaron algún pedido desde su tarjeta.
+    ...(canOrders ? [{ key: 'ordered' as const, label: 'Pidieron por la tarjeta' }] : []),
   ]
   const activityClass = (c: Customer) => {
     if (!c.lastUpdate) return ''

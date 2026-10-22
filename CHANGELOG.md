@@ -2,6 +2,20 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.6.0 (por salir) — Pedidos
+
+**Nuevo**
+- Pestaña Pedidos (Pro):
+  - productos con precio, por kilo (de a medio kilo) o por unidad, con pausa "sin stock" y hasta 30;
+  - días de reparto, anticipación, pedido mínimo y formas de pago, con la página en vivo al lado;
+  - pedidos recibidos, que se marcan como entregados.
+- Página de pedido (`/p/[customerId]`): una sola página con la barra del total fija abajo. El botón dice qué falta. La dirección queda guardada; tiene aclaraciones y forma de pago. El pedido llega escrito al WhatsApp del negocio.
+- Configuración → WhatsApp: cada botón puede ser "Directo a WhatsApp" o "Con pedido" (Pro).
+- Inicio: "Pedidos esta semana" y "Pedidos para entregar hoy".
+- Clientes: los pedidos y la dirección en la ficha; filtro "Pidieron por la tarjeta".
+- Analítica: sección Pedidos (del botón al pedido, lo más pedido, días más elegidos, ticket promedio, clientes que repiten).
+- Admin: plan especial de Mercado Pago por negocio (ej. Pro al precio de Growth).
+
 ## 1.5.0 (por salir) — WhatsApp en la tarjeta
 
 **Nuevo**
