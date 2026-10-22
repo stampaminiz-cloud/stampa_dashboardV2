@@ -20,8 +20,9 @@ const PLANS = [
   { slug: 'enterprise', name: 'Enterprise', desc: 'Para marcas con 4 locales o más.', news: [], features: ['Locales ilimitados', 'Tu marca en todo', 'Soporte dedicado'] },
 ]
 
-export default function Landing({ market: initial = 'AR' }: { market?: Market }) {
-  const [market, setMarket] = useState<Market>(initial)
+// market: AR = pesos (Mercado Pago); EU = euros + IVA (Stripe). Lo decide
+// app/page.tsx con el país de la IP.
+export default function Landing({ market = 'AR' }: { market?: Market }) {
   const [period, setPeriod] = useState<'monthly' | 'annual'>('monthly')
   const [menu, setMenu] = useState(false)
   const prices = usePlanPrices(market)
@@ -67,7 +68,6 @@ export default function Landing({ market: initial = 'AR' }: { market?: Market })
             <div><p className="l2-kicker">Precios</p><h2 className="l2-h2">Empezá gratis. <span className="l2-gris">Crecé cuando quieras.</span></h2></div>
             <div className="l2-seg-wrap">
               <div className="l2-seg" role="group" aria-label="Período"><button aria-pressed={period === 'monthly'} onClick={() => setPeriod('monthly')}>Mensual</button><button aria-pressed={period === 'annual'} onClick={() => setPeriod('annual')}>Anual{savings.length ? ` · -${Math.min(...savings)}%` : ''}</button></div>
-              <div className="l2-seg" role="group" aria-label="País"><button aria-pressed={market === 'AR'} onClick={() => setMarket('AR')}>Argentina</button><button aria-pressed={market === 'EU'} onClick={() => setMarket('EU')}>España</button></div>
             </div>
           </div>
           <div className="l2-plans">
@@ -103,7 +103,6 @@ export default function Landing({ market: initial = 'AR' }: { market?: Market })
             <div>
               <p className="l2-ft-claim">Tarjetas de fidelidad en Apple y Google Wallet, para negocios que quieren que su gente vuelva.</p>
               <a className="l2-btn l2-btn-brasa" href="/register">Crear mi tarjeta gratis</a>
-              <div className="l2-ft-country" role="group" aria-label="País"><button aria-pressed={market === 'AR'} onClick={() => setMarket('AR')}>Argentina</button><button aria-pressed={market === 'EU'} onClick={() => setMarket('EU')}>España</button></div>
             </div>
             <nav className="l2-ft-cols" aria-label="Pie de página">
               <div><b>Producto</b><a href="#como">Cómo funciona</a><a href="#pedidos">Avisos y pedidos</a><a href="#precios">Precios</a><a href="#probala">Probá una tarjeta</a></div>
@@ -112,7 +111,6 @@ export default function Landing({ market: initial = 'AR' }: { market?: Market })
               <div><b>Apps</b>{SCANNER_IOS_URL && <a href={SCANNER_IOS_URL} className="l2-store" target="_blank" rel="noopener noreferrer"><Icon name="apple" size={24} /><span><small>App de escaneo en</small>App Store</span></a>}<a href={INSTAGRAM} target="_blank" rel="noopener noreferrer"><Icon name="instagram" size={16} /> Instagram</a></div>
             </nav>
           </div>
-          <div className="l2-ft-word" aria-hidden="true">STAMPA</div>
           <div className="l2-ft-bottom"><span>© {new Date().getFullYear()} Stampa</span><nav><a href="/terms">Términos</a><a href="/privacy">Privacidad</a></nav></div>
         </footer>
       </div>
