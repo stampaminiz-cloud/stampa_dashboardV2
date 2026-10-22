@@ -24,6 +24,7 @@ export interface PlanLimits {
   locationTools:    boolean       // ubicación (aviso de cercanía) y horarios — desde Growth
   whiteLabel:       boolean       // remove Stampa branding
   formBranding:     boolean       // logo + color on signup form
+  orders:           boolean       // Pedidos: página de pedido con productos y entrega (Pro)
   autoNotices:      boolean       // avisos automáticos (bienvenida, a un sello, te extrañamos, reseña). Espejo de config/planLimits.js
 }
 
@@ -46,6 +47,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     whiteLabel:      false,
     formBranding:    false,
     autoNotices:     false,
+    orders:          false,
   },
   Growth: {
     maxCustomers:    500,
@@ -65,6 +67,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     whiteLabel:      false,
     formBranding:    true,
     autoNotices:     false,
+    orders:          false,
   },
   Pro: {
     maxCustomers:    0,
@@ -84,6 +87,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     whiteLabel:      true,        // sin "Powered by Stampa" (pase y formulario)
     formBranding:    true,
     autoNotices:     true,
+    orders:          true,
   },
   Enterprise: {
     maxCustomers:    0,
@@ -103,6 +107,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     whiteLabel:      true,
     formBranding:    true,
     autoNotices:     true,
+    orders:          true,
   },
 }
 
@@ -125,6 +130,7 @@ export const FEATURE_LABELS: Record<keyof PlanLimits, string> = {
   whiteLabel:      'White label (sin marca Stampa)',
   formBranding:    'Logo y color en el formulario de registro',
   autoNotices:     'Avisos automáticos',
+  orders:          'Pedidos',
 }
 
 // ─── Plan context ─────────────────────────────────────────────────────────────

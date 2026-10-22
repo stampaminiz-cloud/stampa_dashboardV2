@@ -7,8 +7,9 @@
 import React, { useEffect, useState } from 'react'
 import { BASE_URL } from '@/lib/api'
 import { Icon } from '@/components/ui/Icon'
+import { usePlan } from '@/data/plans'
 
-type Kind = { kind: string; label: string }
+type Kind = { kind: string; label: string; mode?: 'direct' | 'order' }
 type Suggestions = {
   voice: 'vos' | 'tu'
   suggested: Kind[]
@@ -25,6 +26,8 @@ const authHeaders = () => ({ 'Content-Type': 'application/json', Authorization: 
 const pretty = (n: string) => (n ? `+${n}` : '')
 
 export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B412F', textColor = '#FFFFFF' }: { businessId?: string; isManager: boolean; onSaved?: () => void; color?: string; textColor?: string }) {
+  const { can } = usePlan()
+  const canOrders = can('orders')
   const [sug, setSug] = useState<Suggestions | null>(null)
   const [saved, setSaved] = useState<Saved>(null)
   const [number, setNumber] = useState('')
@@ -118,12 +121,16 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
                 <input className="wa-input" value={b.label} maxLength={sug.limits.label} disabled={disabled} aria-label={`Texto del botón ${i + 1}`}
                   onChange={e => setButton(i, { label: e.target.value })} />
                 {!disabled && <button type="button" className="wa-x" aria-label={`Quitar el botón ${i + 1}`} onClick={() => setButtons(buttons.filter((_, j) => j !== i))}><Icon name="cerrar" size={14} /></button>}
+                <div className="wa-mode" role="radiogroup" aria-label={`Qué abre el botón ${i + 1}`}>
+                  <button type="button" role="radio" aria-checked={(b.mode || 'direct') === 'direct'} disabled={disabled} className={(b.mode || 'direct') === 'direct' ? 'is-on' : ''} onClick={() => setButton(i, { mode: 'direct' })}>Directo a WhatsApp</button>
+                  <button type="button" role="radio" aria-checked={b.mode === 'order'} disabled={disabled || !canOrders} title={canOrders ? '' : 'Disponible en Pro'} className={b.mode === 'order' ? 'is-on' : ''} onClick={() => setButton(i, { mode: 'order' })}>Con pedido{canOrders ? '' : ' · Pro'}</button>
+                </div>
               </div>
             ))}
             {!disabled && buttons.length < sug.maxButtons && (
               <button type="button" className="s-btn s-btn--secondary s-btn--sm wa-add" onClick={addButton}><Icon name="agregar" size={14} />Agregar botón</button>
             )}
-            <div className="wa-help">El tipo define el mensaje que llega escrito y el título en la tarjeta. El texto lo podés cambiar.</div>
+            <div className="wa-help">El tipo define el mensaje que llega escrito y el título en la tarjeta. "Con pedido" abre primero la página de pedido (se arma en la pestaña Pedidos).</div>
           </div>
 
           <div className="wa-field">
@@ -177,7 +184,11 @@ const CSS = `
   .wa-input{width:100%;}
   .wa-input--short{max-width:200px;}
   .wa-input:focus,.wa-select:focus{outline:2px solid var(--s-brasa);outline-offset:1px;}
-  .wa-btn-row{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr) 28px;gap:8px;align-items:center;}
+  .wa-btn-row{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr) 28px;gap:8px;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--s-linea);}
+  .wa-mode{grid-column:1 / -1;display:inline-flex;gap:2px;background:var(--s-salvia);border-radius:999px;padding:3px;justify-self:start;}
+  .wa-mode button{border:none;background:none;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:600;color:var(--s-tinta-2);cursor:pointer;}
+  .wa-mode button.is-on{background:#fff;color:var(--s-tinta);box-shadow:0 1px 3px rgba(34,32,27,.12);}
+  .wa-mode button:disabled{cursor:default;opacity:.6;}
   .wa-x{width:28px;height:28px;border-radius:8px;border:1px solid var(--s-linea);background:var(--s-blanco);color:var(--s-tinta-2);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
   .wa-x:hover{border-color:rgba(34,32,27,.3);color:var(--s-tinta);}
   .wa-add{align-self:flex-start;}

@@ -275,7 +275,7 @@ export interface AdminOverview {
 }
 export interface AdminBusinessDetail {
   id: string; name: string; createdAt: string; isActive: boolean; country: string
-  owner: { email: string; phone: string | null; plan: string; access: string; billingStatus: string | null; period: string | null; trialEndsAt: string | null; nextPaymentDate: string | null; pays: { currency: string; monthly: number; manual?: boolean } | null; manualBilling: { amount: number; currency: string } | null; region: 'AR' | 'ES' | 'EU'; provider: string | null } | null
+  owner: { email: string; phone: string | null; plan: string; access: string; billingStatus: string | null; period: string | null; trialEndsAt: string | null; nextPaymentDate: string | null; pays: { currency: string; monthly: number; manual?: boolean } | null; manualBilling: { amount: number; currency: string } | null; mpSpecialPlan?: { plan: string; planId: string } | null; region: 'AR' | 'ES' | 'EU'; provider: string | null } | null
   period: { days: number; scans: number; redeems: number; newCustomers: number }
   customers: number; passes: { total: number; apple: number; google: number }
   weeks: string[]; scansWeekly: number[]
@@ -296,6 +296,11 @@ export async function apiAdminSetRegion(id: string, region: 'AR' | 'ES' | 'EU') 
 }
 export async function apiAdminSetManualBilling(id: string, amount: number, currency: string) {
   return request<{ amount: number; currency: string | null }>(`/api/admin/businesses/${id}/manual-billing`, { method: 'PATCH', body: { amount, currency } })
+}
+
+// Plan especial de Mercado Pago (ej. Pro al precio de Growth). planId vacío lo borra.
+export async function apiAdminSetSpecialPlan(id: string, plan: string, planId: string) {
+  return request<{ ok: boolean; mpSpecialPlan: { plan: string; planId: string } | null }>(`/api/admin/businesses/${id}/special-plan`, { method: 'PATCH', body: { plan, planId } })
 }
 
 export async function apiChangePassword(currentPassword: string, newPassword: string) {

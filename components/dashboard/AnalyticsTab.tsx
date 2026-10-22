@@ -8,6 +8,7 @@ import { MascotLoader } from '@/components/ui/MascotLoader'
 import { EmptyState, RetentionRing, ProgressDistribution, FormAnswers, CardComparison, LocationComparison, type LocationRow, type NvrBucket, type Retention, type ProgressDist, type FormAnswer as FormAnswerData, type CardRow } from './charts'
 import { usePlan } from '@/data/plans'
 import { BASE_URL } from '@/lib/api'
+import { formatMoney } from '@/lib/money'
 
 // Analítica (Growth, Pro, Enterprise). Dos bloques:
 //   Hoy          estado actual e historial — no depende de fechas
@@ -181,6 +182,70 @@ function HoursLines({ hourly, withRedeems }: { hourly: Hourly; withRedeems: bool
   )
 }
 
+// ─── Pedidos (Pro) ───────────────────────────────────────────────────────────
+// Abrieron la página → enviaron → entregados, productos y días más pedidos,
+// ticket promedio y clientes que repiten (routes/orders.js → /orders/stats).
+function OrdersStats({ st }: { st: any }) {
+  // "Abrieron" solo si hubo toques en botones "con pedido" (si no, quedaba en 0
+  // arriba de pedidos que sí llegaron).
+  const steps = [
+    ...(st.opened > 0 ? [{ l: 'Abrieron la página', v: st.opened }] : []),
+    { l: 'Mandaron el pedido', v: st.sent, of: st.opened > 0 ? 'de los que abrieron' : '' },
+    { l: 'Entregados', v: st.delivered, of: 'de los enviados' },
+  ]
+  const max = Math.max(1, ...steps.map(x => x.v))
+  const dayMax = Math.max(1, ...st.byWeekday)
+  const money = (n: number) => formatMoney(n, st.currency)
+  return <>
+    <div className="an-program" style={{ ['--cols' as any]: 3 }}>
+      <div className="an-card"><div className="an-stat-now">{st.sent}</div><div className="an-stat-name">Pedidos</div><div className="an-stat-label">{money(st.total)} aprox. en total</div></div>
+      <div className="an-card"><div className="an-stat-now">{st.sent ? money(st.avgTicket) : '—'}</div><div className="an-stat-name">Ticket promedio</div><div className="an-stat-label">total aproximado por pedido</div></div>
+      <div className="an-card"><div className="an-stat-now">{st.repeatCustomers}</div><div className="an-stat-name">Repiten</div><div className="an-stat-label">de {st.customers} {st.customers === 1 ? 'cliente que pidió' : 'clientes que pidieron'}</div></div>
+    </div>
+    <div className="an-2even">
+      <div className="an-card">
+        <div className="an-ctitle">Del botón al pedido</div>
+        <div className="an-csub">Toques en los botones "con pedido" hasta la entrega</div>
+        <div className="an-funnel" style={{ marginTop: 12 }}>
+          {steps.map((x, i) => (
+            <div key={x.l} className="an-fstage">
+              <span className="an-fname">{x.l}</span>
+              <div className="an-fbar-wrap"><div className="an-fbar" style={{ width: `${Math.round((x.v / max) * 100)}%` }} /></div>
+              <span className="an-fval">{x.v}</span>
+              {i > 0 && steps[i - 1].v >= 5 && <span className="an-fconv">{Math.round((x.v / steps[i - 1].v) * 100)}% {x.of}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="an-card">
+        <div className="an-ctitle">Lo más pedido</div>
+        <div className="an-csub">Por cantidad de pedidos</div>
+        <div className="an-freq-bars" style={{ marginTop: 12 }}>
+          {st.topProducts.map((p: any) => (
+            <div key={p.name} className="an-freq-row">
+              <span className="an-freq-lbl" style={{ width: 130 }}>{p.name}</span>
+              <div className="an-freq-bar"><div className="an-freq-fill" style={{ width: `${(p.orders / st.topProducts[0].orders) * 100}%` }} /></div>
+              <span className="an-freq-cnt" style={{ width: 'auto' }}>{p.orders}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+    <div className="an-card">
+      <div className="an-ctitle">Días de entrega más elegidos</div>
+      <div className="an-csub">Para qué día piden</div>
+      <div className="an-wb-bars" style={{ marginTop: 12 }}>
+        {st.byWeekday.map((v: number, d: number) => (
+          <div key={d} className="an-wb-col" title={`${DAYS_SINGULAR[d]}: ${v} ${v === 1 ? 'pedido' : 'pedidos'}`}>
+            <div className="an-wb-track" style={{ height: 90 }}><div className={v === Math.max(...st.byWeekday) && v > 0 ? 'is-top' : ''} style={{ height: `${Math.max(3, (v / dayMax) * 100)}%` }} /></div>
+            <span>{DAYS_SHORT[d]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </>
+}
+
 // Íconos de los datos destacados (sistema: components/ui/Icon).
 function HlIcon({ name }: { name: 'repeat' | 'flame' | 'moon' }) {
   return <Icon name={name === 'repeat' ? 'vuelve' : name === 'flame' ? 'fuerte' : 'flojo'} size={16} />
@@ -322,9 +387,9 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
   // Programa: ¿funciona mi tarjeta? (lo que antes era Resumen, Horarios y
   // Tarjetas). Clientes: ¿quiénes son y cuáles vuelven? Pedidos se suma
   // cuando el negocio los use (docs/whatsapp-y-pedidos.md del backend).
-  type Section = 'program' | 'customers'
+  type Section = 'program' | 'customers' | 'orders'
   const [section, setSection] = useState<Section>(() => {
-    try { return localStorage.getItem('stampa_analytics_section') === 'customers' ? 'customers' : 'program' } catch { return 'program' }
+    try { const v = localStorage.getItem('stampa_analytics_section'); return v === 'customers' || v === 'orders' ? v : 'program' } catch { return 'program' }
   })
   const pickSection = (sec: Section) => { setSection(sec); try { localStorage.setItem('stampa_analytics_section', sec) } catch { /* sin storage */ } }
   const [rankScope, setRankScope] = useState<'period' | 'all' | 'redeems'>('period')
@@ -470,8 +535,18 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
 
   // "Tarjetas" solo si hay 2 o más y no se está filtrando por una.
   const showCards = activeCards.length >= 2 && !selectedCard
-  const SECTIONS: { key: Section; label: string }[] = [{ key: 'program', label: 'Programa' }, { key: 'customers', label: 'Clientes' }]
-  const view = section
+  // Pedidos: solo si el negocio los usa (Pro, con algún pedido o toque).
+  const canOrders = can('orders')
+  const [orderStats, setOrderStats] = useState<any>(null)
+  useEffect(() => {
+    const bid = typeof window !== 'undefined' ? localStorage.getItem('stampa_business_id') : null
+    if (!canOrders || !bid) return
+    fetch(`${BASE_URL}/api/businesses/${bid}/orders/stats?range=${range}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem('stampa_token') } })
+      .then(r => (r.ok ? r.json() : null)).then(setOrderStats).catch(() => {})
+  }, [canOrders, range])
+  const showOrders = canOrders && !!orderStats && (orderStats.sent > 0 || orderStats.opened > 0)
+  const SECTIONS: { key: Section; label: string }[] = [{ key: 'program', label: 'Programa' }, { key: 'customers', label: 'Clientes' }, ...(showOrders ? [{ key: 'orders' as const, label: 'Pedidos' }] : [])]
+  const view = section === 'orders' && !showOrders ? 'program' : section
 
   const onlyMembership = types.length > 0 && types.every(t => t === 'membership')
   const scope = onlyMembership && rankScope === 'redeems' ? 'period' : rankScope
@@ -942,6 +1017,9 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
             </div>
           )}
         </>}
+
+        {/* ═══════════════ PEDIDOS ═══════════════ */}
+        {view === 'orders' && showOrders && <OrdersStats st={orderStats} />}
 
         {/* ═══════════════ PROGRAMA: tarjetas (2 o más, sin filtro) ═══════════════ */}
         {view === 'program' && showCards && (
