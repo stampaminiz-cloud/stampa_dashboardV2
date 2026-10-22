@@ -16,6 +16,15 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
 - Analítica: sección Pedidos (del botón al pedido, lo más pedido, días más elegidos, ticket promedio, clientes que repiten).
 - Admin: plan especial de Mercado Pago por negocio (ej. Pro al precio de Growth).
 
+**Mejoras de Pedidos**
+- "Cómo se vende": por unidad, por kilo (de a ½ kg) o por 100 gramos. Con Enter se agrega otro producto.
+- Zonas de reparto en Entregas; en Pedidos recibidos se ve la zona y se filtra por zona.
+- Página de pedido: varios días en el mismo pedido, elegir la zona, "Sin stock" en lo pausado y el total por entrega y en total.
+- Formas de pago según el país del negocio (en España, Bizum).
+- Carga con Stampy en Pedidos, en la página de pedido y en WhatsApp de Configuración, que ahora se precarga con el panel.
+- El selector de vistas de Pedidos es como el de Analítica, y todos los desplegables tienen la flecha con su margen.
+- Vista previa de WhatsApp: los links del dorso dicen "Tocá para…" y el saludo lleva el nombre del negocio.
+
 ## 1.5.0 (por salir) — WhatsApp en la tarjeta
 
 **Nuevo**
