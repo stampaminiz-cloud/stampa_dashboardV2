@@ -1127,6 +1127,8 @@ export default function DashboardPage() {
             ...(first?.type === 'points' ? [`${B}/cards/${first._id}/points-catalog`] : []),
             ...(first?.type === 'membership' ? [`${B}/cards/${first._id}/tiers`] : []),
             `${B}/notifications`,
+            `${B}/whatsapp`,
+            `${B}/orders/settings`,
             ...active.map(c => `${B}/cards/${c._id}/fields`),
             `${B}/cards/stats`,
           ])

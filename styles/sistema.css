@@ -52,6 +52,22 @@
    algunos quedaban en Arial. */
 button, input, select, textarea { font-family: inherit; }
 
+/* Desplegables nativos: misma flecha y margen en todo el sistema (antes la
+   flecha del navegador quedaba pegada al borde derecho). La especificidad
+   alta gana sobre el padding y el fondo de cada pestaña. */
+select:not([multiple]):not([size]) {
+  -webkit-appearance: none; appearance: none;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2322201B' stroke-opacity='.55' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 11px center; background-size: 14px;
+}
+
+/* ── Selector de vistas (Analítica, Pedidos) ───────────────── */
+.s-tabs { display: inline-flex; gap: 4px; background: var(--s-hueco); border-radius: 12px; padding: 4px; }
+.s-tab { border: none; background: transparent; border-radius: 9px; padding: 8px 16px; font-size: 13px; font-weight: 600; color: var(--s-tinta-2); cursor: pointer; font-family: var(--font-body); }
+.s-tab[aria-selected="true"] { background: var(--s-blanco); color: var(--s-tinta); box-shadow: 0 1px 4px rgba(34, 32, 27, .1); }
+.s-tab:focus-visible { outline: 2px solid var(--s-brasa); outline-offset: 2px; }
+
 /* ── Botones ───────────────────────────────────────────────── */
 .s-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;

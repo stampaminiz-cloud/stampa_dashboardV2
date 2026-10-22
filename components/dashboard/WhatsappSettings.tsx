@@ -8,6 +8,8 @@ import React, { useEffect, useState } from 'react'
 import { BASE_URL } from '@/lib/api'
 import { Icon } from '@/components/ui/Icon'
 import { usePlan } from '@/data/plans'
+import { readCache, getJson, writeCache } from '@/lib/cache'
+import { MascotLoader } from '@/components/ui/MascotLoader'
 
 type Kind = { kind: string; label: string; mode?: 'direct' | 'order' }
 type Suggestions = {
@@ -17,6 +19,9 @@ type Suggestions = {
   front: { title: string }
   topValue: string
   groups: Record<string, string>
+  taps?: Record<string, string>
+  tapFallback?: string
+  businessName?: string
   limits: { label: number; title: number }
   maxButtons: number
 }
@@ -44,16 +49,20 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
     setTitle(w?.frontTitle || '')
   }
 
+  // Se precarga con el resto del panel (page.tsx → prefetch) y queda en
+  // caché: al abrir Configuración aparece al instante y después se refresca.
   useEffect(() => {
     if (!businessId) return
-    fetch(`${BASE_URL}/api/businesses/${businessId}/whatsapp`, { headers: authHeaders() })
-      .then(r => (r.ok ? r.json() : Promise.reject()))
+    const path = `/api/businesses/${businessId}/whatsapp`
+    const cached = readCache<any>(path)
+    if (cached) { setSug(cached.suggestions); fill(cached.whatsapp, cached.suggestions) }
+    getJson<any>(path)
       .then(d => { setSug(d.suggestions); fill(d.whatsapp, d.suggestions) })
-      .catch(() => setLoadError(true))
+      .catch(() => { if (!cached) setLoadError(true) })
   }, [businessId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loadError) return <div className="wa-help">No pudimos cargar WhatsApp. Recargá la página.</div>
-  if (!sug) return <div className="wa-help">Cargando…</div>
+  if (!sug) return <MascotLoader text="Cargando WhatsApp…" size={48} minHeight={160} />
 
   const has = !!saved?.number
   const disabled = isManager
@@ -62,7 +71,8 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
   // Sin título propio, sale del primer botón (igual que en el backend).
   const shownTitle = title.trim() || (buttons[0] ? groupOf(buttons[0].kind) : 'WHATSAPP')
   const fixed = sug.voice === 'vos' ? 'Escribinos por WhatsApp' : 'Escríbenos por WhatsApp'
-  const backRows = buttons.length ? buttons.map(b => ({ t: groupOf(b.kind), l: b.label || labelOf(b.kind) })) : [{ t: 'WHATSAPP', l: fixed }]
+  // En el dorso el link dice "Tocá para…" (services/whatsapp.js → tapText).
+  const backRows = buttons.length ? buttons.map(b => ({ t: groupOf(b.kind), l: sug?.taps?.[b.kind] || b.label || labelOf(b.kind) })) : [{ t: 'WHATSAPP', l: sug?.tapFallback || fixed }]
 
   function setButton(i: number, patch: Partial<Kind>) {
     setMsg(null)
@@ -87,6 +97,7 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
       const d = await r.json().catch(() => ({}))
       if (!r.ok) throw d
       fill(d.whatsapp, sug!)
+      writeCache(`/api/businesses/${businessId}/whatsapp`, { whatsapp: d.whatsapp, suggestions: sug })
       setMsg({ ok: true, text: remove ? 'WhatsApp quitado de las tarjetas.' : 'Guardado. Las tarjetas de tus clientes se actualizan solas.' })
       onSaved?.()
     } catch (err: any) {
@@ -166,7 +177,7 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
             ))}
             <div className="wa-pv-row"><span>ÚLTIMA NOVEDAD</span><em>Sin novedades por ahora.</em></div>
           </div>
-          <div className="wa-help">Cada botón abre WhatsApp con "Hola, soy Lucía Gómez." y el mensaje del tipo de botón.</div>
+          <div className="wa-help">Cada botón abre WhatsApp con "Hola {sug.businessName || 'tu negocio'}, soy Lucía Gómez." y el mensaje del tipo de botón.</div>
         </div>
       </div>
     </div>

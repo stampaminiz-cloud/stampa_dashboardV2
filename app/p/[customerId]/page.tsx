@@ -1,38 +1,46 @@
 'use client'
 // Página de pedido (Pedidos, Pro). La abre el cliente desde el botón "con
 // pedido" de su tarjeta (/api/w → /p/:customerId). Una sola página: productos,
-// día, dirección, aclaraciones y forma de pago; abajo, fija, la barra con el
+// días (uno o varios: el mismo pedido se repite en cada entrega), zona,
+// dirección, aclaraciones y forma de pago; abajo, fija, la barra con el
 // total y el botón, que dice qué falta. El total se recalcula en el backend
 // (services/orders.js) y el pedido llega escrito al WhatsApp del negocio.
 import React, { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { BASE_URL } from '@/lib/api'
 import { formatMoney } from '@/lib/money'
+import { MascotLoader } from '@/components/ui/MascotLoader'
 
-type Product = { id: string; name: string; price: number; unit: 'kg' | 'unidad'; active: boolean }
+type Product = { id: string; name: string; price: number; unit: 'unidad' | 'kg' | '100g'; active: boolean }
 type Day = { date: string; label: string; dayNum: number; long: string; available: boolean; reason: string | null }
 type Page = {
   voice: 'vos' | 'tu'
   business: { name: string; region: string }
   card: { color: string; textColor: string; logoUrl: string | null }
-  customer: { firstName: string; address: string }
+  customer: { firstName: string; address: string; zone: string }
   header: string
   products: Product[]
   days: Day[]
+  maxDeliveries: number
+  zones: string[]
   minTotal: number
   payments: { key: string; label: string }[]
   currency: any
 }
 
+// Por kilo se pide de a ½ kg; por 100 g, de a 100 g (qty cuenta los 100 g).
 const step = (p: Product) => (p.unit === 'kg' ? 0.5 : 1)
-const qtyText = (q: number, p: Product) => (p.unit === 'kg' ? `${String(q).replace('.', ',')} kg` : String(q))
+const comma = (n: number) => String(n).replace('.', ',')
+const qtyText = (q: number, p: Product) => p.unit === 'kg' ? `${comma(q)} kg` : p.unit === '100g' ? (q >= 10 ? `${comma(q / 10)} kg` : `${q * 100} g`) : String(q)
+const PER = { unidad: 'c/u', kg: 'el kg · de a medio kilo', '100g': 'los 100 g' } as Record<string, string>
 
 export default function OrderPage() {
   const { customerId } = useParams() as { customerId: string }
   const [page, setPage] = useState<Page | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [qty, setQty] = useState<Record<string, number>>({})
-  const [date, setDate] = useState('')
+  const [dates, setDates] = useState<string[]>([])
+  const [zone, setZone] = useState('')
   const [address, setAddress] = useState('')
   const [editAddress, setEditAddress] = useState(false)
   const [note, setNote] = useState('')
@@ -43,13 +51,13 @@ export default function OrderPage() {
   useEffect(() => {
     fetch(`${BASE_URL}/api/orders/${encodeURIComponent(customerId)}`)
       .then(async r => { const d = await r.json().catch(() => ({})); if (!r.ok) throw d; return d as Page })
-      .then(d => { setPage(d); setAddress(d.customer.address || ''); setEditAddress(!d.customer.address); if (d.payments.length === 1) setPayment(d.payments[0].key) })
+      .then(d => { setPage(d); setAddress(d.customer.address || ''); setEditAddress(!d.customer.address); if (d.zones.includes(d.customer.zone)) setZone(d.customer.zone); else if (d.zones.length === 1) setZone(d.zones[0]); if (d.payments.length === 1) setPayment(d.payments[0].key) })
       .catch(err => setLoadError(err?.error || 'No pudimos cargar la página. Probá de nuevo.'))
   }, [customerId])
 
   const t = page?.voice === 'tu'
-    ? { pick: 'Elige al menos un producto', day: 'Elige el día de entrega', addr: 'Escribe la dirección de entrega', pay: 'Elige cómo vas a pagar', saved: 'La guardamos para la próxima vez.', hello: 'Hola' }
-    : { pick: 'Elegí al menos un producto', day: 'Elegí el día de entrega', addr: 'Escribí la dirección de entrega', pay: 'Elegí cómo vas a pagar', saved: 'La guardamos para la próxima.', hello: 'Hola' }
+    ? { pick: 'Elige al menos un producto', day: 'Elige el día de entrega', zone: 'Elige tu zona', addr: 'Escribe la dirección de entrega', pay: 'Elige cómo vas a pagar', saved: 'La guardamos para la próxima vez.', hello: 'Hola' }
+    : { pick: 'Elegí al menos un producto', day: 'Elegí el día de entrega', zone: 'Elegí tu zona', addr: 'Escribí la dirección de entrega', pay: 'Elegí cómo vas a pagar', saved: 'La guardamos para la próxima.', hello: 'Hola' }
 
   const total = useMemo(() => (page ? page.products.reduce((a, p) => a + (qty[p.id] || 0) * p.price, 0) : 0), [page, qty])
   const count = Object.values(qty).filter(q => q > 0).length
@@ -58,7 +66,8 @@ export default function OrderPage() {
   const missing = !page ? null
     : !count ? t.pick
     : page.minTotal && total < page.minTotal ? `Te faltan ${formatMoney(page.minTotal - total, page.currency)} para el mínimo`
-    : !date ? t.day
+    : !dates.length ? t.day
+    : page.zones.length && !zone ? t.zone
     : !address.trim() ? t.addr
     : page.payments.length && !payment ? t.pay
     : null
@@ -68,13 +77,20 @@ export default function OrderPage() {
     setQty(q => ({ ...q, [p.id]: Math.max(0, Math.round(((q[p.id] || 0) + dir * step(p)) * 10) / 10) }))
   }
 
+  // Varios días: se tocan de a uno, en el orden del calendario, hasta el máximo.
+  function toggleDate(d: string) {
+    setSendError(null)
+    setDates(ds => ds.includes(d) ? ds.filter(x => x !== d) : ds.length >= page!.maxDeliveries ? ds : [...ds, d].sort())
+  }
+  const chosen = page ? page.days.filter(d => dates.includes(d.date)) : []
+
   async function send() {
     if (!page || missing || busy) return
     setBusy(true); setSendError(null)
     try {
       const r = await fetch(`${BASE_URL}/api/orders/${encodeURIComponent(customerId)}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: Object.entries(qty).filter(([, q]) => q > 0).map(([productId, q]) => ({ productId, qty: q })), date, address, note, payment: payment || null }),
+        body: JSON.stringify({ items: Object.entries(qty).filter(([, q]) => q > 0).map(([productId, q]) => ({ productId, qty: q })), dates, zone: zone || null, address, note, payment: payment || null }),
       })
       const d = await r.json().catch(() => ({}))
       if (!r.ok) throw d
@@ -88,7 +104,7 @@ export default function OrderPage() {
   }
 
   if (loadError) return <Shell><div className="op-msg">{loadError}</div></Shell>
-  if (!page) return <Shell><div className="op-msg">Cargando…</div></Shell>
+  if (!page) return <Shell><MascotLoader text="Cargando tu pedido…" minHeight={320} /></Shell>
 
   return (
     <Shell color={page.card.color} textColor={page.card.textColor}>
@@ -106,7 +122,7 @@ export default function OrderPage() {
             <div key={p.id} className={`op-item${p.active ? '' : ' op-item--off'}`}>
               <div className="op-item-info">
                 <b>{p.name}</b>
-                <small>{formatMoney(p.price, page.currency)} {p.unit === 'kg' ? 'el kg · de a medio kilo' : 'c/u'}</small>
+                <small>{formatMoney(p.price, page.currency)} {PER[p.unit]}</small>
               </div>
               {p.active
                 ? <div className="op-qty">
@@ -121,17 +137,38 @@ export default function OrderPage() {
       </section>
 
       <section className="op-sec">
-        <h2>Día de entrega</h2>
+        <h2>{page.maxDeliveries > 1 ? 'Días de entrega' : 'Día de entrega'}</h2>
         <div className="op-days">
-          {page.days.map(d => (
-            <button key={d.date} type="button" disabled={!d.available} aria-pressed={date === d.date} className={`op-day${date === d.date ? ' is-on' : ''}`}
-              title={d.reason || d.long} onClick={() => { setDate(d.date); setSendError(null) }}>
-              <span>{d.label}</span><b>{d.dayNum}</b>
-            </button>
-          ))}
+          {page.days.map(d => {
+            const on = dates.includes(d.date)
+            return (
+              <button key={d.date} type="button" disabled={!d.available} aria-pressed={on} className={`op-day${on ? ' is-on' : ''}`}
+                title={d.reason || d.long} onClick={() => toggleDate(d.date)}>
+                <span>{d.label}</span><b>{d.dayNum}</b>
+              </button>
+            )
+          })}
         </div>
+        {page.maxDeliveries > 1 && page.days.some(d => d.available) && (
+          <p className="op-note">
+            {chosen.length > 1
+              ? `${chosen.length} entregas: ${chosen.map(d => d.long).join(', ').replace(/, ([^,]*)$/, ' y $1')}. Te llega lo mismo en cada una.`
+              : `${page.voice === 'tu' ? 'Puedes' : 'Podés'} elegir varios días: te llega lo mismo en cada entrega.`}
+          </p>
+        )}
         {!page.days.some(d => d.available) && <p className="op-note">Por ahora no hay días de entrega disponibles. {page.voice === 'tu' ? 'Escríbenos' : 'Escribinos'} por WhatsApp.</p>}
       </section>
+
+      {page.zones.length > 0 && (
+        <section className="op-sec">
+          <h2>Zona</h2>
+          <div className="op-chips">
+            {page.zones.map(z => (
+              <button key={z} type="button" aria-pressed={zone === z} className={`op-chip${zone === z ? ' is-on' : ''}`} onClick={() => { setZone(z); setSendError(null) }}>{z}</button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="op-sec">
         <h2>Dirección de entrega</h2>
@@ -160,7 +197,8 @@ export default function OrderPage() {
       )}
 
       <div className="op-bar">
-        <div className="op-total"><span>Total aproximado</span><b>{formatMoney(total, page.currency)}</b></div>
+        <div className="op-total"><span>{chosen.length > 1 ? 'Total aproximado por entrega' : 'Total aproximado'}</span><b>{formatMoney(total, page.currency)}</b></div>
+        {chosen.length > 1 && <p className="op-note op-sum">{chosen.length} entregas: {formatMoney(total * chosen.length, page.currency)} en total</p>}
         <p className="op-note">El negocio te confirma el total por WhatsApp.</p>
         {sendError && <p className="op-err" role="alert">{sendError}</p>}
         <button type="button" className="op-send" disabled={!!missing || busy} onClick={send}>{busy ? 'Enviando…' : missing || 'Enviar por WhatsApp'}</button>
@@ -181,7 +219,7 @@ function Shell({ children, color = '#1B412F', textColor = '#FFFFFF' }: { childre
 const CSS = `
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);}
-  .op{min-height:100dvh;padding:0 0 170px;}
+  .op{min-height:100dvh;padding:0 0 170px;background:var(--s-salvia);}
   .op-wrap{max-width:520px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
   .op-msg{padding:48px 8px;text-align:center;color:var(--s-tinta-2);font-size:14px;line-height:1.5;}
   .op-head{background:var(--op-color);color:var(--op-text);border-radius:16px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:6px;}
@@ -203,6 +241,7 @@ const CSS = `
   .op-qty button:disabled{opacity:.35;cursor:default;}
   .op-qty .op-plus{background:var(--s-pino);border-color:var(--s-pino);color:#fff;}
   .op-off{font-size:12px;color:var(--s-tinta-2);}
+  .op-sum{text-align:right;margin-top:-4px;font-variant-numeric:tabular-nums;}
   .op-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;}
   .op-day{border:1.5px solid var(--s-linea);background:var(--s-blanco);border-radius:10px;padding:8px 0;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--s-tinta);}
   .op-day span{font-size:11px;color:var(--s-tinta-2);}
