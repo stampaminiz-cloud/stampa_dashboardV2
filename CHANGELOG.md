@@ -2,6 +2,13 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.6.1 (por salir) — Ajustes de la landing
+
+**Arreglos**
+- Los botones verdes y naranjas de la landing y de Empresas mostraban el texto en negro ("Probar gratis", "Crear mi tarjeta gratis", "Empezar gratis"): una regla general de los links les ganaba. Ahora las reglas base no le ganan a ninguna pieza.
+- Sin selector Argentina / España: los precios salen del país de la IP, como antes.
+- Sin el STAMPA grande al final del pie de página.
+
 ## 1.6.0 (por salir) — Pedidos, landing nueva y Empresas
 
 **Landing nueva** (components/landing2)
