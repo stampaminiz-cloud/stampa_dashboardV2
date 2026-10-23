@@ -2,6 +2,12 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.6.2 (por salir) — Landing en el celular
+
+**Arreglos**
+- Negocios que lo usan: en el celular las tarjetas se superponían y la frase de Surge no entraba. Ahora se deslizan de costado, una por vez, sin la tarjetita encima de la foto.
+- Lo que hace tu tarjeta sola: en el celular las pestañas se partían en dos renglones y la barra del tiempo quedaba corrida. Ahora son tres iguales en una fila ("Avisos", "Cercanía", "Pedidos") con la barra abajo, y en Pedidos primero va el texto y después el celular.
+
 ## 1.6.1 (por salir) — Ajustes de la landing
 
 **Arreglos**

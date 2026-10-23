@@ -74,8 +74,8 @@ export function CardAlone() {
       <div className="l2-so-head">
         <div><p className="l2-kicker">Lo que hace tu tarjeta sola</p><h2 className="l2-h2">Vos atendés. <span className="l2-gris">La tarjeta trae a la gente.</span></h2></div>
         <div className="l2-so-tabs" role="tablist">
-          {([['avisos', 'avisos', 'Avisos automáticos'], ['cerca', 'sucursales', 'Cercanía'], ['pedidos', 'pedidos', 'Pedidos']] as [Tab, IconName, string][]).map(([t, ic, l]) =>
-            <button key={t} role="tab" aria-selected={tab === t} onClick={() => pick(t)}><Icon name={ic} size={16} />{l}</button>)}
+          {([['avisos', 'avisos', 'Avisos automáticos', 'Avisos'], ['cerca', 'sucursales', 'Cercanía', 'Cercanía'], ['pedidos', 'pedidos', 'Pedidos', 'Pedidos']] as [Tab, IconName, string, string][]).map(([t, ic, l, short]) =>
+            <button key={t} role="tab" aria-selected={tab === t} aria-label={l} onClick={() => pick(t)}><Icon name={ic} size={16} /><span className="l2-tab-l">{l}</span><span className="l2-tab-s">{short}</span></button>)}
           <span className="l2-so-bar"><i ref={barRef} /></span>
         </div>
       </div>
