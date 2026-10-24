@@ -1357,7 +1357,11 @@ export default function DashboardPage() {
       case 'orders': return <OrdersTab businessId={businessId} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)}
           businessName={business?.name || 'Tu negocio'}
           cardColor={(cards.find((c: any) => c.isActive) as any)?.color} cardText={(cards.find((c: any) => c.isActive) as any)?.textColor || undefined}
-          onOpenSettings={() => { setActive('settings'); localStorage.setItem('stampa_active_tab', 'settings') }} />
+          onOpenSettings={() => {
+            setActive('settings'); localStorage.setItem('stampa_active_tab', 'settings')
+            // Lleva directo a "WhatsApp en la tarjeta" cuando Configuración termina de cargar
+            let n = 0; const go = () => { const el = document.getElementById('wa-number'); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); (el as HTMLInputElement).focus({ preventScroll: true }) } else if (n++ < 20) setTimeout(go, 150) }; setTimeout(go, 50)
+          }} />
           case 'notifications': return <NotificationsTab
           businessId={businessId}
           cards={cards}

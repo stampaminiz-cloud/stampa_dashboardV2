@@ -136,17 +136,18 @@ export function OrdersTab({ businessId, isManager = false, onChoosePlan, onOpenS
   return (
     <div className="od-content">
       <style>{CSS}</style>
+      {!data.hasWhatsapp && (
+        <div className="od-off" role="status">
+          <Icon name="info" size={16} />
+          <span>Tu página de pedido todavía no está en la tarjeta.{isManager ? ' Pedile al dueño que cargue el WhatsApp y marque un botón como "Con pedido".' : ''}</span>
+          {!isManager && <button type="button" onClick={onOpenSettings}>Activarla</button>}
+        </div>
+      )}
+
       <div className="s-tabs od-tabs" role="tablist">
         <button type="button" role="tab" aria-selected={view === 'page'} className="s-tab" onClick={() => setView('page')}>Página de pedido</button>
         <button type="button" role="tab" aria-selected={view === 'orders'} className="s-tab" onClick={() => { setView('orders'); loadOrders() }}>Pedidos recibidos{pending ? ` · ${pending}` : ''}</button>
       </div>
-
-      {!data.hasWhatsapp && (
-        <div className="s-notice s-notice--warn">
-          <span>Para que tus clientes puedan pedir, cargá tu WhatsApp y marcá un botón como "Con pedido".</span>
-          {!isManager && <button type="button" className="s-btn s-btn--text s-btn--sm" onClick={onOpenSettings}>Ir a Configuración</button>}
-        </div>
-      )}
 
       {view === 'page' ? (
         <div className="od-cols">
@@ -269,6 +270,11 @@ export function OrdersTab({ businessId, isManager = false, onChoosePlan, onOpenS
 const CSS = `
   .od-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
   .od-tabs{align-self:flex-start;}
+  .od-off{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--s-pino);color:#fff;border-radius:12px;padding:10px 14px;font-size:var(--s-t-sm);line-height:1.4;}
+  .od-off svg{color:#E7C46A;flex-shrink:0;}
+  .od-off span{flex:1;min-width:200px;}
+  .od-off button{background:#fff;color:var(--s-pino);border:0;border-radius:8px;padding:6px 12px;font:inherit;font-weight:500;cursor:pointer;}
+  .od-off button:hover{background:#EDEFE8;}
   .od-prods{display:flex;flex-direction:column;gap:10px;}
   .od-zones{display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex:1;min-width:0;}
   .od-zone{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--s-linea);border-radius:999px;padding:4px 6px 4px 11px;font-size:12.5px;background:var(--s-salvia);}
