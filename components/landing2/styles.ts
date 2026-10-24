@@ -202,6 +202,15 @@ export const CSS = `
 .l2-so-tabs button[aria-selected=true]{background:#fff;color:var(--l2-pino)}
 .l2-so-bar{position:absolute;left:18px;right:18px;bottom:-10px;height:2px;background:rgba(255,255,255,.12);border-radius:2px;overflow:hidden}
 .l2-so-bar i{display:block;height:100%;width:0;background:var(--l2-mostaza)}
+.l2-tab-s{display:none}
+@media(max-width:700px){
+  .l2-so-head{margin-bottom:26px}
+  .l2-so-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;border-radius:16px}
+  .l2-so-tabs button{flex-direction:column;gap:4px;padding:10px 4px;border-radius:12px;font-size:13px;justify-content:center}
+  .l2-tab-l{display:none}.l2-tab-s{display:inline}
+  .l2-so-bar{left:8px;right:8px}
+  .l2-order-phone{order:2;width:min(290px,100%)}
+}
 .l2-so-in{animation:l2in .5s ease}
 @keyframes l2in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .l2-so-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,5vw,64px);align-items:center}
@@ -281,7 +290,20 @@ export const CSS = `
 .l2-dots{display:flex;gap:6px}
 .l2-dots i{height:7px;width:7px;border-radius:4px;background:#C9CBC4;transition:width .3s,background .3s}
 .l2-dots i.on{width:22px;background:var(--l2-pino)}
-@media(max-width:700px){.l2-vit-card{grid-template-columns:1fr;height:auto}.l2-vit-photo{height:230px}.l2-vit-stage{height:600px}.l2-vit-text h3{font-size:24px}.l2-vit-pass{--pw:118px!important;right:10px;bottom:10px}.l2-logo-only{justify-content:flex-start;align-items:center;padding:20px}.l2-logo-only img{max-width:45%;max-height:60%}}
+@media(max-width:700px){
+  .l2-vit-stage{height:auto;display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:8px -18px 0;padding:0 18px 6px;scrollbar-width:none}
+  .l2-vit-stage::-webkit-scrollbar{display:none}
+  .l2-vit{position:relative;left:auto;top:auto;flex:0 0 86%;width:auto!important;transform:none!important;opacity:1!important;pointer-events:auto!important;scroll-snap-align:center}
+  .l2-vit-card{grid-template-columns:1fr;height:100%}
+  .l2-vit-photo{height:190px}
+  .l2-vit-pass{display:none}
+  .l2-vit-text{padding:20px}
+  .l2-vit-text h3{font-size:24px}
+  .l2-vit-text blockquote,.l2-vit-text p{font-size:14px}
+  .l2-logo-only{align-items:center;padding:24px}
+  .l2-logo-only img{max-width:60%;max-height:70%}
+  .l2-vit-ctrl{display:none}
+}
 .l2-logos-k{text-align:center;font-size:13px;color:var(--l2-t3);margin-top:36px}
 .l2-logos{display:flex;gap:14px;overflow:hidden;padding:14px 0 4px;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
 .l2-track{display:flex;gap:14px;animation:l2mq 30s linear infinite;flex-shrink:0}
