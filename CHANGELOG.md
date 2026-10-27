@@ -8,21 +8,21 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
 - Next.js 16.4.3: corrige dos fallas críticas y una alta publicadas para 16.3 (no usábamos las funciones afectadas, pero queda al día). `npm audit` sin avisos.
 - Encabezados de seguridad en todo el sitio: el panel no se puede meter dentro de otra página (X-Frame-Options y frame-ancestors), el navegador no adivina tipos de archivo, no se piden cámara, micrófono ni ubicación, y ya no dice que está hecho con Next.js.
 
-## 1.6.2 (por salir) — Landing en el celular y aviso de Pedidos
+## 1.6.2 (24/10/2026) — Landing en el celular y aviso de Pedidos
 
 **Arreglos**
 - Negocios que lo usan: en el celular las tarjetas se superponían y la frase de Surge no entraba. Ahora se deslizan de costado, una por vez, sin la tarjetita encima de la foto.
 - Lo que hace tu tarjeta sola: en el celular las pestañas se partían en dos renglones y la barra del tiempo quedaba corrida. Ahora son tres iguales en una fila ("Avisos", "Cercanía", "Pedidos") con la barra abajo, y en Pedidos primero va el texto y después el celular.
 - Panel, Pedidos: el aviso amarillo con el link "Ir a Configuración" pasó a ser una franja arriba de las pestañas ("Tu página de pedido todavía no está en la tarjeta") con el botón "Activarla", que lleva directo al número de WhatsApp en Configuración.
 
-## 1.6.1 (por salir) — Ajustes de la landing
+## 1.6.1 (22/10/2026) — Ajustes de la landing
 
 **Arreglos**
 - Los botones verdes y naranjas de la landing y de Empresas mostraban el texto en negro ("Probar gratis", "Crear mi tarjeta gratis", "Empezar gratis"): una regla general de los links les ganaba. Ahora las reglas base no le ganan a ninguna pieza.
 - Sin selector Argentina / España: los precios salen del país de la IP, como antes.
 - Sin el STAMPA grande al final del pie de página.
 
-## 1.6.0 (por salir) — Pedidos, landing nueva y Empresas
+## 1.6.0 (22/10/2026) — Pedidos, landing nueva y Empresas
 
 **Landing nueva** (components/landing2)
 - Una sola hoja con marco, menú en píldora y el mismo sistema en todas las secciones: títulos en dos tonos, etiqueta chica en brasa y tarjetas como las del Wallet de hoy, en los tres modelos (sellos, puntos y membresía).
@@ -58,7 +58,7 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
 - El selector de vistas de Pedidos es como el de Analítica, y todos los desplegables tienen la flecha con su margen.
 - Vista previa de WhatsApp: los links del dorso dicen "Tocá para…" y el saludo lleva el nombre del negocio.
 
-## 1.5.0 (por salir) — WhatsApp en la tarjeta
+## 1.5.0 (21/10/2026) — WhatsApp en la tarjeta
 
 **Nuevo**
 - Configuración → WhatsApp en la tarjeta: número, hasta 2 botones sugeridos según el rubro (con el texto editable) y la línea del frente con vista previa. Todos los planes.
