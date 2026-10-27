@@ -2,6 +2,12 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.6.3 (por salir) — Seguridad
+
+**Arreglos**
+- Next.js 16.4.3: corrige dos fallas críticas y una alta publicadas para 16.3 (no usábamos las funciones afectadas, pero queda al día). `npm audit` sin avisos.
+- Encabezados de seguridad en todo el sitio: el panel no se puede meter dentro de otra página (X-Frame-Options y frame-ancestors), el navegador no adivina tipos de archivo, no se piden cámara, micrófono ni ubicación, y ya no dice que está hecho con Next.js.
+
 ## 1.6.2 (por salir) — Landing en el celular y aviso de Pedidos
 
 **Arreglos**
