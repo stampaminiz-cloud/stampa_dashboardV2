@@ -2,7 +2,7 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.7.0 (por salir) — Sesiones
+## 1.7.0 (29/10/2026) — Sesiones
 
 **Nuevo**
 - Configuración → Seguridad: "Cerrar sesión en todos los dispositivos", con confirmación. Cierra el panel en todas las compus y celulares (también en este) y la app de escaneo de quien entró con email; la de PIN sigue.
