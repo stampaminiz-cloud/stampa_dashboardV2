@@ -4,7 +4,7 @@ import { Switch } from '@/components/ui/Switch'
 import { WhatsappSettings } from './WhatsappSettings'
 import React, { useState, useEffect } from 'react'
 import type { BillingStatus } from '@/lib/api'
-import { apiUpdateBusiness, apiChangePassword, apiUpdateProfile, apiExportCustomers, apiRequestDeletion, apiCancelDeletion, apiChangeEmail } from '@/lib/api'
+import { apiUpdateBusiness, apiChangePassword, apiLogoutAll, clearToken, apiUpdateProfile, apiExportCustomers, apiRequestDeletion, apiCancelDeletion, apiChangeEmail } from '@/lib/api'
 import { useLang } from '@/data/i18n'
 import { InfoTooltip } from './InfoTooltip'
 import { NumberStepper } from '@/components/ui/NumberStepper'
@@ -266,11 +266,55 @@ function PasswordSection() {
         <input type="password" className="st-pw-input" value={confirm} onChange={e => setConfirm(e.target.value)} autoComplete="new-password" />
       </FieldRow>
       {error && <div className="st-pw-error">{error}</div>}
-      {success && <div className="st-pw-success">Contraseña actualizada correctamente.</div>}
+      {success && <div className="st-pw-success">Contraseña actualizada. Se cerró la sesión en los otros dispositivos.</div>}
       <button type="submit" className="s-btn s-btn--primary s-btn--sm" style={{ marginTop: 10 }} disabled={saving}>
         {saving ? 'Guardando...' : 'Cambiar contraseña'}
       </button>
+      <div className="st-timezone-note">Al cambiarla se cierra la sesión en los otros dispositivos.</div>
     </form>
+  )
+}
+
+// Sesiones abiertas: corta el panel en todas las compus y celulares (también
+// este) y la app de escaneo de quien entró con email. La de PIN sigue.
+function SessionsSection() {
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleLogoutAll() {
+    setBusy(true)
+    setError('')
+    try {
+      await apiLogoutAll()
+      clearToken()
+      window.location.href = '/login'
+    } catch (err: any) {
+      setError(err.error || 'No pudimos cerrar las sesiones. Probá de nuevo.')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="st-sess">
+      <div className="st-sess-row">
+        <div className="st-sess-text">
+          <div className="st-sess-title">Sesiones abiertas</div>
+          <div className="st-sess-desc">Si perdiste una compu o un celular, o alguien más entró con tu cuenta, cerrá la sesión en todos lados. Las apps de escaneo con PIN siguen andando.</div>
+        </div>
+        {!confirming && <button type="button" className="s-btn s-btn--secondary s-btn--sm" onClick={() => setConfirming(true)}>Cerrar sesión en todos los dispositivos</button>}
+      </div>
+      {confirming && (
+        <div className="st-delete-confirm">
+          <p>Se cierra el panel en todas las compus y celulares, también en este, y la app de escaneo de los que entraron con email. Para volver a entrar, cada uno usa su email y contraseña.</p>
+          {error && <div className="st-pw-error">{error}</div>}
+          <div className="st-delete-actions">
+            <button type="button" className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setConfirming(false); setError('') }} disabled={busy}>Cancelar</button>
+            <button type="button" className="s-btn s-btn--danger s-btn--sm" onClick={handleLogoutAll} disabled={busy}>{busy ? 'Cerrando…' : 'Cerrar todas'}</button>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -436,6 +480,11 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         .st-danger-row:last-child{border-bottom:none;padding-bottom:0;}
         .st-danger-label{font-size:12.5px;color:rgba(34,32,27,.65);}
         .st-danger-link{font-size:11.5px;color:var(--s-error);font-weight:700;background:none;border:none;cursor:pointer;}
+        .st-sess{border-top:1px solid rgba(34,32,27,.07);margin-top:16px;padding-top:14px;}
+        .st-sess-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+        .st-sess-text{flex:1;min-width:240px;}
+        .st-sess-title{font-size:13.5px;font-weight:600;color:#22201B;margin-bottom:2px;}
+        .st-sess-desc{font-size:12.5px;line-height:1.5;color:rgba(34,32,27,.65);}
         .st-delete-confirm{margin-top:12px;background:rgba(178,59,59,.08);border:1px solid rgba(178,59,59,.2);border-radius:10px;padding:14px;}
         .st-delete-confirm p{font-size:12px;color:rgba(34,32,27,.7);margin-bottom:12px;line-height:1.5;}
         .st-delete-actions{display:flex;gap:8px;}
@@ -497,6 +546,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
 
         <Section title="Seguridad" icon={<Icon name="candado" size={16} />}>
           <PasswordSection />
+          <SessionsSection />
         </Section>
 
         <Section title={t('st_rules')} icon={<Icon name="reglas" size={16} />}>
