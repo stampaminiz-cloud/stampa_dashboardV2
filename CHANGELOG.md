@@ -2,7 +2,16 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.6.3 (por salir) — Seguridad
+## 1.7.0 (por salir) — Sesiones
+
+**Nuevo**
+- Configuración → Seguridad: "Cerrar sesión en todos los dispositivos", con confirmación. Cierra el panel en todas las compus y celulares (también en este) y la app de escaneo de quien entró con email; la de PIN sigue.
+
+**Cambios**
+- La sesión dura 14 días y se renueva sola mientras se use el panel (antes duraba 30 días fijos).
+- Cambiar la contraseña cierra la sesión en los otros dispositivos, y lo dice debajo del botón.
+
+## 1.6.3 (27/10/2026) — Seguridad
 
 **Arreglos**
 - Next.js 16.4.3: corrige dos fallas críticas y una alta publicadas para 16.3 (no usábamos las funciones afectadas, pero queda al día). `npm audit` sin avisos.
