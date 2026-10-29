@@ -424,8 +424,9 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
     !isManager && { done: setup.hasScanner, title: 'Creá un empleado para la app de escaneo', body: 'Cada empleado entra con su propio PIN.', cta: 'Ir a Equipo', tab: 'users' as TabId },
     !isManager && { done: setup.scannerUsed, title: 'Activá el celular del local', body: 'Equipo → "Activar dispositivo de escaneo" y escaneá el QR con la app.', cta: 'Ir a Equipo', tab: 'users' as TabId },
     { done: setup.hasVisits, title: 'Escaneá la tarjeta de tu primer cliente', body: 'Con la app, sumale su primer sello, puntos o visita.', cta: null, tab: null },
-    !isManager && setup.hasWhatsapp !== undefined && { done: setup.hasWhatsapp, title: 'Cargá tu WhatsApp', body: 'La tarjeta de tus clientes trae un botón que abre el chat con vos.', cta: 'Ir a Configuración', tab: 'settings' as TabId },
   ].filter(Boolean) as { done: boolean; title: string; body: string; cta: string | null; tab: TabId | null }[] : []
+  // WhatsApp es opcional: se ofrece, pero no cuenta ni deja la tarjeta abierta.
+  const offerWhatsapp = !!setup && !isManager && setup.hasWhatsapp === false
   const stepsDone = STEPS.filter(s => s.done).length
   const showSetup = STEPS.length > 0 && stepsDone < STEPS.length
 
@@ -462,6 +463,16 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
                 {!step.done && step.cta && step.tab && <button className="s-btn s-btn--primary s-btn--sm" onClick={() => setActive(step.tab!)}>{step.cta}</button>}
               </div>
             ))}
+            {offerWhatsapp && (
+              <div className="ov-setup-step ov-setup-step--optional">
+                <span className="ov-setup-tag">Opcional</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="ov-setup-title">Sumá un botón de WhatsApp a la tarjeta</div>
+                  <div className="ov-setup-body">Tus clientes te escriben desde el Wallet con un toque.</div>
+                </div>
+                <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => setActive('settings')}>Configurar</button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -920,6 +931,8 @@ const CSS = `
   .ov-setup-step--done .ov-setup-check{background:var(--s-listo);border-color:var(--s-listo);}
   .ov-setup-title{font-size:13px;font-weight:600;color:var(--s-tinta);}
   .ov-setup-step--done .ov-setup-title{color:rgba(34,32,27,.45);text-decoration:line-through;}
+  .ov-setup-step--optional{background:transparent;border:1px dashed rgba(34,32,27,.16);}
+  .ov-setup-tag{font-size:10.5px;font-weight:700;letter-spacing:.02em;color:rgba(34,32,27,.55);background:rgba(34,32,27,.06);padding:3px 8px;border-radius:999px;flex-shrink:0;}
   .ov-setup-body{font-size:11.5px;color:rgba(34,32,27,.5);margin-top:2px;}
   .ov-empty-note{font-size:12px;color:rgba(34,32,27,.4);padding:16px 0;text-align:center;}
   .ov-activity-text{flex:1;font-size:12px;color:rgba(34,32,27,.65);}

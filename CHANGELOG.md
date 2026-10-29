@@ -10,6 +10,8 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
 **Cambios**
 - La sesión dura 14 días y se renueva sola mientras se use el panel (antes duraba 30 días fijos).
 - Cambiar la contraseña cierra la sesión en los otros dispositivos, y lo dice debajo del botón.
+- Primeros pasos: cargar el WhatsApp pasa a ser opcional. No cuenta en el "x de 4" y la tarjeta desaparece al completar los 4 pasos aunque no lo carguen.
+- Configuración → WhatsApp: el desplegable de botones muestra solo los del rubro del negocio (feedback de Surge).
 
 ## 1.6.3 (27/10/2026) — Seguridad
 
