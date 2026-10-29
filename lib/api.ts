@@ -83,6 +83,11 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   // exitosos) no tiene body, y llamar res.json() directo ahí explota con
   // "Unexpected end of JSON input". Mismo cuidado para respuestas de error
   // que a veces tampoco traen body.
+  // Sesión renovada: el backend manda un token nuevo cuando el que tenemos
+  // tiene más de un día (dura 14 y así no vence mientras se use el panel).
+  const renewed = res.headers.get('X-Stampa-Token')
+  if (renewed && !noAuth) setToken(renewed)
+
   const text = await res.text()
   const data = text ? JSON.parse(text) : null
 
@@ -303,11 +308,21 @@ export async function apiAdminSetSpecialPlan(id: string, plan: string, planId: s
   return request<{ ok: boolean; mpSpecialPlan: { plan: string; planId: string } | null }>(`/api/admin/businesses/${id}/special-plan`, { method: 'PATCH', body: { plan, planId } })
 }
 
+// Cambiar la contraseña cierra las otras sesiones; este dispositivo sigue
+// adentro con el token nuevo que devuelve el backend.
 export async function apiChangePassword(currentPassword: string, newPassword: string) {
-  return request<{ success: boolean; message: string }>('/api/auth/change-password', {
+  const r = await request<{ success: boolean; message: string; token?: string }>('/api/auth/change-password', {
     method: 'PATCH',
     body: { currentPassword, newPassword },
   })
+  if (r.token) setToken(r.token)
+  return r
+}
+
+// "Cerrar sesión en todos los dispositivos": corta todas las sesiones de la
+// cuenta, incluida esta (la app de escaneo con PIN sigue).
+export async function apiLogoutAll() {
+  return request<{ success: boolean }>('/api/auth/logout-all', { method: 'POST', body: {} })
 }
 
 // Vista previa de Diseño: las imágenes reales del pase (Apple y Google) con
