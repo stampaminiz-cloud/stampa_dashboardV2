@@ -9,6 +9,7 @@ import { useLang } from '@/data/i18n'
 import { InfoTooltip } from './InfoTooltip'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { ProgramRules, type RulesCard, type BirthdayRule } from './ProgramRules'
+import { SumarConfig } from './SumarConfig'
 import type { Location } from '@/lib/location'
 
 interface BusinessAlerts { newCustomer?: boolean; nearPrize: boolean; weeklyDigest: boolean; suspicious?: boolean }
@@ -579,6 +580,10 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           </div>
           </div>
           <div className="st-rules-foot">Los avisos automáticos de estas reglas no cuentan para tus envíos del mes.</div>
+        </Section>
+
+        <Section title="Cómo suman tus clientes" icon={<Icon name="reglas" size={16} />}>
+          <SumarConfig businessId={businessId} cards={cards as any} onCardsChanged={onCardsChanged} onChoosePlan={onChoosePlan} isManager={isManager} />
         </Section>
 
         <Section title={t('st_alerts')} icon={<Icon name="mail" size={16} />}>

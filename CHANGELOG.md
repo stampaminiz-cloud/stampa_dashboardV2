@@ -2,7 +2,24 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.7.0 (por salir) — Sesiones
+## 1.8.0 (por salir) — Escáner web
+
+**Nuevo**
+- `/escaner`: la app de escaneo en el navegador, para iPhone, Android y la compu de la caja. Tiene todo lo de la app (vincular el celular, PIN, dueño o administrador con email, sucursales, bienvenida, ayuda, cámara con sonido, buscar, sellos, puntos por visita y por monto, canjes, membresía, cumpleaños, días dobles, aviso de doble escaneo, deshacer) y suma:
+  - pestaña Hoy, con lo que sumó cada empleado y Deshacer hasta 10 minutos;
+  - búsqueda por los últimos dígitos del teléfono;
+  - aviso de la regla de frecuencia del local, con "Sumar igual" si el dueño lo permite.
+- Equipo → Escáner web: mandar el link por WhatsApp, copiarlo o mostrarlo como QR (un solo uso, 24 h), y la lista de celulares vinculados con "Quitar".
+- Se puede agregar a la pantalla de inicio (`public/escaner.webmanifest`). No se indexa.
+- Configuración → "Cómo suman tus clientes", por tarjeta: quién suma, cada cuánto (máximo por día, horas entre una y otra, si el empleado puede saltear la regla) y cómo se entrega el premio. Lo que todavía no existe (automático, pago conectado, premio sin personas) aparece como "Próximamente". Starter: solo "1 por día" (`customLimits` en `data/plans.ts`).
+- Elegí tu plan: tabla desplegable "Cómo suman tus clientes en cada plan".
+- Ayuda: escáner web, Deshacer desde Hoy, búsqueda por teléfono y la regla de cada cuánto suma.
+
+**Cambios**
+- La cámara se permite solo en `/escaner` (Permissions-Policy); el resto del sitio la sigue bloqueando.
+- Lector de QR: `qr-scanner` 1.4.2 (usa el lector del navegador donde existe y el propio en Safari de iPhone).
+
+## 1.7.0 (29/10/2026) — Sesiones
 
 **Nuevo**
 - Configuración → Seguridad: "Cerrar sesión en todos los dispositivos", con confirmación. Cierra el panel en todas las compus y celulares (también en este) y la app de escaneo de quien entró con email; la de PIN sigue.

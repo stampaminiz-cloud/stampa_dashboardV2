@@ -25,6 +25,7 @@ export interface PlanLimits {
   whiteLabel:       boolean       // remove Stampa branding
   formBranding:     boolean       // logo + color on signup form
   orders:           boolean       // Pedidos: página de pedido con productos y entrega (Pro)
+  customLimits:     boolean       // reglas de frecuencia a medida (varias por día, horas entre visitas); Starter solo "1 por día". Espejo de config/planLimits.js
   autoNotices:      boolean       // avisos automáticos (bienvenida, a un sello, te extrañamos, reseña). Espejo de config/planLimits.js
 }
 
@@ -48,6 +49,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     formBranding:    false,
     autoNotices:     false,
     orders:          false,
+    customLimits:    false,
   },
   Growth: {
     maxCustomers:    500,
@@ -68,6 +70,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     formBranding:    true,
     autoNotices:     false,
     orders:          false,
+    customLimits:    true,
   },
   Pro: {
     maxCustomers:    0,
@@ -88,6 +91,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     formBranding:    true,
     autoNotices:     true,
     orders:          true,
+    customLimits:    true,
   },
   Enterprise: {
     maxCustomers:    0,
@@ -108,6 +112,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     formBranding:    true,
     autoNotices:     true,
     orders:          true,
+    customLimits:    true,
   },
 }
 
@@ -131,6 +136,7 @@ export const FEATURE_LABELS: Record<keyof PlanLimits, string> = {
   formBranding:    'Logo y color en el formulario de registro',
   autoNotices:     'Avisos automáticos',
   orders:          'Pedidos',
+  customLimits:    'Reglas a medida de cada cuánto suman',
 }
 
 // ─── Plan context ─────────────────────────────────────────────────────────────
