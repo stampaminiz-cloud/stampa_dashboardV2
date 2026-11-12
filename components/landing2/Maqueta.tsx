@@ -77,8 +77,6 @@ function build(small: boolean) {
 
 export function Maqueta() {
   const stageRef = useRef<HTMLDivElement>(null)
-  const [count, setCount] = useState(4)
-  const [today, setToday] = useState(1248)
   const [chip, setChip] = useState<{ k: number; ev: string; x: number; y: number; n: number } | null>(null)
 
   useEffect(() => {
@@ -127,13 +125,13 @@ export function Maqueta() {
       }
       anim = requestAnimationFrame(f)
     }
-    const present = (k: number, ev: string) => { cur = k; lastEv = ev; setToday(t => t + 1 + Math.floor(Math.random() * 3)); focus(k, ev) }
+    const present = (k: number, ev: string) => { cur = k; lastEv = ev; focus(k, ev) }
     const step = () => {
-      if (joined < BIZ.length) { const k = joined++; active.add(k); paint(k, true); setCount(active.size); present(k, 'Se sumó a Stampa'); return }
+      if (joined < BIZ.length) { const k = joined++; active.add(k); paint(k, true); present(k, 'Se sumó a Stampa'); return }
       if (round++ < 6) { const list = [...active]; const k = list[Math.floor(Math.random() * list.length)]; present(k, `${WHO[k % WHO.length]} · ${EVENT[BIZ[k].model]}`); return }
       round = 0
       for (let k = 4; k < BIZ.length; k++) { active.delete(k); paint(k, false) }
-      joined = 4; setCount(4)
+      joined = 4;
     }
     ;[0, 1, 2, 3].forEach(k => { active.add(k); paint(k, true) })
     present(0, `Lucía · ${EVENT.sellos}`)
@@ -156,8 +154,7 @@ export function Maqueta() {
       <div className="l2-maq-stage" ref={stageRef} />
       <div className="l2-maq-fade" />
       <div className="l2-maq-top">
-        <span className="l2-pill"><b>{count}</b> negocios del barrio con Stampa</span>
-        <span className="l2-pill"><Icon name="analitica" size={16} />Hoy en el barrio: <b key={today} className="l2-bump">{today.toLocaleString('es-AR')}</b> visitas sumadas</span>
+        <span className="l2-pill">Ejemplo: así se suma un barrio</span>
       </div>
       {b && chip && (
         <div key={chip.n} className="l2-chip" style={{ left: chip.x, top: chip.y }}>

@@ -1,15 +1,15 @@
 'use client'
-// Landing (rediseño 1.6.0): una sola hoja con marco, menú en píldora y
-// secciones con el mismo sistema (títulos en dos tonos, etiqueta chica en
-// brasa). Precios reales por país (lib/pricing). Mockup aprobado en
-// octubre de 2026; Empresas vive en app/empresas.
-import { useEffect, useState } from 'react'
+// Landing (rediseño 1.6.0, ajustada en 1.8.0): una sola hoja con marco, menú
+// en píldora y títulos en dos tonos, sin etiquetas sobre los títulos. Hero con
+// el producto al lado, sin secciones que entran con fundido. Precios reales
+// por país (lib/pricing). Empresas vive en app/empresas.
+import { useState } from 'react'
 import { Icon } from '@/components/ui/Icon'
 import { annualSavingsPct, formatPrice, taxSuffix, usePlanPrices, type PlanSlug } from '@/lib/pricing'
 import type { Market } from '@/lib/market'
 import { Maqueta } from './Maqueta'
-import { Phrase, HowItWorks, Bento } from './Sections'
-import { CardAlone, Showcase, TryIt, Faq } from './Sections2'
+import { HeroDemo, Bento } from './Sections'
+import { CardAlone, Caso, TryIt, Faq } from './Sections2'
 import { WHATSAPP_SALES, WHATSAPP_ENTERPRISE, INSTAGRAM, SCANNER_IOS_URL } from './data'
 import { CSS } from './styles'
 
@@ -28,13 +28,7 @@ export default function Landing({ market = 'AR' }: { market?: Market }) {
   const prices = usePlanPrices(market)
   const savings = (['starter', 'growth', 'pro'] as PlanSlug[]).map(k => annualSavingsPct(prices[k])).filter((x): x is number => x != null)
 
-  // Aparición suave de cada sección al entrar en pantalla
-  useEffect(() => {
-    const els = document.querySelectorAll('.l2-reveal')
-    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target) } }), { threshold: .12 })
-    els.forEach(el => io.observe(el))
-    return () => io.disconnect()
-  }, [])
+  const [sel, setSel] = useState<string>('pro')   // celular: un plan por vez
 
   return (
     <div className="l2">
@@ -42,41 +36,42 @@ export default function Landing({ market = 'AR' }: { market?: Market }) {
       <div className="l2-frame">
         <nav className="l2-nav" aria-label="Principal">
           <a href="#" className="l2-brand"><img src="/assets/wordmark.png" alt="Stampa" /></a>
-          <div className="l2-links"><a href="#como">Cómo funciona</a><a href="#pedidos">Avisos y pedidos</a><a href="#negocios">Negocios</a><a href="#precios">Precios</a><a href="/empresas">Empresas</a></div>
+          <div className="l2-links"><a href="#probala">Tu tarjeta</a><a href="#pedidos">Avisos y pedidos</a><a href="#precios">Precios</a><a href="/empresas">Empresas</a></div>
           <div className="l2-nav-r"><a className="l2-btn l2-btn-ghost l2-btn-sm l2-hide-m" href="/login">Ingresar</a><a className="l2-btn l2-btn-pino l2-btn-sm" href="/register">Probar gratis</a>
             <button className="l2-burger" aria-label="Menú" aria-expanded={menu} onClick={() => setMenu(v => !v)}><Icon name={menu ? 'cerrar' : 'menu'} size={20} /></button></div>
         </nav>
-        {menu && <div className="l2-mmenu" onClick={() => setMenu(false)}><a href="#como">Cómo funciona</a><a href="#pedidos">Avisos y pedidos</a><a href="#negocios">Negocios</a><a href="#precios">Precios</a><a href="/empresas">Empresas</a><a href="/login">Ingresar</a></div>}
+        {menu && <div className="l2-mmenu" onClick={() => setMenu(false)}><a href="#probala">Tu tarjeta</a><a href="#pedidos">Avisos y pedidos</a><a href="#precios">Precios</a><a href="/empresas">Empresas</a><a href="/login">Ingresar</a></div>}
 
         <header className="l2-hero">
-          <p className="l2-kicker" style={{ color: 'var(--l2-pino)' }}>Tarjetas de fidelidad en Apple y Google Wallet</p>
-          <h1 className="l2-h1">Que vuelvan es<br /><span className="l2-gris">el mejor negocio.</span></h1>
-          <p className="l2-lead">Tus clientes guardan tu tarjeta en el Wallet sin bajar ninguna app. Suman en el mostrador, te escriben por WhatsApp y te hacen pedidos desde ahí.</p>
-          <div className="l2-ctas"><a className="l2-btn l2-btn-brasa" href="/register">Crear mi tarjeta gratis</a><a className="l2-btn l2-btn-ghost" href="#como">Ver cómo funciona <Icon name="flechaAbajo" size={16} /></a></div>
+          <div>
+            <h1 className="l2-h1">Que vuelvan es <span className="l2-gris">el mejor negocio.</span></h1>
+            <p className="l2-lead">Tus clientes guardan tu tarjeta en el Wallet sin bajar ninguna app. Suman en el mostrador, te escriben por WhatsApp y te hacen pedidos desde ahí.</p>
+            <div className="l2-ctas"><a className="l2-btn l2-btn-brasa" href="/register">Crear mi tarjeta gratis</a><a className="l2-link" href="#probala">Elegí tu rubro y mirá tu tarjeta</a></div>
+          </div>
+          <HeroDemo />
         </header>
         <Maqueta />
 
-        <Phrase />
-        <HowItWorks />
+        <TryIt />
         <Bento />
         <CardAlone />
-        <Showcase />
-        <TryIt />
+        <Caso />
 
-        <section className="l2-sec l2-reveal" id="precios">
+        <section className="l2-sec" id="precios">
           <div className="l2-price-top">
-            <div><p className="l2-kicker">Precios</p><h2 className="l2-h2">Empezá gratis. <span className="l2-gris">Crecé cuando quieras.</span></h2></div>
+            <h2 className="l2-h2">14 días gratis. <span className="l2-gris">Después elegís plan.</span></h2>
             <div className="l2-seg-wrap">
               <div className="l2-seg" role="group" aria-label="Período"><button aria-pressed={period === 'monthly'} onClick={() => setPeriod('monthly')}>Mensual</button><button aria-pressed={period === 'annual'} onClick={() => setPeriod('annual')}>Anual{savings.length ? ` · -${Math.min(...savings)}%` : ''}</button></div>
             </div>
           </div>
+          <div className="l2-pick" role="group" aria-label="Plan">{PLANS.map(p => <button key={p.slug} aria-pressed={sel === p.slug} onClick={() => setSel(p.slug)}>{p.name}</button>)}</div>
           <div className="l2-plans">
             {PLANS.map(p => {
               const pr = p.slug === 'enterprise' ? null : prices[p.slug as PlanSlug]
               const monthlyEq = pr?.annual ? (pr.currency === 'EUR' ? Math.round((pr.annual / 12) * 100) / 100 : Math.round(pr.annual / 12)) : null
               const amount = pr ? formatPrice(period === 'monthly' ? pr.monthly : monthlyEq, pr.currency) : null
               return (
-                <div key={p.slug} className={`l2-plan${p.highlight ? ' hl' : ''}`}>
+                <div key={p.slug} className={`l2-plan${p.highlight ? ' hl' : ''}${sel === p.slug ? ' sel' : ''}`}>
                   <div><h3>{p.name}{p.highlight && <span className="l2-badge">PEDIDOS</span>}</h3><p className="l2-desc">{p.desc}</p></div>
                   <div className="l2-amt">{amount ? <>{amount} <small>/ mes{period === 'annual' ? ', pago anual' : ''}{pr ? taxSuffix(pr) : ''}</small></> : 'Hablemos'}</div>
                   <ul>{p.news.map(x => <li key={x} className="new"><Icon name="idea" size={16} />{x}</li>)}{p.features.map(x => <li key={x}><Icon name="listo" size={16} />{x}</li>)}</ul>
@@ -92,20 +87,14 @@ export default function Landing({ market = 'AR' }: { market?: Market }) {
 
         <Faq salesHref={WHATSAPP_SALES} />
 
-        <section className="l2-close l2-reveal">
-          <h2 className="l2-h2">Tu tarjeta, lista en 15 minutos.</h2>
-          <p>14 días gratis. Sin tarjeta de crédito.</p>
-          <a className="l2-btn l2-btn-white" href="/register">Crear mi tarjeta gratis</a>
-        </section>
-
         <footer className="l2-ft">
           <div className="l2-ft-top">
             <div>
-              <p className="l2-ft-claim">Tarjetas de fidelidad en Apple y Google Wallet, para negocios que quieren que su gente vuelva.</p>
+              <p className="l2-ft-claim"><b>Tu tarjeta, lista en 15 minutos.</b> Tarjetas de fidelidad en Apple y Google Wallet, para negocios que quieren que su gente vuelva.</p>
               <a className="l2-btn l2-btn-brasa" href="/register">Crear mi tarjeta gratis</a>
             </div>
             <nav className="l2-ft-cols" aria-label="Pie de página">
-              <div><b>Producto</b><a href="#como">Cómo funciona</a><a href="#pedidos">Avisos y pedidos</a><a href="#precios">Precios</a><a href="#probala">Probá una tarjeta</a></div>
+              <div><b>Producto</b><a href="#probala">Tu tarjeta</a><a href="#pedidos">Avisos y pedidos</a><a href="#precios">Precios</a><a href="#probala">Probá una tarjeta</a></div>
               <div><b>Empresas</b><a href="/empresas">Stampa Enterprise</a><a href={WHATSAPP_ENTERPRISE} target="_blank" rel="noopener noreferrer">Hablar con ventas</a><a href="#negocios">Casos</a></div>
               <div><b>Ayuda</b><a href="/ayuda">Centro de ayuda</a><a href="#faq">Preguntas frecuentes</a><a href={WHATSAPP_SALES} target="_blank" rel="noopener noreferrer"><Icon name="whatsapp" size={16} /> WhatsApp de ventas</a><a href="mailto:hola@stampaclub.com">hola@stampaclub.com</a></div>
               <div><b>Apps</b>{SCANNER_IOS_URL && <a href={SCANNER_IOS_URL} className="l2-store" target="_blank" rel="noopener noreferrer"><Icon name="apple" size={24} /><span><small>App de escaneo en</small>App Store</span></a>}<a href={INSTAGRAM} target="_blank" rel="noopener noreferrer"><Icon name="instagram" size={16} /> Instagram</a></div>
