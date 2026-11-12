@@ -11,6 +11,9 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
   - aviso de la regla de frecuencia del local, con "Sumar igual" si el dueño lo permite.
 - Equipo → Escáner web: mandar el link por WhatsApp, copiarlo o mostrarlo como QR (un solo uso, 24 h), y la lista de celulares vinculados con "Quitar".
 - Se puede agregar a la pantalla de inicio (`public/escaner.webmanifest`). No se indexa.
+- Configuración → "Cómo suman tus clientes", por tarjeta: quién suma, cada cuánto (máximo por día, horas entre una y otra, si el empleado puede saltear la regla) y cómo se entrega el premio. Lo que todavía no existe (automático, pago conectado, premio sin personas) aparece como "Próximamente". Starter: solo "1 por día" (`customLimits` en `data/plans.ts`).
+- Elegí tu plan: tabla desplegable "Cómo suman tus clientes en cada plan".
+- Ayuda: escáner web, Deshacer desde Hoy, búsqueda por teléfono y la regla de cada cuánto suma.
 
 **Cambios**
 - La cámara se permite solo en `/escaner` (Permissions-Policy); el resto del sitio la sigue bloqueando.
