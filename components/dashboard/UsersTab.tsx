@@ -2,7 +2,7 @@
 import { Icon } from '@/components/ui/Icon'
 import React, { useState, useEffect } from 'react'
 import QRCode from 'qrcode'
-import { apiGetTeam, apiCreateTeamMember, apiUpdateTeamMember, apiDeleteTeamMember, apiResendInvite, apiTeamActivity, apiGetLocations, type TeamActivity } from '@/lib/api'
+import { apiGetTeam, apiCreateTeamMember, apiUpdateTeamMember, apiDeleteTeamMember, apiResendInvite, apiTeamActivity, apiGetLocations, apiCreateScannerLink, apiGetScannerDevices, apiRemoveScannerDevice, type TeamActivity, type ScannerDevice } from '@/lib/api'
 import type { Location } from '@/lib/location'
 import { usePlan } from '@/data/plans'
 import { SCANNER_IOS_URL } from '@/lib/scanner'
@@ -198,6 +198,114 @@ function ActivateDeviceModal({ businessId, locs, selectedId, onClose }: { busine
   )
 }
 
+// ─── Escáner web ──────────────────────────────────────────────────────────────
+// El dueño manda un link (un solo uso, 24 h) al celular del empleado; ese
+// navegador queda vinculado a la sucursal y cada empleado entra con su PIN.
+// Abajo, los celulares vinculados: quitar uno corta su sesión al instante.
+function WebScannerCard({ businessId, locs, selectedId }: { businessId: string; locs: Location[]; selectedId?: string | null }) {
+  const [locId, setLocId] = useState('')
+  const [link, setLink] = useState<{ url: string; expiresAt: string; location: string } | null>(null)
+  const [qr, setQr] = useState<string | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [devices, setDevices] = useState<ScannerDevice[] | null>(null)
+  const [showDevices, setShowDevices] = useState(false)
+  const loc = locs.find(l => l.id === locId) || locs.find(l => l.id === selectedId) || locs.find(l => l.isPrimary) || locs[0]
+
+  const loadDevices = () => apiGetScannerDevices(businessId).then(r => setDevices(r.devices)).catch(() => setDevices([]))
+  useEffect(() => { loadDevices() }, [businessId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function newLink() {
+    const r = await apiCreateScannerLink(businessId, loc?.id || null)
+    const l = { url: r.url, expiresAt: r.expiresAt, location: r.location.name }
+    setLink(l)
+    return l
+  }
+  const waText = (url: string, place: string) => `Hola 👋 Con este link usás el escáner de Stampa en ${place} desde tu celular, sin bajar ninguna app:\n${url}\n\nVale 24 horas y para un solo celular. Después entrás con tu PIN.`
+
+  async function act(kind: 'whatsapp' | 'copy' | 'qr') {
+    setBusy(kind); setMsg(null)
+    // WhatsApp: la pestaña se abre en el mismo toque (si no, el navegador la bloquea).
+    const tab = kind === 'whatsapp' ? window.open('', '_blank') : null
+    try {
+      const l = await newLink()
+      const place = locs.length >= 2 ? l.location : 'el local'
+      if (kind === 'whatsapp') {
+        const wa = `https://wa.me/?text=${encodeURIComponent(waText(l.url, place))}`
+        if (tab) tab.location.href = wa; else window.location.href = wa
+      } else if (kind === 'copy') {
+        await navigator.clipboard.writeText(l.url)
+        setMsg({ ok: true, text: 'Link copiado. Pegalo en el chat con tu empleado.' })
+      } else {
+        setQr(await QRCode.toDataURL(l.url, { width: 440, margin: 1, color: { dark: '#2B2620', light: '#FFFFFF' } }))
+      }
+    } catch (err: any) {
+      tab?.close()
+      setMsg({ ok: false, text: err?.error || 'No pudimos crear el link. Probá de nuevo.' })
+    } finally { setBusy(null) }
+  }
+
+  async function removeDevice(d: ScannerDevice) {
+    if (!window.confirm(`¿Quitar ${d.label} (${d.location})?\n\nDeja de poder escanear al instante. Para volver a usarlo, mandale un link nuevo.`)) return
+    setBusy(d.id)
+    try { await apiRemoveScannerDevice(businessId, d.id); setDevices(list => (list || []).filter(x => x.id !== d.id)) }
+    catch (err: any) { setMsg({ ok: false, text: err?.error || 'No pudimos quitar el celular.' }) }
+    finally { setBusy(null) }
+  }
+
+  const n = devices?.length ?? 0
+  return (
+    <div className="us-card us-web">
+      <div className="us-web-head">
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div className="us-web-title">Escáner web <span className="us-web-new">Nuevo</span></div>
+          <div className="us-sub" style={{ fontSize: 12 }}>Los empleados escanean desde el navegador del celular, sin bajar ninguna app. Sirve en iPhone, Android y en la compu de la caja.</div>
+        </div>
+        {locs.length >= 2 && (
+          <select className="us-input" style={{ width: 'auto', minWidth: 160 }} value={loc?.id || ''} onChange={e => { setLocId(e.target.value); setLink(null); setQr(null) }} aria-label="Sucursal del celular">
+            {locs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+        )}
+      </div>
+      <div className="us-web-btns">
+        <button className="s-btn s-btn--primary s-btn--sm" onClick={() => act('whatsapp')} disabled={!!busy}>{busy === 'whatsapp' ? 'Creando…' : 'Mandar link por WhatsApp'}</button>
+        <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => act('copy')} disabled={!!busy}>{busy === 'copy' ? 'Creando…' : 'Copiar link'}</button>
+        <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => act('qr')} disabled={!!busy}>{busy === 'qr' ? 'Creando…' : 'Mostrar QR para escanear'}</button>
+      </div>
+      <div className="us-sub" style={{ fontSize: 11.5 }}>Cada link vale 24 horas y para un solo celular. Los empleados entran con su PIN de siempre.</div>
+      {msg && <div className={msg.ok ? 'us-success' : 'us-error'} style={{ margin: 0 }}>{msg.text}</div>}
+      {link && !qr && <div className="us-web-link"><span>{link.url}</span></div>}
+      <button className="us-web-devs" onClick={() => setShowDevices(v => !v)} aria-expanded={showDevices}>
+        Celulares vinculados: <b>{devices ? n : '…'}</b>{n > 0 && <span> · {showDevices ? 'ocultar' : 'ver / quitar'}</span>}
+      </button>
+      {showDevices && n > 0 && (
+        <div className="us-web-list">
+          {devices!.map(d => (
+            <div key={d.id} className="us-web-dev">
+              <div style={{ minWidth: 0, flex: 1 }}><div className="us-name">{d.label}</div><div className="us-sub">{d.location} · vinculado {relTime(d.linkedAt)}{d.lastSeenAt ? ` · usado ${relTime(d.lastSeenAt)}` : ''}</div></div>
+              <button className="us-link us-del" onClick={() => removeDevice(d)} disabled={busy === d.id}>{busy === d.id ? 'Quitando…' : 'Quitar'}</button>
+            </div>
+          ))}
+        </div>
+      )}
+      {qr && (
+        <div className="us-overlay" onClick={() => setQr(null)}>
+          <div className="us-modal" onClick={e => e.stopPropagation()}>
+            <div className="us-modal-head"><div className="us-modal-title">Escáner web{locs.length >= 2 && link ? ` · ${link.location}` : ''}</div><button className="us-x" onClick={() => setQr(null)} aria-label="Cerrar">×</button></div>
+            <div className="us-qr"><img src={qr} width={220} height={220} alt="QR del link del escáner web" /></div>
+            <ol className="us-steps">
+              <li>El empleado abre la cámara de su celular y apunta a este código.</li>
+              <li>Toca el link que aparece: se abre el escáner en el navegador.</li>
+              <li>Entra con su PIN. Ese celular queda vinculado{locs.length >= 2 && link ? ` a ${link.location}` : ''}.</li>
+            </ol>
+            <div className="us-hint">Este QR sirve para un solo celular y vence en 24 horas. Para otro celular, generá uno nuevo.</div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Actividad de un Scanner ──────────────────────────────────────────────────
 function ActivityPanel({ businessId, user, onClose, onOpenCustomer }: { businessId: string; user: StaffUser; onClose: () => void; onOpenCustomer?: (email: string) => void }) {
   const [data, setData] = useState<TeamActivity | null>(null)
@@ -360,6 +468,8 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
           </div>
         </div>
 
+        {businessId && <WebScannerCard businessId={businessId} locs={locs} selectedId={selectedLocationId} />}
+
         {notice && <div className={notice.ok ? 'us-success' : 'us-error'} style={{ marginTop: 0 }}>{notice.text}</div>}
 
         <div className="us-card">
@@ -478,6 +588,17 @@ const CSS = `
   .us-app-btn{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:9px 14px;border-radius:9px;background:var(--s-brasa);color:#fff;border:none;cursor:pointer;text-decoration:none;font-family:var(--font-body);white-space:nowrap;}
   .us-app-btn--light{background:#F7F0E4;color:var(--s-pino);}
   .us-app-btn--soon{background:rgba(247,240,228,.1);color:rgba(247,240,228,.6);cursor:default;}
+  .us-web{padding:16px 18px;display:flex;flex-direction:column;gap:10px;}
+  .us-web-head{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;}
+  .us-web-title{font-family:var(--font-display);font-weight:700;font-size:13.5px;color:var(--s-tinta);display:flex;align-items:center;gap:8px;}
+  .us-web-new{font-size:10px;font-weight:700;color:var(--s-pino);background:#E3EDE6;border-radius:20px;padding:2px 8px;}
+  .us-web-btns{display:flex;gap:8px;flex-wrap:wrap;}
+  .us-web-link{font-size:11.5px;background:var(--s-salvia);border-radius:8px;padding:8px 10px;color:rgba(34,32,27,.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .us-web-devs{align-self:flex-start;background:none;border:none;padding:0;font-size:12px;color:var(--s-tinta);cursor:pointer;font-family:var(--font-body);}
+  .us-web-devs span{color:var(--s-pino);font-weight:600;text-decoration:underline;}
+  .us-web-list{display:flex;flex-direction:column;border:1px solid rgba(34,32,27,.07);border-radius:10px;}
+  .us-web-dev{display:flex;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid rgba(34,32,27,.05);}
+  .us-web-dev:first-child{border-top:none;}
   .us-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(34,32,27,.38);font-weight:600;display:flex;align-items:center;gap:10px;margin-top:4px;}
   .us-lbl::after{content:'';flex:1;height:1px;background:rgba(34,32,27,.1);}
   .us-card{background:#fff;border:1px solid rgba(34,32,27,.07);border-radius:14px;box-shadow:0 1px 8px rgba(34,32,27,.04);}

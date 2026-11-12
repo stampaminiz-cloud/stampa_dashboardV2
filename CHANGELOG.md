@@ -2,6 +2,20 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.8.0 (por salir) — Escáner web
+
+**Nuevo**
+- `/escaner`: la app de escaneo en el navegador, para iPhone, Android y la compu de la caja. Tiene todo lo de la app (vincular el celular, PIN, dueño o administrador con email, sucursales, bienvenida, ayuda, cámara con sonido, buscar, sellos, puntos por visita y por monto, canjes, membresía, cumpleaños, días dobles, aviso de doble escaneo, deshacer) y suma:
+  - pestaña Hoy, con lo que sumó cada empleado y Deshacer hasta 10 minutos;
+  - búsqueda por los últimos dígitos del teléfono;
+  - aviso de la regla de frecuencia del local, con "Sumar igual" si el dueño lo permite.
+- Equipo → Escáner web: mandar el link por WhatsApp, copiarlo o mostrarlo como QR (un solo uso, 24 h), y la lista de celulares vinculados con "Quitar".
+- Se puede agregar a la pantalla de inicio (`public/escaner.webmanifest`). No se indexa.
+
+**Cambios**
+- La cámara se permite solo en `/escaner` (Permissions-Policy); el resto del sitio la sigue bloqueando.
+- Lector de QR: `qr-scanner` 1.4.2 (usa el lector del navegador donde existe y el propio en Safari de iPhone).
+
 ## 1.7.0 (29/10/2026) — Sesiones
 
 **Nuevo**

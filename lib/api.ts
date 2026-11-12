@@ -662,6 +662,19 @@ export async function apiResendInvite(businessId: string, userId: string) {
   })
 }
 
+// Escáner web: link de un solo uso (24 h) para vincular un celular, y la
+// lista de celulares vinculados (se pueden quitar).
+export interface ScannerDevice { id: string; label: string; location: string; linkedAt: string; lastSeenAt: string | null }
+export async function apiCreateScannerLink(businessId: string, locationId?: string | null) {
+  return request<{ id: string; url: string; expiresAt: string; hours: number; location: { id: string; name: string } }>(`/api/businesses/${businessId}/scanner-links`, { method: 'POST', body: locationId ? { locationId } : {} })
+}
+export async function apiGetScannerDevices(businessId: string) {
+  return request<{ devices: ScannerDevice[] }>(`/api/businesses/${businessId}/scanner-links`)
+}
+export async function apiRemoveScannerDevice(businessId: string, deviceId: string) {
+  return request<{ ok: boolean }>(`/api/businesses/${businessId}/scanner-links/${deviceId}`, { method: 'DELETE' })
+}
+
 export async function apiGetInvite(token: string) {
   return request<{ fullName: string; email: string; businessName: string }>(`/api/auth/invite/${encodeURIComponent(token)}`, { noAuth: true })
 }
