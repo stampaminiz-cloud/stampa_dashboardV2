@@ -27,6 +27,7 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
 - Landing: el hero lleva el producto al lado (una tarjeta que suma sellos), sin etiquetas sobre los títulos ni secciones que entran con fundido, sin animaciones con rebote, y sin los tres pasos numerados ni los números gigantes. "Elegí tu rubro" reemplaza a la frase del rubro y a "Probala". El caso de Surge Málaga reemplaza al carrusel de negocios, con la fuente del dato (su panel). Las preguntas frecuentes pasan de 8 a 5 y el cierre naranja se une al pie.
 - Las tarjetas de la landing, de Empresas y del onboarding son copia de las reales del Wallet: sellos sin íconos, puntos con barra y membresía con escalera de niveles.
 - Ingresar y Crear cuenta: sin la mascota ni los pasos; mismo marco, colores y botones que la landing, con la frase del rubro a la derecha. El plan elegido queda en una línea.
+- Recuperar contraseña (pedir el link y elegir la nueva): mismo marco que Ingresar. La nueva contraseña lleva "Mostrar/Ocultar" y ya no pide repetirla.
 - Onboarding: sin "Tip de Stampy" ni mascota. Barra de avance arriba y la tarjeta se va armando mientras completás (nombre, rubro, programa, color y logo).
 - Celular: la página ya no se corre sola al ver los planes (el bloque "La tarjeta escribe por vos" no cambia de pestaña solo en pantallas chicas) y los planes se ven de a uno.
 

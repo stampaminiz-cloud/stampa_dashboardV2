@@ -25,6 +25,8 @@ body{margin:0}
 .au-input{width:100%;font:inherit;font-size:15px;padding:12px 14px;border:1.5px solid #E3E4DE;border-radius:12px;background:#F7F7F4;color:#1E1D1A;outline:0;transition:border-color .15s,background .15s}
 .au-input:focus{border-color:#1B412F;background:#fff}
 .au-input.bad{border-color:var(--s-error,#B23B3B)}
+.au-ok{font-size:14px;color:#1F7A4A;background:rgba(31,122,74,.08);border:1px solid rgba(31,122,74,.25);border-radius:10px;padding:12px 14px;line-height:1.5}
+.au-dev{display:block;font-size:12px;color:#8C8A81;word-break:break-all;margin-top:8px}
 .au-err{font-size:13px;color:var(--s-error,#B23B3B);line-height:1.5}
 .au-err a{color:inherit;font-weight:700}
 .au-box{font-size:14px;color:var(--s-error,#B23B3B);background:rgba(178,59,59,.07);border:1px solid rgba(178,59,59,.2);border-radius:10px;padding:10px 14px}
