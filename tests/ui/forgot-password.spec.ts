@@ -21,8 +21,8 @@ test('la página de forgot-password muestra el formulario de pedir email', async
 test('el formulario pide el email antes de dejar enviar', async ({ page }) => {
   await page.goto('/forgot-password')
   await page.getByRole('button', { name: /Enviar link/i }).click()
-  // .fp-error es la clase del mensaje de error específico — el texto
-  // "Ingresá tu email" también aparece en el subtítulo de la página, así
-  // que hace falta apuntar a la clase para no ser ambiguo.
-  await expect(page.locator('.fp-error')).toHaveText('Ingresá tu email')
+  // El aviso de error lleva role="alert" (Next tiene otro alert vacío para el
+  // lector de pantalla, por eso se filtra por texto) y "Ingresá tu email"
+  // también aparece en el subtítulo.
+  await expect(page.getByRole('alert').filter({ hasText: 'Ingresá tu email' })).toHaveText('Ingresá tu email')
 })

@@ -2,7 +2,7 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.8.0 (por salir) — Escáner web
+## 1.8.0 (13/11/2026) — Escáner web y nueva web
 
 **Nuevo**
 - `/escaner`: la app de escaneo en el navegador, para iPhone, Android y la compu de la caja. Copia la app pantalla por pantalla (mismos colores, textos y medidas, sin íconos ni emojis): bienvenida, vincular, PIN, dueño o administrador con email, bienvenida de 5 páginas, escáner, tarjeta del cliente, buscar y ayuda. Tiene todo lo de la app (sucursales, sellos, puntos por visita y por monto, canjes, membresía, cumpleaños, días dobles, aviso de doble escaneo, deshacer) y suma:
