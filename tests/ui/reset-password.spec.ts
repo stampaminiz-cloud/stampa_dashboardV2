@@ -10,7 +10,7 @@ test('la página de reset-password muestra el formulario de nueva contraseña, n
   await page.goto('/reset-password?token=test-token-invalido')
 
   await expect(page.getByText('Elegí tu nueva contraseña')).toBeVisible()
-  await expect(page.getByPlaceholder('••••••••').first()).toBeVisible()
+  await expect(page.getByPlaceholder('Mínimo 8 caracteres')).toBeVisible()
   await expect(page.getByRole('button', { name: /Restablecer contraseña/i })).toBeVisible()
 
   // Negativo: NO debe mostrar el contenido de forgot-password.

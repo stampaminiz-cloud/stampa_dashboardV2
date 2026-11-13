@@ -18,16 +18,20 @@ export type Biz = {
   wa: string                      // título del botón de WhatsApp del frente
   word?: string                   // "tu cafetería", para la frase de la landing
   label?: string                  // rubro, para "Probala"
+  sub?: string                    // bajada del logo: "CAFÉ · PALERMO"
+  prize?: string                  // premio que muestra el pase de sellos
+  fg?: string                     // color del texto cuando el pase es claro
+  logo?: string                   // imagen del logo (onboarding); si no, la inicial
 }
 
 // Los 4 primeros arrancan con Stampa en la maqueta; el resto se va sumando.
 export const SHOPS: Biz[] = [
-  { name: 'Café Aurora', color: '#6B2D1F', icon: 'cafe', model: 'sellos', head: ['SELLOS', '3 de 8'], stamps: 3, who: 'Lucía Gómez', wa: 'PEDIDOS', word: 'tu cafetería', label: 'Cafetería' },
-  { name: 'Raíz Criolla', color: '#5C1414', icon: 'carniceria', model: 'puntos', head: ['PRÓXIMO PREMIO', '1 kg de vacío'], points: '840', next: 'Te faltan 160', who: 'Martín Ruiz', wa: 'PEDIDOS', word: 'tu carnicería', label: 'Carnicería' },
-  { name: 'Studio Nina', color: '#3D3350', icon: 'peluqueria', model: 'membresia', head: ['NIVEL', 'Plata'], tier: ['Plata', 'Oro', 62, 'Te faltan 3 visitas para Oro'], who: 'Sofía Paz', wa: 'TURNOS', word: 'tu peluquería', label: 'Peluquería' },
-  { name: 'La Espiga', color: '#8A5A2B', icon: 'panaderia', model: 'sellos', head: ['SELLOS', '7 de 8'], stamps: 7, who: 'Ana López', wa: 'ENCARGOS', word: 'tu panadería', label: 'Panadería' },
-  { name: 'Fit Gym', color: '#1F3A5F', icon: 'gym', model: 'membresia', head: ['NIVEL', 'Oro'], tier: ['Oro', 'Black', 40, 'Una clase gratis por mes'], who: 'Juan Díaz', wa: 'CLASES', word: 'tu gimnasio', label: 'Gimnasio' },
-  { name: 'Polo Sur', color: '#2F5D57', icon: 'heladeria', model: 'puntos', head: ['PRÓXIMO PREMIO', '1/4 kg gratis'], points: '320', next: 'Te faltan 80', who: 'Clara Ríos', wa: 'PEDIDOS', word: 'tu heladería', label: 'Heladería' },
+  { name: 'Café Aurora', sub: 'CAFÉ · PALERMO', prize: 'Un café de especialidad', color: '#6B2D1F', icon: 'cafe', model: 'sellos', head: ['SELLOS', '3 de 8'], stamps: 3, who: 'Lucía Gómez', wa: 'PEDIDOS', word: 'tu cafetería', label: 'Cafetería' },
+  { name: 'Raíz Criolla', sub: 'CARNICERÍA · CÓRDOBA', color: '#5C1414', icon: 'carniceria', model: 'puntos', head: ['PRÓXIMO PREMIO', '1 kg de vacío'], points: '840', next: 'Te faltan 160', who: 'Martín Ruiz', wa: 'PEDIDOS', word: 'tu carnicería', label: 'Carnicería' },
+  { name: 'Studio Nina', sub: 'PELUQUERÍA · NÚÑEZ', color: '#F1E7F2', fg: '#3D3350', icon: 'peluqueria', model: 'membresia', head: ['NIVEL', 'Plata'], tier: ['Plata', 'Oro', 62, 'Te faltan 3 visitas para Oro'], who: 'Sofía Paz', wa: 'TURNOS', word: 'tu peluquería', label: 'Peluquería' },
+  { name: 'La Espiga', sub: 'PANADERÍA · FLORES', prize: 'Una docena de medialunas', color: '#8A5A2B', icon: 'panaderia', model: 'sellos', head: ['SELLOS', '7 de 8'], stamps: 7, who: 'Ana López', wa: 'ENCARGOS', word: 'tu panadería', label: 'Panadería' },
+  { name: 'Fit Gym', sub: 'GIMNASIO · CENTRO', color: '#DCE6F2', fg: '#1F3A5F', icon: 'gym', model: 'membresia', head: ['NIVEL', 'Oro'], tier: ['Oro', 'Black', 40, 'Una clase gratis por mes'], who: 'Juan Díaz', wa: 'CLASES', word: 'tu gimnasio', label: 'Gimnasio' },
+  { name: 'Polo Sur', sub: 'HELADERÍA · NUEVA CÓRDOBA', color: '#2F5D57', icon: 'heladeria', model: 'puntos', head: ['PRÓXIMO PREMIO', '1/4 kg gratis'], points: '320', next: 'Te faltan 80', who: 'Clara Ríos', wa: 'PEDIDOS', word: 'tu heladería', label: 'Heladería' },
 ]
 
 export const JOIN: Biz[] = [
