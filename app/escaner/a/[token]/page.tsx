@@ -1,5 +1,5 @@
 'use client'
-// Link que manda el dueño desde Equipo → Escáner web. Vincula este
+// Link que manda el dueño desde Equipo → Celulares del local. Vincula este
 // navegador a la sucursal (un solo uso, 24 h) y sigue al PIN. El token sale
 // de la barra enseguida (replaceState) para que no quede en el historial.
 import { useEffect, useState } from 'react'

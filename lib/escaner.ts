@@ -16,7 +16,7 @@ const K_TIP = 'stampa_escaner_tip_inicio'
 
 // ─── Celular vinculado ────────────────────────────────────────────────────────
 // deviceKey: solo si se vinculó con el link de Equipo (se puede quitar desde
-// el panel). Con el QR de "Activar dispositivo" no hay clave, igual que la app.
+// el panel). Con el QR de "vincular la app" no hay clave, igual que la app.
 export interface Device {
   businessId: string
   businessName: string

@@ -126,7 +126,7 @@ export function EscanerApp() {
   )
   else if (phase === 'onboarding' && me) screen = <Onboarding me={me} onDone={() => { markWelcome(`${me.business.id}:${me.scanner.id}`); setPhase('app') }} />
   else if (phase === 'app' && me) {
-    const roleLabel = me.scanner.role === 'owner' ? ' · Dueño' : me.scanner.role === 'manager' ? ' · Administrador' : ''
+    const roleLabel = me.scanner.role === 'owner' ? ' · Dueño' : me.scanner.role === 'manager' ? ' · Encargado' : ''
     screen = (
       <div className="esc-screen">
         <div className="esc-head">
@@ -232,7 +232,7 @@ function Welcome({ notice, onOwner, onEmployee, onHelp }: { notice: string | nul
   )
 }
 
-// Vincular con el QR de Equipo → Activar dispositivo (el mismo que usa la app).
+// Vincular con el QR de Equipo → Celulares del local (el mismo que usa la app).
 // Con el link que manda el dueño por WhatsApp no pasa por acá: lo abre directo.
 function LinkDevice({ onBack, onHelp, onLinked }: { onBack: () => void; onHelp: () => void; onLinked: (d: Device) => void }) {
   const [error, setError] = useState<string | null>(null)
@@ -240,7 +240,7 @@ function LinkDevice({ onBack, onHelp, onLinked }: { onBack: () => void; onHelp: 
   async function onCode(text: string) {
     setPaused(true); setError(null)
     const m = /^stampa-device:([a-f0-9]{24})(?::([a-f0-9]{24}))?$/i.exec(text.trim())
-    if (!m) { beep(false); setError('Ese no es el código de activación. Está en el dashboard: Equipo → Activar dispositivo.'); setTimeout(() => setPaused(false), 1500); return }
+    if (!m) { beep(false); setError('Ese no es el código de activación. Está en el dashboard: Equipo → Celulares del local.'); setTimeout(() => setPaused(false), 1500); return }
     try {
       const r = await escaner.publicBusiness(m[1], m[2] || null)
       beep(true)
@@ -254,7 +254,7 @@ function LinkDevice({ onBack, onHelp, onLinked }: { onBack: () => void; onHelp: 
       <Top onHelp={onHelp} />
       <div className="esc-body" style={{ paddingBottom: 8, flex: 'none' }}>
         <h1 className="esc-title">Vinculá este celular al local</h1>
-        <p className="esc-sub">Abrí el link que te mandó el encargado por WhatsApp. Si tenés el código QR de <b>Equipo → Activar dispositivo</b>, apuntale la cámara.</p>
+        <p className="esc-sub">Abrí el link que te mandó el encargado por WhatsApp. Si tenés el código QR de <b>Equipo → Celulares del local</b>, apuntale la cámara.</p>
       </div>
       <div className="esc-main" style={{ paddingTop: 12 }}><Camara onCode={onCode} paused={paused} /></div>
       <div className="esc-foot">
@@ -511,7 +511,7 @@ const LOGIN_FAQ = [
   { q: '¿Cuál es mi PIN?', a: 'Son 4 números que te da el dueño o encargado del local. Lo crea en el dashboard, en Equipo.' },
   { q: 'Me dice "PIN incorrecto"', a: 'Revisá que este celular sea del local donde trabajás (lo dice arriba). Si sigue fallando, pedile al encargado que revise tu usuario en Equipo.' },
   { q: 'Soy el dueño o administrador', a: 'Tocá "Soy dueño o administrador" (o "Entrar como dueño o administrador" en la pantalla del PIN) y usá el mismo email y contraseña del dashboard. No hace falta vincular el celular.' },
-  { q: 'Soy empleado y es la primera vez', a: 'Abrí en este celular el link que te mandó el encargado por WhatsApp (en el dashboard: Equipo → Escáner web). Se hace una sola vez; después entrás con tu PIN.' },
+  { q: 'Soy empleado y es la primera vez', a: 'Abrí en este celular el link que te mandó el encargado por WhatsApp (en el dashboard: Equipo → Celulares del local). Se hace una sola vez; después entrás con tu PIN.' },
   { q: 'Este celular es de otro local', a: 'Tocá "Activar otro negocio" y abrí el link del local correcto.' },
 ]
 const SCAN_FAQ = [

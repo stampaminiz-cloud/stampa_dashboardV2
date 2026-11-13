@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 const FAQ: { q: string; a: React.ReactNode }[] = [
   {
     q: '¿Cómo entro a Stampa Escáner?',
-    a: <>El dueño del negocio entra con el email y la contraseña de su cuenta de Stampa. Los empleados entran con su PIN, en un celular que el dueño vinculó antes desde el panel (Equipo → escanear el QR del dispositivo con la app).</>,
+    a: <>El dueño del negocio entra con el email y la contraseña de su cuenta de Stampa. Los empleados entran con su PIN, en un celular que el dueño vinculó antes desde el panel (Equipo → Celulares del local: con un link por WhatsApp, o con un QR para la app).</>,
   },
   {
     q: 'Me olvidé el PIN',

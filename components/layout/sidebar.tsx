@@ -64,7 +64,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           <div className="sidebar-avatar">MG</div>
           <div>
             <div className="sidebar-user-name">María Gómez</div>
-            <div className="sidebar-user-role">Administrador</div>
+            <div className="sidebar-user-role">Encargado</div>
           </div>
         </div>
       )}

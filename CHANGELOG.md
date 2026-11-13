@@ -10,12 +10,17 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
   - búsqueda por los últimos dígitos del teléfono;
   - aviso de la regla de frecuencia del local, con "Sumar igual" si el dueño lo permite.
 - Al vincular el celular no se muestra ningún cartel: el consejo de agregarlo a la pantalla de inicio sale una sola vez, como ventana, ya adentro y después de la bienvenida.
-- Equipo → Escáner web: mandar el link por WhatsApp, copiarlo o mostrarlo como QR (un solo uso, 24 h), y la lista de celulares vinculados con "Quitar".
+- Equipo, en dos bloques:
+  - **Personas**: el dueño, los encargados y los empleados, con un solo botón "Sumar a alguien". Primero se elige qué va a hacer (escanear en el mostrador, con un PIN; o manejar el panel, con su email) y después se piden sus datos. Al crear un empleado, el PIN se muestra una sola vez, junto con "Mandar link por WhatsApp" (el PIN nunca va en el mensaje).
+  - **Celulares del local**: mandar el link por WhatsApp, copiarlo o mostrarlo como QR (un solo uso, 24 h), la lista de celulares vinculados con "Quitar", y la app de iPhone y su QR en una línea aparte.
+- "Nuevo PIN" para cada empleado: el PIN anterior deja de servir y el nuevo se muestra una sola vez.
 - Se puede agregar a la pantalla de inicio (`public/escaner.webmanifest`). No se indexa.
 - Configuración → "Cómo suman tus clientes", con el mismo diseño que "Reglas del programa" (a la izquierda lo del negocio, a la derecha una fila por tarjeta, y cada toque se guarda solo): máximo por día, horas entre una y otra y si el empleado puede saltear la regla. Lo que todavía no existe (modo automático, pago conectado, premio sin personas) aparece como "Próximamente". Starter: solo "1 por día" (`customLimits` en `data/plans.ts`).
 - Ayuda: escáner web, Deshacer desde Hoy, búsqueda por teléfono y la regla de cada cuánto suma.
 
 **Cambios**
+- Nombres: "Scanner" pasa a "Empleado" y "Administrador" a "Encargado" en Equipo, la barra lateral, el escáner web, la ayuda y los alertas. En el backend siguen siendo los roles `scanner` y `manager`.
+- Primeros pasos: los textos de crear un empleado y de activar el celular apuntan al link por WhatsApp.
 - Configuración: "Seguridad" pasa a estar debajo de "Mi cuenta"; "Reglas del programa" y "Cómo suman tus clientes" quedan juntas.
 - La cámara se permite solo en `/escaner` (Permissions-Policy); el resto del sitio la sigue bloqueando.
 - Lector de QR: `qr-scanner` 1.4.2 (usa el lector del navegador donde existe y el propio en Safari de iPhone).

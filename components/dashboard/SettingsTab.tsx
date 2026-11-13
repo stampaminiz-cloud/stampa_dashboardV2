@@ -603,7 +603,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
                 <div className="st-alerts-note">Emails solo para vos ({ownerEmail}). Para mandarle mensajes a tus clientes usá Notificaciones.</div>
                 <CheckboxRow label="Resumen semanal" checked={business.alerts.weeklyDigest !== false} description="Los lunes a la mañana: clientes nuevos, visitas, premios entregados y lo que haya que revisar." onToggle={v => { const alerts = { ...business.alerts, weeklyDigest: v }; handleSave('alerts', alerts) }} />
                 <CheckboxRow label="Premios para entregar" checked={business.alerts.nearPrize !== false} description="Un mail por día (no uno por cliente) si hay tarjetas completas esperando su premio." onToggle={v => { const alerts = { ...business.alerts, nearPrize: v }; handleSave('alerts', alerts) }} />
-                <CheckboxRow label="Escaneos raros del equipo" checked={business.alerts.suspicious !== false} description="Te avisa si un Scanner le suma varios sellos seguidos al mismo cliente o hace muchos escaneos en poco tiempo." onToggle={v => { const alerts = { ...business.alerts, suspicious: v }; handleSave('alerts', alerts) }} />
+                <CheckboxRow label="Escaneos raros del equipo" checked={business.alerts.suspicious !== false} description="Te avisa si un empleado le suma varios sellos seguidos al mismo cliente o hace muchos escaneos en poco tiempo." onToggle={v => { const alerts = { ...business.alerts, suspicious: v }; handleSave('alerts', alerts) }} />
                 {msgFor('alerts')}
               </>}
         </Section>
