@@ -109,12 +109,6 @@ export default function Empresas() {
   const [rubro, setRubro] = useState('Gastronomía')
   const [form, setForm] = useState({ nombre: '', empresa: '', locales: '4 a 10', pais: 'Argentina', contacto: '' })
   const [err, setErr] = useState('')
-  useEffect(() => {
-    const els = document.querySelectorAll('.l2-reveal')
-    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target) } }), { threshold: .12 })
-    els.forEach(el => io.observe(el))
-    return () => io.disconnect()
-  }, [])
   const max = Math.max(...SEDES.map(s => s[1]))
   // El pedido de demo sale por WhatsApp, con los datos ya escritos.
   const submit = (e: React.FormEvent) => {
@@ -138,7 +132,6 @@ export default function Empresas() {
 
         <header className="l2-ehero">
           <div>
-            <p className="l2-kicker" style={{ color: 'var(--l2-pino)' }}>Stampa Enterprise</p>
             <h1 className="l2-h1 l2-eh1">Una tarjeta para toda tu marca.<br /><span className="l2-gris">En todos tus locales.</span></h1>
             <p className="l2-lead" style={{ marginTop: 20, maxWidth: 520 }}>Para marcas con cuatro locales o más. Tus clientes guardan tu tarjeta en Apple Wallet o Google Wallet y suman en cualquiera de tus locales. Vos ves todo en un panel, local por local.</p>
             <div className="l2-ctas" style={{ justifyContent: 'flex-start' }}><a className="l2-btn l2-btn-pino" href="#demo">Agendar una demo</a><a className="l2-btn l2-btn-line" href="#panel">Ver el panel</a></div>
@@ -149,8 +142,8 @@ export default function Empresas() {
 
         <div className="l2-etrust"><span>Ya trabajan con Stampa</span>{PROOF.map(l => <span key={l.name} className="l2-etl"><span style={{ background: l.bg }}><img src={l.logo} alt="" /></span>{l.name}</span>)}</div>
 
-        <section className="l2-sec l2-reveal" id="enterprise">
-          <div className="l2-sec-head"><p className="l2-kicker">Cuándo es Enterprise</p><h2 className="l2-h2">Desde el cuarto local, <span className="l2-gris">Enterprise.</span></h2><p className="l2-lead" style={{ marginTop: 14 }}>Pro llega hasta 3 locales. Si tenés más, o querés tu marca en todo y alguien de Stampa para tu cuenta, es Enterprise.</p></div>
+        <section className="l2-sec" id="enterprise">
+          <div className="l2-sec-head"><h2 className="l2-h2">Desde el cuarto local, <span className="l2-gris">Enterprise.</span></h2><p className="l2-lead" style={{ marginTop: 14 }}>Pro llega hasta 3 locales. Si tenés más, o querés tu marca en todo y alguien de Stampa para tu cuenta, es Enterprise.</p></div>
           <div className="l2-eplans">
             <div className="l2-eplan"><div className="l2-eplan-top"><b>Pro</b><span>Hasta 3 locales</span></div>
               <ul><li><Icon name="listo" size={16} />3 locales</li><li><Icon name="listo" size={16} />Clientes, tarjetas, equipo y notificaciones ilimitados</li><li><Icon name="listo" size={16} />Avisos automáticos y pedidos por la tarjeta</li><li><Icon name="listo" size={16} />Sin la marca Stampa en la tarjeta y el formulario</li></ul>
@@ -161,8 +154,8 @@ export default function Empresas() {
           </div>
         </section>
 
-        <section className="l2-sec l2-reveal" id="modelos">
-          <div className="l2-sec-head"><p className="l2-kicker">Tres modelos</p><h2 className="l2-h2">Sellos, puntos o membresía. <span className="l2-gris">Los tres, en todos tus locales.</span></h2></div>
+        <section className="l2-sec" id="modelos">
+          <div className="l2-sec-head"><h2 className="l2-h2">Sellos, puntos o membresía. <span className="l2-gris">Los tres, en todos tus locales.</span></h2></div>
           <div className="l2-emodels">
             <div><Pass b={{ name: 'Tu marca', color: '#6B2D1F', icon: 'cafe', model: 'sellos', head: ['SELLOS', '5 de 8'], stamps: 5, who: 'Lucía G.', wa: 'PEDIDOS' }} width={210} qr={false} /><b>Sellos</b><p>Cada visita suma un sello. Al completar la tarjeta, el premio.</p></div>
             <div><Pass b={{ name: 'Tu marca', color: '#1F3A5F', icon: 'puntos', model: 'puntos', head: ['PRÓXIMO PREMIO', 'Combo 2x1'], points: '1.240', next: 'Te faltan 260', who: 'Martín R.', wa: 'CONSULTAS' }} width={210} qr={false} /><b>Puntos</b><p>Suman por visita o por monto, y los canjean por los premios que elijas.</p></div>
@@ -170,8 +163,8 @@ export default function Empresas() {
           </div>
         </section>
 
-        <section className="l2-sec l2-reveal" id="panel">
-          <div className="l2-sec-head"><p className="l2-kicker">Panel</p><h2 className="l2-h2">Todos tus locales, <span className="l2-gris">en una pantalla.</span></h2><p className="l2-lead" style={{ marginTop: 14 }}>Visitas, clientes nuevos y los que dejaron de venir, por local o de toda la marca.</p></div>
+        <section className="l2-sec" id="panel">
+          <div className="l2-sec-head"><h2 className="l2-h2">Todos tus locales, <span className="l2-gris">en una pantalla.</span></h2><p className="l2-lead" style={{ marginTop: 14 }}>Visitas, clientes nuevos y los que dejaron de venir, por local o de toda la marca.</p></div>
           <div className="l2-epanel">
             <div className="l2-ecard"><h4><span>Visitas del mes por local</span><span>Octubre</span></h4>
               {[...SEDES].sort((a, b) => b[1] - a[1]).map(([n, v]) => <div key={n} className="l2-esede"><span>{n}</span><div className="l2-ebar"><i style={{ width: `${v / max * 100}%` }} /></div><b>{v.toLocaleString('es-AR')}</b></div>)}
@@ -186,21 +179,20 @@ export default function Empresas() {
           <p className="l2-ex">Números de ejemplo para una marca con 11 locales en Córdoba.</p>
         </section>
 
-        <section className="l2-sec l2-reveal">
-          <div className="l2-sec-head"><p className="l2-kicker">Para equipos grandes</p><h2 className="l2-h2">Lo que necesita una empresa, <span className="l2-gris">sin vueltas.</span></h2></div>
+        <section className="l2-sec">
+          <div className="l2-sec-head"><h2 className="l2-h2">Lo que necesita una empresa, <span className="l2-gris">sin vueltas.</span></h2></div>
           <div className="l2-ecaps">{CAPS.map(([ic, t, d]) => <div key={t}><Icon name={ic} size={24} /><h5>{t}</h5><p>{d}</p></div>)}</div>
         </section>
 
-        <section className="l2-sec l2-reveal">
-          <div className="l2-sec-head"><p className="l2-kicker">Cómo arrancamos</p><h2 className="l2-h2">En marcha en semanas, <span className="l2-gris">no en meses.</span></h2></div>
+        <section className="l2-sec">
+          <div className="l2-sec-head"><h2 className="l2-h2">En marcha en semanas, <span className="l2-gris">no en meses.</span></h2></div>
           <div className="l2-esteps">
             {[['01', 'Una llamada', 'Entendemos cómo funcionan tus locales y qué querés lograr.'], ['02', 'Armamos todo con vos', 'Tarjetas, premios, locales y equipo, con tu marca.'], ['03', 'Capacitamos al equipo', 'Cada local aprende a escanear y a usar el panel en una sesión corta.'], ['04', 'Lanzamos y medimos', 'Te acompañamos el primer mes y revisamos los números juntos.']].map(([n, t, d]) => <div key={n}><span>{n}</span><h5>{t}</h5><p>{d}</p></div>)}
           </div>
         </section>
 
-        <section className="l2-edemo l2-reveal" id="demo">
+        <section className="l2-edemo" id="demo">
           <div>
-            <p className="l2-kicker" style={{ color: 'var(--l2-mostaza)' }}>Demo</p>
             <h2 className="l2-h2">Veamos cómo quedaría <span style={{ color: 'rgba(255,255,255,.5)' }}>en tu marca.</span></h2>
             <p className="l2-lead" style={{ color: 'rgba(255,255,255,.75)', marginTop: 16 }}>Te mostramos la tarjeta con tu logo, el panel con tus locales y cómo lo usaría tu equipo. 30 minutos.</p>
             <ul className="l2-edemo-l"><li><Icon name="listo" size={16} />Tu tarjeta de prueba, lista para llevarte en el Wallet</li><li><Icon name="listo" size={16} />Un plan a medida de tus locales</li><li><Icon name="listo" size={16} />El precio por escrito</li></ul>
@@ -239,7 +231,7 @@ const ECSS = `
 .l2-efeed-h{font-size:12px;font-weight:600;color:var(--l2-t2);display:flex;align-items:center;gap:7px;padding:2px 4px 4px}
 .l2-live-dot{width:8px;height:8px;border-radius:50%;background:#2F9E5B;animation:l2pulse 2s infinite}
 @keyframes l2pulse{70%{box-shadow:0 0 0 8px rgba(47,158,91,0)}0%{box-shadow:0 0 0 0 rgba(47,158,91,.5)}}
-.l2-erow{display:flex;align-items:center;gap:10px;padding:6px;border-radius:11px;background:#fff;animation:l2drop .4s cubic-bezier(.2,1.2,.4,1)}
+.l2-erow{display:flex;align-items:center;gap:10px;padding:6px;border-radius:11px;background:#fff;animation:l2drop .4s cubic-bezier(.2,.8,.2,1)}
 .l2-erow.first{box-shadow:inset 0 0 0 1.5px var(--l2-pino)}
 .l2-erow>span:nth-child(2){flex:1;min-width:0}
 .l2-erow b{display:block;font-size:13.5px}.l2-erow small{display:block;font-size:12px;color:var(--l2-t2)}

@@ -144,16 +144,13 @@ export const ARTICLES: Article[] = [
       {SCANNER_IOS_URL
         ? <Note>Está en la App Store para iPhone y iPad, pero no aparece en el buscador: se baja desde este link, abierto en el celular del local. <a href={SCANNER_IOS_URL} target="_blank" rel="noopener noreferrer">Descargar Stampa Escáner</a>. También está en el panel, en Equipo.</Note>
         : <Note>Está en la App Store para iPhone y iPad, pero no aparece en el buscador. Escribinos y te mandamos el link para bajarla.</Note>}
-      <p>Para Android todavía no está. Si el celular del local es Android, escribinos.</p>
+      <p>Para Android todavía no hay app, pero no hace falta: usá el <strong>escáner web</strong> (abajo), que anda en cualquier celular.</p>
       <h2>Vincular el celular del local</h2>
       <Steps items={[
-        <>En el panel, entrá a <strong>Equipo</strong> y tocá "Activar dispositivo". Aparece un código QR.</>,
+        <>En el panel, entrá a <strong>Equipo</strong> y, en "Celulares del local", tocá "vincularla con un código QR". Aparece un código QR.</>,
         <>En el celular, abrí la app, tocá "Soy empleado" y apuntá la cámara a ese código.</>,
         <>Listo: el celular queda vinculado a tu negocio. Desde ahí, cada empleado entra con su PIN.</>,
       ]} />
-      <div className="ay-shots">
-        <Shot src="activar" alt="Ventana Activar dispositivo de escaneo con el código QR" />
-      </div>
       <div className="ay-phones">
         <Shot phone src="app-inicio" alt="Pantalla de bienvenida de Stampa Escáner" caption="La primera vez, tocá &quot;Soy empleado&quot;." />
         <Shot phone src="app-pin" alt="Pantalla para entrar con el PIN" caption="Después, cada uno entra con su PIN." />
@@ -161,6 +158,14 @@ export const ARTICLES: Article[] = [
       <p>Se hace una sola vez por celular. Sin un PIN válido nadie puede sumar sellos ni ver clientes, así que si el celular queda en el mostrador no pasa nada.</p>
       <h2>Si sos el dueño</h2>
       <p>Vos no necesitás vincular nada. Tocá "Soy dueño o administrador" y entrá con el mismo email y contraseña del panel. Sirve para escanear desde tu propio celular.</p>
+      <h2>Sin bajar ninguna app: el escáner web</h2>
+      <p>El escáner también funciona en el navegador del celular (iPhone o Android) o en la compu de la caja, con todo lo de la app.</p>
+      <Steps items={[
+        <>En el panel, entrá a <strong>Equipo</strong> y, en "Celulares del local", tocá "Mandar link por WhatsApp" (o "Copiar link", o "Mostrar QR").</>,
+        <>El empleado abre el link en su celular: queda vinculado al local y entra con su PIN de siempre.</>,
+        <>Para abrirlo como una app, que lo agregue a la pantalla de inicio (en iPhone: Compartir → "Agregar a inicio").</>,
+      ]} />
+      <p>Cada link sirve para un solo celular y vence en 24 horas. En "Celulares del local" ves los celulares vinculados y podés quitar uno: deja de poder escanear al instante.</p>
       <h2>Si tenés varias sucursales</h2>
       <p>Cada sucursal tiene su código de activación. El celular queda en la sucursal cuyo código escaneaste. Para moverlo, tocá "Cambiar de sucursal" en la pantalla del PIN o en el escáner.</p>
     </>,
@@ -187,9 +192,9 @@ export const ARTICLES: Article[] = [
       <h2>Entregar el premio</h2>
       <p>Cuando la tarjeta de sellos está completa, queda así hasta que se entrega el premio. Entregalo y tocá "Confirmar entrega": la tarjeta vuelve a cero y el premio queda registrado en Premios.</p>
       <h2>Si te equivocaste</h2>
-      <p>Justo después de sumar aparece "Deshacer" por unos segundos. Pasado ese momento ya no se puede deshacer, así que conviene mirar la pantalla antes de pasar al siguiente cliente.</p>
+      <p>Justo después de sumar aparece "Deshacer" por unos segundos. En el escáner web, además, la pestaña <strong>Hoy</strong> deja deshacer hasta 10 minutos después.</p>
       <h2>Si el QR no se lee o el cliente no tiene el celular</h2>
-      <p>Tocá "Buscar cliente por nombre o email" y elegilo de la lista. Si la cámara no anda, revisá que la app tenga permiso de cámara en los ajustes del celular.</p>
+      <p>Tocá "Buscar cliente" y escribí su nombre o email (en el escáner web, también los últimos dígitos de su teléfono, si el formulario lo pide). Elegilo de la lista. Si la cámara no anda, revisá que la app tenga permiso de cámara en los ajustes del celular.</p>
       <h2>Cumpleaños y días dobles</h2>
       <p>Si el cliente cumple años, arriba de su tarjeta aparece el regalo con el botón "Entregar". Los días dobles, cada escaneo suma el doble solo; el empleado no tiene que hacer nada distinto.</p>
     </>,
@@ -198,17 +203,18 @@ export const ARTICLES: Article[] = [
     slug: 'equipo',
     group: 'En el mostrador',
     title: 'Sumar a tu equipo',
-    summary: 'Empleados con PIN para escanear y administradores que entran al panel.',
+    summary: 'Empleados con PIN para escanear en el mostrador y encargados que entran al panel.',
     body: <>
-      <p>En <strong>Equipo</strong>, con "+ Sumar al equipo", hay dos tipos de persona:</p>
+      <p>En <strong>Equipo</strong>, con "Sumar a alguien", elegís qué va a hacer la persona:</p>
       <ul>
-        <li><strong>Scanner:</strong> usa solo la app de escaneo, con un PIN de 4 números que le das vos. Suma sellos, puntos y visitas y entrega premios. No ve el panel.</li>
-        <li><strong>Administrador:</strong> entra al panel con su email. Ve clientes, premios, notificaciones, diseño, analítica y formulario. No puede cambiar el plan, el equipo ni borrar clientes.</li>
+        <li><strong>Empleado (escanea en el mostrador):</strong> entra con un PIN de 4 números que le das vos. Suma sellos, puntos y visitas y entrega premios. No ve el panel.</li>
+        <li><strong>Encargado (maneja el panel):</strong> entra con su email y una contraseña que elige él mismo, con un mail que le llega. Ve clientes, premios, notificaciones, diseño, analítica y formulario. No puede cambiar el plan, el equipo ni borrar clientes.</li>
       </ul>
-      <Shot src="equipo" alt="Pestaña Equipo con el dueño, un administrador y dos scanners" />
-      <p>Al lado de cada scanner ves cuántos escaneos hizo en los últimos 30 días. Si alguien deja de trabajar con vos, "Deshabilitar" le corta el acceso enseguida y su historial queda.</p>
+      <p>El PIN se muestra una sola vez, al crearlo. Si alguien lo olvida, con "Nuevo PIN" le armás otro. El PIN anterior deja de servir.</p>
+      <p>Al lado de cada empleado ves cuántos escaneos hizo en los últimos 30 días. Si alguien deja de trabajar con vos, "Deshabilitar" le corta el acceso enseguida y su historial queda.</p>
+      <p>Más abajo, en "Celulares del local", ves los celulares vinculados al escáner. Quitar un celular corta ese celular; para cortar a una persona, deshabilitala.</p>
       <p>Starter incluye 1 persona además de vos, Growth 5 y Pro las que necesites.</p>
-      <Note>Si un scanner suma varios sellos seguidos al mismo cliente o hace muchos escaneos en poco tiempo, te llega un mail. Se activa en Configuración, en "Mis alertas".</Note>
+      <Note>Si un empleado suma varios sellos seguidos al mismo cliente o hace muchos escaneos en poco tiempo, te llega un mail. Se activa en Configuración, en "Mis alertas".</Note>
     </>,
   },
 
@@ -304,6 +310,7 @@ export const ARTICLES: Article[] = [
         <li><strong>Cumpleaños:</strong> escribís el regalo, por ejemplo "Un café con medialuna". El día del cumpleaños el cliente recibe un aviso y tiene 7 días para pasar a buscarlo. Cuando lo escanean, el empleado ve el regalo en la app. Solo aplica a quienes cargaron su fecha en el formulario.</li>
         <li><strong>Días dobles:</strong> marcás los días de la semana en que cada visita suma el doble. Sirve para mover gente a los días flojos.</li>
         <li><strong>Vencimiento por inactividad:</strong> nunca, 3, 6 o 12 meses. Si un cliente no vuelve en ese plazo, sus sellos o puntos vencen. Una semana antes le llega un aviso.</li>
+        <li><strong>Cada cuánto suma un cliente:</strong> en "Cómo suman tus clientes" elegís cuántas veces por día puede sumar y cuántas horas tienen que pasar entre una y otra (por ejemplo, 2 por día con 3 horas entre una y otra: un café a la mañana y otro a la tarde). Si querés, el empleado puede sumar igual con un aviso y queda marcado. En Starter está "1 por día"; las reglas a medida, desde Growth.</li>
         <li><strong>Cliente inactivo:</strong> después de cuántos días sin venir lo consideramos inactivo (30, 60 o 90). Solo cambia cómo se ve en Clientes y en Notificaciones.</li>
       </ul>
       <p>Los avisos que mandan estas reglas no cuentan para tus envíos del mes.</p>

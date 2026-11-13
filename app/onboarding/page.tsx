@@ -1,7 +1,9 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react'
 import { apiMe, apiOnboarding, apiOnboardingPreview, getToken } from '@/lib/api'
-import { BrandLogo } from '@/components/brand/BrandLogo'
+import { Pass } from '@/components/landing2/Pass'
+import { PASS_CSS } from '@/components/landing2/passStyles'
+import type { Biz } from '@/components/landing2/data'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { darkenHex, DEFAULT_CARD_COLOR, presetsForPlan } from '@/lib/colorPresets'
 import { ColorField, useLogoColors } from '@/components/dashboard/ColorField'
@@ -87,58 +89,35 @@ const SECTORS = [
 
 
 // ─── Step info (left panel content) ──────────────────────────────────────────
-const STEP_INFO: Record<number, { title: string; subtitle: string; tip: string }> = {
+const STEP_INFO: Record<number, { title: string; subtitle: string }> = {
   1: {
     title: 'Contanos sobre tu negocio',
     subtitle: 'Nombre y rubro. Con esto configuramos todo lo demás.',
-    tip: 'Elegí bien el rubro, lo usamos para recomendarte el programa de fidelización ideal para vos.',
   },
   2: {
     title: '¿Qué tipo de programa querés?',
     subtitle: 'Te recomendamos uno según tu rubro, pero podés elegir el que quieras.',
-    tip: 'La tarjeta de sellos es la más usada: los clientes la entienden al instante.',
   },
   3: {
     title: 'Configurá tu programa',
     subtitle: 'Definí los parámetros del programa de fidelización.',
-    tip: 'Entre 6 y 8 visitas es lo más elegido: suficiente para motivar sin que el cliente se canse de esperar.',
   },
   4: {
     title: '¿Cómo se define el premio?',
     subtitle: 'Decidí quién elige el premio al completar la tarjeta.',
-    tip: 'Que el cliente elija su premio genera más expectativa y más ganas de volver. Vos definís entre qué opciones elige.',
   },
   5: {
     title: 'Dale identidad a tu tarjeta',
     subtitle: 'El logo y el color se muestran en la tarjeta que tus clientes guardan en el Wallet.',
-    tip: 'Una tarjeta con tus colores se ve más profesional y genera más confianza en tus clientes.',
   },
   6: {
     title: '¡Casi listo!',
     subtitle: 'Así queda tu tarjeta. Esto es lo que van a ver tus clientes.',
-    tip: 'Después podés cambiar todo esto desde el panel, cuando quieras.',
   },
 }
 
 // Colores: lib/colorPresets.ts (paleta sugerida; color libre en todos los planes).
 
-
-// ─── Stampa mascot ────────────────────────────────────────────────────────────
-function StampaFrog({ size = 28 }: { size?: number }) {
-  return (
-    <img src="/stampa-mascot.png" alt="Stampy" width={size} height={size} style={{ objectFit: 'contain' }} />
-  )
-}
-
-// ─── Stampy icon (exact vector from Logo.ai, reused for tips/hints) ──────────
-const STAMPY_PATH = "M 611.515625 390.210938 C 631.171875 390.210938 631.203125 359.664062 611.515625 359.664062 C 591.859375 359.664062 591.828125 390.210938 611.515625 390.210938 M 518.382812 390.210938 C 538.035156 390.210938 538.070312 359.664062 518.382812 359.664062 C 498.726562 359.664062 498.695312 390.210938 518.382812 390.210938 M 662.726562 731.242188 L 662.902344 731.578125 C 667.019531 737.570312 674.152344 735.371094 680.445312 733.425781 C 682.566406 732.773438 684.730469 732.101562 686.734375 731.75 C 686.59375 731.800781 686.445312 731.847656 686.296875 731.898438 C 685.734375 732.085938 685.226562 732.257812 684.824219 732.421875 C 676.351562 735.894531 651.445312 743.265625 646.980469 742.019531 C 634.851562 710.550781 623.75 678.085938 613.011719 646.683594 C 604.890625 622.929688 596.492188 598.367188 587.703125 574.398438 L 587.625 574.191406 C 589.777344 574.199219 591.957031 574.289062 594.195312 574.554688 C 598.144531 575.023438 602.003906 575.820312 605.785156 576.878906 Z M 558.652344 741.957031 C 560.871094 742.039062 563.128906 742.117188 565.140625 742.445312 C 564.992188 742.445312 564.839844 742.441406 564.683594 742.441406 C 564.089844 742.433594 563.550781 742.425781 563.117188 742.449219 C 553.972656 742.941406 528.035156 741.703125 524.222656 739.054688 C 523.128906 705.347656 523.335938 671.039062 523.535156 637.855469 C 523.585938 629.144531 523.632812 620.316406 523.660156 611.453125 C 528.988281 605.730469 534.453125 600.175781 540.152344 595.175781 L 542.640625 734.058594 L 542.691406 734.433594 C 544.605469 741.453125 552.066406 741.71875 558.652344 741.957031 M 497.492188 343.71875 C 515.738281 342.460938 531.421875 349.605469 539.082031 366.675781 C 542.117188 373.445312 544.234375 380.605469 545.585938 387.929688 C 545.652344 392.914062 545.945312 397.925781 546.234375 402.929688 L 444.660156 402.929688 C 443.628906 373.03125 466.117188 345.878906 497.492188 343.71875 M 562.652344 368.59375 C 566.378906 354.457031 578.511719 342.34375 593.199219 340.039062 C 608.832031 337.582031 621.507812 348.765625 628.234375 361.847656 C 634.691406 374.390625 635.71875 388.820312 635.691406 402.929688 L 562.636719 402.929688 C 562.378906 396.796875 561.730469 390.628906 560.601562 384.570312 C 560.726562 379.171875 561.277344 373.828125 562.652344 368.59375 M 677.597656 616.0625 C 720.660156 637.035156 770.347656 603.078125 767.992188 555.238281 C 767.667969 548.640625 766.929688 543.941406 765.464844 542.988281 C 762.320312 540.949219 717.355469 534.675781 705.980469 530.402344 C 660.046875 513.140625 636.742188 476.59375 578.011719 470.703125 C 536.339844 466.523438 495.132812 487.578125 453.09375 486.78125 L 453.097656 486.792969 C 440.523438 487.160156 420.957031 481.453125 418.160156 477.183594 C 414.453125 471.523438 417.480469 469.023438 420.300781 467.464844 C 424.753906 465.007812 425.320312 470.195312 433.53125 474.738281 C 440.597656 478.644531 447.78125 479.105469 449.652344 479.15625 C 449.8125 479.160156 449.96875 479.160156 450.128906 479.164062 L 450.136719 479.164062 C 455.34375 479.289062 460.761719 479.691406 465.335938 479.003906 C 502.023438 473.5 540.414062 455.378906 578.699219 455.453125 C 609.699219 455.515625 643.351562 469.207031 673.074219 475.605469 C 691.507812 479.574219 709.628906 481.300781 727.964844 481.933594 C 749.882812 482.6875 767.820312 465.265625 767.820312 443.332031 C 767.820312 421.019531 749.734375 402.929688 727.421875 402.929688 L 650.886719 402.929688 C 650.777344 385.023438 649.019531 366.851562 639.804688 351.171875 C 630.171875 334.773438 612.832031 322.574219 593.191406 324.71875 C 575.253906 326.679688 558.976562 338.914062 551.359375 355.195312 C 551.210938 355.519531 551.074219 355.84375 550.929688 356.167969 C 550.460938 355.296875 550 354.417969 549.5 353.5625 C 538.289062 334.421875 516.644531 326.582031 495.171875 328.632812 C 456.214844 332.355469 428.496094 365.664062 429.425781 402.929688 L 376.089844 402.929688 C 340.652344 402.929688 311.925781 431.660156 311.925781 467.09375 C 311.925781 497.828125 333.699219 524.222656 363.855469 530.144531 C 386.542969 534.597656 409.207031 539.703125 431.207031 541.632812 C 470.019531 545.039062 491.863281 519.863281 524.886719 507.222656 C 554.234375 495.992188 585.917969 494.460938 612.328125 508.113281 C 616.191406 510.113281 614.082031 515.9375 609.816406 515.078125 C 579.984375 509.046875 553.902344 520.203125 526.445312 541.355469 C 484.707031 573.503906 476.902344 599.941406 417.648438 613.125 C 408.089844 615.253906 398.414062 616.972656 388.679688 618.511719 C 369.550781 618.671875 339.527344 620.273438 337.332031 643.148438 C 335.066406 666.742188 356.675781 676.75 376.058594 681.066406 C 399.160156 686.210938 423.71875 685.359375 446.300781 678.179688 C 460.238281 673.746094 470.859375 666.742188 479.578125 656.96875 C 482.753906 653.410156 486.25 650.15625 489.835938 647.003906 C 497.109375 640.613281 504.195312 632.921875 511.375 624.96875 C 511.3125 629 511.25 633.042969 511.183594 637.039062 C 510.6875 667.0625 510.179688 698.113281 511.296875 728.550781 C 511.332031 729.5625 511.339844 730.664062 511.347656 731.816406 C 511.386719 738.871094 511.4375 748.527344 519.035156 751.53125 C 526.300781 754.402344 544.078125 755.328125 557.171875 755.328125 C 561.96875 755.328125 566.136719 755.203125 568.933594 755.003906 C 577.652344 754.390625 598.292969 752.195312 601.625 745.15625 C 602.238281 743.863281 602.589844 741.789062 600.792969 739.25 C 598.71875 736.320312 590.195312 733.773438 572.289062 730.726562 L 571.132812 730.53125 C 569.894531 730.316406 568.167969 730.25 566.167969 730.171875 C 562.636719 730.03125 556.160156 729.777344 555.144531 728.09375 L 552.851562 585.398438 C 559.894531 580.773438 567.371094 577.292969 575.421875 575.503906 C 575.863281 576.738281 576.289062 577.910156 576.6875 578.988281 C 585.363281 602.402344 593.355469 626.589844 601.082031 649.984375 C 610.5 678.5 620.238281 707.984375 631.316406 736.359375 C 631.6875 737.300781 632.054688 738.339844 632.4375 739.425781 C 634.800781 746.074219 638.03125 755.175781 646.191406 755.511719 C 646.429688 755.519531 646.675781 755.523438 646.933594 755.523438 C 658.105469 755.523438 685.070312 746.402344 694.453125 742.367188 C 702.480469 738.90625 721.253906 730.03125 722.078125 722.296875 C 722.230469 720.875 721.878906 718.800781 719.34375 716.992188 C 716.421875 714.914062 707.53125 715.308594 689.609375 718.335938 L 688.46875 718.527344 C 687.230469 718.734375 685.578125 719.238281 683.664062 719.820312 C 680.523438 720.78125 674.097656 722.746094 672.570312 721.488281 L 621.75 582.933594 C 640.808594 591.925781 658.105469 605.78125 675.289062 614.886719 C 676.058594 615.296875 676.832031 615.6875 677.597656 616.0625"
-function StampyIcon({ size = 32, color = '#C75D3A' }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="300 310 480 455" style={{ flexShrink: 0 }}>
-      <path d={STAMPY_PATH} fill={color} />
-    </svg>
-  )
-}
 
 // ─── QR code ──────────────────────────────────────────────────────────────────
 
@@ -278,7 +257,7 @@ function Step3({ state, onChange, onNext, onBack, currency }: StepProps & { curr
       {state.cardType === 'points' && (
         <>
           <PointsRuleEditor value={rule} onChange={v => onChange(v)} currency={currency} />
-          <div className="ob-hint"><StampyIcon size={24} />Los premios (ej: café gratis por 100 puntos) los cargás después en Premios.</div>
+          <p className="ob-note">Los premios (ej: café gratis por 100 puntos) los cargás después en Premios.</p>
         </>
       )}
       {state.cardType === 'membership' && (
@@ -292,7 +271,7 @@ function Step3({ state, onChange, onNext, onBack, currency }: StepProps & { curr
               </div>
             </div>
           ))}
-          <div className="ob-hint"><StampyIcon size={24} />Nombres, visitas y beneficios los podés cambiar después en Premios.</div>
+          <p className="ob-note">Nombres, visitas y beneficios los podés cambiar después en Premios.</p>
         </div>
       )}
       <Nav onBack={onBack} onNext={onNext} disabled={state.cardType === 'points' && !pointsOk} />
@@ -460,7 +439,7 @@ function Step5({ state, onChange, onNext, onBack, plan }: StepProps & { plan: st
             <ColorField ariaLabel="Color de la tarjeta" value={state.brandColor} logoColors={logoColors}
               suggestions={presets.map(p => ({ hex: p.start, label: p.label }))} onChange={v => v && onChange({ brandColor: v })} />
           </div>
-          <div className="ob-hint" style={{ marginTop: 16 }}><StampyIcon size={26} />{planNote}</div>
+          <p className="ob-note" style={{ marginTop: 16 }}>{planNote}</p>
         </div>
       </div>
       <Nav onBack={onBack} onNext={onNext} nextLabel="Ver mi tarjeta" showSkip={!state.brandLogo} onSkip={onNext} />
@@ -530,7 +509,7 @@ function Step6({ state, onBack, onFinish, finishing, error, currency }: { state:
 }
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
-const CSS = `
+const CSS = PASS_CSS + `
   .ob-ic-faint { color: var(--s-tinta-3); }
   :root { --font-d: var(--font-display); --font-b: var(--font-body); }
   *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
@@ -539,62 +518,46 @@ const CSS = `
   button, a { -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
   button:focus { outline:none; }
   button:focus-visible { outline:2px solid rgba(199,93,58,.35); outline-offset:2px; }
-  .ob-shell { min-height:100vh; min-height:100dvh; display:flex; flex-direction:row; max-width:100vw; overflow-x:hidden; }
-  /* Left panel */
-  .ob-left { width:380px; flex-shrink:0; background:var(--s-pino); display:flex; flex-direction:column; padding:36px 32px; gap:32px; min-height:100vh; position:sticky; top:0; height:100vh; overflow:hidden; }
-  .ob-left-logo { display:flex; align-items:center; }
-  .ob-dots { display:flex; gap:8px; align-items:center; }
-  .ob-dot { width:10px; height:10px; border-radius:50%; background:rgba(247,239,232,.2); transition:all .3s ease; }
-  .ob-dot--on { background:var(--s-brasa); width:28px; border-radius:6px; }
-  .ob-step-label { font-size:11px; color:rgba(247,239,232,.35); letter-spacing:.06em; margin-top:4px; }
-  .ob-left-title { font-family:var(--font-d); font-weight:800; font-size:30px; color:#F7EFE8; line-height:1.2; }
-  .ob-left-title em { color:var(--s-brasa); font-style:normal; }
-  .ob-left-sub { font-size:14px; color:rgba(247,239,232,.55); line-height:1.7; margin-top:8px; }
-  .ob-stampy-tip { background:rgba(247,239,232,.06); border:1px solid rgba(247,239,232,.1); border-radius:16px; padding:18px; display:flex; flex-direction:column; gap:12px; }
-  .ob-stampy-head { display:flex; align-items:center; gap:10px; }
-  .ob-stampy-name { font-size:12px; font-weight:700; color:rgba(247,239,232,.7); letter-spacing:.04em; }
-  .ob-stampy-text { font-size:13px; color:rgba(247,239,232,.55); line-height:1.65; }
-  /* Right panel */
-  .ob-right { flex:1; display:flex; align-items:center; justify-content:center; padding:52px 40px 40px; min-height:100vh; overflow-y:auto; overflow-x:hidden; position:relative; max-width:100%; }
-  .ob-right-inner { width:100%; max-width:540px; display:flex; flex-direction:column; position:relative; z-index:1; }
-  .ob-right-inner--wide { max-width:640px; }
-  .ob-right::before { content:''; position:absolute; width:500px; height:500px; border-radius:50%; background:rgba(199,93,58,.05); top:-150px; right:-150px; pointer-events:none; }
-  .ob-right::after { content:''; position:absolute; width:350px; height:350px; border-radius:50%; background:rgba(1,35,26,.04); bottom:-100px; left:-80px; pointer-events:none; }
-  /* Mobile header — hidden on desktop */
-  .ob-header { display:none; }
+  .ob-wrap { min-height:100vh; min-height:100dvh; background:#E4E6E0; padding:12px; }
+  .ob-frame { max-width:1240px; margin:0 auto; background:#F7F7F4; border-radius:28px; padding:14px; }
+  .ob-top { display:flex; align-items:center; gap:16px; background:#fff; border-radius:999px; padding:10px 20px; margin-bottom:12px; }
+  .ob-top img { height:18px; width:auto; display:block; flex-shrink:0; }
+  .ob-prog { flex:1; height:6px; border-radius:3px; background:var(--s-salvia); overflow:hidden; }
+  .ob-prog i { display:block; height:100%; background:var(--s-pino); border-radius:3px; transition:width .25s cubic-bezier(.2,.8,.2,1); }
+  .ob-top span { font-size:13px; color:rgba(34,32,27,.62); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .ob-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.8fr); gap:12px; align-items:start; }
+  .ob-grid--wide { grid-template-columns:minmax(0,1fr); }
+  .ob-main { background:#fff; border-radius:20px; padding:clamp(22px,4vw,48px); min-width:0; min-height:calc(100vh - 140px); }
+  .ob-main-in { width:100%; max-width:520px; margin:0 auto; display:flex; flex-direction:column; }
+  .ob-grid--wide .ob-main-in { max-width:720px; }
+  .ob-title { font-family:var(--font-d); font-weight:800; font-size:clamp(26px,3vw,34px); letter-spacing:-.03em; line-height:1.05; color:var(--s-tinta); }
+  .ob-subtitle { font-size:15px; color:rgba(34,32,27,.62); line-height:1.55; margin:10px 0 28px; }
+  .ob-side { position:sticky; top:12px; background:var(--s-salvia); border-radius:20px; padding:32px 24px; display:flex; flex-direction:column; align-items:center; gap:16px; min-height:calc(100vh - 140px); justify-content:center; }
+  .ob-side p { font-size:14px; color:rgba(34,32,27,.62); text-align:center; }
+  .ob-note { font-size:13px; color:rgba(34,32,27,.55); margin-top:16px; line-height:1.5; }
   /* Content */
   .ob-content { flex:1; display:flex; align-items:flex-start; justify-content:center; padding:48px 24px 32px; }
   .ob-step { width:100%; display:flex; flex-direction:column; }
-  .ob-action-label { font-family:var(--font-d); font-size:17px; font-weight:800; color:var(--s-tinta); margin-bottom:24px; line-height:1.35; letter-spacing:-.01em; position:relative; padding-bottom:13px; }
-  .ob-action-label::after { content:''; position:absolute; left:0; bottom:0; width:34px; height:3px; background:var(--s-brasa); border-radius:2px; }
-  .ob-mobile-step-title { display:none; }
-  .ob-mobile-step-title h2 { font-family:var(--font-d); font-weight:800; font-size:24px; color:var(--s-tinta); line-height:1.2; margin-bottom:6px; }
-  .ob-mobile-step-title p { font-size:13px; color:rgba(34,32,27,.5); line-height:1.6; margin-bottom:16px; }
-  @media (max-width:768px) {
-  .ob-mobile-step-title { display:block; padding-bottom:16px; border-bottom:1px solid rgba(34,32,27,.06); margin-bottom:20px; }
-    .ob-mobile-dots { display:flex; gap:6px; margin-bottom:16px; }
-    .ob-mobile-dot { width:8px; height:8px; border-radius:50%; background:rgba(34,32,27,.15); }
-    .ob-mobile-dot--on { background:var(--s-brasa); width:22px; border-radius:5px; }
-}
+  .ob-action-label { font-family:var(--font-d); font-size:15px; font-weight:700; color:var(--s-tinta); margin-bottom:16px; line-height:1.35; }
   /* Nav */
   .ob-nav { display:flex; align-items:center; justify-content:space-between; margin-top:24px; }
   /* Input */
   .ob-input { width:100%; padding:14px 16px; font-size:16px; font-weight:600; border:2px solid rgba(34,32,27,.12); border-radius:12px; background:#fff; color:var(--s-tinta); font-family:var(--font-d); outline:none; transition:border-color .15s; margin-bottom:24px; }
-  .ob-input:focus { border-color:var(--s-brasa); }
+  .ob-input:focus { border-color:var(--s-pino); }
   /* Sector */
   .ob-sector-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
   .ob-sector-btn { display:flex; align-items:center; gap:14px; padding:16px 18px; background:#fff; border:2px solid rgba(34,32,27,.1); border-radius:13px; cursor:pointer; transition:all .15s; text-align:left; position:relative; box-shadow:none; }
   .ob-sector-btn:hover { border-color:rgba(34,32,27,.25); background:var(--s-salvia); }
-  .ob-sector-btn--on { border-color:var(--s-brasa); background:rgba(199,93,58,.07); }
+  .ob-sector-btn--on { border-color:var(--s-pino); background:rgba(27,65,47,.07); }
   .ob-sector-icon { color:rgba(34,32,27,.5); flex-shrink:0; }
-  .ob-sector-btn--on .ob-sector-icon { color:var(--s-brasa); }
+  .ob-sector-btn--on .ob-sector-icon { color:var(--s-pino); }
   .ob-sector-label { font-size:12.5px; font-weight:600; color:var(--s-tinta); line-height:1.3; }
-  .ob-sector-check { position:absolute; top:-9px; right:-9px; width:22px; height:22px; border-radius:50%; background:var(--s-brasa); display:flex; align-items:center; justify-content:center; color:#fff; border:2.5px solid var(--s-salvia); }
+  .ob-sector-check { position:absolute; top:-9px; right:-9px; width:22px; height:22px; border-radius:50%; background:var(--s-pino); display:flex; align-items:center; justify-content:center; color:#fff; border:2.5px solid #fff; }
   /* Card types */
   .ob-card-types { display:flex; flex-direction:column; gap:10px; }
   .ob-type-card { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:16px 18px; background:#fff; border:2px solid rgba(34,32,27,.1); border-radius:14px; cursor:pointer; transition:all .15s; text-align:left; }
   .ob-type-card:hover { border-color:rgba(34,32,27,.25); }
-  .ob-type-card--on { border-color:var(--s-brasa); background:rgba(199,93,58,.05); }
+  .ob-type-card--on { border-color:var(--s-pino); background:rgba(27,65,47,.06); }
   .ob-type-card--rec:not(.ob-type-card--on) { border-color:rgba(199,93,58,.3); border-style:dashed; }
   .ob-type-name { font-size:15px; font-weight:700; color:var(--s-tinta); margin-bottom:4px; }
   .ob-type-desc { font-size:12px; color:rgba(34,32,27,.5); }
@@ -602,17 +565,17 @@ const CSS = `
   .ob-type-right { display:flex; flex-direction:column; align-items:flex-end; gap:10px; flex-shrink:0; }
   .ob-rec-badge { font-size:9.5px; font-weight:700; background:var(--s-brasa); color:#fff; padding:3px 10px; border-radius:20px; white-space:nowrap; }
   .ob-radio { width:20px; height:20px; border-radius:50%; border:2px solid rgba(34,32,27,.2); flex-shrink:0; display:flex; align-items:center; justify-content:center; margin-top:2px; }
-  .ob-radio--on { border-color:var(--s-brasa); }
-  .ob-radio-dot { width:10px; height:10px; border-radius:50%; background:var(--s-brasa); }
+  .ob-radio--on { border-color:var(--s-pino); }
+  .ob-radio-dot { width:10px; height:10px; border-radius:50%; background:var(--s-pino); }
   /* Stamps */
   .ob-stamp-grid { display:flex; gap:10px; flex-wrap:wrap; }
   .ob-stamp-btn { display:flex; flex-direction:column; align-items:center; gap:4px; width:76px; padding:14px 0; background:#fff; border:2px solid rgba(34,32,27,.12); border-radius:14px; cursor:pointer; transition:all .15s; font-family:var(--font-d); }
   .ob-stamp-btn:hover { border-color:rgba(34,32,27,.3); }
-  .ob-stamp-btn--on { border-color:var(--s-brasa); background:var(--s-brasa); color:#fff; }
+  .ob-stamp-btn--on { border-color:var(--s-pino); background:var(--s-pino); color:#fff; }
   .ob-stamp-num { font-size:26px; font-weight:800; }
   .ob-stamp-sub { font-size:9px; opacity:.7; }
   .ob-section-label { font-size:13px; font-weight:600; color:var(--s-tinta); margin:24px 0 12px; }
-  .ob-hint { display:flex; align-items:center; gap:10px; font-size:12.5px; color:rgba(34,32,27,.55); margin-top:18px; background:rgba(34,32,27,.045); padding:11px 16px; border-radius:11px; line-height:1.5; }
+  .ob-hint-old { display:flex; align-items:center; gap:10px; font-size:12.5px; color:rgba(34,32,27,.55); margin-top:18px; background:rgba(34,32,27,.045); padding:11px 16px; border-radius:11px; line-height:1.5; }
   /* Points */
   .ob-pts-input { width:88px; padding:10px; font-size:24px; font-weight:800; text-align:center; border:2px solid rgba(34,32,27,.12); border-radius:12px; background:#fff; color:var(--s-tinta); font-family:var(--font-d); outline:none; }
   .ob-pts-input:focus { border-color:var(--s-brasa); }
@@ -630,7 +593,7 @@ const CSS = `
   .ob-reward-opts { display:flex; flex-direction:column; gap:10px; }
   .ob-reward-opt { display:flex; align-items:flex-start; gap:14px; padding:16px 18px; background:#fff; border:2px solid rgba(34,32,27,.1); border-radius:14px; cursor:pointer; transition:all .15s; }
   .ob-reward-opt:hover { border-color:rgba(34,32,27,.25); }
-  .ob-reward-opt--on { border-color:var(--s-brasa); background:rgba(199,93,58,.05); }
+  .ob-reward-opt--on { border-color:var(--s-pino); background:rgba(27,65,47,.06); }
   .ob-reward-title { font-size:14px; font-weight:700; color:var(--s-tinta); margin-bottom:4px; }
   .ob-reward-desc { font-size:12px; color:rgba(34,32,27,.55); line-height:1.5; }
   /* Branding */
@@ -661,9 +624,6 @@ const CSS = `
   .ob-summary-note { font-size:11px; color:rgba(34,32,27,.4); margin-top:14px; padding-top:12px; border-top:1px solid rgba(34,32,27,.07); line-height:1.5; }
   .ob-finish-btn { width:100%; padding:13px 16px; }
 
-  .ob-header-step { font-size:12px; font-weight:600; color:rgba(247,240,228,.6); }
-  .ob-mobile-tip { display:flex; gap:8px; align-items:flex-start; margin-top:10px; font-size:12.5px; line-height:1.5; color:rgba(34,32,27,.6); background:rgba(199,93,58,.06); border-radius:10px; padding:10px 12px; }
-  .ob-mobile-tip img { flex-shrink:0; margin-top:1px; }
   .ob-loading { padding:40px 0; color:rgba(34,32,27,.45); font-size:14px; }
   .ob-stepper-row { display:flex; align-items:center; gap:14px; margin-top:14px; }
   .ob-stepper-lbl { font-size:13px; color:rgba(34,32,27,.55); }
@@ -689,18 +649,20 @@ const CSS = `
   .ob-field-error { font-size:11.5px; color:var(--s-error); margin-top:6px; max-width:140px; line-height:1.4; }
   .ob-logo-note { font-size:11px; color:rgba(34,32,27,.4); margin-top:6px; max-width:140px; line-height:1.4; }
   .ob-finish-error { margin-top:14px; padding:10px 12px; border-radius:10px; background:rgba(178,59,59,.08); color:var(--s-error); font-size:12.5px; font-weight:600; line-height:1.5; }
-  @media (max-width:768px) {
-    .ob-shell { flex-direction:column; }
-    .ob-left { display:none; }
-    .ob-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; background:var(--s-pino); }
-    .ob-right { align-items:flex-start; padding:0; min-height:calc(100dvh - 64px); overflow-x:hidden; }
-    .ob-right-inner { max-width:100%; padding:24px 20px calc(40px + env(safe-area-inset-bottom)); }
-    .ob-step-title { font-size:22px; }
+  @media (max-width:860px) {
+    .ob-wrap { padding:6px; }
+    .ob-frame { border-radius:22px; padding:10px; }
+    .ob-top { padding:9px 16px; gap:12px; }
+    .ob-grid { grid-template-columns:1fr; }
+    .ob-main { min-height:0; padding:22px 18px calc(28px + env(safe-area-inset-bottom)); }
+    .ob-side { order:-1; position:static; min-height:0; padding:18px; }
+    .ob-side .l2-pass { --pw:150px !important; }
+    .ob-side .l2-p-qr, .ob-side p { display:none; }
+    .ob-grid--wide .ob-side { display:none; }
     .ob-sector-grid { grid-template-columns:repeat(2,1fr); }
     .ob-final-layout { flex-direction:column; width:100%; }
     .ob-final-pass { width:100%; max-width:300px; margin:0 auto; order:1; }
-    .ob-summary { order:2; }
-    .ob-summary { width:100%; }
+    .ob-summary { order:2; width:100%; }
     .ob-brand-row { flex-direction:column; }
   }
 `
@@ -792,77 +754,58 @@ export default function OnboardingPage() {
     6: <Step6 state={state} onBack={back} onFinish={finish} finishing={finishing} error={finishError} currency={currency} />,
   }
 
-  // El tip del paso 3 depende del programa elegido.
-  const STEP3_TIPS: Record<CardType, string> = {
-    stamp: STEP_INFO[3].tip,
-    points: 'Entre 10 y 20 puntos por visita es lo más común: los premios quedan en números fáciles (100, 200, 500).',
-    membership: 'Los niveles premian a los clientes más fieles. Con beneficios claros, subir de nivel se vuelve un objetivo.',
-  }
-  const info = step === 3 ? { ...STEP_INFO[3], tip: STEP3_TIPS[state.cardType] } : STEP_INFO[step]
+  const info = STEP_INFO[step]
+  const wide = step === 6
 
   return (
     <>
       {/* Estilos en el render (llegan con la página): antes se inyectaban
           después de mostrarla y se veía un instante sin diseño. */}
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <div className="ob-shell">
-
-        {/* Left panel — desktop only */}
-        <div className="ob-left">
-          <div className="ob-left-logo"><BrandLogo height={44} tone="cream" /></div>
-
-          {/* Progress dots */}
-          <div>
-            <div className="ob-dots">
-              {flow.map((id, i) => (
-                <div key={id} className={`ob-dot${i === position ? ' ob-dot--on' : ''}`} />
-              ))}
-            </div>
-            <div className="ob-step-label">PASO {position + 1} DE {flow.length}</div>
+      <div className="ob-wrap">
+        <div className="ob-frame">
+          <div className="ob-top">
+            <img src="/assets/wordmark.png" alt="Stampa" />
+            <div className="ob-prog" role="progressbar" aria-valuemin={1} aria-valuemax={flow.length} aria-valuenow={position + 1}><i style={{ width: `${((position + 1) / flow.length) * 100}%` }} /></div>
+            <span>Paso {position + 1} de {flow.length}</span>
           </div>
-
-          {/* Step title */}
-          <div>
-            <div className="ob-left-title">{info.title.split(' ').slice(0,-1).join(' ')} <em>{info.title.split(' ').slice(-1)}</em></div>
-            <div className="ob-left-sub">{info.subtitle}</div>
-          </div>
-
-          <div className="ob-stampy-tip">
-            <div className="ob-stampy-head">
-              <img src="/stampa-mascot-cream.png" alt="" style={{ width: 40, height: 38, objectFit: 'contain' }} />
-              <span className="ob-stampy-name">Tip de Stampy</span>
-            </div>
-            <div className="ob-stampy-text">{info.tip}</div>
-          </div>
-
-          <div style={{flex:1}} />
-        </div>
-
-        {/* Mobile header */}
-        <div className="ob-header">
-          <BrandLogo height={30} tone="cream" />
-          <span className="ob-header-step">Paso {position + 1} de {flow.length}</span>
-        </div>
-
-        {/* Right panel — form */}
-        <div className="ob-right">
-          <div className={`ob-right-inner${step === 6 ? ' ob-right-inner--wide' : ''}`}>
-            {/* Mobile step title + dots — hidden on desktop */}
-            <div className="ob-mobile-step-title">
-              <div className="ob-mobile-dots">
-                {flow.map((id, i) => (
-                  <div key={id} className={`ob-mobile-dot${i === position ? ' ob-mobile-dot--on' : ''}`} />
-                ))}
+          <div className={`ob-grid${wide ? ' ob-grid--wide' : ''}`}>
+            <div className="ob-main">
+              <div className="ob-main-in">
+                <h1 className="ob-title">{info.title}</h1>
+                <p className="ob-subtitle">{info.subtitle}</p>
+                {ready ? STEPS[step] : <div className="ob-loading">Cargando…</div>}
               </div>
-              <h2>{info.title}</h2>
-              <p>{info.subtitle}</p>
-              {/* En el celular el panel izquierdo no se ve: el tip va acá */}
-              <div className="ob-mobile-tip"><img src="/stampa-mascot-coral.png" alt="" width={22} height={21} />{info.tip}</div>
             </div>
-            {ready ? STEPS[step] : <div className="ob-loading">Cargando…</div>}
+            {!wide && (
+              <aside className="ob-side" aria-label="Vista previa de tu tarjeta">
+                <Pass b={livePass(state)} width={250} />
+                <p>Así la van a ver tus clientes en el Wallet.</p>
+              </aside>
+            )}
           </div>
         </div>
       </div>
     </>
   )
+}
+
+// La tarjeta que se va armando mientras completás: nombre, rubro, programa,
+// premio, color y logo. Es la misma tarjeta de la landing; el color del texto
+// se ajusta si elegís un color claro.
+function livePass(s: OBState): Biz {
+  const hex = /^#[0-9a-f]{6}$/i.test(s.brandColor) ? s.brandColor : DEFAULT_CARD_COLOR.start
+  const n = parseInt(hex.slice(1), 16)
+  const lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255
+  const sector = SECTORS.find(x => x.id === s.sector)?.label.toUpperCase()
+  const prize = s.cardType === 'stamp'
+    ? (s.rewardMode === 'customer' ? (s.rewardOptions[0] || 'A tu elección') : (s.rewardValue.trim() || 'Tu premio'))
+    : 'Tu premio'
+  const base: Biz = {
+    name: s.businessName.trim() || 'Tu negocio', sub: sector, color: hex, fg: lum > 0.62 ? '#1E1D1A' : '#FFFFFF',
+    logo: s.brandLogo || undefined, icon: 'negocio', head: ['', ''], who: 'Tu cliente', wa: '', prize, model: 'sellos', stamps: 3,
+  }
+  if (s.cardType === 'points') return { ...base, model: 'puntos', points: '420', next: 'Faltan 80', head: ['PRÓXIMO PREMIO', prize] }
+  if (s.cardType === 'membership') return { ...base, model: 'membresia', tier: ['Bronce', 'Plata', 20, '5 visitas para Plata'], head: ['NIVEL', 'Bronce'] }
+  return base
 }

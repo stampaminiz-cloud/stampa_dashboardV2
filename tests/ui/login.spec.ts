@@ -9,18 +9,18 @@ import { test, expect } from '@playwright/test'
 test('la página de login muestra el formulario completo', async ({ page }) => {
   await page.goto('/login')
 
-  await expect(page.getByText('Bienvenido de vuelta')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Ingresar' })).toBeVisible()
   await expect(page.getByPlaceholder('tu@negocio.com')).toBeVisible()
-  await expect(page.getByPlaceholder('••••••••')).toBeVisible()
-  await expect(page.getByRole('button', { name: /Ingresar al dashboard/i })).toBeVisible()
-  await expect(page.getByText('¿Olvidaste tu contraseña?')).toBeVisible()
+  await expect(page.getByPlaceholder('Tu contraseña')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Ingresar', exact: true })).toBeVisible()
+  await expect(page.getByText('Olvidé mi contraseña')).toBeVisible()
 })
 
 test('con credenciales inválidas muestra un mensaje de error en español', async ({ page }) => {
   await page.goto('/login')
   await page.getByPlaceholder('tu@negocio.com').fill('noexiste@stampa-test.com')
-  await page.getByPlaceholder('••••••••').fill('contraseña-incorrecta-123')
-  await page.getByRole('button', { name: /Ingresar al dashboard/i }).click()
+  await page.getByPlaceholder('Tu contraseña').fill('contraseña-incorrecta-123')
+  await page.getByRole('button', { name: 'Ingresar', exact: true }).click()
 
   await expect(page.getByText('Email o contraseña incorrectos')).toBeVisible({ timeout: 10000 })
 })

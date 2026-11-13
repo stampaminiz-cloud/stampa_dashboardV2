@@ -1,0 +1,13 @@
+{
+  "name": "Stampa Escáner",
+  "short_name": "Escáner",
+  "start_url": "/escaner",
+  "scope": "/escaner",
+  "display": "standalone",
+  "background_color": "#F1F3EE",
+  "theme_color": "#F1F3EE",
+  "icons": [
+    { "src": "/apple-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

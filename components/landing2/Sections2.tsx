@@ -1,13 +1,16 @@
 'use client'
-// Landing → "Lo que hace tu tarjeta sola" (pestañas), la vidriera de
-// negocios, "Probala" y las preguntas frecuentes.
+// Landing → "La tarjeta escribe por vos" (pestañas), el caso de Surge,
+// "Elegí tu rubro" y las preguntas frecuentes.
 import { useEffect, useRef, useState } from 'react'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { QrImage } from '@/components/QrImage'
 import { Pass } from './Pass'
 import { SHOPS, PROOF, SURGE, DEMO_BUSINESS_ID, type Biz, type Model } from './data'
 
-// ── Lo que hace tu tarjeta sola: avanza sola cada 9 s; si tocás, se queda
+// ── La tarjeta escribe por vos: avisos, cercanía y pedidos. Avanza sola cada
+// 9 s en pantallas grandes; si tocás una pestaña, se queda. En el celular no
+// cambia sola. Las tres pestañas están siempre armadas una sobre otra, así la
+// sección mide lo mismo en todas y la página no se corre.
 const NOTICES: [string, string, string, string][] = [
   ['BIENVENIDA', 'Café Aurora', '¡Bienvenida, Lucía! Ya tenés tu tarjeta. Al octavo sello, el café va de regalo.', '#6B2D1F'],
   ['TE EXTRAÑAMOS', 'Raíz Criolla', 'Hace un mes que no pasás, Martín. Esta semana tu compra suma el doble.', '#5C1414'],
@@ -31,9 +34,9 @@ export function CardAlone() {
   const whoRef = useRef<SVGGElement>(null)
   const pathRef = useRef<SVGPathElement>(null)
 
-  // Barra de progreso y paso automático
+  // Barra de progreso y paso automático (no en el celular)
   useEffect(() => {
-    if (!auto) { if (barRef.current) barRef.current.style.width = '100%'; return }
+    if (!auto || matchMedia('(max-width:700px)').matches) { if (barRef.current) barRef.current.style.width = '100%'; return }
     const t0 = performance.now(); let raf = 0
     const loop = (t: number) => {
       const u = Math.min((t - t0) / 9000, 1)
@@ -68,11 +71,12 @@ export function CardAlone() {
     return () => cancelAnimationFrame(raf)
   }, [tab])
   const pick = (t: Tab) => { setAuto(false); setTab(t) }
+  const cls = (t: Tab) => `l2-so-grid l2-so-panel${tab === t ? ' on' : ''}`
 
   return (
-    <section className="l2-sec l2-dark l2-reveal" id="pedidos">
+    <section className="l2-sec l2-dark" id="pedidos">
       <div className="l2-so-head">
-        <div><p className="l2-kicker">Lo que hace tu tarjeta sola</p><h2 className="l2-h2">Vos atendés. <span className="l2-gris">La tarjeta trae a la gente.</span></h2></div>
+        <h2 className="l2-h2">La tarjeta escribe <span className="l2-gris">por vos.</span></h2>
         <div className="l2-so-tabs" role="tablist">
           {([['avisos', 'avisos', 'Avisos automáticos', 'Avisos'], ['cerca', 'sucursales', 'Cercanía', 'Cercanía'], ['pedidos', 'pedidos', 'Pedidos', 'Pedidos']] as [Tab, IconName, string, string][]).map(([t, ic, l, short]) =>
             <button key={t} role="tab" aria-selected={tab === t} aria-label={l} onClick={() => pick(t)}><Icon name={ic} size={16} /><span className="l2-tab-l">{l}</span><span className="l2-tab-s">{short}</span></button>)}
@@ -80,13 +84,13 @@ export function CardAlone() {
         </div>
       </div>
 
-      {tab === 'avisos' && (
-        <div className="l2-so-grid l2-so-in" role="tabpanel">
+      <div className="l2-so-stack">
+        <div className={cls('avisos')} role="tabpanel" aria-hidden={tab !== 'avisos'}>
           <div>
             <span className="l2-so-plan">Bienvenida, te extrañamos y reseñas: Pro · Cumpleaños: desde Growth</span>
             <h3 className="l2-so-h3">Escribe por vos en el momento justo.</h3>
             <p className="l2-lead">Los configurás una vez y salen solos. No cuentan para tus avisos del mes.</p>
-            <ul className="l2-so-list">{AUTO.map(([ic, t, d], i) => <li key={t} className={shown - 1 === i ? 'on' : ''}><Icon name={ic} size={20} /><span><b>{t}</b>{d}</span></li>)}</ul>
+            <ul className="l2-so-list">{AUTO.map(([ic, t, d], i) => <li key={t} className={tab === 'avisos' && shown - 1 === i ? 'on' : ''}><Icon name={ic} size={20} /><span><b>{t}</b>{d}</span></li>)}</ul>
           </div>
           <div className="l2-lockbig">
             <div className="l2-time">9:41</div><div className="l2-date">martes 27 de octubre</div>
@@ -95,10 +99,8 @@ export function CardAlone() {
             ))}</div>
           </div>
         </div>
-      )}
 
-      {tab === 'cerca' && (
-        <div className="l2-so-grid l2-so-in" role="tabpanel">
+        <div className={cls('cerca')} role="tabpanel" aria-hidden={tab !== 'cerca'}>
           <div>
             <span className="l2-so-plan">Desde Growth · iPhone</span>
             <h3 className="l2-so-h3">Pasa por la puerta y se acuerda de vos.</h3>
@@ -122,10 +124,8 @@ export function CardAlone() {
             <div className="l2-cz-phone"><div className="l2-time">10:12</div><div className={`l2-notif${near ? ' in' : ''}`}><span className="l2-nic" style={{ background: '#6B2D1F' }} /><div><div className="l2-ntop"><b>Café Aurora</b><span>ahora</span></div>¡Estás cerca de Café Aurora! Pasá a sumar tu sello.</div></div></div>
           </div>
         </div>
-      )}
 
-      {tab === 'pedidos' && (
-        <div className="l2-so-grid l2-so-in" role="tabpanel">
+        <div className={cls('pedidos')} role="tabpanel" aria-hidden={tab !== 'pedidos'}>
           <div className="l2-order-phone"><div className="l2-order-screen">
             <div className="l2-op-head"><b>Raíz Criolla</b><span>Hola, Martín · Pedí con 24 horas de anticipación</span></div>
             <div className="l2-op-box"><h4>PRODUCTOS</h4>
@@ -147,75 +147,30 @@ export function CardAlone() {
             <div className="l2-feat">{([['balanza', 'Por unidad, kilo o 100 g'], ['fecha', 'Varios días'], ['sucursales', 'Por zona'], ['sinComision', 'Sin comisión']] as [IconName, string][]).map(([ic, t]) => <span key={t}><Icon name={ic} size={16} />{t}</span>)}</div>
           </div>
         </div>
-      )}
+      </div>
     </section>
   )
 }
 
-// ── Vidriera: Surge con su frase real; el resto, solo quiénes son
-type Card = { name: string; tag: string; photo?: string; logo?: string; bg?: string; pass: Biz; quote?: string }
-const SHOW: Card[] = [
-  { name: 'Surge Málaga', tag: 'Cafetería de especialidad · Málaga, España', photo: '/assets/surge-malaga-fachada.jpg', quote: SURGE.quote, pass: { name: 'Surge', color: '#111111', icon: 'cafe', model: 'sellos', head: ['SELLOS', '6 de 8'], stamps: 6, who: 'Elena M.', wa: 'CONSULTAS' } },
-  { name: 'Raíz Criolla', tag: 'Carne envasada premium · Córdoba', logo: '/assets/logo-raiz-criolla.png', bg: '#5C1414', pass: { name: 'Raíz Criolla', color: '#5C1414', icon: 'carniceria', model: 'puntos', head: ['PRÓXIMO PREMIO', '1 kg de vacío'], points: '840', next: 'Te faltan 160', who: 'Martín R.', wa: 'PEDIDOS' } },
-  { name: 'Living4Malaga', tag: 'Alojamiento turístico · Málaga, España', logo: '/assets/logo-living4malaga.png', bg: '#0C2A2A', pass: { name: 'Living4Malaga', color: '#0C2A2A', icon: 'inicio', model: 'membresia', head: ['NIVEL', 'Huésped'], tier: ['Huésped', 'Frecuente', 40, 'Beneficios en cada estadía'], who: 'Tom W.', wa: 'CONSULTAS' } },
-  { name: 'Nogal', tag: 'Comercio', logo: '/assets/logo-nogal.png', bg: '#EDEFE8', pass: { name: 'Nogal', color: '#3B2F27', icon: 'spa', model: 'sellos', head: ['SELLOS', '4 de 8'], stamps: 4, who: 'Paula G.', wa: 'CONSULTAS' } },
-]
-export function Showcase() {
-  const [k, setK] = useState(0)
-  const [auto, setAuto] = useState(true)
-  const [w, setW] = useState(1000)
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const ro = new ResizeObserver(() => setW(el.clientWidth))
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-  useEffect(() => { if (!auto) return; const t = setInterval(() => setK(v => (v + 1) % SHOW.length), 5000); return () => clearInterval(t) }, [auto])
-  const go = (d: number) => { setAuto(false); setK(v => (v + d + SHOW.length) % SHOW.length) }
-  const cw = Math.min(620, w * .86)
+// ── Caso de Surge: su frase y su dato, con la fuente
+export function Caso() {
+  const otros = PROOF.filter(p => p.name !== 'Surge Málaga')
   return (
-    <section className="l2-sec l2-reveal" id="negocios" style={{ overflow: 'hidden' }}>
-      <div className="l2-sec-head l2-center"><p className="l2-kicker">Negocios que lo usan</p><h2 className="l2-h2">Negocios reales. <span className="l2-gris">Clientes que vuelven.</span></h2></div>
-      <div className="l2-vit-stage" ref={ref}>
-        {SHOW.map((c, i) => {
-          let o = i - k
-          if (o > SHOW.length / 2) o -= SHOW.length
-          if (o < -SHOW.length / 2) o += SHOW.length
-          return (
-            <div key={c.name} className="l2-vit" onClick={() => { if (o) { setAuto(false); setK(i) } }}
-              style={{ width: cw, transform: `translateX(calc(-50% + ${o * cw * 1.02}px)) scale(${o ? .86 : 1})`, opacity: Math.abs(o) > 1 ? 0 : o ? .45 : 1, zIndex: 10 - Math.abs(o), pointerEvents: Math.abs(o) > 1 ? 'none' : 'auto' }}>
-              <div className="l2-vit-card">
-                <div className="l2-vit-photo">
-                  {c.photo ? <img src={c.photo} alt={`Fachada de ${c.name}`} /> : <div className="l2-logo-only" style={{ background: c.bg }}><img src={c.logo} alt={c.name} /></div>}
-                  <Pass b={c.pass} width={150} className="l2-vit-pass" />
-                </div>
-                <div className="l2-vit-text">
-                  <span className="l2-vtag">{c.tag}</span>
-                  <h3>{c.name}</h3>
-                  {c.quote ? <><blockquote>“{c.quote}”</blockquote><div className="l2-nums">{SURGE.stats.map(([n, l]) => <div key={l}><b>{n}</b><span>{l}</span></div>)}</div></>
-                    : <p>Sus clientes llevan la tarjeta en el Wallet y suman en cada visita.</p>}
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      <div className="l2-vit-ctrl">
-        <button className="l2-circ" aria-label="Anterior" onClick={() => go(-1)}><Icon name="anterior" size={18} /></button>
-        <div className="l2-dots">{SHOW.map((c, i) => <i key={c.name} className={i === k ? 'on' : ''} />)}</div>
-        <button className="l2-circ" aria-label="Siguiente" onClick={() => go(1)}><Icon name="siguiente" size={18} /></button>
-      </div>
-      <p className="l2-logos-k">También trabajan con Stampa</p>
-      <div className="l2-logos" aria-label="Negocios que usan Stampa">
-        {[0, 1].map(t => <div key={t} className="l2-track" aria-hidden={t === 1}>{[...PROOF, ...PROOF].map((l, i) => <div key={i} className="l2-lg"><span className="l2-mark" style={{ background: l.bg }}><img src={l.logo} alt="" /></span><div><b>{l.name}</b><small>{l.category}</small></div></div>)}</div>)}
+    <section className="l2-sec" id="negocios">
+      <div className="l2-caso">
+        <img src="/assets/surge-malaga-fachada.jpg" alt="Fachada de Surge Málaga" />
+        <div>
+          <h2 className="l2-h2">Surge Málaga sumó 150 clientes a su tarjeta en dos meses. <span className="l2-gris">7 de cada 10 volvieron.</span></h2>
+          <blockquote>“{SURGE.quote}”</blockquote>
+          <cite>Surge Málaga, cafetería de especialidad. Datos de su panel de Stampa.</cite>
+          <div className="l2-otros" aria-label="También trabajan con Stampa">{otros.map(o => <span key={o.name}>{o.name}</span>)}</div>
+        </div>
       </div>
     </section>
   )
 }
 
-// ── Probala: rubro + modelo, y el QR real del negocio demo (si está configurado)
+// ── Elegí tu rubro: rubro + modelo, y el QR real del negocio demo (si está configurado)
 export function TryIt() {
   const [ri, setRi] = useState(0)
   const [model, setModel] = useState<Model | null>(null)
@@ -225,21 +180,20 @@ export function TryIt() {
   const m = model || base.model
   const b: Biz = m === base.model ? base
     : m === 'sellos' ? { ...base, model: m, head: ['SELLOS', '3 de 8'], stamps: 3 }
-    : m === 'puntos' ? { ...base, model: m, head: ['PRÓXIMO PREMIO', 'Un regalo'], points: '420', next: 'Te faltan 80' }
+    : m === 'puntos' ? { ...base, model: m, head: ['PRÓXIMO PREMIO', base.prize || 'Un regalo'], points: '420', next: 'Te faltan 80', prize: base.prize || 'Un regalo' }
     : { ...base, model: m, head: ['NIVEL', 'Plata'], tier: ['Plata', 'Oro', 60, 'Te faltan 4 visitas para Oro'] }
   const demoUrl = DEMO_BUSINESS_ID && origin ? `${origin}/r/${DEMO_BUSINESS_ID}` : ''
   return (
-    <section className="l2-sec l2-reveal" id="probala">
+    <section className="l2-sec" id="probala">
       <div className="l2-try">
         <div>
-          <p className="l2-kicker">Probala</p>
-          <h2 className="l2-h2">Así se vería <span className="l2-gris">la tuya.</span></h2>
-          <p className="l2-lead" style={{ marginTop: 14, maxWidth: 520 }}>Elegí tu rubro y el modelo (sellos, puntos o membresía) y mirá la tarjeta como la ven tus clientes en el Wallet.</p>
+          <h2 className="l2-h2">Elegí tu rubro <span className="l2-gris">y mirá tu tarjeta.</span></h2>
+          <p className="l2-lead" style={{ marginTop: 14, maxWidth: 520 }}>El cliente escanea el QR de tu mostrador, deja su nombre y la guarda en Apple Wallet o Google Wallet. Tu equipo le suma en cada visita con la app de Stampa.</p>
           <div className="l2-rubros">{SHOPS.map((s, i) => <button key={s.name} aria-pressed={i === ri} onClick={() => { setRi(i); setModel(null) }}><Icon name={s.icon} size={16} />{s.label}</button>)}</div>
           <div className="l2-models" role="group" aria-label="Modelo de tarjeta">{(['sellos', 'puntos', 'membresia'] as Model[]).map(x => <button key={x} aria-pressed={x === m} onClick={() => setModel(x)}>{x === 'sellos' ? 'Sellos' : x === 'puntos' ? 'Puntos' : 'Membresía'}</button>)}</div>
           {demoUrl && <div className="l2-try-qr"><QrImage value={demoUrl} size={84} margin={0} dark="#1B412F" light="#FFFFFF" alt="QR para probar una tarjeta Stampa" /><p><b>Llevate una de verdad</b>Escaneá el código con tu celular y guardá una tarjeta de prueba en tu Wallet.</p></div>}
         </div>
-        <div className="l2-try-pass"><Pass key={`${ri}-${m}`} b={b} width={290} className="l2-pop-in" /></div>
+        <div className="l2-try-pass"><Pass key={`${ri}-${m}`} b={b} width={270} className="l2-pop-in" /></div>
       </div>
     </section>
   )
@@ -249,18 +203,15 @@ export function TryIt() {
 const FAQ: [string, string][] = [
   ['¿Mis clientes necesitan descargar una app?', 'No. La tarjeta de fidelización vive directamente en Apple Wallet o en Google Wallet, que ya vienen en el teléfono. No hace falta bajar nada ni crear una cuenta.'],
   ['¿Cómo escaneo la tarjeta de mis clientes?', 'Con la app de escaneo de Stampa. Tu equipo entra con un PIN y vos con tu email. Escaneás el código de la tarjeta (o buscás al cliente por nombre) y el sello, punto o visita se actualiza al instante en su Wallet.'],
-  ['¿Mis clientes me pueden escribir por WhatsApp desde la tarjeta?', 'Sí, en todos los planes. Cargás tu número y elegís hasta dos botones según tu rubro (pedidos, turnos, consultas). En el dorso de la tarjeta dicen “Tocá para…” y el mensaje llega escrito con tu nombre y el del cliente.'],
   ['¿Puedo tomar pedidos? ¿Stampa los cobra?', 'En el plan Pro, tus clientes arman el pedido desde la tarjeta con tus productos y precios, por unidad, por kilo o por 100 gramos, para uno o varios días y su zona. Te llega escrito al WhatsApp. Stampa no cobra los pedidos ni se queda con una comisión: el cliente te avisa cómo paga y vos le confirmás.'],
-  ['¿Cuánto tarda en configurarse?', 'Menos de 15 minutos. Elegís el formato de tu tarjeta (sellos, puntos o membresía), la personalizás con tu marca y ya podés compartirla con tus clientes.'],
   ['¿Necesito tarjeta de crédito para probar?', 'No. Los 14 días de prueba gratuita no piden tarjeta de crédito. Solo pagás si decidís continuar con un plan pago.'],
   ['¿Puedo cambiar de plan o cancelar cuando quiera?', 'Sí, no hay permanencia. Podés subir, bajar o cancelar tu plan en cualquier momento desde el panel.'],
-  ['¿Puedo premiar cumpleaños o hacer días con sello doble?', 'Sí. En Configuración activás el regalo de cumpleaños, elegís qué días de la semana cada visita vale doble y si los sellos o puntos vencen cuando un cliente deja de venir. Los avisos salen solos y no cuentan para tus notificaciones del mes.'],
 ]
 export function Faq({ salesHref }: { salesHref: string }) {
   return (
-    <section className="l2-sec l2-reveal" id="faq">
+    <section className="l2-sec" id="faq">
       <div className="l2-faq-grid">
-        <div><p className="l2-kicker">Preguntas</p><h2 className="l2-h2">Lo que más <span className="l2-gris">nos preguntan.</span></h2><p className="l2-lead" style={{ marginTop: 14 }}>¿Te queda alguna? <a href={salesHref} target="_blank" rel="noopener noreferrer" className="l2-link">Escribinos por WhatsApp</a> y te respondemos nosotros, no un bot.</p></div>
+        <div><h2 className="l2-h2">Lo que más <span className="l2-gris">nos preguntan.</span></h2><p className="l2-lead" style={{ marginTop: 14 }}>¿Te queda alguna? <a href={salesHref} target="_blank" rel="noopener noreferrer" className="l2-link">Escribinos por WhatsApp</a> y te respondemos nosotros, no un bot.</p></div>
         <div className="l2-faq">{FAQ.map(([q, a], i) => <details key={q} open={i === 0}><summary>{q}<Icon name="agregar" size={18} /></summary><p>{a}</p></details>)}</div>
       </div>
     </section>

@@ -16,9 +16,9 @@ export async function loginAsTestUser(page: Page) {
   }
 
   await page.goto('/login')
-  await page.getByPlaceholder('tu@negocio.com').fill(email)
-  await page.getByPlaceholder('••••••••').fill(password)
-  await page.getByRole('button', { name: /Ingresar al dashboard/i }).click()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Contraseña').fill(password)
+  await page.getByRole('button', { name: 'Ingresar', exact: true }).click()
 
   await page.waitForURL('**/dashboard', { timeout: 15000 })
 

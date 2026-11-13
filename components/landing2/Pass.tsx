@@ -1,23 +1,48 @@
-// La tarjeta como se ve en Apple Wallet, en los tres modelos: arriba el
-// nombre y el dato principal, en el medio sellos / puntos / nivel, abajo
-// titular y WhatsApp, y el QR. El QR es decorativo (no lleva a nada).
-import { Icon } from '@/components/ui/Icon'
+// La tarjeta como se ve en Apple Wallet, copiada del pase real que arma el
+// backend: logo arriba, sellos como puntos llenos o translúcidos (sin
+// íconos), puntos con barra y perilla, membresía con la escalera de niveles
+// y el QR en un panel blanco. El QR es decorativo (no lleva a nada).
 import type { Biz } from './data'
 
-export function Pass({ b, width = 260, qr = true, className }: { b: Biz; width?: number; qr?: boolean; className?: string }) {
-  const style = { background: b.color, ['--c' as string]: b.color, ['--pw' as string]: `${width}px` } as React.CSSProperties
+const TIERS = ['Bronce', 'Plata', 'Oro', 'Black']
+
+export function Pass({ b, width = 260, qr = true, className, fresh = false }: { b: Biz; width?: number; qr?: boolean; className?: string; fresh?: boolean }) {
+  const style = { ['--bg' as string]: b.color, ['--fg' as string]: b.fg || '#fff', ['--pw' as string]: `${width}px` } as React.CSSProperties
+  const prize = b.prize || (b.head[0] === 'PRÓXIMO PREMIO' ? b.head[1] : 'Un regalo')
+  const stamps = b.stamps ?? 0
+
+  let tiers = TIERS, idx = b.tier ? TIERS.indexOf(b.tier[0]) : -1
+  if (b.tier && idx < 0) { tiers = [b.tier[0], b.tier[1]]; idx = 0 }
+
   return (
     <div className={`l2-pass${className ? ' ' + className : ''}`} style={style}>
-      <div className="l2-pass-h"><span className="l2-pass-n">{b.name}</span><div className="l2-f l2-r"><span>{b.head[0]}</span><b>{b.head[1]}</b></div></div>
+      <div className="l2-p-logo">
+        <span className="l2-p-ring">{b.logo ? <img src={b.logo} alt="" /> : (b.name[0] || 'T').toUpperCase()}</span>
+        <div><div className="l2-p-name">{b.name}</div>{b.sub && <div className="l2-p-sub">{b.sub}</div>}</div>
+      </div>
+
       {b.model === 'puntos' ? (
-        <div className="l2-pts"><div><b>{b.points}</b><small>puntos</small></div><span>{b.next}</span></div>
+        <div>
+          <div className="l2-p-big"><b>{b.points}</b><span>puntos</span></div>
+          <div className="l2-p-bar"><i style={{ width: '62%' }} /><u style={{ left: '62%' }} /><s /></div>
+          <div className="l2-p-cap">{b.next} para {prize}</div>
+        </div>
       ) : b.model === 'membresia' && b.tier ? (
-        <div className="l2-tier"><div className="l2-tl"><span>{b.tier[0]}</span><span style={{ opacity: .7 }}>{b.tier[1]}</span></div><div className="l2-bar"><i style={{ width: `${b.tier[2]}%` }} /></div><small>{b.tier[3]}</small></div>
+        <>
+          <div className="l2-p-lad">{tiers.map((t, i) => <div key={t} className={`l2-p-t${i === idx ? ' on' : ''}`}><em><i /></em>{t}</div>)}</div>
+          <div className="l2-p-pill">{b.tier[3]}</div>
+        </>
       ) : (
-        <div className="l2-strip">{Array.from({ length: 8 }, (_, i) => <i key={i} className={i < (b.stamps ?? 0) ? 'on' : ''}><Icon name={b.icon} size={14} /></i>)}</div>
+        <div className="l2-p-dots">{Array.from({ length: 8 }, (_, i) => <i key={i} className={`${i < stamps ? 'on' : ''}${fresh && i === stamps - 1 ? ' new' : ''}`} />)}</div>
       )}
-      <div className="l2-pass-row"><div className="l2-f"><span>TITULAR</span><b>{b.who}</b></div><div className="l2-f l2-r"><span>{b.wa}</span><b>WhatsApp ⓘ</b></div></div>
-      {qr && <div className="l2-qr"><FakeQr seed={b.name} /></div>}
+
+      <div className="l2-p-row">
+        <div className="l2-p-f"><span>TITULAR</span><b>{b.who}</b></div>
+        {b.model === 'puntos' ? <div className="l2-p-f"><span>VISITAS</span><b>14</b></div>
+          : b.model !== 'membresia' && <div className="l2-p-f"><span>PREMIO</span><b>{prize}</b></div>}
+      </div>
+
+      {qr && <div className="l2-p-qr"><FakeQr seed={b.name} /></div>}
     </div>
   )
 }

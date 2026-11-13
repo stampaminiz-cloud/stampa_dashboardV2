@@ -421,8 +421,8 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
   const setup = a?.setup
   const STEPS = setup ? [
     { done: setup.hasCustomers, title: 'Compartí el link de tu formulario', body: 'Tus clientes se registran y se llevan la tarjeta a su Wallet.', cta: 'Ver mi formulario', tab: 'form' as TabId },
-    !isManager && { done: setup.hasScanner, title: 'Creá un empleado para la app de escaneo', body: 'Cada empleado entra con su propio PIN.', cta: 'Ir a Equipo', tab: 'users' as TabId },
-    !isManager && { done: setup.scannerUsed, title: 'Activá el celular del local', body: 'Equipo → "Activar dispositivo de escaneo" y escaneá el QR con la app.', cta: 'Ir a Equipo', tab: 'users' as TabId },
+    !isManager && { done: setup.hasScanner, title: 'Sumá un empleado para escanear', body: 'Cada empleado entra con su propio PIN.', cta: 'Ir a Equipo', tab: 'users' as TabId },
+    !isManager && { done: setup.scannerUsed, title: 'Activá el celular del local', body: 'En Equipo, mandá el link por WhatsApp al celular del local y abrilo ahí.', cta: 'Ir a Equipo', tab: 'users' as TabId },
     { done: setup.hasVisits, title: 'Escaneá la tarjeta de tu primer cliente', body: 'Con la app, sumale su primer sello, puntos o visita.', cta: null, tab: null },
   ].filter(Boolean) as { done: boolean; title: string; body: string; cta: string | null; tab: TabId | null }[] : []
   // WhatsApp es opcional: se ofrece, pero no cuenta ni deja la tarjeta abierta.
@@ -1110,6 +1110,9 @@ export default function DashboardPage() {
             publicDescription: c.publicDescription || null,
             expiryMonths: c.expiryMonths || 0,
             doubleDays: c.doubleDays || [],
+            maxPerDay: c.maxPerDay ?? null,
+            minHoursBetween: c.minHoursBetween || 0,
+            limitOverride: c.limitOverride !== false,
           })))
         } else console.error('cards load error:', cardsRes.reason)
 
@@ -1210,6 +1213,9 @@ export default function DashboardPage() {
             publicDescription: c.publicDescription || null,
             expiryMonths: c.expiryMonths || 0,
             doubleDays: c.doubleDays || [],
+            maxPerDay: c.maxPerDay ?? null,
+            minHoursBetween: c.minHoursBetween || 0,
+            limitOverride: c.limitOverride !== false,
       })))
     } catch (err) {
       console.error('Error refreshing cards:', err)
