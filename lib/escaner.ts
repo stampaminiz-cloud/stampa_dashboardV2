@@ -12,6 +12,7 @@ import { BASE_URL } from './api'
 const K_DEVICE = 'stampa_escaner_device'
 const K_TOKEN = 'stampa_escaner_token'
 const K_ONBOARDED = 'stampa_escaner_vio_bienvenida'
+const K_TIP = 'stampa_escaner_tip_inicio'
 
 // ─── Celular vinculado ────────────────────────────────────────────────────────
 // deviceKey: solo si se vinculó con el link de Equipo (se puede quitar desde
@@ -35,6 +36,10 @@ export const getDevice = () => read<Device>(K_DEVICE)
 export const setDevice = (d: Device | null) => write(K_DEVICE, d)
 export const getToken = () => read<string>(K_TOKEN)
 export const setToken = (t: string | null) => write(K_TOKEN, t)
+// Consejo "agregalo a la pantalla de inicio": queda pendiente al vincular el
+// celular y se muestra una sola vez, ya adentro y con la bienvenida hecha.
+export const tipPending = () => read<boolean>(K_TIP) === true
+export const setTipPending = (v: boolean) => write(K_TIP, v ? true : null)
 export const sawWelcome = (id: string) => (read<string[]>(K_ONBOARDED) || []).includes(id)
 export const markWelcome = (id: string) => write(K_ONBOARDED, [...new Set([...(read<string[]>(K_ONBOARDED) || []), id])].slice(-30))
 
@@ -50,7 +55,7 @@ export interface CustomerView {
   doubleToday?: boolean
   birthdayGift?: { gift: string; until?: string } | null
   limit?: Limit | null
-  stamp?: { stamps: number; required: number; remaining: number; completed: boolean; reward: string; flipMessage?: string; flipSubMessage?: string }
+  stamp?: { stamps: number; required: number; remaining: number; completed: boolean; reward: string; flipMessage?: string; flipSubMessage?: string; flipImageUrl?: string | null }
   points?: { balance: number; mode: 'visit' | 'amount'; pointsPerVisit: number; rule: { perAmount: number; unit: number; currency: 'ARS' | 'EUR' } | null; catalog: CatalogItem[]; canRedeem: boolean }
   membership?: { totalVisits: number; tiers: Tier[]; currentTierIndex: number; currentTier: Tier | null; nextTier: Tier | null; visitsToNext: number | null }
 }
@@ -106,7 +111,7 @@ async function request<T>(method: string, path: string, body?: unknown, auth = t
 export const escaner = {
   claimLink: (token: string) => request<{ deviceKey: string; business: { id: string; name: string }; location: { id: string; name: string } }>('POST', '/api/auth/scanner-link/claim', { token }, false),
   publicBusiness: (businessId: string, locationId?: string | null) =>
-    request<{ business: { id: string; name: string }; location?: { name: string | null } | null }>('GET', `/api/businesses/${businessId}/public${locationId ? `?s=${encodeURIComponent(locationId)}` : ''}`, undefined, false),
+    request<{ business: { id: string; name: string }; branch?: { multi: boolean; name: string | null } | null }>('GET', `/api/businesses/${businessId}/public${locationId ? `?s=${encodeURIComponent(locationId)}` : ''}`, undefined, false),
   login: (d: Device, pin: string) =>
     request<{ token: string; scanner: { id: string; fullName: string }; location: { id: string; name: string } }>('POST', '/api/auth/scanner-login', { businessId: d.businessId, pin, ...(d.locationId ? { locationId: d.locationId } : {}), ...(d.deviceKey ? { deviceKey: d.deviceKey } : {}) }, false),
   ownerLogin: (email: string, password: string, d: Device | null, pick: { businessId?: string; locationId?: string } = {}) =>

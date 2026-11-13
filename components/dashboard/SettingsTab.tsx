@@ -514,6 +514,11 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           <MyAccountSection ownerName={ownerName} ownerEmail={ownerEmail} isManager={isManager} pendingEmail={pendingEmail} />
         </Section>
 
+        <Section title="Seguridad" icon={<Icon name="candado" size={16} />}>
+          <PasswordSection />
+          <SessionsSection />
+        </Section>
+
         <Section title={t('st_profile')} icon={<Icon name="negocio" size={16} />}>
           <FieldRow label={t('st_name')}><EditableText value={business.name} maxLength={60} onSave={v => handleSave('name', v)} /></FieldRow>
           <FieldRow label={t('st_sector')}><SectorField value={business.sector} saving={saving} saved={saved} t={t} onSave={v => { handleSave('sector', v) }} />{msgFor('sector')}</FieldRow>
@@ -543,11 +548,6 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           {(() => { const c = (cards as any[] || []).find((x: any) => x.isActive) || (cards as any[] || [])[0]; return (
             <WhatsappSettings businessId={businessId} isManager={isManager} onSaved={onSave} color={c?.color} textColor={c?.textColor || undefined} />
           ) })()}
-        </Section>
-
-        <Section title="Seguridad" icon={<Icon name="candado" size={16} />}>
-          <PasswordSection />
-          <SessionsSection />
         </Section>
 
         <Section title={t('st_rules')} icon={<Icon name="reglas" size={16} />}>
@@ -582,8 +582,18 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           <div className="st-rules-foot">Los avisos automáticos de estas reglas no cuentan para tus envíos del mes.</div>
         </Section>
 
-        <Section title="Cómo suman tus clientes" icon={<Icon name="reglas" size={16} />}>
-          <SumarConfig businessId={businessId} cards={cards as any} onCardsChanged={onCardsChanged} onChoosePlan={onChoosePlan} isManager={isManager} />
+        <Section title="Cómo suman tus clientes" icon={<Icon name="qr" size={16} />}>
+          {/* Mismo armado que Reglas del programa: a la izquierda lo de todo el
+              negocio, a la derecha lo de cada tarjeta. */}
+          <div className="st-rules-grid">
+            <div className="st-rules-col">
+              <SumarConfig part="business" businessId={businessId} cards={cards as any} onCardsChanged={onCardsChanged} onChoosePlan={onChoosePlan} isManager={isManager} />
+            </div>
+            <div className="st-rules-col">
+              <SumarConfig part="cards" businessId={businessId} cards={cards as any} onCardsChanged={onCardsChanged} onChoosePlan={onChoosePlan} isManager={isManager} />
+            </div>
+          </div>
+          <div className="st-rules-foot">La regla vale para la app y para el escáner web.</div>
         </Section>
 
         <Section title={t('st_alerts')} icon={<Icon name="mail" size={16} />}>

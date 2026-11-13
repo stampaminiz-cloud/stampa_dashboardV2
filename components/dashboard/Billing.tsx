@@ -15,7 +15,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CardPayment, initMercadoPago } from '@mercadopago/sdk-react'
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe-js'
-import { SumarPlanTable } from './SumarConfig'
 import { apiBillingPlans, apiBillingStatus, apiStripeCheckout, apiSubscribeMercadoPago, type BillingPlan, type BillingStatus } from '@/lib/api'
 
 const MP_PUBLIC_KEY = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || ''
@@ -202,7 +201,6 @@ export function PlanModal({ billing, ownerEmail, onClose, onDone }: { billing: B
                 ))}
               </div>
             )}
-            <SumarPlanTable />
             <div className="bl-foot">
               <button className="bl-btn bl-btn--ghost" onClick={onClose}>Ahora no</button>
               <button className="bl-btn" disabled={!selected || (isStripe ? !stripeKey : !MP_PUBLIC_KEY) || currentKey === (selected && `${selected.plan}:${selected.period}`)} onClick={() => setStep('card')}>Continuar</button>

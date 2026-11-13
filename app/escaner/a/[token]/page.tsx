@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { EscanerApp } from '@/components/escaner/EscanerApp'
-import { escaner, setDevice, setToken, type EscanerError } from '@/lib/escaner'
+import { escaner, setDevice, setToken, setTipPending, type EscanerError } from '@/lib/escaner'
 
 // El link es de un solo uso: que React no lo canjee dos veces (modo dev).
 let claiming: Promise<unknown> | null = null
@@ -20,16 +20,17 @@ export default function VincularPage() {
       .then(r => {
         setToken(null)
         setDevice({ businessId: r.business.id, businessName: r.business.name, locationId: r.location.id, locationName: r.location.name, deviceKey: r.deviceKey })
+        setTipPending(true)
         setState('ok')
       })
       .catch((e: EscanerError) => setState({ error: e.message }))
   }, [token])
 
-  if (state === 'ok') return <EscanerApp justLinked />
+  if (state === 'ok') return <EscanerApp />
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#F1F3EE', fontFamily: 'var(--font-body)', textAlign: 'center' }}>
       {state === 'linking'
-        ? <p>Vinculando este celular…</p>
+        ? <p>Vinculando este celular...</p>
         : <div style={{ maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <b style={{ fontSize: 20 }}>No pudimos vincular este celular</b>
             <span style={{ color: 'rgba(34,32,27,.62)' }}>{state.error}</span>
