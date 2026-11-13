@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 
 type Scanner = { start(): Promise<void>; stop(): void; destroy(): void; hasFlash(): Promise<boolean>; toggleFlash(): Promise<void>; isFlashOn(): boolean }
 
-export function Camara({ onCode, paused, hint }: { onCode: (text: string) => void; paused: boolean; hint: string }) {
+export function Camara({ onCode, paused }: { onCode: (text: string) => void; paused: boolean }) {
   const video = useRef<HTMLVideoElement>(null)
   const scanner = useRef<Scanner | null>(null)
   const pausedRef = useRef(paused)
@@ -52,16 +52,14 @@ export function Camara({ onCode, paused, hint }: { onCode: (text: string) => voi
   return (
     <div className="esc-cam">
       <video ref={video} className="esc-cam-video" muted playsInline />
-      <div className="esc-cam-frame" aria-hidden />
-      {state === 'starting' && <div className="esc-cam-msg">Prendiendo la cámara…</div>}
+      {state === 'starting' && <div className="esc-cam-msg">Prendiendo la cámara...</div>}
       {state === 'denied' && (
-        <div className="esc-cam-msg esc-cam-msg--warn">
+        <div className="esc-cam-msg">
           <b>No pudimos usar la cámara.</b>
-          Tocá &quot;Permitir&quot; en el aviso del navegador (o en el candado de la barra de arriba) y recargá. Mientras tanto, usá Buscar.
+          Tocá &quot;Permitir&quot; en el aviso del navegador (o en el candado de la barra de arriba) y recargá la página. Mientras tanto, usá Buscar.
         </div>
       )}
-      {state === 'none' && <div className="esc-cam-msg esc-cam-msg--warn"><b>Este dispositivo no tiene cámara.</b>Usá Buscar para encontrar al cliente.</div>}
-      {state === 'on' && <div className="esc-cam-hint">{hint}</div>}
+      {state === 'none' && <div className="esc-cam-msg"><b>Este dispositivo no tiene cámara.</b>Usá Buscar para encontrar al cliente.</div>}
       {state === 'on' && flash.available && (
         <button className="esc-cam-flash" onClick={toggleFlash} aria-pressed={flash.on}>{flash.on ? 'Apagar linterna' : 'Linterna'}</button>
       )}

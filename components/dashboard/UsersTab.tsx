@@ -7,24 +7,29 @@ import type { Location } from '@/lib/location'
 import { usePlan } from '@/data/plans'
 import { SCANNER_IOS_URL } from '@/lib/scanner'
 
-// Equipo: el dueño, los Administradores (entran al dashboard con email y
-// contraseña) y los Scanners (entran a la app de escaneo con su PIN).
-// Deshabilitar o eliminar quita el acceso al instante (el backend revisa el
-// usuario en cada pedido).
+// Equipo, en dos bloques:
+// - Personas: el dueño, los Encargados (manejan el panel; entran con email y
+//   contraseña) y los Empleados (escanean en el mostrador; entran con un PIN).
+//   En el backend siguen siendo los roles "manager" y "scanner".
+// - Celulares del local: el celular se vincula una vez (link o QR) y después
+//   cada empleado entra en él con su PIN.
+// Deshabilitar o eliminar a una persona le quita el acceso al instante (el
+// backend revisa el usuario en cada pedido). Quitar un celular corta ese
+// navegador, pero no a la persona: eso es deshabilitarla.
 
 type Role   = 'owner' | 'manager' | 'scanner'
 type Status = 'active' | 'invited' | 'disabled'
 interface StaffUser {
   id: string; name: string; email: string; role: Role; status: Status
   lastActivityAt: string | null; scans30: number; lastScanAt: string | null
-  locationId: string | null // administrador: null = todas las sucursales
+  locationId: string | null // encargado: null = todas las sucursales
 }
 
 
 const ROLE: Record<Role, { label: string; color: string; bg: string; desc: string; perms: string[] }> = {
-  owner:   { label: 'Dueño',         color: '#C75D3A', bg: 'rgba(199,93,58,.1)',   desc: 'La cuenta que paga el plan', perms: ['Todo el dashboard', 'Plan y facturación', 'Gestión del equipo', 'Eliminar clientes y la cuenta'] },
-  manager: { label: 'Administrador', color: '#185FA5', bg: 'rgba(24,95,165,.1)',   desc: 'Entra al dashboard con su email', perms: ['Clientes, premios, notificaciones y diseño', 'Analítica y formulario', 'Sin plan, equipo ni eliminar clientes'] },
-  scanner: { label: 'Scanner',       color: '#9C7530', bg: 'rgba(212,162,76,.15)', desc: 'Usa la app de escaneo con su PIN', perms: ['Solo la app de escaneo', 'Suma sellos, puntos y visitas', 'Entrega premios'] },
+  owner:   { label: 'Dueño',     color: '#C75D3A', bg: 'rgba(199,93,58,.1)',   desc: 'La cuenta que paga el plan', perms: ['Todo el dashboard', 'Plan y facturación', 'Gestión del equipo', 'Eliminar clientes y la cuenta'] },
+  manager: { label: 'Encargado', color: '#185FA5', bg: 'rgba(24,95,165,.1)',   desc: 'Maneja el panel con su email', perms: ['Clientes, premios, notificaciones y diseño', 'Analítica y formulario', 'Sin plan, equipo ni eliminar clientes'] },
+  scanner: { label: 'Empleado',  color: '#9C7530', bg: 'rgba(212,162,76,.15)', desc: 'Escanea en el mostrador con su PIN', perms: ['Solo el escáner (app o web)', 'Suma sellos, puntos y visitas', 'Entrega premios'] },
 }
 const STATUS: Record<Status, { label: string; color: string; bg: string }> = {
   active:   { label: 'Activo',        color: '#5B8C5A', bg: 'rgba(91,140,90,.12)' },
@@ -52,12 +57,28 @@ const mapUser = (u: any): StaffUser => ({
 })
 const newPin = () => Math.floor(1000 + Math.random() * 9000).toString()
 
-function AppleIcon() {
-  return <Icon name="apple" size={14} />
+// Link del escáner web por WhatsApp. La pestaña se abre en el mismo toque (si
+// no, el navegador la bloquea) y recién después se crea el link. El PIN nunca
+// va en el mensaje: se lo dice el dueño en persona.
+async function shareByWhatsApp(businessId: string, locationId: string | null, place: string | null, who?: string) {
+  const tab = window.open('', '_blank')
+  try {
+    const r = await apiCreateScannerLink(businessId, locationId)
+    const msg = `Hola${who ? ` ${who}` : ''}, con este link usás el escáner de Stampa${place ? ` en ${place}` : ''} desde tu celular, sin bajar ninguna app:\n${r.url}\n\nVale 24 horas y es para un solo celular. Después entrás con tu PIN.`
+    const wa = `https://wa.me/?text=${encodeURIComponent(msg)}`
+    if (tab) tab.location.href = wa; else window.location.href = wa
+    return r
+  } catch (err) {
+    tab?.close()
+    throw err
+  }
 }
 
-// ─── Invitar ──────────────────────────────────────────────────────────────────
-function InviteModal({ businessId, locs, onClose, onAdd }: { businessId: string; locs: Location[]; onClose: () => void; onAdd: (u: StaffUser) => void }) {
+// ─── Sumar a alguien (2 pasos) ────────────────────────────────────────────────
+// Paso 1: qué va a hacer (escanear en el mostrador o manejar el panel).
+// Paso 2: sus datos de acceso (PIN, o email para la invitación).
+function AddPersonModal({ businessId, locs, selectedId, onClose, onAdd }: { businessId: string; locs: Location[]; selectedId?: string | null; onClose: () => void; onAdd: (u: StaffUser) => void }) {
+  const [step, setStep] = useState<1 | 2>(1)
   const [role, setRole] = useState<'manager' | 'scanner'>('scanner')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -66,7 +87,10 @@ function InviteModal({ businessId, locs, onClose, onAdd }: { businessId: string;
   const [done, setDone] = useState<{ inviteFailed?: boolean } | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [locId, setLocId] = useState((locs.find(l => l.id === selectedId) || locs.find(l => l.isPrimary) || locs[0])?.id || '')
+  const [sending, setSending] = useState(false)
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  const firstName = name.trim().split(' ')[0]
 
   async function create() {
     if (!name.trim() || (role === 'manager' && !emailOk)) return
@@ -74,7 +98,7 @@ function InviteModal({ businessId, locs, onClose, onAdd }: { businessId: string;
     try {
       let created: any = null
       let tryPin = pin
-      // Si el PIN sorteado ya lo usa otro Scanner, se sortea otro.
+      // Si el PIN sorteado ya lo usa otro empleado, se sortea otro.
       for (let attempt = 0; attempt < 6 && !created; attempt++) {
         try {
           created = await apiCreateTeamMember(businessId, { fullName: name.trim(), role, ...(role === 'manager' ? { email: email.trim(), locationId: access || null } : { pin: tryPin }) })
@@ -93,30 +117,52 @@ function InviteModal({ businessId, locs, onClose, onAdd }: { businessId: string;
     }
   }
 
+  async function sendLink() {
+    setSending(true); setError(null)
+    try {
+      const loc = locs.find(l => l.id === locId)
+      await shareByWhatsApp(businessId, loc?.id || null, locs.length >= 2 ? loc?.name || null : null, firstName)
+    } catch (err: any) {
+      setError(err?.error || 'No pudimos crear el link. Probá de nuevo.')
+    } finally { setSending(false) }
+  }
+
   return (
     <div className="us-overlay" onClick={done ? undefined : onClose}>
       <div className="us-modal" onClick={e => e.stopPropagation()}>
         <div className="us-modal-head">
-          <div className="us-modal-title">Sumar al equipo</div>
+          <div>
+            <div className="us-modal-title">Sumar a alguien</div>
+            {!done && <div className="us-hint" style={{ margin: '2px 0 0' }}>Paso {step} de 2{step === 2 ? ` · ${ROLE[role].label}` : ''}</div>}
+          </div>
           <button className="us-x" onClick={onClose} aria-label="Cerrar">×</button>
         </div>
-        {!done ? (
+
+        {!done && step === 1 && (
           <>
-            <div className="us-label">Rol</div>
+            <div className="us-label" style={{ marginTop: 0 }}>¿Qué va a hacer?</div>
             <div className="us-roles">
-              {(['scanner', 'manager'] as const).map(r => (
-                <button key={r} className={`us-role-opt${role === r ? ' us-role-opt--on' : ''}`} onClick={() => { setRole(r); setError(null) }}>
-                  <strong>{ROLE[r].label}</strong><span>{ROLE[r].desc}</span>
-                </button>
-              ))}
+              <button className="us-role-opt" onClick={() => { setRole('scanner'); setError(null); setStep(2) }}>
+                <strong>Escanea en el mostrador</strong>
+                <span>Suma sellos, puntos y visitas. Entra con un PIN de 4 números. Es lo más rápido.</span>
+              </button>
+              <button className="us-role-opt" onClick={() => { setRole('manager'); setError(null); setStep(2) }}>
+                <strong>Maneja el panel</strong>
+                <span>Ve clientes, premios y analítica. Entra con su email y la contraseña que elija.</span>
+              </button>
             </div>
-            <div className="us-label">Nombre</div>
+          </>
+        )}
+
+        {!done && step === 2 && (
+          <>
+            <div className="us-label" style={{ marginTop: 0 }}>Nombre</div>
             <input className="us-input" placeholder="Ej: Julieta Pérez" maxLength={60} value={name} onChange={e => setName(e.target.value)} autoFocus />
             {role === 'manager' ? (
               <>
                 <div className="us-label">Email</div>
                 <input className="us-input" type="email" placeholder="email@ejemplo.com" value={email} onChange={e => setEmail(e.target.value)} />
-                <div className="us-hint">Le llega un link para crear su contraseña y entrar al dashboard.</div>
+                <div className="us-hint">Le llega un mail para elegir su contraseña. El link vale 7 días.</div>
                 {locs.length >= 2 && (
                   <>
                     <div className="us-label">¿Qué sucursales ve?</div>
@@ -130,29 +176,47 @@ function InviteModal({ businessId, locs, onClose, onAdd }: { businessId: string;
               </>
             ) : (
               <>
-                <div className="us-label">PIN para la app</div>
+                <div className="us-label">PIN para entrar</div>
                 <div className="us-pin-box"><span className="us-pin-num">{pin}</span><button className="us-link" onClick={() => setPin(newPin())}>Otro PIN</button></div>
-                <div className="us-hint">Con este PIN entra a la app de escaneo. No se repite con el de otro Scanner.</div>
+                <div className="us-hint">Se lo decís vos. No se repite con el de otro empleado.</div>
               </>
             )}
             {error && <div className="us-error">{error}</div>}
-            <button className="s-btn s-btn--primary s-btn--sm" onClick={create} disabled={saving || !name.trim() || (role === 'manager' && !emailOk)}>
-              {saving ? 'Guardando…' : role === 'manager' ? 'Enviar invitación' : 'Crear Scanner'}
-            </button>
+            <div className="us-modal-foot">
+              <button className="us-link" onClick={() => { setStep(1); setError(null) }}>Volver</button>
+              <button className="s-btn s-btn--primary s-btn--sm" onClick={create} disabled={saving || !name.trim() || (role === 'manager' && !emailOk)}>
+                {saving ? 'Guardando…' : role === 'manager' ? 'Invitar' : 'Crear empleado'}
+              </button>
+            </div>
           </>
-        ) : role === 'scanner' ? (
+        )}
+
+        {done && role === 'scanner' && (
           <>
-            <div className="us-success">✓ {name.trim()} ya puede entrar a la app de escaneo.</div>
+            <div className="us-success" style={{ marginTop: 0 }}>{firstName} ya puede escanear.</div>
             <div className="us-label" style={{ marginTop: 16 }}>Su PIN</div>
             <div className="us-pin-box"><span className="us-pin-num">{pin}</span></div>
-            <div className="us-hint">Anotalo o pasáselo ahora: por seguridad no se vuelve a mostrar. Si lo pierde, eliminalo y crealo de nuevo (su historial se conserva).</div>
-            <button className="s-btn s-btn--primary s-btn--sm" onClick={onClose}>Listo, ya lo anoté</button>
+            <div className="us-hint">Anotalo o decíselo ahora: después no se vuelve a mostrar. Si lo olvida, le armás uno nuevo desde Equipo con "Nuevo PIN".</div>
+            <div className="us-label">¿Cómo entra?</div>
+            <div className="us-text" style={{ marginBottom: 8 }}>Si el celular del local ya está vinculado, abre el escáner y entra con su PIN. Si va a usar su propio celular, mandale el link.</div>
+            {locs.length >= 2 && (
+              <select className="us-input" style={{ marginBottom: 8 }} value={locId} onChange={e => setLocId(e.target.value)} aria-label="Sucursal del celular">
+                {locs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+            )}
+            {error && <div className="us-error" style={{ marginTop: 0, marginBottom: 8 }}>{error}</div>}
+            <div className="us-modal-foot">
+              <button className="s-btn s-btn--secondary s-btn--sm" onClick={sendLink} disabled={sending}>{sending ? 'Creando…' : 'Mandar link por WhatsApp'}</button>
+              <button className="s-btn s-btn--primary s-btn--sm" onClick={onClose}>Listo</button>
+            </div>
           </>
-        ) : (
+        )}
+
+        {done && role === 'manager' && (
           <>
-            <div className="us-success">✓ Invitación creada para {email.trim()}.</div>
+            <div className="us-success" style={{ marginTop: 0 }}>Invitación creada para {email.trim()}.</div>
             {done.inviteFailed && <div className="us-error">No pudimos mandar el email. Probá con "Reenviar invitación" desde la lista.</div>}
-            <button className="s-btn s-btn--primary s-btn--sm" onClick={onClose}>Listo</button>
+            <div className="us-modal-foot"><span /><button className="s-btn s-btn--primary s-btn--sm" onClick={onClose}>Listo</button></div>
           </>
         )}
       </div>
@@ -160,7 +224,62 @@ function InviteModal({ businessId, locs, onClose, onAdd }: { businessId: string;
   )
 }
 
-// ─── Activar dispositivo ──────────────────────────────────────────────────────
+// ─── Nuevo PIN de un empleado ─────────────────────────────────────────────────
+function NewPinModal({ businessId, user, onClose }: { businessId: string; user: StaffUser; onClose: () => void }) {
+  const [pin, setPin] = useState(newPin)
+  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function save() {
+    setSaving(true); setError(null)
+    try {
+      let tryPin = pin
+      for (let attempt = 0; attempt < 6; attempt++) {
+        try { await apiUpdateTeamMember(businessId, user.id, { pin: tryPin }); setPin(tryPin); setSaved(true); return }
+        catch (err: any) {
+          if (err?.error === 'pin_taken') { tryPin = newPin(); setPin(tryPin); continue }
+          throw err
+        }
+      }
+      throw { error: 'No pudimos generar un PIN libre. Probá de nuevo.' }
+    } catch (err: any) {
+      setError(err?.message || err?.error || 'No se pudo cambiar el PIN. Probá de nuevo.')
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="us-overlay" onClick={saved ? undefined : onClose}>
+      <div className="us-modal" onClick={e => e.stopPropagation()}>
+        <div className="us-modal-head">
+          <div className="us-modal-title">Nuevo PIN de {user.name}</div>
+          <button className="us-x" onClick={onClose} aria-label="Cerrar">×</button>
+        </div>
+        {!saved ? (
+          <>
+            <div className="us-pin-box"><span className="us-pin-num">{pin}</span><button className="us-link" onClick={() => setPin(newPin())}>Otro PIN</button></div>
+            <div className="us-hint">Con el PIN anterior ya no se puede entrar. No se repite con el de otro empleado.</div>
+            {error && <div className="us-error">{error}</div>}
+            <div className="us-modal-foot">
+              <button className="s-btn s-btn--secondary s-btn--sm" onClick={onClose}>Cancelar</button>
+              <button className="s-btn s-btn--primary s-btn--sm" onClick={save} disabled={saving}>{saving ? 'Guardando…' : 'Cambiar PIN'}</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="us-success" style={{ marginTop: 0 }}>Listo, {user.name.split(' ')[0]} ya tiene su PIN nuevo.</div>
+            <div className="us-label" style={{ marginTop: 16 }}>Su PIN</div>
+            <div className="us-pin-box"><span className="us-pin-num">{pin}</span></div>
+            <div className="us-hint">Anotalo o decíselo ahora: después no se vuelve a mostrar.</div>
+            <div className="us-modal-foot"><span /><button className="s-btn s-btn--primary s-btn--sm" onClick={onClose}>Listo</button></div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Vincular la app con un código QR ─────────────────────────────────────────
 function ActivateDeviceModal({ businessId, locs, selectedId, onClose }: { businessId: string; locs: Location[]; selectedId?: string | null; onClose: () => void }) {
   const [qr, setQr] = useState('')
   const [locId, setLocId] = useState((locs.find(l => l.id === selectedId) || locs.find(l => l.isPrimary) || locs[0])?.id || '')
@@ -175,128 +294,126 @@ function ActivateDeviceModal({ businessId, locs, selectedId, onClose }: { busine
     <div className="us-overlay" onClick={onClose}>
       <div className="us-modal" onClick={e => e.stopPropagation()}>
         <div className="us-modal-head">
-          <div className="us-modal-title">Activar dispositivo de escaneo</div>
+          <div className="us-modal-title">Vincular la app con un código QR</div>
           <button className="us-x" onClick={onClose} aria-label="Cerrar">×</button>
         </div>
         {locs.length >= 2 && (
           <>
-            <div className="us-label">Sucursal de este dispositivo</div>
-            <select className="us-input" value={locId} onChange={e => setLocId(e.target.value)} aria-label="Sucursal del dispositivo">
+            <div className="us-label">Sucursal de este celular</div>
+            <select className="us-input" value={locId} onChange={e => setLocId(e.target.value)} aria-label="Sucursal del celular">
               {locs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
           </>
         )}
         <div className="us-qr">{qr ? <img src={qr} width={220} height={220} alt="QR de activación" /> : <div className="us-skel" style={{ width: 220, height: 220 }} />}</div>
         <ol className="us-steps">
-          <li>Instalá la app de escaneo de Stampa en el celular o tablet del local.</li>
+          <li>Instalá la app Stampa Escáner en el celular o tablet del local.</li>
           <li>Abrila y apuntá la cámara a este código.</li>
-          <li>Listo: ese dispositivo queda vinculado {locs.length >= 2 && loc ? `a ${loc.name}` : 'a este negocio'}. Cada Scanner entra con su PIN{locs.length >= 2 ? ' y sus escaneos quedan en esa sucursal' : ''}.</li>
+          <li>Listo: ese celular queda vinculado {locs.length >= 2 && loc ? `a ${loc.name}` : 'a este negocio'}. Cada empleado entra con su PIN{locs.length >= 2 ? ' y sus escaneos quedan en esa sucursal' : ''}.</li>
         </ol>
-        <div className="us-hint">Se hace una sola vez por dispositivo. Sin un PIN válido, nadie puede sumar sellos ni ver clientes.</div>
+        <div className="us-hint">Se hace una sola vez por celular. Sin un PIN válido, nadie puede sumar sellos ni ver clientes.</div>
       </div>
     </div>
   )
 }
 
-// ─── Escáner web ──────────────────────────────────────────────────────────────
-// El dueño manda un link (un solo uso, 24 h) al celular del empleado; ese
-// navegador queda vinculado a la sucursal y cada empleado entra con su PIN.
-// Abajo, los celulares vinculados: quitar uno corta su sesión al instante.
-function WebScannerCard({ businessId, locs, selectedId }: { businessId: string; locs: Location[]; selectedId?: string | null }) {
+// ─── Celulares del local ──────────────────────────────────────────────────────
+// El dueño manda un link (un solo uso, 24 h) al celular; ese navegador queda
+// vinculado a la sucursal y cada empleado entra con su PIN. Quitar un celular
+// corta su sesión al instante.
+function DevicesCard({ businessId, locs, selectedId, onLinkApp }: { businessId: string; locs: Location[]; selectedId?: string | null; onLinkApp: () => void }) {
   const [locId, setLocId] = useState('')
-  const [link, setLink] = useState<{ url: string; expiresAt: string; location: string } | null>(null)
-  const [qr, setQr] = useState<string | null>(null)
+  const [qr, setQr] = useState<{ img: string; place: string } | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [devices, setDevices] = useState<ScannerDevice[] | null>(null)
-  const [showDevices, setShowDevices] = useState(false)
   const loc = locs.find(l => l.id === locId) || locs.find(l => l.id === selectedId) || locs.find(l => l.isPrimary) || locs[0]
+  const multi = locs.length >= 2
 
-  const loadDevices = () => apiGetScannerDevices(businessId).then(r => setDevices(r.devices)).catch(() => setDevices([]))
-  useEffect(() => { loadDevices() }, [businessId]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function newLink() {
-    const r = await apiCreateScannerLink(businessId, loc?.id || null)
-    const l = { url: r.url, expiresAt: r.expiresAt, location: r.location.name }
-    setLink(l)
-    return l
-  }
-  const waText = (url: string, place: string) => `Hola 👋 Con este link usás el escáner de Stampa en ${place} desde tu celular, sin bajar ninguna app:\n${url}\n\nVale 24 horas y para un solo celular. Después entrás con tu PIN.`
+  useEffect(() => { apiGetScannerDevices(businessId).then(r => setDevices(r.devices)).catch(() => setDevices([])) }, [businessId])
 
   async function act(kind: 'whatsapp' | 'copy' | 'qr') {
     setBusy(kind); setMsg(null)
-    // WhatsApp: la pestaña se abre en el mismo toque (si no, el navegador la bloquea).
-    const tab = kind === 'whatsapp' ? window.open('', '_blank') : null
     try {
-      const l = await newLink()
-      const place = locs.length >= 2 ? l.location : 'el local'
       if (kind === 'whatsapp') {
-        const wa = `https://wa.me/?text=${encodeURIComponent(waText(l.url, place))}`
-        if (tab) tab.location.href = wa; else window.location.href = wa
-      } else if (kind === 'copy') {
-        await navigator.clipboard.writeText(l.url)
-        setMsg({ ok: true, text: 'Link copiado. Pegalo en el chat con tu empleado.' })
+        await shareByWhatsApp(businessId, loc?.id || null, multi ? loc?.name || null : null)
       } else {
-        setQr(await QRCode.toDataURL(l.url, { width: 440, margin: 1, color: { dark: '#2B2620', light: '#FFFFFF' } }))
+        const r = await apiCreateScannerLink(businessId, loc?.id || null)
+        if (kind === 'copy') {
+          await navigator.clipboard.writeText(r.url)
+          setMsg({ ok: true, text: 'Link copiado. Pegalo en el chat con tu empleado.' })
+        } else {
+          setQr({ img: await QRCode.toDataURL(r.url, { width: 440, margin: 1, color: { dark: '#2B2620', light: '#FFFFFF' } }), place: r.location.name })
+        }
       }
     } catch (err: any) {
-      tab?.close()
       setMsg({ ok: false, text: err?.error || 'No pudimos crear el link. Probá de nuevo.' })
     } finally { setBusy(null) }
   }
 
   async function removeDevice(d: ScannerDevice) {
-    if (!window.confirm(`¿Quitar ${d.label} (${d.location})?\n\nDeja de poder escanear al instante. Para volver a usarlo, mandale un link nuevo.`)) return
+    if (!window.confirm(`¿Quitar ${d.label} (${d.location})?\n\nEse celular deja de poder escanear al instante. Para volver a usarlo, mandale un link nuevo.`)) return
     setBusy(d.id)
     try { await apiRemoveScannerDevice(businessId, d.id); setDevices(list => (list || []).filter(x => x.id !== d.id)) }
     catch (err: any) { setMsg({ ok: false, text: err?.error || 'No pudimos quitar el celular.' }) }
     finally { setBusy(null) }
   }
 
-  const n = devices?.length ?? 0
   return (
-    <div className="us-card us-web">
-      <div className="us-web-head">
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <div className="us-web-title">Escáner web <span className="us-web-new">Nuevo</span></div>
-          <div className="us-sub" style={{ fontSize: 12 }}>Los empleados escanean desde el navegador del celular, sin bajar ninguna app. Sirve en iPhone, Android y en la compu de la caja.</div>
+    <div className="us-card us-block">
+      <div className="us-block-head">
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <div className="us-block-title">Celulares del local</div>
+          <p className="us-block-sub">El celular se vincula una vez. Después, cada empleado entra en él con su PIN. Los encargados y el dueño entran con su email.</p>
         </div>
-        {locs.length >= 2 && (
-          <select className="us-input" style={{ width: 'auto', minWidth: 160 }} value={loc?.id || ''} onChange={e => { setLocId(e.target.value); setLink(null); setQr(null) }} aria-label="Sucursal del celular">
-            {locs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
-        )}
+        <div className="us-block-actions">
+          {multi && (
+            <select className="us-input us-input--sm" value={loc?.id || ''} onChange={e => setLocId(e.target.value)} aria-label="Sucursal del celular">
+              {locs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          )}
+          <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => act('whatsapp')} disabled={!!busy}>{busy === 'whatsapp' ? 'Creando…' : 'Mandar link por WhatsApp'}</button>
+          <button className="us-link" onClick={() => act('copy')} disabled={!!busy}>Copiar link</button>
+          <button className="us-link" onClick={() => act('qr')} disabled={!!busy}>Mostrar QR</button>
+        </div>
       </div>
-      <div className="us-web-btns">
-        <button className="s-btn s-btn--primary s-btn--sm" onClick={() => act('whatsapp')} disabled={!!busy}>{busy === 'whatsapp' ? 'Creando…' : 'Mandar link por WhatsApp'}</button>
-        <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => act('copy')} disabled={!!busy}>{busy === 'copy' ? 'Creando…' : 'Copiar link'}</button>
-        <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => act('qr')} disabled={!!busy}>{busy === 'qr' ? 'Creando…' : 'Mostrar QR para escanear'}</button>
-      </div>
-      <div className="us-sub" style={{ fontSize: 11.5 }}>Cada link vale 24 horas y para un solo celular. Los empleados entran con su PIN de siempre.</div>
-      {msg && <div className={msg.ok ? 'us-success' : 'us-error'} style={{ margin: 0 }}>{msg.text}</div>}
-      {link && !qr && <div className="us-web-link"><span>{link.url}</span></div>}
-      <button className="us-web-devs" onClick={() => setShowDevices(v => !v)} aria-expanded={showDevices}>
-        Celulares vinculados: <b>{devices ? n : '…'}</b>{n > 0 && <span> · {showDevices ? 'ocultar' : 'ver / quitar'}</span>}
-      </button>
-      {showDevices && n > 0 && (
+
+      {msg && <div className={msg.ok ? 'us-success' : 'us-error'} style={{ margin: '0 0 12px' }}>{msg.text}</div>}
+
+      {devices && devices.length > 0 ? (
         <div className="us-web-list">
-          {devices!.map(d => (
+          {devices.map(d => (
             <div key={d.id} className="us-web-dev">
-              <div style={{ minWidth: 0, flex: 1 }}><div className="us-name">{d.label}</div><div className="us-sub">{d.location} · vinculado {relTime(d.linkedAt)}{d.lastSeenAt ? ` · usado ${relTime(d.lastSeenAt)}` : ''}</div></div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="us-name">{d.label}</div>
+                <div className="us-sub">{d.location} · vinculado {relTime(d.linkedAt)}{d.lastSeenAt ? ` · usado ${relTime(d.lastSeenAt)}` : ''}</div>
+              </div>
               <button className="us-link us-del" onClick={() => removeDevice(d)} disabled={busy === d.id}>{busy === d.id ? 'Quitando…' : 'Quitar'}</button>
             </div>
           ))}
         </div>
-      )}
+      ) : devices ? (
+        <div className="us-hint" style={{ marginTop: 0 }}>Todavía no vinculaste ningún celular.</div>
+      ) : null}
+
+      <div className="us-hint us-block-foot">
+        Cada link vale 24 horas y es para un solo celular. Si preferís la app de iPhone:{' '}
+        {SCANNER_IOS_URL
+          ? <a className="us-link" href={SCANNER_IOS_URL} target="_blank" rel="noreferrer">descargar Stampa Escáner</a>
+          : <span>Stampa Escáner (próximamente en App Store)</span>}
+        {' · '}
+        <button className="us-link" onClick={onLinkApp}>vincularla con un código QR</button>
+      </div>
+
       {qr && (
         <div className="us-overlay" onClick={() => setQr(null)}>
           <div className="us-modal" onClick={e => e.stopPropagation()}>
-            <div className="us-modal-head"><div className="us-modal-title">Escáner web{locs.length >= 2 && link ? ` · ${link.location}` : ''}</div><button className="us-x" onClick={() => setQr(null)} aria-label="Cerrar">×</button></div>
-            <div className="us-qr"><img src={qr} width={220} height={220} alt="QR del link del escáner web" /></div>
+            <div className="us-modal-head"><div className="us-modal-title">Escáner web{multi ? ` · ${qr.place}` : ''}</div><button className="us-x" onClick={() => setQr(null)} aria-label="Cerrar">×</button></div>
+            <div className="us-qr"><img src={qr.img} width={220} height={220} alt="QR del link del escáner web" /></div>
             <ol className="us-steps">
               <li>El empleado abre la cámara de su celular y apunta a este código.</li>
               <li>Toca el link que aparece: se abre el escáner en el navegador.</li>
-              <li>Entra con su PIN. Ese celular queda vinculado{locs.length >= 2 && link ? ` a ${link.location}` : ''}.</li>
+              <li>Entra con su PIN. Ese celular queda vinculado{multi ? ` a ${qr.place}` : ''}.</li>
             </ol>
             <div className="us-hint">Este QR sirve para un solo celular y vence en 24 horas. Para otro celular, generá uno nuevo.</div>
           </div>
@@ -306,7 +423,7 @@ function WebScannerCard({ businessId, locs, selectedId }: { businessId: string; 
   )
 }
 
-// ─── Actividad de un Scanner ──────────────────────────────────────────────────
+// ─── Actividad de un empleado ─────────────────────────────────────────────────
 function ActivityPanel({ businessId, user, onClose, onOpenCustomer }: { businessId: string; user: StaffUser; onClose: () => void; onOpenCustomer?: (email: string) => void }) {
   const [data, setData] = useState<TeamActivity | null>(null)
   const [error, setError] = useState(false)
@@ -380,13 +497,14 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
   const [users, setUsers] = useState<StaffUser[]>(() => initUsers.map(u => ('name' in u ? { scans30: 0, lastScanAt: null, lastActivityAt: null, ...u } : mapUser(u))))
   const [loaded, setLoaded] = useState(false)
   const [filter, setFilter] = useState<'all' | 'manager' | 'scanner'>('all')
-  const [showInvite, setShowInvite] = useState(false)
-  const [showActivate, setShowActivate] = useState(false)
+  const [showAdd, setShowAdd] = useState(false)
+  const [showLinkApp, setShowLinkApp] = useState(false)
   const [activityOf, setActivityOf] = useState<StaffUser | null>(null)
+  const [pinOf, setPinOf] = useState<StaffUser | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<StaffUser | null>(null)
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
-  // Sucursales habilitadas (multilocal): QR por sucursal y acceso de administradores.
+  // Sucursales habilitadas (multilocal): QR por sucursal y acceso de encargados.
   const [locs, setLocs] = useState<Location[]>([])
   useEffect(() => {
     if (!businessId) return
@@ -402,7 +520,9 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
 
   const occupying = users.filter(u => u.status !== 'disabled').length
   const atLimit = teamLimit < 999 && occupying >= teamLimit
-  const shown = filter === 'all' ? users : users.filter(u => u.role === filter)
+  // Con un equipo chico la lista se lee entera; los filtros aparecen cuando crece.
+  const showFilters = users.length > 5
+  const shown = !showFilters || filter === 'all' ? users : users.filter(u => u.role === filter)
 
   async function changeAccess(u: StaffUser, locationId: string | null) {
     if (!businessId) return
@@ -455,41 +575,33 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
     <>
       <style>{CSS}</style>
       <div className="us-content">
-        <div className="us-app-card">
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <div className="us-app-title">App de escaneo para tu equipo</div>
-            <div className="us-app-sub">Los Scanners la usan para sumar sellos, puntos y visitas y entregar premios.</div>
-          </div>
-          <div className="us-app-btns">
-            {SCANNER_IOS_URL
-              ? <a className="us-app-btn" href={SCANNER_IOS_URL} target="_blank" rel="noreferrer"><AppleIcon /> Descargar para iPhone</a>
-              : <span className="us-app-btn us-app-btn--soon"><AppleIcon /> Próximamente en App Store</span>}
-            {businessId && <button className="us-app-btn us-app-btn--light" onClick={() => setShowActivate(true)}>Activar dispositivo</button>}
-          </div>
-        </div>
-
-        {businessId && <WebScannerCard businessId={businessId} locs={locs} selectedId={selectedLocationId} />}
-
         {notice && <div className={notice.ok ? 'us-success' : 'us-error'} style={{ marginTop: 0 }}>{notice.text}</div>}
 
-        <div className="us-card">
-          <div className="us-toolbar">
-            <div className="us-pills">
-              {(['all', 'scanner', 'manager'] as const).map(k => (
-                <button key={k} className="s-chip" aria-pressed={filter === k} onClick={() => setFilter(k)}>
-                  {k === 'all' ? 'Todos' : k === 'manager' ? 'Administradores' : 'Scanners'} ({k === 'all' ? users.length : users.filter(u => u.role === k).length})
-                </button>
-              ))}
+        <div className="us-card us-block">
+          <div className="us-block-head">
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <div className="us-block-title">Personas</div>
+              <p className="us-block-sub">Quién puede escanear o manejar el panel. Cada persona entra con lo suyo y se sabe quién hizo qué.</p>
             </div>
-            <div className="us-toolbar-end">
+            <div className="us-block-actions">
               {teamLimit < 999 && <span className={`us-count${atLimit ? ' us-count--full' : ''}`}>{occupying} de {teamLimit} en tu plan</span>}
               {atLimit
                 ? (onChoosePlan && <button className="s-btn s-btn--secondary s-btn--sm" onClick={onChoosePlan}>Más lugares</button>)
-                : <button className="s-btn s-btn--primary s-btn--sm" onClick={() => setShowInvite(true)} disabled={!businessId}><Icon name="agregar" size={14} /> Sumar al equipo</button>}
+                : <button className="s-btn s-btn--primary s-btn--sm" onClick={() => setShowAdd(true)} disabled={!businessId}><Icon name="agregar" size={14} /> Sumar a alguien</button>}
             </div>
           </div>
 
-          <div className="us-list">
+          {showFilters && (
+            <div className="us-pills" style={{ marginBottom: 10 }}>
+              {(['all', 'scanner', 'manager'] as const).map(k => (
+                <button key={k} className="s-chip" aria-pressed={filter === k} onClick={() => setFilter(k)}>
+                  {k === 'all' ? 'Todos' : k === 'manager' ? 'Encargados' : 'Empleados'} ({k === 'all' ? users.length : users.filter(u => u.role === k).length})
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="us-list us-list--boxed">
             <div className="us-row us-row--owner">
               <div className="us-person">
                 <div className="us-av" style={{ background: ROLE.owner.color }}>{initials(owner?.fullName || 'D')}</div>
@@ -501,7 +613,7 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
             </div>
             {!loaded && users.length === 0 && [0, 1].map(i => <div key={i} className="us-skel" style={{ height: 52, margin: '8px 16px' }} />)}
             {loaded && users.length === 0 && (
-              <div className="us-empty">Todavía no sumaste a nadie. Creá un Scanner para que tu equipo pueda escanear tarjetas con la app.</div>
+              <div className="us-empty">Todavía no sumaste a nadie. Sumá a un empleado para que pueda escanear tarjetas desde el celular del local.</div>
             )}
             {shown.map(u => {
               const st = STATUS[u.status]
@@ -511,7 +623,7 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
                     <div className="us-av" style={{ background: ROLE[u.role].color }}>{initials(u.name)}</div>
                     <div style={{ minWidth: 0 }}>
                       <div className="us-name">{u.name}</div>
-                      <div className="us-sub">{u.role === 'manager' ? u.email : 'Entra con PIN'}</div>
+                      <div className="us-sub">{u.role === 'manager' ? u.email : 'Entra con su PIN'}</div>
                       {u.role === 'manager' && locs.length >= 2 && (
                         <select className="us-access" value={u.locationId || ''} disabled={busyId === u.id} onChange={e => changeAccess(u, e.target.value || null)} aria-label={`Sucursales que ve ${u.name}`}>
                           <option value="">Ve todas las sucursales</option>
@@ -535,6 +647,9 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
                         {u.status === 'invited' ? 'Reenviar invitación' : 'Nueva contraseña'}
                       </button>
                     )}
+                    {u.role === 'scanner' && u.status !== 'disabled' && (
+                      <button className="s-btn s-btn--secondary s-btn--sm" disabled={busyId === u.id} onClick={() => setPinOf(u)}>Nuevo PIN</button>
+                    )}
                     <button className="s-btn s-btn--secondary s-btn--sm" disabled={busyId === u.id} onClick={() => toggleDisable(u)}>{u.status === 'disabled' ? 'Reactivar' : 'Deshabilitar'}</button>
                     <button className="s-btn s-btn--text s-btn--sm us-del" disabled={busyId === u.id} onClick={() => setConfirmDelete(u)}>Eliminar</button>
                   </span>
@@ -543,6 +658,8 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
             })}
           </div>
         </div>
+
+        {businessId && <DevicesCard businessId={businessId} locs={locs} selectedId={selectedLocationId} onLinkApp={() => setShowLinkApp(true)} />}
 
         <div className="us-lbl">Roles y permisos</div>
         <div className="us-3col">
@@ -556,14 +673,15 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
         </div>
       </div>
 
-      {showActivate && businessId && <ActivateDeviceModal businessId={businessId} locs={locs} selectedId={selectedLocationId} onClose={() => setShowActivate(false)} />}
-      {showInvite && businessId && <InviteModal businessId={businessId} locs={locs} onClose={() => { setShowInvite(false); load() }} onAdd={u => setUsers(prev => [...prev, u])} />}
+      {showLinkApp && businessId && <ActivateDeviceModal businessId={businessId} locs={locs} selectedId={selectedLocationId} onClose={() => setShowLinkApp(false)} />}
+      {showAdd && businessId && <AddPersonModal businessId={businessId} locs={locs} selectedId={selectedLocationId} onClose={() => { setShowAdd(false); load() }} onAdd={u => setUsers(prev => [...prev, u])} />}
+      {pinOf && businessId && <NewPinModal businessId={businessId} user={pinOf} onClose={() => setPinOf(null)} />}
       {activityOf && businessId && <ActivityPanel businessId={businessId} user={activityOf} onClose={() => setActivityOf(null)} onOpenCustomer={onOpenCustomer} />}
       {confirmDelete && (
         <div className="us-overlay" onClick={() => setConfirmDelete(null)}>
           <div className="us-modal" onClick={e => e.stopPropagation()}>
             <div className="us-modal-head"><div className="us-modal-title">Eliminar a {confirmDelete.name}</div><button className="us-x" onClick={() => setConfirmDelete(null)}>×</button></div>
-            <p className="us-text">Pierde el acceso {confirmDelete.role === 'manager' ? 'al dashboard' : 'a la app de escaneo'} al instante y deja de ocupar un lugar del plan. Lo que ya hizo queda registrado con su nombre en el historial de los clientes.</p>
+            <p className="us-text">Pierde el acceso {confirmDelete.role === 'manager' ? 'al panel' : 'al escáner'} al instante y deja de ocupar un lugar del plan. Lo que ya hizo queda registrado con su nombre en el historial de los clientes.</p>
             <p className="us-text">Si solo querés frenarlo un tiempo, mejor <strong>deshabilitalo</strong>.</p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="s-btn s-btn--secondary s-btn--sm" style={{ flex: 1 }} onClick={() => setConfirmDelete(null)}>Cancelar</button>
@@ -581,33 +699,25 @@ const CSS = `
   .us-access{margin-top:4px;font-size:11px;color:rgba(34,32,27,.65);background:var(--s-salvia);border:1px solid rgba(34,32,27,.12);border-radius:6px;padding:3px 6px;font-family:var(--font-body);max-width:100%;}
 
   .us-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
-  .us-app-card{display:flex;align-items:center;gap:14px;background:var(--s-pino);border-radius:14px;padding:16px 18px;flex-wrap:wrap;}
-  .us-app-title{font-family:var(--font-display);font-weight:700;font-size:13.5px;color:#F7F0E4;}
-  .us-app-sub{font-size:11.5px;color:rgba(247,240,228,.65);margin-top:2px;}
-  .us-app-btns{display:flex;gap:8px;flex-wrap:wrap;}
-  .us-app-btn{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:9px 14px;border-radius:9px;background:var(--s-brasa);color:#fff;border:none;cursor:pointer;text-decoration:none;font-family:var(--font-body);white-space:nowrap;}
-  .us-app-btn--light{background:#F7F0E4;color:var(--s-pino);}
-  .us-app-btn--soon{background:rgba(247,240,228,.1);color:rgba(247,240,228,.6);cursor:default;}
-  .us-web{padding:16px 18px;display:flex;flex-direction:column;gap:10px;}
-  .us-web-head{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;}
-  .us-web-title{font-family:var(--font-display);font-weight:700;font-size:13.5px;color:var(--s-tinta);display:flex;align-items:center;gap:8px;}
-  .us-web-new{font-size:10px;font-weight:700;color:var(--s-pino);background:#E3EDE6;border-radius:20px;padding:2px 8px;}
-  .us-web-btns{display:flex;gap:8px;flex-wrap:wrap;}
-  .us-web-link{font-size:11.5px;background:var(--s-salvia);border-radius:8px;padding:8px 10px;color:rgba(34,32,27,.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .us-web-devs{align-self:flex-start;background:none;border:none;padding:0;font-size:12px;color:var(--s-tinta);cursor:pointer;font-family:var(--font-body);}
-  .us-web-devs span{color:var(--s-pino);font-weight:600;text-decoration:underline;}
+  .us-block{padding:18px 20px;}
+  .us-block-head{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px;}
+  .us-block-title{font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--s-tinta);}
+  .us-block-sub{font-size:12px;color:rgba(34,32,27,.55);margin:3px 0 0;line-height:1.5;max-width:460px;}
+  .us-block-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .us-block-foot{margin-top:12px;padding-top:10px;border-top:1px solid rgba(34,32,27,.07);}
+  .us-block-actions .us-link,.us-web-dev .us-link,.us-block-foot .us-link{font-size:12px;}
+  .us-input--sm{width:auto;min-width:140px;padding:6px 10px;font-size:12px;}
   .us-web-list{display:flex;flex-direction:column;border:1px solid rgba(34,32,27,.07);border-radius:10px;}
-  .us-web-dev{display:flex;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid rgba(34,32,27,.05);}
+  .us-web-dev{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid rgba(34,32,27,.05);}
   .us-web-dev:first-child{border-top:none;}
   .us-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(34,32,27,.38);font-weight:600;display:flex;align-items:center;gap:10px;margin-top:4px;}
   .us-lbl::after{content:'';flex:1;height:1px;background:rgba(34,32,27,.1);}
   .us-card{background:#fff;border:1px solid rgba(34,32,27,.07);border-radius:14px;box-shadow:0 1px 8px rgba(34,32,27,.04);}
-  .us-toolbar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid rgba(34,32,27,.07);flex-wrap:wrap;}
   .us-pills{display:flex;gap:5px;flex:1;flex-wrap:wrap;}
-  .us-toolbar-end{display:flex;align-items:center;gap:10px;}
   .us-count{font-size:11.5px;color:rgba(34,32,27,.5);}
   .us-count--full{color:var(--s-error);font-weight:600;}
   .us-list{display:flex;flex-direction:column;}
+  .us-list--boxed{border:1px solid rgba(34,32,27,.07);border-radius:12px;overflow:hidden;}
   .us-row{display:grid;grid-template-columns:minmax(180px,1.4fr) 170px minmax(150px,1.2fr) 300px;gap:14px;align-items:center;padding:12px 16px;border-top:1px solid rgba(34,32,27,.05);}
   .us-row:first-child{border-top:none;}
   .us-row--owner{background:rgba(199,93,58,.03);}
@@ -622,6 +732,7 @@ const CSS = `
   .us-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;}
   .us-link{background:none;border:none;padding:0;color:var(--s-brasa);font-weight:600;cursor:pointer;font-family:inherit;font-size:inherit;text-align:left;}
   .us-link:hover{text-decoration:underline;}
+  .us-link:disabled{opacity:.5;cursor:default;}
   .us-muted{color:rgba(34,32,27,.45);white-space:nowrap;}
   .us-empty{font-size:12.5px;color:rgba(34,32,27,.5);padding:18px 16px;line-height:1.5;}
   .us-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
@@ -629,17 +740,18 @@ const CSS = `
   .us-role-head{margin-bottom:6px;}
   .us-perm{font-size:11.5px;color:rgba(34,32,27,.7);padding:4px 0;}
   .us-overlay{position:fixed;inset:0;background:rgba(34,32,27,.4);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
-  .us-modal{background:#fff;border-radius:18px;padding:24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(34,32,27,.2);}
+  .us-modal{background:#fff;border-radius:18px;padding:24px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(34,32,27,.2);}
   .us-modal--wide{max-width:560px;}
   .us-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;}
   .us-modal-title{font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--s-tinta);}
+  .us-modal-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px;flex-wrap:wrap;}
   .us-x{background:none;border:none;font-size:20px;line-height:1;color:rgba(34,32,27,.4);cursor:pointer;padding:2px 6px;}
   .us-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:rgba(34,32,27,.45);font-weight:700;margin:14px 0 7px;}
   .us-roles{display:flex;gap:8px;}
-  .us-role-opt{flex:1;display:flex;flex-direction:column;gap:3px;text-align:left;padding:10px 12px;border:1.5px solid rgba(34,32,27,.12);border-radius:10px;background:#fff;cursor:pointer;font-family:inherit;}
-  .us-role-opt strong{font-size:12.5px;color:var(--s-tinta);}
-  .us-role-opt span{font-size:10.5px;color:rgba(34,32,27,.5);line-height:1.35;}
-  .us-role-opt--on{border-color:var(--s-brasa);background:rgba(199,93,58,.05);}
+  .us-role-opt{flex:1;display:flex;flex-direction:column;gap:4px;text-align:left;padding:12px 14px;border:1.5px solid rgba(34,32,27,.12);border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;}
+  .us-role-opt strong{font-size:13px;color:var(--s-tinta);}
+  .us-role-opt span{font-size:11.5px;color:rgba(34,32,27,.55);line-height:1.45;}
+  .us-role-opt:hover{border-color:var(--s-brasa);background:rgba(199,93,58,.05);}
   .us-input{width:100%;padding:10px 13px;font-size:13px;border:1.5px solid rgba(34,32,27,.12);border-radius:10px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);outline:none;}
   .us-input:focus{border-color:var(--s-brasa);}
   .us-hint{font-size:11px;color:rgba(34,32,27,.5);margin-top:6px;line-height:1.5;}
@@ -670,5 +782,5 @@ const CSS = `
     .us-person{grid-area:person;} .us-badges{grid-area:badges;justify-content:flex-end;} .us-activity{grid-area:activity;} .us-actions{grid-area:actions;justify-content:flex-start;}
     .us-3col{grid-template-columns:1fr;}
   }
-  @media(max-width:768px){.us-content{padding:14px 16px;}.us-roles{flex-direction:column;}}
+  @media(max-width:768px){.us-content{padding:14px 16px;}.us-roles{flex-direction:column;}.us-block{padding:16px;}}
 `

@@ -147,13 +147,10 @@ export const ARTICLES: Article[] = [
       <p>Para Android todavía no hay app, pero no hace falta: usá el <strong>escáner web</strong> (abajo), que anda en cualquier celular.</p>
       <h2>Vincular el celular del local</h2>
       <Steps items={[
-        <>En el panel, entrá a <strong>Equipo</strong> y tocá "Activar dispositivo". Aparece un código QR.</>,
+        <>En el panel, entrá a <strong>Equipo</strong> y, en "Celulares del local", tocá "vincularla con un código QR". Aparece un código QR.</>,
         <>En el celular, abrí la app, tocá "Soy empleado" y apuntá la cámara a ese código.</>,
         <>Listo: el celular queda vinculado a tu negocio. Desde ahí, cada empleado entra con su PIN.</>,
       ]} />
-      <div className="ay-shots">
-        <Shot src="activar" alt="Ventana Activar dispositivo de escaneo con el código QR" />
-      </div>
       <div className="ay-phones">
         <Shot phone src="app-inicio" alt="Pantalla de bienvenida de Stampa Escáner" caption="La primera vez, tocá &quot;Soy empleado&quot;." />
         <Shot phone src="app-pin" alt="Pantalla para entrar con el PIN" caption="Después, cada uno entra con su PIN." />
@@ -164,11 +161,11 @@ export const ARTICLES: Article[] = [
       <h2>Sin bajar ninguna app: el escáner web</h2>
       <p>El escáner también funciona en el navegador del celular (iPhone o Android) o en la compu de la caja, con todo lo de la app.</p>
       <Steps items={[
-        <>En el panel, entrá a <strong>Equipo</strong> y, en "Escáner web", tocá "Mandar link por WhatsApp" (o copialo, o mostralo como QR).</>,
+        <>En el panel, entrá a <strong>Equipo</strong> y, en "Celulares del local", tocá "Mandar link por WhatsApp" (o "Copiar link", o "Mostrar QR").</>,
         <>El empleado abre el link en su celular: queda vinculado al local y entra con su PIN de siempre.</>,
         <>Para abrirlo como una app, que lo agregue a la pantalla de inicio (en iPhone: Compartir → "Agregar a inicio").</>,
       ]} />
-      <p>Cada link sirve para un solo celular y vence en 24 horas. En Equipo ves los celulares vinculados y podés quitar uno: deja de poder escanear al instante.</p>
+      <p>Cada link sirve para un solo celular y vence en 24 horas. En "Celulares del local" ves los celulares vinculados y podés quitar uno: deja de poder escanear al instante.</p>
       <h2>Si tenés varias sucursales</h2>
       <p>Cada sucursal tiene su código de activación. El celular queda en la sucursal cuyo código escaneaste. Para moverlo, tocá "Cambiar de sucursal" en la pantalla del PIN o en el escáner.</p>
     </>,
@@ -206,17 +203,18 @@ export const ARTICLES: Article[] = [
     slug: 'equipo',
     group: 'En el mostrador',
     title: 'Sumar a tu equipo',
-    summary: 'Empleados con PIN para escanear y administradores que entran al panel.',
+    summary: 'Empleados con PIN para escanear en el mostrador y encargados que entran al panel.',
     body: <>
-      <p>En <strong>Equipo</strong>, con "+ Sumar al equipo", hay dos tipos de persona:</p>
+      <p>En <strong>Equipo</strong>, con "Sumar a alguien", elegís qué va a hacer la persona:</p>
       <ul>
-        <li><strong>Scanner:</strong> usa solo la app de escaneo, con un PIN de 4 números que le das vos. Suma sellos, puntos y visitas y entrega premios. No ve el panel.</li>
-        <li><strong>Administrador:</strong> entra al panel con su email. Ve clientes, premios, notificaciones, diseño, analítica y formulario. No puede cambiar el plan, el equipo ni borrar clientes.</li>
+        <li><strong>Empleado (escanea en el mostrador):</strong> entra con un PIN de 4 números que le das vos. Suma sellos, puntos y visitas y entrega premios. No ve el panel.</li>
+        <li><strong>Encargado (maneja el panel):</strong> entra con su email y una contraseña que elige él mismo, con un mail que le llega. Ve clientes, premios, notificaciones, diseño, analítica y formulario. No puede cambiar el plan, el equipo ni borrar clientes.</li>
       </ul>
-      <Shot src="equipo" alt="Pestaña Equipo con el dueño, un administrador y dos scanners" />
-      <p>Al lado de cada scanner ves cuántos escaneos hizo en los últimos 30 días. Si alguien deja de trabajar con vos, "Deshabilitar" le corta el acceso enseguida y su historial queda.</p>
+      <p>El PIN se muestra una sola vez, al crearlo. Si alguien lo olvida, con "Nuevo PIN" le armás otro. El PIN anterior deja de servir.</p>
+      <p>Al lado de cada empleado ves cuántos escaneos hizo en los últimos 30 días. Si alguien deja de trabajar con vos, "Deshabilitar" le corta el acceso enseguida y su historial queda.</p>
+      <p>Más abajo, en "Celulares del local", ves los celulares vinculados al escáner. Quitar un celular corta ese celular; para cortar a una persona, deshabilitala.</p>
       <p>Starter incluye 1 persona además de vos, Growth 5 y Pro las que necesites.</p>
-      <Note>Si un scanner suma varios sellos seguidos al mismo cliente o hace muchos escaneos en poco tiempo, te llega un mail. Se activa en Configuración, en "Mis alertas".</Note>
+      <Note>Si un empleado suma varios sellos seguidos al mismo cliente o hace muchos escaneos en poco tiempo, te llega un mail. Se activa en Configuración, en "Mis alertas".</Note>
     </>,
   },
 

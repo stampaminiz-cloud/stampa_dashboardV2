@@ -70,7 +70,7 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
 
   return (
     <div className={`pr${part === 'all' ? '' : ' pr--bare'}`}>
-      <style>{CSS}</style>
+      <style>{RULES_CSS}</style>
 
       {part !== 'business' && <>
       {/* Vencimiento */}
@@ -154,7 +154,7 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
   )
 }
 
-const CSS = `
+export const RULES_CSS = `
   .pr-sw{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--s-tinta-2);}
   .pr{display:flex;flex-direction:column;gap:18px;margin-top:18px;padding-top:16px;border-top:1px solid rgba(34,32,27,.07);}
   .pr--bare{margin-top:0;padding-top:0;border-top:none;}
