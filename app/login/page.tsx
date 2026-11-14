@@ -48,10 +48,9 @@ export default function LoginPage() {
         <div className="au-fld">
           <label htmlFor="li-password">Contraseña</label>
           <PasswordInput id="li-password" className="au-input" value={password} onChange={setPassword} placeholder="Tu contraseña" autoComplete="current-password" />
-          <a className="au-link au-forgot" href="/forgot-password">Olvidé mi contraseña</a>
         </div>
         <button className="au-btn pino" type="submit" disabled={loading}>{loading ? 'Ingresando...' : 'Ingresar'}</button>
-        <p className="au-foot">¿No tenés cuenta? <a className="au-link" href="/register">Crear una gratis</a></p>
+        <p className="au-foot"><a className="au-link" href="/forgot-password">Olvidé mi contraseña</a> &nbsp;·&nbsp; <a className="au-link" href="/register">Crear una cuenta gratis</a></p>
       </form>
     </AuthShell>
   )

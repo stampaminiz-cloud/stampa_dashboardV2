@@ -2,7 +2,20 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.8.1 (por salir) — Sesión del PIN
+## 1.9.0 (por salir) — Web, onboarding y guía inicial
+
+**Cambios**
+- Landing: ocupa todo el ancho (con 24 px de margen; antes se frenaba en 1.240 px), header más alto con el logo de 18 a 34 px, título del hero más grande y un iPhone que flota solo, sin recuadro gris, con el pase real: suma un sello y le cae un aviso. El gráfico de "Sabés quién volvió" llena su bloque (sin huecos). Vuelve el cierre naranja, ahora grande y con una pila de tarjetas, y el pie lleva el logo.
+- Las tarjetas de la landing usan el diseño real del pase: el logo solo arriba a la izquierda y "Powered by Stampa" bajo el QR. Sin logo, círculo con la inicial y el nombre.
+- Ingresar, Crear cuenta y Recuperar contraseña: logo de 46 px centrado sobre el formulario, campos y botón más grandes, y los enlaces juntos debajo del botón.
+- Onboarding: la tarjeta de al lado es el pase real desde el primer paso, en sellos, puntos y membresía. Pide al servidor las mismas imágenes que la pantalla final (logo y franja) y se actualiza 0,45 s después de cada cambio.
+
+**Nuevo**
+- Guía inicial: al terminar el onboarding se oscurece la pantalla y se resalta de a una cosa (formulario, empleado, celular del local y primer escaneo). Se puede saltar con "Saltar guía" o Esc, y se retoma con "Seguir guía".
+- Primeros pasos pasa a una sola línea en Inicio: barra de avance, "x de 4", "Seguir guía" y, si falta, "Sumar WhatsApp". Se va solo al llegar a 4 de 4.
+- Menos texto: un solo botón "Ayuda" en la barra de arriba, con las preguntas de la pantalla abierta (Clientes, Premios, Pedidos, Diseño, Equipo, Sucursales y Configuración). Las explicaciones largas pasaron ahí y se sacaron los íconos (i). Lo que hace falta para no equivocarse (una pérdida, algo que no se puede deshacer, una regla que ven los clientes) sigue escrito en la pantalla, en una línea. En el celular el botón queda solo con el ícono.
+
+## 1.8.1 (14/11/2026) — Sesión del PIN
 
 **Arreglos**
 - Escáner web: la sesión del empleado se renueva con el uso. Guarda el token nuevo que manda el servidor cuando el actual tiene más de un día, y la sesión no vence mientras se use. Necesita el backend 1.8.1.

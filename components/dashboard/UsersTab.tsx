@@ -144,11 +144,11 @@ function AddPersonModal({ businessId, locs, selectedId, onClose, onAdd }: { busi
             <div className="us-roles">
               <button className="us-role-opt" onClick={() => { setRole('scanner'); setError(null); setStep(2) }}>
                 <strong>Escanea en el mostrador</strong>
-                <span>Suma sellos, puntos y visitas. Entra con un PIN de 4 números. Es lo más rápido.</span>
+                <span>Suma sellos, puntos y visitas. Entra con un PIN.</span>
               </button>
               <button className="us-role-opt" onClick={() => { setRole('manager'); setError(null); setStep(2) }}>
                 <strong>Maneja el panel</strong>
-                <span>Ve clientes, premios y analítica. Entra con su email y la contraseña que elija.</span>
+                <span>Ve clientes, premios y analítica. Entra con email y contraseña.</span>
               </button>
             </div>
           </>
@@ -364,7 +364,7 @@ function DevicesCard({ businessId, locs, selectedId, onLinkApp }: { businessId: 
       <div className="us-block-head">
         <div style={{ flex: 1, minWidth: 240 }}>
           <div className="us-block-title">Celulares del local</div>
-          <p className="us-block-sub">El celular se vincula una vez. Después, cada empleado entra en él con su PIN. Los encargados y el dueño entran con su email.</p>
+          <p className="us-block-sub">Se vincula una vez por celular; cada empleado entra con su PIN.</p>
         </div>
         <div className="us-block-actions">
           {multi && (
@@ -455,12 +455,12 @@ function ActivityPanel({ businessId, user, onClose, onOpenCustomer }: { business
             {data.alerts.length > 0 && (
               <div className="us-alerts">
                 <div className="us-alerts-title">⚠ Para revisar</div>
+                <div className="us-hint" style={{ margin: '0 0 6px' }}>No bloquea nada: son patrones para mirar.</div>
                 {data.alerts.map((a, i) => (
                   <div key={i} className="us-alert">
                     <span>{a.text}</span><span className="us-muted">{fmtAt(a.at)}</span>
                   </div>
                 ))}
-                <div className="us-hint" style={{ margin: '6px 0 0' }}>No bloquea nada: son patrones que conviene mirar (varios sellos seguidos al mismo cliente, o muchos escaneos en poco tiempo).</div>
               </div>
             )}
             <div className="us-label" style={{ marginTop: 14 }}>A quién le escaneó</div>
@@ -581,7 +581,7 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
           <div className="us-block-head">
             <div style={{ flex: 1, minWidth: 240 }}>
               <div className="us-block-title">Personas</div>
-              <p className="us-block-sub">Quién puede escanear o manejar el panel. Cada persona entra con lo suyo y se sabe quién hizo qué.</p>
+              <p className="us-block-sub">Quién escanea y quién maneja el panel.</p>
             </div>
             <div className="us-block-actions">
               {teamLimit < 999 && <span className={`us-count${atLimit ? ' us-count--full' : ''}`}>{occupying} de {teamLimit} en tu plan</span>}

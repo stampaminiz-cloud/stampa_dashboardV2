@@ -179,7 +179,7 @@ function StampRules({ businessId, card, data, onSaved }: { businessId: string; c
   return (
     <div className="rw-card">
       <div className="rw-card-head-row">
-        <div><div className="rw-card-title">Cómo se gana</div><div className="rw-card-sub" style={{ marginBottom: 0 }}>Cuántos sellos hacen falta y qué recibe el cliente al completar la tarjeta</div></div>
+        <div><div className="rw-card-title">Cómo se gana</div></div>
         <div className="rw-editor-foot" style={{ marginTop: 0 }}>
           {dirty && <button className="s-btn s-btn--secondary s-btn--sm" onClick={discard} disabled={saving}>Descartar</button>}
           <button className="s-btn s-btn--primary s-btn--sm" onClick={() => save()} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button>
@@ -641,7 +641,7 @@ function MembershipRewards({ businessId, card, data, onChanged }: { businessId: 
         <div className="rw-card-head-row">
           <div>
             <div className="rw-card-title">Niveles y beneficios</div>
-            <div className="rw-card-sub" style={{ marginBottom: 0 }}>Cada cliente sube de nivel al llegar a las visitas indicadas. Entre 2 y 6 niveles.</div>
+            <div className="rw-card-sub" style={{ marginBottom: 0 }}>Al bajar las visitas de un nivel, los clientes que ya las cumplen suben al guardar.</div>
           </div>
         </div>
         {error && <div className="rw-error">{error}</div>}
@@ -692,7 +692,6 @@ function MembershipRewards({ businessId, card, data, onChanged }: { businessId: 
               {dirty && <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setDraft(saved); setError(null) }} disabled={saving}>Descartar</button>}
               <button className="s-btn s-btn--primary s-btn--sm" onClick={save} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button>
             </div>
-            <div className="rw-hint">Si bajás las visitas de un nivel, los clientes que ya las cumplen suben al guardar. Si las subís, nadie pierde el nivel que ya ganó.</div>
           </div>
           <div>
             <div className="rw-pv-tiers" role="group" aria-label="Ver la tarjeta como">

@@ -1,7 +1,6 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { apiUpdateCard, apiUpdateBusiness } from '@/lib/api'
-import { InfoTooltip } from './InfoTooltip'
 import { Icon } from '@/components/ui/Icon'
 import { Switch } from '@/components/ui/Switch'
 
@@ -77,8 +76,9 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
       <div className="pr-block">
         <div className="pr-title">
           Vencimiento por inactividad
-          <InfoTooltip text="Si un cliente no vuelve en ese tiempo, pierde los sellos o puntos acumulados; en membresía baja un nivel por cada período sin venir. Cada visita vuelve a empezar el plazo. Le avisamos por push 7 días antes. Un premio listo para entregar no vence." />
+          
         </div>
+        <div className="pr-note">Si no vuelve en ese tiempo, el cliente pierde los sellos o puntos acumulados.</div>
         {cards.length === 0 ? <div className="pr-note">Todavía no tenés tarjetas.</div> : cards.map(c => {
           const v = local[c.id]?.expiryMonths ?? 0
           return (
@@ -101,7 +101,7 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
       <div className="pr-block">
         <div className="pr-title">
           Días dobles
-          <InfoTooltip text="Esos días cada escaneo vale x2: dos sellos o el doble de puntos. Sirve para llenar los días flojos. Se muestra en el reverso de la tarjeta." />
+          
         </div>
         {ruleCards.length === 0 ? <div className="pr-note">Aplica a tarjetas de sellos y de puntos.</div> : ruleCards.map(c => {
           const days = local[c.id]?.doubleDays ?? []
@@ -133,7 +133,7 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
       <div className="pr-block">
         <div className="pr-title">
           Cumpleaños
-          <InfoTooltip text="Agrega 'Fecha de cumpleaños' al formulario (opcional para el cliente). El día del cumple le llega un push y tiene 7 días para retirar el regalo, que se entrega desde la app de escaneo." />
+          
         </div>
         <div className="pr-row">
           <span className="pr-sw">

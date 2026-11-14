@@ -1,9 +1,6 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react'
 import { apiMe, apiOnboarding, apiOnboardingPreview, getToken } from '@/lib/api'
-import { Pass } from '@/components/landing2/Pass'
-import { PASS_CSS } from '@/components/landing2/passStyles'
-import type { Biz } from '@/components/landing2/data'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { darkenHex, DEFAULT_CARD_COLOR, presetsForPlan } from '@/lib/colorPresets'
 import { ColorField, useLogoColors } from '@/components/dashboard/ColorField'
@@ -509,7 +506,7 @@ function Step6({ state, onBack, onFinish, finishing, error, currency }: { state:
 }
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
-const CSS = PASS_CSS + `
+const CSS = `
   .ob-ic-faint { color: var(--s-tinta-3); }
   :root { --font-d: var(--font-display); --font-b: var(--font-body); }
   *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
@@ -655,9 +652,8 @@ const CSS = PASS_CSS + `
     .ob-top { padding:9px 16px; gap:12px; }
     .ob-grid { grid-template-columns:1fr; }
     .ob-main { min-height:0; padding:22px 18px calc(28px + env(safe-area-inset-bottom)); }
-    .ob-side { order:-1; position:static; min-height:0; padding:18px; }
-    .ob-side .l2-pass { --pw:150px !important; }
-    .ob-side .l2-p-qr, .ob-side p { display:none; }
+    .ob-side { order:-1; position:static; min-height:0; height:240px; overflow:hidden; padding:16px 16px 0; justify-content:flex-start; -webkit-mask-image:linear-gradient(#000 70%,transparent); mask-image:linear-gradient(#000 70%,transparent); }
+    .ob-side p { display:none; }
     .ob-grid--wide .ob-side { display:none; }
     .ob-sector-grid { grid-template-columns:repeat(2,1fr); }
     .ob-final-layout { flex-direction:column; width:100%; }
@@ -673,6 +669,33 @@ const INITIAL_STATE: OBState = {
   stampsRequired: 8, pointsPerVisit: 10, pointsMode: 'visit', pointsPerAmount: 1, pointsAmountUnit: 0,
   rewardMode: 'customer', rewardValue: '', rewardOptions: [],
   brandColor: DEFAULT_CARD_COLOR.start, brandLogo: null,
+}
+
+// La tarjeta de al lado es el pase real desde el primer paso: pide al backend
+// las mismas imágenes (logo y franja) que la pantalla final, así que es igual
+// por construcción, en los tres modelos. Se actualiza 0,45 s después del último
+// cambio y, mientras llega la nueva, queda la anterior (no parpadea).
+function LiveCard({ state, currency }: { state: OBState; currency: Currency }) {
+  const [images, setImages] = useState<PassImages | null>(null)
+  const seq = useRef(0)
+  const key = JSON.stringify([state.cardType, state.businessName, state.brandColor, state.brandLogo?.length ?? 0, state.brandLogo?.slice(-32) ?? '', state.stampsRequired, state.pointsMode, state.pointsPerVisit, state.pointsPerAmount, state.pointsAmountUnit, currency])
+  useEffect(() => {
+    const id = ++seq.current
+    const t = setTimeout(() => {
+      apiOnboardingPreview({ design: {
+        type: state.cardType, name: state.businessName || 'Tu tarjeta', color: state.brandColor, secondColor: darkenHex(state.brandColor),
+        logoUrl: state.brandLogo, stampsRequired: state.stampsRequired, pointsMode: state.pointsMode, pointsPerVisit: state.pointsPerVisit,
+        pointsPerAmount: state.pointsPerAmount, pointsAmountUnit: state.pointsAmountUnit || DEFAULT_UNIT[currency],
+      } }).then(r => { if (id === seq.current) setImages(r as PassImages) }).catch(() => { /* queda la anterior */ })
+    }, 450)
+    return () => clearTimeout(t)
+  }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
+  const rewardLabel = state.rewardMode === 'customer' ? (state.rewardOptions[0] || 'A tu elección') : (state.rewardValue.trim() || 'Tu premio')
+  return (
+    <PassPreview platform="apple" type={state.cardType} images={images} color={state.brandColor}
+      businessName={state.businessName || 'Tu negocio'} cardName={state.businessName || 'Tu tarjeta'} rewardLabel={rewardLabel}
+      tier={state.cardType === 'membership' ? MEMBERSHIP_TIERS[0] : null} />
+  )
 }
 
 export default function OnboardingPage() {
@@ -736,6 +759,7 @@ export default function OnboardingPage() {
       })
       localStorage.removeItem(STORAGE_KEY)
       localStorage.removeItem('stampa_active_tab')
+      localStorage.setItem('stampa_tour', 'pending')
       window.location.href = '/dashboard'
     } catch (err: any) {
       setFinishError(err?.message || err?.error || 'No pudimos crear tu negocio. Probá de nuevo.')
@@ -779,7 +803,7 @@ export default function OnboardingPage() {
             </div>
             {!wide && (
               <aside className="ob-side" aria-label="Vista previa de tu tarjeta">
-                <Pass b={livePass(state)} width={250} />
+                <LiveCard state={state} currency={currency} />
                 <p>Así la van a ver tus clientes en el Wallet.</p>
               </aside>
             )}
@@ -788,24 +812,4 @@ export default function OnboardingPage() {
       </div>
     </>
   )
-}
-
-// La tarjeta que se va armando mientras completás: nombre, rubro, programa,
-// premio, color y logo. Es la misma tarjeta de la landing; el color del texto
-// se ajusta si elegís un color claro.
-function livePass(s: OBState): Biz {
-  const hex = /^#[0-9a-f]{6}$/i.test(s.brandColor) ? s.brandColor : DEFAULT_CARD_COLOR.start
-  const n = parseInt(hex.slice(1), 16)
-  const lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255
-  const sector = SECTORS.find(x => x.id === s.sector)?.label.toUpperCase()
-  const prize = s.cardType === 'stamp'
-    ? (s.rewardMode === 'customer' ? (s.rewardOptions[0] || 'A tu elección') : (s.rewardValue.trim() || 'Tu premio'))
-    : 'Tu premio'
-  const base: Biz = {
-    name: s.businessName.trim() || 'Tu negocio', sub: sector, color: hex, fg: lum > 0.62 ? '#1E1D1A' : '#FFFFFF',
-    logo: s.brandLogo || undefined, icon: 'negocio', head: ['', ''], who: 'Tu cliente', wa: '', prize, model: 'sellos', stamps: 3,
-  }
-  if (s.cardType === 'points') return { ...base, model: 'puntos', points: '420', next: 'Faltan 80', head: ['PRÓXIMO PREMIO', prize] }
-  if (s.cardType === 'membership') return { ...base, model: 'membresia', tier: ['Bronce', 'Plata', 20, '5 visitas para Plata'], head: ['NIVEL', 'Bronce'] }
-  return base
 }

@@ -6,7 +6,6 @@ import React, { useState, useEffect } from 'react'
 import type { BillingStatus } from '@/lib/api'
 import { apiUpdateBusiness, apiChangePassword, apiLogoutAll, clearToken, apiUpdateProfile, apiExportCustomers, apiRequestDeletion, apiCancelDeletion, apiChangeEmail } from '@/lib/api'
 import { useLang } from '@/data/i18n'
-import { InfoTooltip } from './InfoTooltip'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { ProgramRules, type RulesCard, type BirthdayRule } from './ProgramRules'
 import { SumarConfig } from './SumarConfig'
@@ -522,7 +521,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         <Section title={t('st_profile')} icon={<Icon name="negocio" size={16} />}>
           <FieldRow label={t('st_name')}><EditableText value={business.name} maxLength={60} onSave={v => handleSave('name', v)} /></FieldRow>
           <FieldRow label={t('st_sector')}><SectorField value={business.sector} saving={saving} saved={saved} t={t} onSave={v => { handleSave('sector', v) }} />{msgFor('sector')}</FieldRow>
-          <FieldRow label={<>{t('st_timezone')}<InfoTooltip text="Se usa para 'hoy', 'este mes', los horarios de Analítica y la hora de las alertas por email. Tiene que ser la del local." /></>}>
+          <FieldRow label={<>{t('st_timezone')}<span style={{ display: 'block', fontSize: 11, fontWeight: 400, color: 'rgba(34,32,27,.5)' }}>Tiene que ser la del local.</span></>}>
             <select
               className="st-timezone-select"
               value={business.timezone}
@@ -559,7 +558,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           <div className="st-rule">
             <div className="st-rule-title">
               Cliente inactivo
-              <InfoTooltip text={'Se usa en Inicio, Clientes, Analítica y en la audiencia "Inactivos" de Notificaciones. No borra ni cambia nada del cliente.'} />
+              
             </div>
             <div className="st-rule-row">
               <span className="st-rule-text">Pasa a inactivo si no vuelve en</span>

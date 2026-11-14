@@ -26,7 +26,7 @@ export type Biz = {
 
 // Los 4 primeros arrancan con Stampa en la maqueta; el resto se va sumando.
 export const SHOPS: Biz[] = [
-  { name: 'Café Aurora', sub: 'CAFÉ · PALERMO', prize: 'Un café de especialidad', color: '#6B2D1F', icon: 'cafe', model: 'sellos', head: ['SELLOS', '3 de 8'], stamps: 3, who: 'Lucía Gómez', wa: 'PEDIDOS', word: 'tu cafetería', label: 'Cafetería' },
+  { name: 'Café Aurora', logo: '/assets/demo-sol.svg', sub: 'CAFÉ · PALERMO', prize: 'Un café de especialidad', color: '#6B2D1F', icon: 'cafe', model: 'sellos', head: ['SELLOS', '3 de 8'], stamps: 3, who: 'Lucía Gómez', wa: 'PEDIDOS', word: 'tu cafetería', label: 'Cafetería' },
   { name: 'Raíz Criolla', sub: 'CARNICERÍA · CÓRDOBA', color: '#5C1414', icon: 'carniceria', model: 'puntos', head: ['PRÓXIMO PREMIO', '1 kg de vacío'], points: '840', next: 'Te faltan 160', who: 'Martín Ruiz', wa: 'PEDIDOS', word: 'tu carnicería', label: 'Carnicería' },
   { name: 'Studio Nina', sub: 'PELUQUERÍA · NÚÑEZ', color: '#F1E7F2', fg: '#3D3350', icon: 'peluqueria', model: 'membresia', head: ['NIVEL', 'Plata'], tier: ['Plata', 'Oro', 62, 'Te faltan 3 visitas para Oro'], who: 'Sofía Paz', wa: 'TURNOS', word: 'tu peluquería', label: 'Peluquería' },
   { name: 'La Espiga', sub: 'PANADERÍA · FLORES', prize: 'Una docena de medialunas', color: '#8A5A2B', icon: 'panaderia', model: 'sellos', head: ['SELLOS', '7 de 8'], stamps: 7, who: 'Ana López', wa: 'ENCARGOS', word: 'tu panadería', label: 'Panadería' },

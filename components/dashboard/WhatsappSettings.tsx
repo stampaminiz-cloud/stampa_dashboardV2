@@ -112,7 +112,7 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
       <style>{CSS}</style>
       <div className="wa-cols">
         <div className="wa-form">
-          <p className="wa-intro">Con tu número cargado, la tarjeta de tus clientes trae botones que abren el chat con vos, con el mensaje ya escrito. No tiene costo.</p>
+          <p className="wa-intro">Tus clientes te escriben desde la tarjeta con un toque. Sin costo.</p>
 
           <div className="wa-field">
             <label className="wa-label" htmlFor="wa-number">Número</label>
@@ -141,14 +141,12 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
             {!disabled && buttons.length < sug.maxButtons && (
               <button type="button" className="s-btn s-btn--secondary s-btn--sm wa-add" onClick={addButton}><Icon name="agregar" size={14} />Agregar botón</button>
             )}
-            <div className="wa-help">El tipo define el mensaje que llega escrito y el título en la tarjeta. "Con pedido" abre primero la página de pedido (se arma en la pestaña Pedidos).</div>
           </div>
 
           <div className="wa-field">
             <label className="wa-label" htmlFor="wa-title">Título en el frente de la tarjeta</label>
             <input id="wa-title" className="wa-input wa-input--short" value={title} maxLength={sug.limits.title} disabled={disabled}
               placeholder={buttons[0] ? groupOf(buttons[0].kind) : 'WHATSAPP'} onChange={e => setTitle(e.target.value.toUpperCase())} />
-            <div className="wa-help">Va en la fila de abajo, al lado de las visitas. Si lo dejás vacío, sale del primer botón.</div>
           </div>
 
           {disabled

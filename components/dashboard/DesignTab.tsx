@@ -7,7 +7,6 @@ import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS } from '@/lib/colorPresets'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
 import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiGetPointsCatalog, apiWalletPreview } from '@/lib/api'
-import { InfoTooltip } from './InfoTooltip'
 import { ColorField, contrastRatio, useLogoColors, logoFadesOn } from './ColorField'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { PointsRuleEditor, DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
@@ -576,8 +575,8 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           <div className="dt-type-fixed">
             <span className="dt-type-fixed-label">
               {card.type === 'stamp' ? 'Sellos' : card.type === 'points' ? 'Puntos' : 'Membresía'}
-              <InfoTooltip text="El tipo no se cambia después de crear la tarjeta. Si necesitás otro programa, creá una tarjeta nueva." />
             </span>
+            <span style={{ marginLeft: 10, fontSize: 12, color: 'rgba(34,32,27,.55)' }}>No se cambia después de crear la tarjeta.</span>
           </div>
 
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Descripción pública</div>
@@ -590,7 +589,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           />
           <div className="dt-public-desc-note">
             {(card.publicDescription || '').length}/100
-            <InfoTooltip text="Se muestra a tus clientes si tenés 2 o más tarjetas activas, para que sepan a cuál sumarse. Si lo dejás vacío, usamos un texto automático." />
+            
           </div>
 
           {/* Logos */}
@@ -608,7 +607,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
               editable desde dos tabs distintas (mismo criterio que ya
               aplicamos con el selector de premio). */}
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Campos del formulario</div>
-          <div className="dt-reward-goto-forms">Se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>. <InfoTooltip text="El formulario de registro usa el color y el logo de esta tarjeta." /></div>
+          <div className="dt-reward-goto-forms">Se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>. </div>
 
           {/* La regla y el premio se editan en Premios (un solo lugar). */}
           {card.type !== 'membership' && (
@@ -655,14 +654,14 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
 
               <div className="dt-appearance-label" style={{ marginTop: 14 }}>
                 Color de texto
-                <InfoTooltip text="El color del nombre, los números y los datos de la tarjeta, tal como se ve en la Wallet." />
+                
               </div>
               <ColorField ariaLabel="Color de texto" value={card.textColor || '#FFFFFF'} suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
                 contrastWith={card.color} onChange={v => setCard({ ...card, textColor: v })} />
 
               <div className="dt-appearance-label" style={{ marginTop: 14 }}>
                 Color de las etiquetas
-                <InfoTooltip text="Los títulos chicos (TITULAR, PREMIO…). En Automático usan el color de texto." />
+                
               </div>
               <ColorField ariaLabel="Color de las etiquetas" value={card.labelColor || null} auto suggestions={TEXT_SUGGESTIONS} logoColors={logoColors}
                 contrastWith={card.color} onChange={v => setCard({ ...card, labelColor: v })} />
