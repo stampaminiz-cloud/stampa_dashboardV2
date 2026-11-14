@@ -15,7 +15,7 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
 - Primeros pasos pasa a una sola línea en Inicio: barra de avance, "x de 4", "Seguir guía" y, si falta, "Sumar WhatsApp". Se va solo al llegar a 4 de 4.
 - Menos texto: botón "Ayuda" con un panel lateral de preguntas cortas (empezó en Equipo) y las explicaciones largas de Equipo, Pedidos, Premios, WhatsApp y Cómo suman tus clientes pasaron a un ícono (i) junto al título. Los avisos de seguridad y lo irreversible siguen a la vista.
 
-## 1.8.1 (por salir) — Sesión del PIN
+## 1.8.1 (14/11/2026) — Sesión del PIN
 
 **Arreglos**
 - Escáner web: la sesión del empleado se renueva con el uso. Guarda el token nuevo que manda el servidor cuando el actual tiene más de un día, y la sesión no vence mientras se use. Necesita el backend 1.8.1.
