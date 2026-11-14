@@ -4,7 +4,6 @@ import { apiUpdateCard } from '@/lib/api'
 import { usePlan } from '@/data/plans'
 import { Icon } from '@/components/ui/Icon'
 import { Switch } from '@/components/ui/Switch'
-import { InfoTooltip } from './InfoTooltip'
 import { RULES_CSS } from './ProgramRules'
 
 // Configuración → "Cómo suman tus clientes" (1.8.0). Mismo diseño y mismo
@@ -68,7 +67,7 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
         <div className="pr-block">
           <div className="pr-title">
             Quién suma
-            <InfoTooltip text="Hoy suma un empleado: escanea el QR de la tarjeta con la app o con el escáner web (se vincula desde Equipo). Los modos automáticos, en los que el cliente acerca su tarjeta a una pantalla o caja de Stampa o suma con cada pago, llegan pronto." />
+            
           </div>
           <div className="pr-row">
             <div className="pr-seg" role="radiogroup" aria-label="Quién suma">
@@ -80,7 +79,7 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
         </div>
 
         <div className="pr-block">
-          <div className="pr-title">Cómo se entrega el premio<InfoTooltip side="bottom" text="Al escanear, el empleado ve “Tiene un premio” y lo entrega. Sin personas, para locales sin empleados: próximamente, desde Pro." /></div>
+          <div className="pr-title">Cómo se entrega el premio</div>
           <div className="pr-row">
             <div className="pr-seg" role="radiogroup" aria-label="Cómo se entrega el premio">
               <button type="button" role="radio" aria-checked className="pr-seg-btn is-on">Lo entrega un empleado</button>
@@ -95,7 +94,7 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
         <div className="pr-block">
           <div className="pr-title">
             Máximo por día
-            <InfoTooltip text="Cuántas veces puede sumar un mismo cliente en el día del negocio. Un café a la mañana y otro a la tarde: elegí 2. Vale para la app y para el escáner web." />
+            
           </div>
           {ordered.length === 0 ? <div className="pr-note">Todavía no tenés tarjetas.</div> : ordered.map(c => {
             const r = local[c.id] ?? ruleOf(c)
@@ -126,7 +125,7 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
         <div className="pr-block">
           <div className="pr-title">
             Tiempo mínimo entre una y otra
-            <InfoTooltip text="Cuántas horas tienen que pasar desde la última vez que sumó. Evita que alguien sume dos veces seguidas en la misma visita. Se puede combinar con el máximo por día." />
+            
           </div>
           {ordered.length === 0 ? <div className="pr-note">Todavía no tenés tarjetas.</div> : ordered.map(c => {
             const r = local[c.id] ?? ruleOf(c)
@@ -153,7 +152,7 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
         <div className="pr-block">
           <div className="pr-title">
             Dejar que el empleado la saltee
-            <InfoTooltip text="Si está activado, cuando un cliente ya sumó lo que permite la regla el empleado ve el aviso y puede tocar 'Sumar igual'. Queda marcado en el historial. Si no, no puede sumar." />
+            
           </div>
           {ordered.length === 0 ? <div className="pr-note">Todavía no tenés tarjetas.</div> : ordered.map(c => {
             const r = local[c.id] ?? ruleOf(c)

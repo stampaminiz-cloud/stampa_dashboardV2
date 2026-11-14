@@ -6,8 +6,6 @@ import { apiGetTeam, apiCreateTeamMember, apiUpdateTeamMember, apiDeleteTeamMemb
 import type { Location } from '@/lib/location'
 import { usePlan } from '@/data/plans'
 import { SCANNER_IOS_URL } from '@/lib/scanner'
-import { InfoTooltip } from '@/components/dashboard/InfoTooltip'
-import { HelpDrawer, type HelpItem } from '@/components/dashboard/HelpDrawer'
 
 // Equipo, en dos bloques:
 // - Personas: el dueño, los Encargados (manejan el panel; entran con email y
@@ -167,11 +165,12 @@ function AddPersonModal({ businessId, locs, selectedId, onClose, onAdd }: { busi
                 <div className="us-hint">Le llega un mail para elegir su contraseña. El link vale 7 días.</div>
                 {locs.length >= 2 && (
                   <>
-                    <div className="us-label">¿Qué sucursales ve?<InfoTooltip text="Con una sola, Inicio, Analítica, Clientes y Premios le muestran solo esa sucursal." /></div>
+                    <div className="us-label">¿Qué sucursales ve?</div>
                     <select className="us-input" value={access} onChange={e => setAccess(e.target.value)} aria-label="Sucursales que ve">
                       <option value="">Todas</option>
                       {locs.map(l => <option key={l.id} value={l.id}>Solo {l.name}</option>)}
                     </select>
+                    <div className="us-hint">Con una sola, Inicio, Analítica, Clientes y Premios le muestran solo esa sucursal.</div>
                   </>
                 )}
               </>
@@ -364,7 +363,8 @@ function DevicesCard({ businessId, locs, selectedId, onLinkApp }: { businessId: 
     <div className="us-card us-block">
       <div className="us-block-head">
         <div style={{ flex: 1, minWidth: 240 }}>
-          <div className="us-block-title">Celulares del local<InfoTooltip text="El celular se vincula una vez. Después, cada empleado entra en él con su PIN. Los encargados y el dueño entran con su email." side="bottom" /></div>
+          <div className="us-block-title">Celulares del local</div>
+          <p className="us-block-sub">Se vincula una vez por celular; cada empleado entra con su PIN.</p>
         </div>
         <div className="us-block-actions">
           {multi && (
@@ -454,7 +454,8 @@ function ActivityPanel({ businessId, user, onClose, onOpenCustomer }: { business
             </div>
             {data.alerts.length > 0 && (
               <div className="us-alerts">
-                <div className="us-alerts-title">⚠ Para revisar<InfoTooltip text="No bloquea nada: son patrones que conviene mirar (varios sellos seguidos al mismo cliente, o muchos escaneos en poco tiempo)." /></div>
+                <div className="us-alerts-title">⚠ Para revisar</div>
+                <div className="us-hint" style={{ margin: '0 0 6px' }}>No bloquea nada: son patrones para mirar.</div>
                 {data.alerts.map((a, i) => (
                   <div key={i} className="us-alert">
                     <span>{a.text}</span><span className="us-muted">{fmtAt(a.at)}</span>
@@ -484,14 +485,6 @@ function ActivityPanel({ businessId, user, onClose, onOpenCustomer }: { business
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-const AYUDA_EQUIPO: HelpItem[] = [
-  { q: '¿Cómo activo el celular del local?', a: 'En "Celulares del local", tocá "Mandar link por WhatsApp" y abrilo en ese celular. Se hace una sola vez por celular; después cada empleado entra con su PIN.' },
-  { q: '¿Cómo entra cada persona?', a: 'El empleado, con un PIN de 4 números en el celular del local. El encargado y el dueño, con su email y contraseña.' },
-  { q: '¿Y si alguien olvidó su PIN?', a: 'Elegí a la persona en la lista y tocá "Nuevo PIN". El anterior deja de servir y el nuevo se muestra una sola vez.' },
-  { q: '¿Cuánto dura el link de un celular?', a: 'Sirve para un solo celular y vence en 24 horas. Para otro celular, generá uno nuevo.' },
-  { q: '¿Qué son los avisos "Para revisar"?', a: 'No bloquean nada. Son patrones que conviene mirar, como varios sellos seguidos al mismo cliente o muchos escaneos en poco tiempo.' },
-]
-
 export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, onOpenCustomer, selectedLocationId = null }: {
   selectedLocationId?: string | null
   users: any[]; businessId?: string | null
@@ -587,10 +580,10 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
         <div className="us-card us-block">
           <div className="us-block-head">
             <div style={{ flex: 1, minWidth: 240 }}>
-              <div className="us-block-title">Personas<InfoTooltip text="Quién puede escanear o manejar el panel. Cada persona entra con lo suyo y se sabe quién hizo qué." side="bottom" /></div>
+              <div className="us-block-title">Personas</div>
+              <p className="us-block-sub">Quién escanea y quién maneja el panel.</p>
             </div>
             <div className="us-block-actions">
-              <HelpDrawer title="Ayuda de Equipo" items={AYUDA_EQUIPO} />
               {teamLimit < 999 && <span className={`us-count${atLimit ? ' us-count--full' : ''}`}>{occupying} de {teamLimit} en tu plan</span>}
               {atLimit
                 ? (onChoosePlan && <button className="s-btn s-btn--secondary s-btn--sm" onClick={onChoosePlan}>Más lugares</button>)
