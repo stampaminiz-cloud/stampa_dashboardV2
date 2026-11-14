@@ -14,6 +14,7 @@ import { Icon } from '@/components/ui/Icon'
 import { Switch } from '@/components/ui/Switch'
 import { MascotLoader } from '@/components/ui/MascotLoader'
 import { readCache, getJson, writeCache } from '@/lib/cache'
+import { InfoTooltip } from './InfoTooltip'
 
 type Product = { _id?: string; name: string; price: number | string; unit: 'unidad' | 'kg' | '100g'; active: boolean }
 type Settings = { enabled: boolean; products: Product[]; days: number[]; leadHours: number; minTotal: number; payments: string[]; zones: string[] }
@@ -153,7 +154,7 @@ export function OrdersTab({ businessId, isManager = false, onChoosePlan, onOpenS
         <div className="od-cols">
           <div className="od-left">
             <div className="od-card">
-              <div className="od-title">Productos <span className="od-count">{s.products.length} de {data.maxProducts}</span></div>
+              <div className="od-title">Productos <span className="od-count">{s.products.length} de {data.maxProducts}</span><InfoTooltip side="bottom" text="El precio es por esa unidad: por kilo, el precio del kilo; por 100 gramos, el de 100 g. Con Enter agregás otro producto. Si pausás uno, tu cliente lo ve con “Sin stock” y no lo puede pedir." /></div>
               <div className="od-prod od-prod--head"><span>Producto</span><span>Precio</span><span>Cómo se vende</span><span>Activo</span><span /></div>
               <div ref={listRef} className="od-prods">
               {s.products.map((p, i) => (
@@ -171,11 +172,10 @@ export function OrdersTab({ businessId, isManager = false, onChoosePlan, onOpenS
               {!isManager && s.products.length < data.maxProducts && (
                 <button type="button" className="s-btn s-btn--secondary s-btn--sm od-add" onClick={addProduct}><Icon name="agregar" size={14} />Agregar producto</button>
               )}
-              <div className="od-note">El precio es por esa unidad: por kilo, el precio del kilo; por 100 gramos, el de 100 g. Con Enter agregás otro producto. Si pausás uno, tu cliente lo ve con "Sin stock" y no lo puede pedir.</div>
             </div>
 
             <div className="od-card">
-              <div className="od-title">Entregas y pago</div>
+              <div className="od-title">Entregas y pago<InfoTooltip side="bottom" text="Si cargás zonas, tu cliente elige la suya al pedir y podés ver los pedidos agrupados por zona. Sin zonas, solo deja la dirección. Stampa no cobra los pedidos: el cliente avisa cómo va a pagar y vos le confirmás." /></div>
               <div className="od-row"><span className="od-k">Días de reparto</span>
                 <div className="od-days">{DAYS.map((l, d) => <button key={d} type="button" disabled={isManager} aria-pressed={s.days.includes(d)} aria-label={DAY_FULL[d]} className={`od-day${s.days.includes(d) ? ' is-on' : ''}`} onClick={() => toggle('days', d)}>{l}</button>)}</div>
               </div>
@@ -201,7 +201,6 @@ export function OrdersTab({ businessId, isManager = false, onChoosePlan, onOpenS
               <div className="od-row"><span className="od-k">Formas de pago</span>
                 <div className="od-chips">{data.payments.map((p: any) => <button key={p.key} type="button" disabled={isManager} className="s-chip" aria-pressed={s.payments.includes(p.key)} onClick={() => toggle('payments', p.key)}>{p.label}</button>)}</div>
               </div>
-              <div className="od-note">Si cargás zonas, tu cliente elige la suya al pedir y podés ver los pedidos agrupados por zona. Sin zonas, solo deja la dirección. Stampa no cobra los pedidos: el cliente avisa cómo va a pagar y vos le confirmás el total por WhatsApp.</div>
             </div>
 
             {!isManager && (

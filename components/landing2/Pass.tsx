@@ -16,10 +16,12 @@ export function Pass({ b, width = 260, qr = true, className, fresh = false }: { 
 
   return (
     <div className={`l2-pass${className ? ' ' + className : ''}`} style={style}>
-      <div className="l2-p-logo">
-        <span className="l2-p-ring">{b.logo ? <img src={b.logo} alt="" /> : (b.name[0] || 'T').toUpperCase()}</span>
-        <div><div className="l2-p-name">{b.name}</div>{b.sub && <div className="l2-p-sub">{b.sub}</div>}</div>
-      </div>
+      {b.logo
+        ? <img className="l2-p-lg" src={b.logo} alt="" />
+        : <div className="l2-p-logo">
+            <span className="l2-p-ring">{(b.name[0] || 'T').toUpperCase()}</span>
+            <div><div className="l2-p-name">{b.name}</div>{b.sub && <div className="l2-p-sub">{b.sub}</div>}</div>
+          </div>}
 
       {b.model === 'puntos' ? (
         <div>
@@ -42,7 +44,7 @@ export function Pass({ b, width = 260, qr = true, className, fresh = false }: { 
           : b.model !== 'membresia' && <div className="l2-p-f"><span>PREMIO</span><b>{prize}</b></div>}
       </div>
 
-      {qr && <div className="l2-p-qr"><FakeQr seed={b.name} /></div>}
+      {qr && <div className="l2-p-qr"><FakeQr seed={b.name} /><span>Powered by Stampa</span></div>}
     </div>
   )
 }

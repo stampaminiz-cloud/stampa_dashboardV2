@@ -21,6 +21,7 @@ import { DesignTab }         from '@/components/dashboard/DesignTab'
 import { UsersTab }          from '@/components/dashboard/UsersTab'
 import { LocationsTab }      from '@/components/dashboard/LocationsTab'
 import { OrdersTab }         from '@/components/dashboard/OrdersTab'
+import { GuidedTour, TOUR_KEY, type TourStep } from '@/components/dashboard/GuidedTour'
 import { currencyFor, formatMoney } from '@/lib/money'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -156,6 +157,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
           {NAV_IDS.filter(id => !(owner?.role === 'manager' && id === 'users')).map(id => (
             <button
               key={id}
+              data-tour={`nav-${id}`}
               className={`sb-item${active === id ? ' sb-item--on' : ''}`}
               onClick={() => { setActive(id); setMobileOpen(false) }}
               title={collapsed ? t(NAV_KEYS[id] as any) : undefined}
@@ -430,6 +432,21 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
   const stepsDone = STEPS.filter(s => s.done).length
   const showSetup = STEPS.length > 0 && stepsDone < STEPS.length
 
+  // Recorrido con foco (components/dashboard/GuidedTour): arranca solo la primera
+  // vez después del onboarding y se puede retomar con "Seguir guía".
+  const TOUR: Record<string, TourStep> = {
+    'Compartí el link de tu formulario': { target: 'nav-form', title: 'Compartí tu formulario', body: 'Tus clientes se anotan desde el link y se llevan la tarjeta.' },
+    'Sumá un empleado para escanear': { target: 'nav-users', title: 'Sumá un empleado', body: 'Entra con su propio PIN para escanear.' },
+    'Activá el celular del local': { target: 'nav-users', title: 'Activá el celular del local', body: 'Mandá el link por WhatsApp y abrilo en ese celular.' },
+    'Escaneá la tarjeta de tu primer cliente': { target: 'setup-card', title: 'Escaneá tu primera tarjeta', body: 'Con la tarjeta de un cliente, sumale su primer sello.' },
+  }
+  const tourSteps = STEPS.filter(s => !s.done).map(s => TOUR[s.title]).filter(Boolean)
+  const [tourOpen, setTourOpen] = useState(false)
+  useEffect(() => {
+    if (showSetup && tourSteps.length > 0 && localStorage.getItem(TOUR_KEY) === 'pending') setTourOpen(true)
+  }, [showSetup]) // eslint-disable-line react-hooks/exhaustive-deps
+  const closeTour = (finished: boolean) => { localStorage.setItem(TOUR_KEY, 'done'); setTourOpen(false); void finished }
+
   // ── Insights ──
   const insights: { type: string; text: string }[] = []
   if (a?.toDeliver > 0) insights.push({ type: 'info', text: `${a.toDeliver} cliente${a.toDeliver === 1 ? ' completó su tarjeta y espera' : 's completaron su tarjeta y esperan'} el premio.` })
@@ -444,38 +461,15 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
   return (
     <div className="db-content">
       {showSetup && (
-        <div className="db-card ov-setup">
-          <div className="ov-setup-head">
-            <div>
-              <div className="ov-card-title">Primeros pasos</div>
-              <div className="ov-card-sub">{stepsDone} de {STEPS.length} listos · con esto ya podés sumar tu primer cliente</div>
-            </div>
-            <div className="ov-setup-bar"><div style={{ width: `${(stepsDone / STEPS.length) * 100}%` }} /></div>
-          </div>
-          <div className="ov-setup-list">
-            {STEPS.map(step => (
-              <div key={step.title} className={`ov-setup-step${step.done ? ' ov-setup-step--done' : ''}`}>
-                <div className="ov-setup-check">{step.done ? '✓' : ''}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="ov-setup-title">{step.title}</div>
-                  {!step.done && <div className="ov-setup-body">{step.body}</div>}
-                </div>
-                {!step.done && step.cta && step.tab && <button className="s-btn s-btn--primary s-btn--sm" onClick={() => setActive(step.tab!)}>{step.cta}</button>}
-              </div>
-            ))}
-            {offerWhatsapp && (
-              <div className="ov-setup-step ov-setup-step--optional">
-                <span className="ov-setup-tag">Opcional</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="ov-setup-title">Sumá un botón de WhatsApp a la tarjeta</div>
-                  <div className="ov-setup-body">Tus clientes te escriben desde el Wallet con un toque.</div>
-                </div>
-                <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => setActive('settings')}>Configurar</button>
-              </div>
-            )}
-          </div>
+        <div className="db-card ov-setup ov-setup--line" data-tour="setup-card">
+          <div className="ov-card-title">Primeros pasos</div>
+          <div className="ov-setup-bar ov-setup-bar--grow"><div style={{ width: `${(stepsDone / STEPS.length) * 100}%` }} /></div>
+          <span className="ov-card-sub">{stepsDone} de {STEPS.length}</span>
+          {offerWhatsapp && <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => setActive('settings')}>Sumar WhatsApp</button>}
+          <button className="s-btn s-btn--primary s-btn--sm" onClick={() => setTourOpen(true)}>Seguir guía</button>
         </div>
       )}
+      {tourOpen && tourSteps.length > 0 && <GuidedTour steps={tourSteps} onClose={closeTour} />}
 
       <div className="ov-section-label">{t('section_summary' as any)}</div>
       <div className="ov-metric-grid">
@@ -922,6 +916,8 @@ const CSS = `
   .ov-adv-sub{font-size:10.5px;color:rgba(34,32,27,.4);margin-top:2px;}
   .ov-setup{margin-bottom:6px;border:1px solid rgba(199,93,58,.22);}
   .ov-setup-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:12px;}
+  .ov-setup--line{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-top:12px;padding-bottom:12px}
+  .ov-setup-bar--grow{flex:1;min-width:120px;width:auto}
   .ov-setup-bar{width:160px;height:6px;border-radius:999px;background:rgba(34,32,27,.08);overflow:hidden;}
   .ov-setup-bar div{height:100%;background:var(--s-brasa);border-radius:999px;transition:width .3s;}
   .ov-setup-list{display:flex;flex-direction:column;gap:6px;}
