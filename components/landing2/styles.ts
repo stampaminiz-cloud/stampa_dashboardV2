@@ -11,19 +11,19 @@ export const CSS = PASS_CSS + `
 :where(.l2) a{color:inherit;text-decoration:none}
 :where(.l2) button{font:inherit;cursor:pointer}
 :where(.l2) :is(h1,h2,h3,h4,h5,p,ul,blockquote){margin:0;padding:0}
-.l2-frame{max-width:1240px;margin:0 auto;background:var(--l2-papel);border-radius:28px;padding:14px;overflow:hidden}
+.l2-frame{max-width:2000px;margin:0 auto;background:var(--l2-papel);border-radius:28px;padding:14px;overflow:hidden}
 @media(max-width:700px){.l2{padding:6px 0}.l2-frame{margin:0 6px;border-radius:22px;padding:10px}}
 
 /* Menú */
-.l2-nav{position:sticky;top:10px;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-radius:999px;padding:7px 7px 7px 18px;max-width:820px;margin:0 auto;box-shadow:0 1px 0 var(--l2-linea)}
-.l2-brand img{height:18px;width:auto}
-.l2-links{display:flex;gap:22px;font-size:14px;color:var(--l2-t2)}
+.l2-nav{position:sticky;top:10px;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:16px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-radius:999px;padding:10px 10px 10px 28px;min-height:72px;box-shadow:0 1px 0 var(--l2-linea)}
+.l2-brand img{height:34px;width:auto;display:block}
+.l2-links{display:flex;gap:32px;font-size:15px;font-weight:500;color:var(--l2-t2)}
 .l2-links a:hover{color:var(--l2-tinta)}
 .l2-nav-r{display:flex;gap:6px;align-items:center}
 .l2-burger{display:none;border:none;background:transparent;width:38px;height:38px;border-radius:50%;align-items:center;justify-content:center;color:var(--l2-tinta)}
 .l2-mmenu{display:flex;flex-direction:column;gap:2px;background:#fff;border-radius:18px;padding:8px;margin:8px auto 0;max-width:820px}
 .l2-mmenu a{padding:12px 14px;border-radius:12px;font-weight:600}
-@media(max-width:860px){.l2-links,.l2-hide-m{display:none}.l2-burger{display:inline-flex}}
+@media(max-width:860px){.l2-links,.l2-hide-m{display:none}.l2-burger{display:inline-flex}.l2-nav{min-height:60px;padding-left:20px}.l2-brand img{height:28px}}
 .l2-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:999px;padding:11px 20px;font-size:15px;font-weight:600;transition:transform .15s,background .2s;white-space:nowrap}
 .l2-btn:hover{transform:translateY(-1px)}
 .l2-btn-pino{background:var(--l2-pino);color:#fff}
@@ -43,12 +43,12 @@ export const CSS = PASS_CSS + `
 .l2-center{text-align:center;margin-left:auto;margin-right:auto}
 
 /* Inicio */
-.l2-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(20px,4vw,56px);align-items:center;padding:clamp(30px,5vw,64px) clamp(8px,3vw,44px) clamp(20px,3vw,36px)}
+.l2-hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(20px,3vw,60px);align-items:center;padding:clamp(28px,5vw,72px) clamp(8px,3vw,56px) clamp(24px,3vw,48px)}
 @media(max-width:860px){.l2-hero{grid-template-columns:1fr;padding-top:28px}}
-.l2-hero .l2-h1{font-size:clamp(38px,5vw,64px);max-width:12ch}
-.l2-hero .l2-lead{margin-top:20px}
-.l2-ctas{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:26px}
-.l2-hero-demo{background:var(--l2-salvia);border-radius:var(--l2-r);padding:26px 20px 18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.l2-hero .l2-h1{font-size:clamp(46px,7.4vw,112px);line-height:.96;letter-spacing:-.04em;max-width:11ch}
+.l2-hero .l2-lead{margin-top:24px;font-size:clamp(17px,1.5vw,21px);max-width:50ch}
+.l2-ctas{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:30px}
+.l2-ctas .l2-btn{padding:15px 28px;font-size:16px}
 .l2-maq{position:relative;margin-top:clamp(28px,4vw,48px);background:#F6F5F1;border-radius:var(--l2-r);overflow:hidden;height:clamp(300px,30vw,360px)}
 .l2-maq-stage{position:absolute;inset:0}
 .l2-maq-stage svg{position:absolute;inset:0;width:100%;height:100%}
@@ -73,14 +73,20 @@ export const CSS = PASS_CSS + `
 @keyframes l2chip{from{opacity:0;transform:translateY(10px) scale(.95)}to{opacity:1;transform:none}}
 @media(max-width:700px){.l2-maq{height:300px}.l2-pill{font-size:12px}}
 
-/* Celular del hero */
-.l2-phone{position:relative;width:214px;height:390px;background:#1E1D1A;border-radius:34px;padding:9px;box-shadow:0 30px 60px -24px rgba(0,0,0,.45)}
-.l2-notch{position:absolute;top:14px;left:50%;width:62px;height:16px;margin-left:-31px;background:#1E1D1A;border-radius:10px;z-index:2}
-.l2-screen{position:relative;height:100%;background:#F1F0EC;border-radius:26px;overflow:hidden;display:flex;flex-direction:column;align-items:center;padding:38px 10px 10px;gap:10px}
-.l2-ph-top{font-size:12px;font-weight:600;color:var(--l2-t2)}
-.l2-ph-msg{font-size:12.5px;font-weight:700;color:var(--l2-pino);opacity:0;transform:translateY(6px);transition:all .3s;text-align:center}
-.l2-ph-msg.in{opacity:1;transform:none}
-.l2-demo-cap{font-size:14px;color:var(--l2-t2);text-align:center;min-height:20px}
+/* iPhone del hero: flota solo, sin recuadro */
+.l2-phone-stage{position:relative;display:flex;justify-content:center;padding:16px 0 30px}
+.l2-float{position:relative;animation:l2flota 6s ease-in-out infinite}
+@keyframes l2flota{50%{transform:translateY(-12px)}}
+.l2-shadow{position:absolute;left:50%;bottom:6px;width:220px;height:26px;margin-left:-110px;border-radius:50%;background:radial-gradient(closest-side,rgba(30,29,26,.28),transparent);animation:l2sombra 6s ease-in-out infinite}
+@keyframes l2sombra{50%{transform:scale(.82);opacity:.7}}
+.l2-iphone{width:min(300px,64vw);aspect-ratio:300/616;background:linear-gradient(145deg,#3A3A3D,#1E1E20);border-radius:54px;padding:10px;box-shadow:0 40px 70px -30px rgba(0,0,0,.55),inset 0 0 0 2px #55555a}
+.l2-screen{position:relative;height:100%;border-radius:44px;overflow:hidden;background:linear-gradient(180deg,#DCE3DA,#F1F0EC 55%);padding:54px 14px 14px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.l2-island{position:absolute;top:11px;left:50%;width:92px;height:28px;margin-left:-46px;background:#000;border-radius:20px}
+.l2-status{position:absolute;top:14px;left:26px;right:26px;display:flex;justify-content:space-between;font-size:13px;font-weight:700;font-family:-apple-system,system-ui,sans-serif}
+.l2-wtitle{align-self:flex-start;margin-left:6px;font-family:-apple-system,system-ui,sans-serif;font-weight:700;font-size:22px}
+.l2-hnotif{position:absolute;left:12px;right:12px;top:48px;background:rgba(255,255,255,.96);border-radius:18px;padding:9px 12px;display:flex;gap:9px;align-items:center;font-family:-apple-system,system-ui,sans-serif;font-size:12px;line-height:1.3;box-shadow:0 10px 24px -10px rgba(0,0,0,.35);opacity:0;transform:translateY(-14px);transition:opacity .35s cubic-bezier(.2,.8,.2,1),transform .35s cubic-bezier(.2,.8,.2,1);z-index:3}
+.l2-hnotif.on{opacity:1;transform:none}.l2-hnotif b{display:block}
+.l2-hnotif i{width:28px;height:28px;border-radius:7px;background:#6B2D1F;flex-shrink:0}
 /* Lo que pasa después */
 .l2-bento{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px}
 .l2-tile{background:var(--l2-salvia);border-radius:var(--l2-r);padding:22px;display:flex;flex-direction:column;gap:12px;overflow:hidden;position:relative;min-height:240px}
@@ -98,10 +104,10 @@ export const CSS = PASS_CSS + `
 .l2-an-kpis b{display:block;font-family:var(--font-display);font-size:28px;font-weight:800;letter-spacing:-.02em;margin:2px 0}
 .l2-an-kpis small{font-size:12px;color:#2F7A4F;font-weight:600}.l2-an-kpis small.warn{color:var(--l2-brasa)}
 @media(max-width:700px){.l2-an-kpis{grid-template-columns:1fr}.l2-an-kpis b{font-size:24px}}
-.l2-an-chart{background:#fff;border-radius:14px;padding:14px 14px 10px;margin-top:auto}
+.l2-an-chart{background:#fff;border-radius:14px;padding:14px 14px 10px;flex:1;display:flex;flex-direction:column;min-height:170px}
 .l2-an-l{display:flex;justify-content:space-between;font-size:12px;color:var(--l2-t2);margin-bottom:10px;gap:10px;flex-wrap:wrap}
 .l2-an-x{display:flex;justify-content:space-between;font-size:11px;color:var(--l2-t3);margin-top:6px}
-.l2-bars{display:flex;align-items:flex-end;gap:3px;height:110px}
+.l2-bars{display:flex;align-items:flex-end;gap:3px;flex:1;margin-top:2px}
 .l2-bars i{flex:1;background:var(--l2-pino);border-radius:3px 3px 0 0;transform-origin:bottom;transition:transform .8s cubic-bezier(.2,.8,.2,1)}
 .l2-bars i.pk{background:var(--l2-brasa)}
 .l2-lock{background:#1E1D1A;border-radius:22px;padding:12px;color:#fff;font-family:-apple-system,system-ui,sans-serif;margin-top:auto}
@@ -282,6 +288,15 @@ export const CSS = PASS_CSS + `
 .l2-faq details[open] summary svg{transform:rotate(45deg)}
 .l2-faq details p{font-size:15px;line-height:1.6;color:var(--l2-t2);padding:0 0 18px;max-width:640px}
 
+/* Cierre naranja */
+.l2-cierre{background:var(--l2-brasa);color:#fff;border-radius:var(--l2-r);margin-top:12px;padding:clamp(28px,5vw,80px);display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:clamp(20px,4vw,60px);align-items:center;overflow:hidden}
+.l2-cierre h2{font-family:var(--font-display);font-weight:800;font-size:clamp(38px,5.6vw,84px);line-height:.98;letter-spacing:-.04em;text-wrap:balance}
+.l2-cierre p{margin-top:18px;font-size:clamp(16px,1.4vw,19px);opacity:.9}
+.l2-cierre .l2-btn{margin-top:28px;padding:16px 30px;font-size:16px}
+.l2-pila{position:relative;height:clamp(240px,26vw,380px)}
+.l2-pila .l2-pass{position:absolute;left:50%;margin-left:calc(var(--pw)/-2)}
+.l2-pila .l2-pass:nth-child(1){top:0}.l2-pila .l2-pass:nth-child(2){top:clamp(36px,4vw,60px)}.l2-pila .l2-pass:nth-child(3){top:clamp(72px,8vw,120px)}
+@media(max-width:860px){.l2-cierre{grid-template-columns:1fr}.l2-pila{height:250px}}
 /* Pie */
 .l2-ft{background:#fff;border-radius:var(--l2-r);margin-top:12px;padding:clamp(28px,4vw,48px) clamp(18px,4vw,52px) 20px;overflow:hidden}
 .l2-ft-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:clamp(24px,4vw,56px)}

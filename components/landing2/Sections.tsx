@@ -6,27 +6,37 @@ import { Icon } from '@/components/ui/Icon'
 import { Pass } from './Pass'
 import { SHOPS } from './data'
 
-// ── Hero: la tarjeta de Café Aurora en un celular; cada 2,6 s se suma un sello
+// ── Hero: un iPhone que flota solo, sin recuadro, con la tarjeta de Café
+// Aurora. Cada 4,2 s se suma un sello y cae el aviso en la pantalla.
 export function HeroDemo() {
   const [stamps, setStamps] = useState(3)
   const [fresh, setFresh] = useState(false)
+  const [notice, setNotice] = useState(false)
   useEffect(() => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const t = setInterval(() => setStamps(v => { const n = v >= 8 ? 3 : v + 1; setFresh(n !== 3); return n }), 2600)
-    return () => clearInterval(t)
+    let off: ReturnType<typeof setTimeout>
+    const t = setInterval(() => {
+      setStamps(v => { const n = v >= 8 ? 3 : v + 1; setFresh(n !== 3); return n })
+      setNotice(true); clearTimeout(off); off = setTimeout(() => setNotice(false), 2200)
+    }, 4200)
+    return () => { clearInterval(t); clearTimeout(off) }
   }, [])
   const b = { ...SHOPS[0], stamps }
+  const left = 8 - stamps
   return (
-    <div className="l2-hero-demo">
-      <div className="l2-phone">
-        <div className="l2-notch" />
-        <div className="l2-screen">
-          <div className="l2-ph-top">Wallet</div>
-          <Pass b={b} width={176} fresh={fresh} />
-          <div className={`l2-ph-msg${fresh ? ' in' : ''}`}>{stamps >= 8 ? 'Premio listo' : '+1 sello'}</div>
+    <div className="l2-phone-stage" aria-hidden="true">
+      <div className="l2-float">
+        <div className="l2-iphone">
+          <div className="l2-screen">
+            <div className="l2-island" />
+            <div className="l2-status"><span>9:41</span><span>5G</span></div>
+            <div className={`l2-hnotif${notice ? ' on' : ''}`}><i /><div><b>{b.name}</b>{left > 0 ? `¡Sumaste un sello! Te faltan ${left} para el premio.` : '¡Completaste la tarjeta! Tu premio te espera.'}</div></div>
+            <div className="l2-wtitle">Cartera</div>
+            <Pass b={b} width={238} fresh={fresh} />
+          </div>
         </div>
       </div>
-      <p className="l2-demo-cap">En el mostrador escanean la tarjeta y el sello aparece en el celular de Lucía.</p>
+      <div className="l2-shadow" />
     </div>
   )
 }

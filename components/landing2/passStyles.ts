@@ -18,8 +18,9 @@ export const PASS_CSS = `
 .l2-p-f{min-width:0}
 .l2-p-f span{display:block;font-size:calc(var(--pw,240px)*.032);letter-spacing:.1em;font-weight:700;opacity:.65}
 .l2-p-f b{display:block;font-size:calc(var(--pw,240px)*.058);font-weight:700;line-height:1.15;margin-top:2px}
-.l2-p-qr{background:#fff;border-radius:calc(var(--pw,240px)*.045);padding:calc(var(--pw,240px)*.045);display:flex;justify-content:center}
-.l2-p-qr svg{width:42%;height:auto;display:block}
+.l2-p-lg{width:calc(var(--pw,240px)*.17);height:calc(var(--pw,240px)*.17);object-fit:contain;display:block}
+.l2-p-qr{background:#fff;border-radius:calc(var(--pw,240px)*.05);padding:calc(var(--pw,240px)*.045) calc(var(--pw,240px)*.045) calc(var(--pw,240px)*.03);display:flex;flex-direction:column;align-items:center;gap:calc(var(--pw,240px)*.02);color:#777;font-size:calc(var(--pw,240px)*.04)}
+.l2-p-qr svg{width:44%;height:auto;display:block}
 .l2-p-big{display:flex;align-items:baseline;gap:calc(var(--pw,240px)*.025)}
 .l2-p-big b{font-size:calc(var(--pw,240px)*.17);font-weight:800;line-height:1;letter-spacing:-.02em}
 .l2-p-big span{font-size:calc(var(--pw,240px)*.065);font-weight:600}

@@ -10,7 +10,8 @@ import type { Market } from '@/lib/market'
 import { Maqueta } from './Maqueta'
 import { HeroDemo, Bento } from './Sections'
 import { CardAlone, Caso, TryIt, Faq } from './Sections2'
-import { WHATSAPP_SALES, WHATSAPP_ENTERPRISE, INSTAGRAM, SCANNER_IOS_URL } from './data'
+import { WHATSAPP_SALES, WHATSAPP_ENTERPRISE, INSTAGRAM, SCANNER_IOS_URL, SHOPS } from './data'
+import { Pass } from './Pass'
 import { CSS } from './styles'
 
 const PLANS = [
@@ -87,10 +88,20 @@ export default function Landing({ market = 'AR' }: { market?: Market }) {
 
         <Faq salesHref={WHATSAPP_SALES} />
 
+        <section className="l2-cierre">
+          <div>
+            <h2>Tu tarjeta, lista en 15 minutos.</h2>
+            <p>14 días gratis. Sin tarjeta de crédito.</p>
+            <a className="l2-btn l2-btn-white" href="/register">Crear mi tarjeta gratis</a>
+          </div>
+          <div className="l2-pila" aria-hidden="true"><Pass b={SHOPS[5]} width={240} /><Pass b={SHOPS[2]} width={240} /><Pass b={SHOPS[0]} width={240} /></div>
+        </section>
+
         <footer className="l2-ft">
           <div className="l2-ft-top">
             <div>
-              <p className="l2-ft-claim"><b>Tu tarjeta, lista en 15 minutos.</b> Tarjetas de fidelidad en Apple y Google Wallet, para negocios que quieren que su gente vuelva.</p>
+              <img src="/assets/wordmark.png" alt="Stampa" style={{ height: 30, width: 'auto', marginBottom: 14 }} />
+              <p className="l2-ft-claim">Tarjetas de fidelidad en Apple y Google Wallet, para negocios que quieren que su gente vuelva.</p>
               <a className="l2-btn l2-btn-brasa" href="/register">Crear mi tarjeta gratis</a>
             </div>
             <nav className="l2-ft-cols" aria-label="Pie de página">

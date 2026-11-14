@@ -77,18 +77,16 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
               <button type="button" role="radio" aria-checked={false} disabled className="pr-seg-btn">Automático con cada pago</button>
             </div>
           </div>
-          <div className="pr-note">El empleado escanea con la app o con el escáner web, desde cualquier celular. Los modos automáticos: próximamente (con pago conectado, desde Pro).</div>
         </div>
 
         <div className="pr-block">
-          <div className="pr-title">Cómo se entrega el premio</div>
+          <div className="pr-title">Cómo se entrega el premio<InfoTooltip side="bottom" text="Al escanear, el empleado ve “Tiene un premio” y lo entrega. Sin personas, para locales sin empleados: próximamente, desde Pro." /></div>
           <div className="pr-row">
             <div className="pr-seg" role="radiogroup" aria-label="Cómo se entrega el premio">
               <button type="button" role="radio" aria-checked className="pr-seg-btn is-on">Lo entrega un empleado</button>
               <button type="button" role="radio" aria-checked={false} disabled className="pr-seg-btn">Sin personas</button>
             </div>
           </div>
-          <div className="pr-note">Al escanear, el empleado ve "Tiene un premio" y lo entrega. Sin personas, para locales sin empleados: próximamente, desde Pro.</div>
         </div>
       </>}
 
