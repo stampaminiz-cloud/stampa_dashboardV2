@@ -2,6 +2,11 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.8.1 (por salir) — Sesión del PIN
+
+**Arreglos**
+- Escáner web: la sesión del empleado se renueva con el uso. Guarda el token nuevo que manda el servidor cuando el actual tiene más de un día, y la sesión no vence mientras se use. Necesita el backend 1.8.1.
+
 ## 1.8.0 (13/11/2026) — Escáner web y nueva web
 
 **Nuevo**
