@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
 import { PLAN_LIMITS, type Plan } from '@/data/plans'
 import { BASE_URL, apiGetPointsCatalog, apiRedeemPoints } from '@/lib/api'
-import { InfoTooltip } from './InfoTooltip'
 import { formatMoney } from '@/lib/money'
 
 interface CardEntry {
@@ -726,7 +725,7 @@ export function CustomersTab({
                       <th className="th-dynamic">Premio</th>
                       <th className={sortKey === 'status' ? 'th-active' : ''} onClick={() => handleSort('status')}>{t('ct_col_status')}<SortIcon active={sortKey === 'status'} dir={sortDir} /></th>
                       <th className={sortKey === 'lastActivity' ? 'th-active' : ''} onClick={() => handleSort('lastActivity')}>{t('ct_col_last')}<SortIcon active={sortKey === 'lastActivity'} dir={sortDir} /></th>
-                      {multiLoc && <th>Sucursal<InfoTooltip text="Donde más viene. Si todavía no vino, donde se registró." /></th>}
+                      {multiLoc && <th>Sucursal</th>}
                     </tr>
                   </thead>
                   <tbody>

@@ -22,6 +22,8 @@ import { UsersTab }          from '@/components/dashboard/UsersTab'
 import { LocationsTab }      from '@/components/dashboard/LocationsTab'
 import { OrdersTab }         from '@/components/dashboard/OrdersTab'
 import { GuidedTour, TOUR_KEY, type TourStep } from '@/components/dashboard/GuidedTour'
+import { HelpDrawer } from '@/components/dashboard/HelpDrawer'
+import { HELP } from '@/components/dashboard/helpContent'
 import { currencyFor, formatMoney } from '@/lib/money'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -208,7 +210,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
 }
 
 // ─── Header ───────────────────────────────────────────────────────────────────
-function Header({ title, t, setMobileOpen, setActive, recentActivity: realActivity }: { title: string; t: (k: any) => string; setMobileOpen: (o: boolean) => void; setActive?: (t: any) => void; recentActivity?: any[] }) {
+function Header({ title, active, t, setMobileOpen, setActive, recentActivity: realActivity }: { title: string; active?: string; t: (k: any) => string; setMobileOpen: (o: boolean) => void; setActive?: (t: any) => void; recentActivity?: any[] }) {
   const [showNotif, setShowNotif] = useState(false)
   const notifRef  = useRef<HTMLDivElement>(null)
 
@@ -248,6 +250,8 @@ function Header({ title, t, setMobileOpen, setActive, recentActivity: realActivi
       <h1 className="hd-title">{title}</h1>
 
       <div className="hd-right">
+        {/* Ayuda de la pantalla abierta */}
+        {active && HELP[active] && <HelpDrawer key={active} title={HELP[active].title} items={HELP[active].items} />}
         {/* Notifications */}
         <div className="hd-icon-wrap" ref={notifRef}>
           <button className="hd-icon-btn" onClick={toggleNotif} aria-label="Actividad reciente">
@@ -1460,7 +1464,7 @@ export default function DashboardPage() {
         onLocation={changeLocation}
       />
       <div className="db-main">
-        <Header title={t(TITLES[active] as any)} t={t} setMobileOpen={setMobileOpen} setActive={setActive} recentActivity={detailedAnalytics?.recentActivity} />
+        <Header title={t(TITLES[active] as any)} active={active} t={t} setMobileOpen={setMobileOpen} setActive={setActive} recentActivity={detailedAnalytics?.recentActivity} />
         <BillingStyles />
         <BillingBanner billing={billing} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} />
         {/* Estás parado en una sucursal y esta pestaña es de toda la marca. */}

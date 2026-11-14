@@ -16,7 +16,6 @@ import { SALES_EMAIL, mailLink, whatsappLink } from '@/lib/contact'
 import React, { useEffect, useState } from 'react'
 import { apiGetLocations, apiCreateLocation, apiUpdateLocation } from '@/lib/api'
 import type { Location, LocationsResponse, DayHours } from '@/lib/location'
-import { InfoTooltip } from './InfoTooltip'
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 const DEFAULT_HOURS: DayHours[] = DAYS.map((_, i) => i < 5 ? { closed: false, shifts: [{ open: '09:00', close: '18:00' }] } : { closed: true, shifts: [] })
@@ -145,7 +144,7 @@ function LocationCard({ loc, businessId, open, onToggle, selected, tools, isMana
 
           {tools && <>
             <div className="lt-sec">
-              <div className="lt-sec-title">Ubicación<InfoTooltip text={'Abrí el local en Google Maps, tocá "Compartir" y copiá el enlace. El iPhone del cliente muestra la tarjeta en la pantalla bloqueada cuando pasa cerca. Nosotros nunca sabemos dónde está el cliente.'} /></div>
+              <div className="lt-sec-title">Ubicación</div>
               <div className="lt-sub">Con la ubicación, el cliente ve al pasar cerca: “{nearText}”</div>
               <div className="lt-maps">
                 <input className="lt-input" value={draft.mapsUrl} maxLength={500} disabled={readOnly} placeholder="https://maps.app.goo.gl/…" aria-label={`Link de Google Maps de ${loc.name}`} onChange={e => setDraft({ ...draft, mapsUrl: e.target.value })} />
@@ -155,7 +154,7 @@ function LocationCard({ loc, businessId, open, onToggle, selected, tools, isMana
             </div>
 
             <div className="lt-sec">
-              <div className="lt-sec-title">Horarios<InfoTooltip text="Aparecen en el dorso del pase y en el formulario de registro. Se usa la zona horaria del negocio (Configuración)." /></div>
+              <div className="lt-sec-title">Horarios</div>
               <HoursEditor hours={draft.hours} disabled={readOnly} onChange={hours => setDraft({ ...draft, hours })} />
               {err?.field === 'hours' && <div className="lt-err">{err.error}</div>}
             </div>

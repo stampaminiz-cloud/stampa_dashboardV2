@@ -10,7 +10,6 @@ import { Icon } from '@/components/ui/Icon'
 import { usePlan } from '@/data/plans'
 import { readCache, getJson, writeCache } from '@/lib/cache'
 import { MascotLoader } from '@/components/ui/MascotLoader'
-import { InfoTooltip } from './InfoTooltip'
 
 type Kind = { kind: string; label: string; mode?: 'direct' | 'order' }
 type Suggestions = {
@@ -123,7 +122,7 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
           </div>
 
           <div className="wa-field">
-            <div className="wa-label">Botones <span className="wa-count">{buttons.length} de {sug.maxButtons}</span><InfoTooltip side="bottom" text="El tipo define el mensaje que llega escrito y el título en la tarjeta. “Con pedido” abre primero la página de pedido (se arma en la pestaña Pedidos)." /></div>
+            <div className="wa-label">Botones <span className="wa-count">{buttons.length} de {sug.maxButtons}</span></div>
             {buttons.map((b, i) => (
               <div key={i} className="wa-btn-row">
                 <select className="wa-select" value={b.kind} disabled={disabled} aria-label={`Tipo del botón ${i + 1}`}
@@ -145,7 +144,7 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
           </div>
 
           <div className="wa-field">
-            <label className="wa-label" htmlFor="wa-title">Título en el frente de la tarjeta<InfoTooltip side="bottom" text="Va en la fila de abajo, al lado de las visitas. Si lo dejás vacío, sale del primer botón." /></label>
+            <label className="wa-label" htmlFor="wa-title">Título en el frente de la tarjeta</label>
             <input id="wa-title" className="wa-input wa-input--short" value={title} maxLength={sug.limits.title} disabled={disabled}
               placeholder={buttons[0] ? groupOf(buttons[0].kind) : 'WHATSAPP'} onChange={e => setTitle(e.target.value.toUpperCase())} />
           </div>
