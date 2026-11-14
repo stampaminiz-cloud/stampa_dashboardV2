@@ -95,6 +95,13 @@ async function request<T>(method: string, path: string, body?: unknown, auth = t
   } catch {
     throw new EscanerError(0, 'offline', 'Sin conexión. Revisá el wifi o los datos y probá de nuevo.')
   }
+  // Sesión renovada: el backend manda un token nuevo cuando el que tenemos
+  // tiene más de un día (dura 30 y así no vence mientras se use). Solo se
+  // guarda si todavía es la sesión que hizo el pedido: si mientras tanto se
+  // cerró la sesión o se cambió de empleado, no se la revive.
+  const renewed = res.headers.get('X-Stampa-Token')
+  if (renewed && token && getToken() === token) setToken(renewed)
+
   const text = await res.text()
   let data: any = null
   try { data = text ? JSON.parse(text) : null } catch { /* respuesta rara */ }
