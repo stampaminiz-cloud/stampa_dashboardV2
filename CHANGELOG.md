@@ -2,7 +2,7 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.9.0 (por salir) — Web, onboarding y guía inicial
+## 1.9.0 (14/11/2026) — Web, onboarding y guía inicial
 
 **Cambios**
 - Landing: ocupa todo el ancho (con 24 px de margen; antes se frenaba en 1.240 px), header más alto con el logo de 18 a 34 px, título del hero más grande y un iPhone que flota solo, sin recuadro gris, con el pase real: suma un sello y le cae un aviso. El gráfico de "Sabés quién volvió" llena su bloque (sin huecos). Vuelve el cierre naranja, ahora grande y con una pila de tarjetas, y el pie lleva el logo.
