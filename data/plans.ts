@@ -26,6 +26,7 @@ export interface PlanLimits {
   formBranding:     boolean       // logo + color on signup form
   orders:           boolean       // Pedidos: página de pedido con productos y entrega (Pro)
   customLimits:     boolean       // reglas de frecuencia a medida (varias por día, horas entre visitas); Starter solo "1 por día". Espejo de config/planLimits.js
+  screenMode:       boolean       // Pantalla Stampa: pantalla fija en el mostrador que lee el pase (desde Growth). Espejo de config/planLimits.js
   autoNotices:      boolean       // avisos automáticos (bienvenida, a un sello, te extrañamos, reseña). Espejo de config/planLimits.js
 }
 
@@ -50,6 +51,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     autoNotices:     false,
     orders:          false,
     customLimits:    false,
+    screenMode:      false,
   },
   Growth: {
     maxCustomers:    500,
@@ -71,6 +73,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     autoNotices:     false,
     orders:          false,
     customLimits:    true,
+    screenMode:      true,
   },
   Pro: {
     maxCustomers:    0,
@@ -92,6 +95,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     autoNotices:     true,
     orders:          true,
     customLimits:    true,
+    screenMode:      true,
   },
   Enterprise: {
     maxCustomers:    0,
@@ -113,6 +117,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     autoNotices:     true,
     orders:          true,
     customLimits:    true,
+    screenMode:      true,
   },
 }
 
@@ -137,6 +142,7 @@ export const FEATURE_LABELS: Record<keyof PlanLimits, string> = {
   autoNotices:     'Avisos automáticos',
   orders:          'Pedidos',
   customLimits:    'Reglas a medida de cada cuánto suman',
+  screenMode:      'Pantalla en el mostrador',
 }
 
 // ─── Plan context ─────────────────────────────────────────────────────────────

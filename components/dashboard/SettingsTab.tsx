@@ -592,7 +592,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
               <SumarConfig part="cards" businessId={businessId} cards={cards as any} onCardsChanged={onCardsChanged} onChoosePlan={onChoosePlan} isManager={isManager} />
             </div>
           </div>
-          <div className="st-rules-foot">La regla vale para la app y para el escáner web.</div>
+          <div className="st-rules-foot">La regla vale para la app, el escáner web y la pantalla del mostrador.</div>
         </Section>
 
         <Section title={t('st_alerts')} icon={<Icon name="mail" size={16} />}>
