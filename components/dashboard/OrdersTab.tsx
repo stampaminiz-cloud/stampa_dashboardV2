@@ -214,7 +214,7 @@ export function OrdersTab({ businessId, isManager = false, onChoosePlan, onOpenS
 
           <div className="od-preview" aria-label="Así lo ve tu cliente">
             <div className="od-pv-label">Así lo ve tu cliente</div>
-            <div className="od-pv-phone">
+            <div className="od-pv-phone s-claro">
               <div className="od-pv-head" style={{ background: cardColor, color: cardText }}><b>{businessName}</b><span>Hola, Lucía{s.leadHours ? ` · Pedí con ${s.leadHours} horas de anticipación` : ''}</span></div>
               <div className="od-pv-box">
                 {sample.length ? sample.map((p, i) => (
@@ -273,7 +273,7 @@ const CSS = `
   .od-off{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--s-pino);color:#fff;border-radius:12px;padding:10px 14px;font-size:var(--s-t-sm);line-height:1.4;}
   .od-off svg{color:#E7C46A;flex-shrink:0;}
   .od-off span{flex:1;min-width:200px;}
-  .od-off button{background:#fff;color:var(--s-pino);border:0;border-radius:8px;padding:6px 12px;font:inherit;font-weight:500;cursor:pointer;}
+  .od-off button{background:var(--s-blanco);color:var(--s-pino);border:0;border-radius:8px;padding:6px 12px;font:inherit;font-weight:500;cursor:pointer;}
   .od-off button:hover{background:#EDEFE8;}
   .od-prods{display:flex;flex-direction:column;gap:10px;}
   .od-zones{display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex:1;min-width:0;}

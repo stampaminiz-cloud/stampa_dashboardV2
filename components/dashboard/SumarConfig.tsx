@@ -334,7 +334,7 @@ const CSS = `
   .sc-screen-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
   .sc-screen-main span{font-size:11.5px;color:var(--s-tinta-2);}
   .sc-link-box{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;padding:14px;border:1.5px solid var(--s-linea);border-radius:12px;background:var(--s-blanco);}
-  .sc-link-box img{border-radius:8px;flex:none;background:#fff;}
+  .sc-link-box img{border-radius:8px;flex:none;background:var(--s-blanco);}
   .sc-link-text{flex:1;min-width:220px;display:flex;flex-direction:column;gap:8px;font-size:12.5px;}
   .sc-link-text ol{margin:0;padding-left:18px;color:var(--s-tinta-2);font-size:12px;line-height:1.5;}
 `

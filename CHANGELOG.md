@@ -9,6 +9,7 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
 - Se queda prendida sola (la pantalla no se apaga), la cámara no se reinicia entre un cliente y otro y avisa si el dueño la desactivó o la quitó.
 - Configuración, Cómo suman tus clientes: "Quién suma" pasa a opciones para elegir (Escanear con el equipo, Pantalla en el mostrador, Con cada cobro y Cajita Stampa; las dos últimas dicen Próximamente). Desde Growth. Si hay una tarjeta por monto, avisa que la pantalla no puede sumarla sola.
 - "Pantallas del local": vincular una pantalla con un link de un solo uso (24 horas) y un QR para abrirlo en la tablet, ver cuándo se usó por última vez y quitarla.
+- Modo oscuro en el panel, el escáner web, la pantalla del mostrador y la ayuda. Se elige en Configuración, Apariencia (Claro, Oscuro o Automático, que sigue al dispositivo) o con "Modo oscuro" en el menú de tu usuario. Se guarda en cada navegador y cambia al instante, sin recargar. La landing, el ingreso, el alta, los formularios públicos de cada negocio, los pases y el panel de administración de Stampa quedan claros. Las vistas previas de lo que ve el cliente (formulario y pedido) también quedan claras.
 
 Necesita el backend 1.10.0.
 

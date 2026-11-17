@@ -3,7 +3,7 @@
 // íconos ni emojis. Las pantallas de un cliente toman los colores de su
 // tarjeta, igual que en la app. Las letras son las del panel (Red Hat).
 export const ESCANER_CSS = `
-.esc-root{--cream:#FBF6EE;--coral:#C75D3A;--ink:#2B2620;--soft:rgba(43,38,32,.6);--faint:rgba(43,38,32,.12);--green:#1B412F;--danger:#B23B3B;--ok:#5B8C5A;
+.esc-root{--cream:#FBF6EE;--coral:#C75D3A;--ink:#2B2620;--soft:rgb(var(--s-tinta-rgb) / .6);--faint:rgb(var(--s-tinta-rgb) / .12);--green:#1B412F;--danger:var(--s-error);--ok:#5B8C5A;
   min-height:100dvh;background:var(--cream);color:var(--ink);font-family:var(--font-body,system-ui);display:flex;justify-content:center;-webkit-text-size-adjust:100%}
 .esc-root *{box-sizing:border-box}
 .esc-root button{font:inherit;cursor:pointer;color:inherit}
@@ -15,7 +15,7 @@ export const ESCANER_CSS = `
 
 .esc-top{display:flex;align-items:center;justify-content:space-between;padding:8px 20px 0;min-height:48px}
 .esc-wm{width:120px;height:26px;background:url(/stampa-wordmark.png) -25px -72px/170px 170px no-repeat}
-.esc-help{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--ink);background:#fff;font-size:19px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0}
+.esc-help{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--ink);background:var(--s-blanco);font-size:19px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0}
 .esc-body{padding:28px 24px 24px;display:flex;flex-direction:column;flex:1}
 .esc-title{font-family:var(--font-display);font-size:30px;font-weight:800;line-height:1.2;margin:0}
 .esc-sub{font-size:16px;color:var(--soft);line-height:1.45;margin:8px 0 0}
@@ -38,17 +38,17 @@ export const ESCANER_CSS = `
 .esc-link--coral{color:var(--coral);font-weight:700;text-decoration:none;padding:0;margin:4px 0 0;align-self:flex-start;font-size:14px}
 
 .esc-boxes{position:relative;display:flex;gap:12px}
-.esc-box{flex:1;height:64px;border-radius:16px;border:1.5px solid var(--faint);background:#fff;display:flex;align-items:center;justify-content:center}
+.esc-box{flex:1;height:64px;border-radius:16px;border:1.5px solid var(--faint);background:var(--s-blanco);display:flex;align-items:center;justify-content:center}
 .esc-box.is-focus{border:2px solid var(--coral)}
 .esc-box.is-error{border-color:var(--danger)}
 .esc-box i{width:14px;height:14px;border-radius:50%;background:var(--ink)}
 .esc-boxes input{position:absolute;inset:0;width:100%;height:100%;opacity:.02;font-size:16px;border:none;background:transparent;color:transparent;caret-color:transparent}
-.esc-input{width:100%;height:54px;border-radius:14px;border:1.5px solid var(--faint);background:#fff;padding:0 16px;font-size:17px;color:var(--ink);font-family:var(--font-body);outline:none}
+.esc-input{width:100%;height:54px;border-radius:14px;border:1.5px solid var(--faint);background:var(--s-blanco);padding:0 16px;font-size:17px;color:var(--ink);font-family:var(--font-body);outline:none}
 .esc-input:focus{border-color:var(--coral)}
 .esc-field{display:flex;flex-direction:column;gap:8px;margin-top:20px}
 .esc-field label{font-size:14px;font-weight:700}
 
-.esc-option{display:flex;align-items:center;gap:14px;width:100%;background:#fff;border:1.5px solid var(--faint);border-radius:20px;padding:18px;text-align:left}
+.esc-option{display:flex;align-items:center;gap:14px;width:100%;background:var(--s-blanco);border:1.5px solid var(--faint);border-radius:20px;padding:18px;text-align:left}
 .esc-option:active{opacity:.85;transform:scale(.99)}
 .esc-option--main{background:var(--coral);border-color:var(--coral);color:#fff}
 .esc-option b{display:block;font-size:18px;font-weight:800}
@@ -84,15 +84,15 @@ export const ESCANER_CSS = `
 .esc-demo-ladder i.on{background:var(--cream);border-color:var(--cream)}
 .esc-phone{width:150px;height:220px;border-radius:28px;background:var(--ink);padding:10px}
 .esc-phone div{height:100%;border-radius:20px;background:#333;border:3px solid var(--coral);display:flex;align-items:center;justify-content:center}
-.esc-qr{width:90px;height:90px;display:grid;grid-template-columns:repeat(5,1fr);background:#fff;padding:6px}
+.esc-qr{width:90px;height:90px;display:grid;grid-template-columns:repeat(5,1fr);background:var(--s-blanco);padding:6px}
 .esc-qr i.on{background:var(--ink)}
 
 .esc-head{display:flex;align-items:center;gap:12px;padding:12px 20px}
 .esc-head-main{flex:1;min-width:0}
 .esc-biz{font-size:20px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .esc-who{font-size:14px;color:var(--soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.esc-logout{border:1.5px solid var(--faint);border-radius:12px;padding:10px 12px;background:#fff;font-size:13px;font-weight:700;white-space:nowrap}
-.esc-today{display:flex;align-items:center;margin:0 16px 12px;background:#fff;border-radius:16px;border:1px solid var(--faint);padding:10px 0}
+.esc-logout{border:1.5px solid var(--faint);border-radius:12px;padding:10px 12px;background:var(--s-blanco);font-size:13px;font-weight:700;white-space:nowrap}
+.esc-today{display:flex;align-items:center;margin:0 16px 12px;background:var(--s-blanco);border-radius:16px;border:1px solid var(--faint);padding:10px 0}
 .esc-today div{flex:1;display:flex;align-items:baseline;justify-content:center;gap:6px}
 .esc-today b{font-size:22px;font-weight:900}
 .esc-today span{font-size:13px;font-weight:600;color:var(--soft)}
@@ -112,21 +112,21 @@ export const ESCANER_CSS = `
 .esc-alert p{margin:0;color:var(--danger);font-size:16px;font-weight:700;line-height:1.4}
 .esc-alert--ok p{color:var(--ok)}
 .esc-alert-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.esc-pill{border-radius:12px;padding:10px 18px;border:1.5px solid var(--faint);background:#fff;font-weight:700;font-size:15px}
+.esc-pill{border-radius:12px;padding:10px 18px;border:1.5px solid var(--faint);background:var(--s-blanco);font-weight:700;font-size:15px}
 .esc-pill--coral{background:var(--coral);border-color:var(--coral);color:#fff;font-weight:800}
-.esc-tabs{display:flex;background:#fff;border-top:1px solid var(--faint);padding-bottom:env(safe-area-inset-bottom)}
+.esc-tabs{display:flex;background:var(--s-blanco);border-top:1px solid var(--faint);padding-bottom:env(safe-area-inset-bottom)}
 .esc-tabs button{flex:1;background:none;border:none;border-top:3px solid transparent;padding:14px 0 15px;font-size:15px;font-weight:700;color:var(--soft)}
 .esc-tabs button.on{color:var(--coral);border-top-color:var(--coral)}
 
 .esc-pane{padding:4px 4px 16px;display:flex;flex-direction:column;gap:10px;overflow:auto}
-.esc-row{display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;border:1px solid var(--faint);padding:14px;text-align:left;width:100%}
+.esc-row{display:flex;align-items:center;gap:12px;background:var(--s-blanco);border-radius:16px;border:1px solid var(--faint);padding:14px;text-align:left;width:100%}
 .esc-row-sw{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0}
 .esc-row-main{flex:1;min-width:0}
 .esc-row-name{font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .esc-row-meta{font-size:13px;color:var(--soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .esc-row-time{font-size:13px;color:var(--soft)}
 .esc-empty{text-align:center;color:var(--soft);font-size:15px;margin-top:24px;line-height:1.5}
-.esc-undo-mini{border:1.5px solid var(--faint);border-radius:12px;background:#fff;padding:8px 12px;font-size:13px;font-weight:700}
+.esc-undo-mini{border:1.5px solid var(--faint);border-radius:12px;background:var(--s-blanco);padding:8px 12px;font-size:13px;font-weight:700}
 
 .esc-sheet-bg{position:fixed;inset:0;background:rgba(20,18,14,.45);display:flex;align-items:flex-end;justify-content:center;z-index:60}
 .esc-sheet{background:var(--cream);width:100%;max-width:520px;max-height:90dvh;overflow:auto;border-radius:24px 24px 0 0;padding:8px 20px calc(24px + env(safe-area-inset-bottom))}
@@ -134,7 +134,7 @@ export const ESCANER_CSS = `
 .esc-sheet-head{display:flex;align-items:center;justify-content:space-between;padding:12px 0}
 .esc-sheet-head h2{font-family:var(--font-display);font-size:28px;font-weight:800;margin:0}
 .esc-sheet-head button{background:none;border:none;font-size:16px;font-weight:700;color:var(--coral);padding:8px}
-.esc-faq{background:#fff;border-radius:16px;border:1px solid var(--faint);padding:16px;margin-bottom:10px}
+.esc-faq{background:var(--s-blanco);border-radius:16px;border:1px solid var(--faint);padding:16px;margin-bottom:10px}
 .esc-faq button{width:100%;display:flex;justify-content:space-between;gap:12px;background:none;border:none;text-align:left;padding:0;font-size:16px;font-weight:700}
 .esc-faq button span{font-size:22px;font-weight:600;color:var(--soft);line-height:1}
 .esc-faq p{margin:8px 0 0;font-size:15px;line-height:1.5;color:var(--soft)}
@@ -146,7 +146,7 @@ export const ESCANER_CSS = `
 .esc-tip li{margin-bottom:8px}
 .esc-tip b{font-weight:800}
 .esc-tip h3{font-size:13px;font-weight:800;color:var(--coral);text-transform:uppercase;letter-spacing:1px;margin:18px 0 8px}
-.esc-menu-opt{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--faint);border-radius:16px;padding:16px;font-size:16px;font-weight:700;margin-bottom:10px}
+.esc-menu-opt{display:block;width:100%;text-align:left;background:var(--s-blanco);border:1px solid var(--faint);border-radius:16px;padding:16px;font-size:16px;font-weight:700;margin-bottom:10px}
 .esc-menu-opt span{display:block;font-size:13px;font-weight:500;color:var(--soft);margin-top:2px}
 
 .esc-overlay{position:fixed;inset:0;z-index:40;display:flex;justify-content:center;background:var(--cream);overflow:auto}
@@ -188,7 +188,7 @@ export const ESCANER_CSS = `
 .esc-cat-name{flex:1;font-size:16px;font-weight:700}
 .esc-cat-cost{font-size:15px;font-weight:700}
 .esc-cat-pill{border-radius:999px;padding:6px 12px;font-size:14px;font-weight:800}
-.esc-badge{display:inline-flex;background:#fff;border-radius:18px;overflow:hidden}
+.esc-badge{display:inline-flex;background:var(--s-blanco);border-radius:18px;overflow:hidden}
 .esc-badge div{display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:26px;font-weight:900}
 .esc-badge img{width:30px;height:30px}
 .esc-ladder{display:flex}
@@ -207,7 +207,7 @@ export const ESCANER_CSS = `
 .esc-amount small{font-size:13px;opacity:.75}
 .esc-toast{position:fixed;left:0;right:0;bottom:110px;display:flex;justify-content:center;z-index:70;pointer-events:none}
 .esc-toast div{pointer-events:auto;display:flex;align-items:center;gap:14px;background:#1F1F1F;color:#fff;border-radius:18px;padding:10px 10px 10px 18px;font-size:15px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,.3)}
-.esc-toast button{background:#fff;color:#1F1F1F;border:none;border-radius:12px;padding:10px 16px;font-size:15px;font-weight:800}
+.esc-toast button{background:var(--s-blanco);color:#1F1F1F;border:none;border-radius:12px;padding:10px 16px;font-size:15px;font-weight:800}
 
 .esc-done{width:100%;max-width:520px;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:28px;text-align:center}
 .esc-done-kicker{font-size:13px;font-weight:800;color:var(--coral);text-transform:uppercase;letter-spacing:1px}
@@ -221,4 +221,7 @@ export const ESCANER_CSS = `
 .esc-cel-kicker{font-size:20px;font-weight:800}
 .esc-cel-note{font-size:15px;font-weight:600;margin-top:8px}
 .esc-cel-perk{font-size:22px;font-weight:800;margin-top:8px}
+
+:root[data-theme="dark"] .esc-root{--cream:var(--s-salvia);--ink:var(--s-tinta);--soft:var(--s-tinta-2);--faint:var(--s-linea);--green:var(--s-pino-texto);--danger:var(--s-error);--ok:var(--s-listo)}
+:root[data-theme="dark"] .esc-wm{filter:invert(1) hue-rotate(180deg)}
 `

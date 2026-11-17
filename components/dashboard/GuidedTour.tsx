@@ -74,12 +74,12 @@ const CSS = `
   .gt-root{position:fixed;inset:0;z-index:2000}
   .gt-block{position:absolute;inset:0}
   .gt-spot{position:absolute;border-radius:14px;box-shadow:0 0 0 9999px rgba(30,29,26,.62),0 0 0 3px #E7C46A;transition:all .3s cubic-bezier(.2,.8,.2,1);pointer-events:none}
-  .gt-card{position:absolute;background:#fff;border-radius:16px;padding:16px;box-shadow:0 20px 50px -16px rgba(0,0,0,.5);transition:left .3s cubic-bezier(.2,.8,.2,1),top .3s cubic-bezier(.2,.8,.2,1)}
+  .gt-card{position:absolute;background:var(--s-blanco);border-radius:16px;padding:16px;box-shadow:0 20px 50px -16px rgba(0,0,0,.5);transition:left .3s cubic-bezier(.2,.8,.2,1),top .3s cubic-bezier(.2,.8,.2,1)}
   .gt-k{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--s-brasa);letter-spacing:.05em;text-transform:uppercase}
   .gt-t{font-family:var(--font-display);font-weight:800;font-size:19px;margin:6px 0 4px;color:var(--s-tinta)}
   .gt-b{font-size:14px;line-height:1.5;color:var(--s-tinta-2)}
   .gt-f{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap}
-  .gt-dots{display:flex;gap:5px}.gt-dots i{width:7px;height:7px;border-radius:50%;background:rgba(34,32,27,.14)}.gt-dots i.on{background:var(--s-brasa);width:20px;border-radius:5px}
+  .gt-dots{display:flex;gap:5px}.gt-dots i{width:7px;height:7px;border-radius:50%;background:rgb(var(--s-tinta-rgb) / .14)}.gt-dots i.on{background:var(--s-brasa);width:20px;border-radius:5px}
   .gt-act{display:flex;align-items:center;gap:10px}
   .gt-skip{border:0;background:transparent;color:var(--s-tinta-2);font-weight:600;font-size:13px;cursor:pointer;font-family:inherit}
   @media (prefers-reduced-motion:reduce){.gt-spot,.gt-card{transition:none}}
