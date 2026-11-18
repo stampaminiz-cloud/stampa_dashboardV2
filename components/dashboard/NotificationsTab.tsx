@@ -223,7 +223,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
       const res = await fetch(`${BASE_URL}/api/businesses/${businessId}/notifications/test`, { method: 'POST', headers: authHeaders(), body: JSON.stringify({ message: message.trim() }) })
       const d = await res.json().catch(() => ({}))
       if (!res.ok) throw d
-      setFeedback({ ok: true, text: 'Prueba enviada a tu tarjeta. Revisá tu iPhone (no cuenta para el límite del mes).' })
+      setFeedback({ ok: true, text: 'Prueba enviada a tu tarjeta.' })
     } catch (err: any) {
       setFeedback({ ok: false, text: err?.error || 'No pudimos mandar la prueba.' })
     } finally {
@@ -270,7 +270,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
           )}
         </button>
         {on && !locked && r && r.total > r.reachable && (
-          <div className="nt-aud-miss">A {r.total - r.reachable} no les llega: no tienen la tarjeta guardada en Apple Wallet ni en Google Wallet.</div>
+          <div className="nt-aud-miss">A {r.total - r.reachable} no les llega: sin tarjeta en el Wallet.</div>
         )}
         {on && !locked && children && <div className="nt-aud-extra">{children}</div>}
       </div>
@@ -384,7 +384,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
         <div className="nt-2col">
           <div className="nt-card">
             <div className="nt-card-title">Redactá tu mensaje</div>
-            <div className="nt-card-sub">Le llega como notificación al celular y queda guardado en su tarjeta del Wallet.</div>
+            <div className="nt-card-sub">Le llega al celular y queda en su tarjeta.</div>
             <textarea className="nt-textarea" placeholder="Ej: ¡Hoy 2x1 en café de 16 a 18!" value={message} maxLength={MAX_CHARS}
               onChange={e => { setMessage(e.target.value); setFeedback(null) }} />
             <div className={`nt-char${message.length > MAX_CHARS * 0.8 ? ' nt-char--warn' : ''}`}>{message.length} / {MAX_CHARS}</div>
@@ -442,7 +442,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
                         </div>
                       ) })
                     )}
-                    {locationOpts.length >= 2 && audienceRow({ k: 'location', label: 'Por sucursal', desc: 'Los que se registraron o sellaron en esa sucursal (ej: "Hoy 2x1 en Playa")', children: (
+                    {locationOpts.length >= 2 && audienceRow({ k: 'location', label: 'Por sucursal', desc: 'Los que se registraron o sellaron en esa sucursal.', children: (
                       <div className="nt-row">
                         <select className="nt-select" value={locPick?.id || ''} onChange={e => setLocId(e.target.value)} aria-label="Sucursal">
                           {locationOpts.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -486,7 +486,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
             )}
 
             <div className="nt-actions">
-              <button className="s-btn s-btn--secondary nt-test" onClick={sendTestNotif} disabled={!message.trim() || !!busy} title="Te llega solo a vos (tu tarjeta registrada con tu email). No cuenta para el límite.">
+              <button className="s-btn s-btn--secondary nt-test" onClick={sendTestNotif} disabled={!message.trim() || !!busy} title="Te llega solo a vos. No cuenta para el límite.">
                 {busy === 'test' ? 'Enviando…' : 'Enviarme una prueba'}
               </button>
               <button className="s-btn s-btn--primary nt-send" onClick={send}
@@ -495,15 +495,15 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
               </button>
             </div>
             {sendType === 'now' && currentReach?.reachable === 0 && audienceReady && loaded && (
-              <div className="nt-hint" style={{ marginTop: 8 }}>Nadie de esta audiencia tiene la tarjeta en Apple Wallet o Google Wallet todavía.</div>
+              <div className="nt-hint" style={{ marginTop: 8 }}>Nadie de esta audiencia tiene la tarjeta en el Wallet todavía.</div>
             )}
             {feedback && <div className={`nt-feedback nt-feedback--${feedback.ok ? 'ok' : 'err'}`}>{feedback.text}</div>}
             <div className="nt-wallet-note">
-              El número de cada audiencia es <strong>a cuántos les llega / cuántos son</strong>: la notificación llega a quienes guardaron la tarjeta en Apple Wallet o Google Wallet. En Android, Google limita cuántos avisos muestra por tarjeta en el día.
+              El número es <strong>a cuántos les llega / cuántos son</strong>. En Android, Google limita los avisos por tarjeta al día.
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, position: 'sticky', top: 16 }}>
             <div className="nt-card">
               <div className="nt-card-title">Así le llega</div>
               <div className="nt-card-sub">En la pantalla del iPhone y en su tarjeta</div>
@@ -521,15 +521,6 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
                 <div className="nt-onpass-k">Última novedad (en la tarjeta)</div>
                 <div className="nt-onpass-v">{message || '—'}</div>
               </div>
-            </div>
-            <div className="nt-card">
-              <div className="nt-card-title">Consejos</div>
-              {[
-                ['objetivo', 'Un mensaje concreto funciona mejor que uno general: una promo, un horario, un producto nuevo.'],
-                ['hora', 'Mandalo cuando tus clientes pueden venir: antes del horario fuerte del local, no a la noche.'],
-                ['escribir', 'Corto y directo: en la pantalla bloqueada se leen las primeras líneas.'],
-                ['premios', '"Cerca del premio" y "Premio para entregar" son los que más traen gente de vuelta.'],
-              ].map(([ic, tx]) => <div key={tx} className="nt-tip"><span className="nt-tip-ic"><Icon name={ic as IconName} size={16} /></span><span>{tx}</span></div>)}
             </div>
           </div>
         </div>

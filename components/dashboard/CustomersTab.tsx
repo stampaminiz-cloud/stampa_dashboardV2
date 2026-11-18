@@ -295,7 +295,7 @@ function History({ customer }: { customer: Customer }) {
       <div className="ct-panel-section-title">Historial</div>
       {error ? <div className="ct-resync-hint">No se pudo cargar el historial.</div>
         : !items ? [0, 1, 2].map(i => <div key={i} className="ct-skel" style={{ height: 30, marginBottom: 6 }} />)
-        : items.length === 0 ? <div className="ct-resync-hint">Todavía no tiene movimientos. Aparecen cuando escaneás su tarjeta con la app.</div>
+        : items.length === 0 ? <div className="ct-resync-hint">Sin movimientos.</div>
         : <>
             {shown.map((it, i) => (
               <div key={i} className="ct-hist-row">

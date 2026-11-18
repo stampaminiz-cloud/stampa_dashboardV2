@@ -198,7 +198,7 @@ function AddPersonModal({ businessId, locs, selectedId, onClose, onAdd }: { busi
             <div className="us-pin-box"><span className="us-pin-num">{pin}</span></div>
             <div className="us-hint">Anotalo o decíselo ahora: después no se vuelve a mostrar. Si lo olvida, le armás uno nuevo desde Equipo con "Nuevo PIN".</div>
             <div className="us-label">¿Cómo entra?</div>
-            <div className="us-text" style={{ marginBottom: 8 }}>Si el celular del local ya está vinculado, abre el escáner y entra con su PIN. Si va a usar su propio celular, mandale el link.</div>
+            <div className="us-text" style={{ marginBottom: 8 }}>Si el celular del local ya está vinculado, entra con su PIN. Si no, mandale el link.</div>
             {locs.length >= 2 && (
               <select className="us-input" style={{ marginBottom: 8 }} value={locId} onChange={e => setLocId(e.target.value)} aria-label="Sucursal del celular">
                 {locs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -258,7 +258,7 @@ function NewPinModal({ businessId, user, onClose }: { businessId: string; user: 
         {!saved ? (
           <>
             <div className="us-pin-box"><span className="us-pin-num">{pin}</span><button className="us-link" onClick={() => setPin(newPin())}>Otro PIN</button></div>
-            <div className="us-hint">Con el PIN anterior ya no se puede entrar. No se repite con el de otro empleado.</div>
+            <div className="us-hint">El PIN anterior deja de servir.</div>
             {error && <div className="us-error">{error}</div>}
             <div className="us-modal-foot">
               <button className="s-btn s-btn--secondary s-btn--sm" onClick={onClose}>Cancelar</button>
@@ -311,8 +311,7 @@ function ActivateDeviceModal({ businessId, locs, selectedId, onClose }: { busine
           <li>Abrila y apuntá la cámara a este código.</li>
           <li>Listo: ese celular queda vinculado {locs.length >= 2 && loc ? `a ${loc.name}` : 'a este negocio'}. Cada empleado entra con su PIN{locs.length >= 2 ? ' y sus escaneos quedan en esa sucursal' : ''}.</li>
         </ol>
-        <div className="us-hint">Se hace una sola vez por celular. Sin un PIN válido, nadie puede sumar sellos ni ver clientes.</div>
-      </div>
+              </div>
     </div>
   )
 }
@@ -364,7 +363,6 @@ function DevicesCard({ businessId, locs, selectedId, onLinkApp }: { businessId: 
       <div className="us-block-head">
         <div style={{ flex: 1, minWidth: 240 }}>
           <div className="us-block-title">Celulares del local</div>
-          <p className="us-block-sub">Se vincula una vez por celular; cada empleado entra con su PIN.</p>
         </div>
         <div className="us-block-actions">
           {multi && (
@@ -397,10 +395,10 @@ function DevicesCard({ businessId, locs, selectedId, onLinkApp }: { businessId: 
       ) : null}
 
       <div className="us-hint us-block-foot">
-        Cada link vale 24 horas y es para un solo celular. Si preferís la app de iPhone:{' '}
+        Cada link vale 24 horas, para un solo celular. App de iPhone:{' '}
         {SCANNER_IOS_URL
           ? <a className="us-link" href={SCANNER_IOS_URL} target="_blank" rel="noreferrer">descargar Stampa Escáner</a>
-          : <span>Stampa Escáner (próximamente en App Store)</span>}
+          : <span>Stampa Escáner, próximamente</span>}
         {' · '}
         <button className="us-link" onClick={onLinkApp}>vincularla con un código QR</button>
       </div>
@@ -415,7 +413,7 @@ function DevicesCard({ businessId, locs, selectedId, onLinkApp }: { businessId: 
               <li>Toca el link que aparece: se abre el escáner en el navegador.</li>
               <li>Entra con su PIN. Ese celular queda vinculado{multi ? ` a ${qr.place}` : ''}.</li>
             </ol>
-            <div className="us-hint">Este QR sirve para un solo celular y vence en 24 horas. Para otro celular, generá uno nuevo.</div>
+            <div className="us-hint">Un solo celular. Vence en 24 horas.</div>
           </div>
         </div>
       )}
@@ -613,7 +611,7 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
             </div>
             {!loaded && users.length === 0 && [0, 1].map(i => <div key={i} className="us-skel" style={{ height: 52, margin: '8px 16px' }} />)}
             {loaded && users.length === 0 && (
-              <div className="us-empty">Todavía no sumaste a nadie. Sumá a un empleado para que pueda escanear tarjetas desde el celular del local.</div>
+              <div className="us-empty">Todavía no sumaste a nadie.</div>
             )}
             {shown.map(u => {
               const st = STATUS[u.status]

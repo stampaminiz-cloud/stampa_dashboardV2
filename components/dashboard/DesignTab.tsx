@@ -635,7 +635,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
               <div className="dt-appearance-label">Color de la tarjeta</div>
               <ColorField ariaLabel="Color de la tarjeta" value={card.color} suggestions={BG_SUGGESTIONS} logoColors={logoColors}
                 onChange={v => v && setCard({ ...card, color: v, secondColor: secondFor(v), textColor: autoTextFor(v) })} />
-              <div className="dt-reward-goto-forms" style={{ marginTop: 8 }}>Se usa en Google Wallet, en el formulario de registro y en la app de escaneo.</div>
+              <div className="dt-reward-goto-forms" style={{ marginTop: 8 }}>También en el formulario y en Google Wallet.</div>
               <div className="dt-appearance-label" style={{ marginTop: 16 }}>En Apple Wallet, el color de cada nivel</div>
               <div className="dt-tier-chips">
                 {tiers.map(t => <span key={t.id || t.name} className="dt-tier-chip" style={{ background: t.bg, color: t.color }}>{t.name}</span>)}
@@ -681,7 +681,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
                   : <>
                       <Icon name="imagen" size={20} className="dt-ic-faint" />
                       <span className="dt-prize-upload-hint">Subir una foto (opcional)</span>
-                      <span className="dt-prize-upload-sub">JPG o PNG horizontal · va detrás de los puntos, oscurecida para que se lean</span>
+                      <span className="dt-prize-upload-sub">JPG o PNG horizontal, detrás de los puntos</span>
                     </>
                 }
                 <input ref={stripImageRef} type="file" accept="image/*" style={{ display: 'none' }}

@@ -219,7 +219,7 @@ function StampRules({ businessId, card, data, onSaved }: { businessId: string; c
               <div className="rw-hint">
                 {clean.length >= maxOpts
                   ? <>Llegaste a las {maxOpts} opciones de tu plan.{plan === 'Starter' ? ' Growth permite 6 y Pro 12.' : plan === 'Growth' ? ' Pro permite 12.' : ''}</>
-                  : 'Se pregunta en el formulario de registro. Elegí premios de valor parecido: si uno vale mucho más, todos van a elegir ese.'}
+                  : 'Elegí premios de valor parecido.'}
               </div>
             </>
           )}
@@ -237,7 +237,7 @@ function RuleReach({ rule, catalog, currency }: { rule: PointsRuleValue; catalog
     <div className="rw-reach">
       <div className="rw-label">Cuánto le cuesta llegar a cada premio</div>
       {catalog === null ? <div className="rw-skel" style={{ height: 60 }} />
-        : !items.length ? <div className="rw-hint" style={{ marginTop: 0 }}>Cargá premios en el catálogo de abajo y acá vas a ver cuántas visitas (o cuánta plata) necesita un cliente para cada uno.</div>
+        : !items.length ? <div className="rw-hint" style={{ marginTop: 0 }}>Cargá premios en el catálogo.</div>
         : items.map(i => {
             const need = rule.pointsMode === 'amount'
               ? (rule.pointsPerAmount > 0 && rule.pointsAmountUnit > 0 ? `gastando ${formatMoney(Math.ceil(i.pointsCost / rule.pointsPerAmount) * rule.pointsAmountUnit, currency)}` : '—')
@@ -313,8 +313,8 @@ function StampRewards({ businessId, card, data, onSaved, onOpenCustomer }: { bus
       <StampRules key={data.cardId} businessId={businessId} card={card} data={data} onSaved={onSaved} />
 
       <div className="rw-3col">
-        <Stat label="Para entregar" value={data.toDeliver ?? 0} sub="tarjetas completas esperando su premio" tone={data.toDeliver > 0 ? 'good' : undefined} />
-        <Stat label="A 1–2 sellos del premio" value={data.nearPrize ?? 0} sub="buen momento para una notificación" />
+        <Stat label="Para entregar" value={data.toDeliver ?? 0} sub="tarjetas completas" tone={data.toDeliver > 0 ? 'good' : undefined} />
+        <Stat label="A 1–2 sellos del premio" value={data.nearPrize ?? 0} />
         <Stat label="Premios entregados este mes" value={data.redeemedThisMonth ?? 0} sub={monthDelta(data.redeemedThisMonth ?? 0, data.redeemedLastMonth ?? 0)} />
       </div>
 
@@ -323,7 +323,7 @@ function StampRewards({ businessId, card, data, onSaved, onOpenCustomer }: { bus
           <div className="rw-card-title">Premios más elegidos</div>
           <div className="rw-card-sub">Lo que eligieron tus clientes al registrarse</div>
           {chosen.length === 0 ? (
-            <div className="rw-empty-note">Aparece cuando tus clientes elijan su premio al registrarse.</div>
+            <div className="rw-empty-note">Sin elecciones todavía.</div>
           ) : (
             <div className="rw-dist-list">
               {chosen.map(d => (
@@ -340,8 +340,7 @@ function StampRewards({ businessId, card, data, onSaved, onOpenCustomer }: { bus
 
       <div className="rw-card">
         <div className="rw-card-title">Últimos premios entregados</div>
-        <div className="rw-card-sub">Registrados desde la app de escaneo</div>
-        <Redemptions items={data.recentRedemptions || []} onOpenCustomer={onOpenCustomer} empty="Todavía no entregaste ningún premio con esta tarjeta." />
+        <Redemptions items={data.recentRedemptions || []} onOpenCustomer={onOpenCustomer} empty="Sin premios entregados." />
       </div>
     </div>
   )
@@ -450,7 +449,7 @@ function PointsRewards({ businessId, card, data, currency, onSaved, onOpenCustom
         {catalog === null ? (
           [0, 1, 2].map(i => <div key={i} className="rw-skel" style={{ height: 36, marginBottom: 8 }} />)
         ) : catalog.length === 0 ? (
-          <div className="rw-empty-note">Todavía no armaste ningún premio. Agregá el primero: sin premios, los puntos no se pueden canjear.</div>
+          <div className="rw-empty-note">Sin premios, los puntos no se pueden canjear.</div>
         ) : (
           <table className="rw-table">
             <thead><tr><th>Premio</th><th>Puntos</th><th>Canjes</th><th></th></tr></thead>

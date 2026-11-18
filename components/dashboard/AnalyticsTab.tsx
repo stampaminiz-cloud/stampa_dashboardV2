@@ -148,7 +148,7 @@ function HoursLines({ hourly, withRedeems }: { hourly: Hourly; withRedeems: bool
     <div className="an-card">
       <div className="an-ctitle">¿Cuándo viene tu gente?</div>
       <div className="an-csub">Promedio por día, por horario{open ? ' · solo el horario en que abrís' : ''}</div>
-      {empty ? <EmptyState title="Todavía sin movimiento" text="Aparece cuando escaneás tarjetas o se registran clientes." compact /> : <>
+      {empty ? <EmptyState title="Todavía sin movimiento" compact /> : <>
         <div className="an-hl-legend">
           {series.map(l => <span key={l.key}><i style={{ background: l.color }} />{l.label}</span>)}
         </div>
@@ -357,7 +357,7 @@ function AnalyticsLocked({ isManager, onChoosePlan }: { isManager: boolean; onCh
           <Icon name="candado" size={20} />
         </div>
         <div style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 800, color: 'var(--s-tinta)', marginBottom: 6 }}>Analítica está disponible desde Growth</div>
-        <div style={{ fontSize: 13, color: 'rgb(var(--s-tinta-rgb) / .55)', marginBottom: 18, lineHeight: 1.55 }}>En Inicio tenés el resumen del día. Con Growth ves cómo rinde tu programa en detalle:</div>
+        <div style={{ fontSize: 13, color: 'rgb(var(--s-tinta-rgb) / .55)', marginBottom: 18, lineHeight: 1.55 }}>Con Growth ves cómo rinde tu programa:</div>
         <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 22px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {FEATURES.map(f => (
             <li key={f} style={{ display: 'flex', gap: 9, fontSize: 13, color: 'var(--s-tinta)', lineHeight: 1.4 }}>
@@ -834,7 +834,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
               <div className="an-ctitle">{chart.title}</div>
               <div className="an-csub">{range === '90d' ? 'Por semana' : 'Por día'} · pasá el mouse por una barra para ver el detalle</div>
               {!d ? (detailedError && !detailedLoading ? <Loading /> : <MascotLoader text="Armando tus números…" size={44} minHeight={170} />) : chartEmpty
-                ? <EmptyState title="Todavía sin movimientos" text="Aparecen cuando escaneás tarjetas con la app." />
+                ? <EmptyState title="Sin movimientos" />
                 : <BarChart data={d.visitsOverTime} valueKey={chart.key} tooltip={chartTip} />}
             </div>
             <div className="an-comp">
@@ -1007,7 +1007,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
                     ))}
                   </div>
                 ) })()
-              : <EmptyState title="Todavía sin toques" text="Aparece cuando tus clientes toquen los botones de WhatsApp de su tarjeta. El número se carga en Configuración." />}
+              : <EmptyState title="Todavía sin toques" text="Aparece cuando tus clientes toquen los botones de WhatsApp." />}
           </div>
           {types.includes('membership') && (
             <div className="an-card">
