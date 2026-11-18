@@ -178,7 +178,7 @@ function AddPersonModal({ businessId, locs, selectedId, onClose, onAdd }: { busi
               <>
                 <div className="us-label">PIN para entrar</div>
                 <div className="us-pin-box"><span className="us-pin-num">{pin}</span><button className="us-link" onClick={() => setPin(newPin())}>Otro PIN</button></div>
-                <div className="us-hint">Se lo decís vos. No se repite con el de otro empleado.</div>
+                <div className="us-hint">No se repite con el de otro empleado.</div>
               </>
             )}
             {error && <div className="us-error">{error}</div>}

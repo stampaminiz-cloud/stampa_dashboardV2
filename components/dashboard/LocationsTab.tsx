@@ -266,7 +266,7 @@ export function LocationsTab({ businessId, businessName, isManager = false, sele
                 <label className="lt-field"><span className="lt-label">Nombre de la nueva sucursal</span>
                   <input className="lt-input" autoFocus value={newName} maxLength={60} placeholder="Playa" onChange={e => setNewName(e.target.value)} /></label>
                 {addErr && <div className="lt-err">{addErr}</div>}
-                <div className="lt-actions"><span className="lt-sub">Después cargás la dirección, la ubicación y los horarios.</span>
+                <div className="lt-actions"><span className="lt-sub" />
                   <span className="lt-actions-end"><button type="button" className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setAdding(false); setAddErr('') }}>Cancelar</button><button type="submit" className="s-btn s-btn--primary s-btn--sm" disabled={addBusy}>{addBusy ? 'Creando…' : 'Crear sucursal'}</button></span></div>
               </form>
             )}

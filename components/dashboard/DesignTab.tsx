@@ -524,7 +524,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
         </div>
         <div className="dt-preview-note">
           {walletPreviewError ? 'No pudimos actualizar la vista previa. Revisá tu conexión.'
-            : platform === 'real' ? 'Así se ve en el iPhone de tus clientes, con un cliente de ejemplo.' : 'Así se ve en Google Wallet (Android), con un cliente de ejemplo.'}
+            : platform === 'real' ? 'En el iPhone de tus clientes, con un cliente de ejemplo.' : 'En Google Wallet (Android), con un cliente de ejemplo.'}
         </div>
       </div>
     </div>
@@ -699,7 +699,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
                 Cara del premio
               </div>
               <div style={{ fontSize: 10, color: 'rgb(var(--s-tinta-rgb) / .4)', marginBottom: 10, lineHeight: 1.5 }}>
-                Esta cara aparece cuando el cliente completa todos los sellos.
+                Aparece cuando completa todos los sellos.
               </div>
               {/* Image upload */}
               <div
@@ -711,7 +711,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
                   : <>
                       <Icon name="imagen" size={20} className="dt-ic-faint" />
                       <span className="dt-prize-upload-hint">Subir imagen del premio</span>
-                      <span className="dt-prize-upload-sub">PNG, JPG · Se muestra centrada en la tarjeta</span>
+                      <span className="dt-prize-upload-sub">PNG o JPG</span>
                     </>
                 }
                 <input ref={prizeImageRef} type="file" accept="image/*" style={{ display: 'none' }}
