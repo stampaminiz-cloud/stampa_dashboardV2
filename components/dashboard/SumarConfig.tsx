@@ -100,22 +100,12 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
           {mode === 'screen' && amountCards.length > 0 && (
             <div className="sc-warn" role="status">
               <Icon name="atencion" size={16} />
-              <span>{amountCards.length === 1 ? amountCards[0].name : 'Algunas tarjetas'} suma{amountCards.length === 1 ? '' : 'n'} por monto: la pantalla le pide al cliente que un empleado sume la compra.</span>
+              <span>Las tarjetas por monto las suma un empleado.</span>
             </div>
           )}
         </div>
 
         {screenAllowed && <Screens businessId={businessId} isManager={isManager} active={mode === 'screen'} />}
-
-        <div className="pr-block">
-          <div className="pr-title">Cómo se entrega el premio</div>
-          <div className="pr-row">
-            <div className="pr-seg" role="radiogroup" aria-label="Cómo se entrega el premio">
-              <button type="button" role="radio" aria-checked className="pr-seg-btn is-on">Lo entrega un empleado</button>
-              <button type="button" role="radio" aria-checked={false} disabled className="pr-seg-btn">Sin personas</button>
-            </div>
-          </div>
-        </div>
       </>}
 
       {part !== 'business' && <>
@@ -175,6 +165,16 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
               </div>
             )
           })}
+        </div>
+
+        <div className="pr-block">
+          <div className="pr-title">Cómo se entrega el premio</div>
+          <div className="pr-row">
+            <div className="pr-seg" role="radiogroup" aria-label="Cómo se entrega el premio">
+              <button type="button" role="radio" aria-checked className="pr-seg-btn is-on">Lo entrega un empleado</button>
+              <button type="button" role="radio" aria-checked={false} disabled className="pr-seg-btn">Sin personas</button>
+            </div>
+          </div>
         </div>
       </>}
     </div>
@@ -286,7 +286,7 @@ function Screens({ businessId, isManager, active }: { businessId?: string; isMan
 }
 
 const CSS = `
-  .sc-link{background:none;border:none;padding:0;font:inherit;font-weight:700;color:var(--s-brasa-2);text-decoration:underline;cursor:pointer;}
+  .sc-link{background:none;border:none;padding:0;font-family:inherit;font-size:12px;font-weight:700;color:var(--s-brasa-2);text-decoration:underline;cursor:pointer;}
   .pr-seg-btn:disabled{opacity:.45;cursor:not-allowed;}
   .sc-opts{display:flex;flex-direction:column;gap:8px;}
   .sc-opt{display:flex;align-items:flex-start;gap:12px;text-align:left;width:100%;padding:12px 14px;border:1.5px solid var(--s-linea);border-radius:12px;background:var(--s-blanco);color:var(--s-tinta);cursor:pointer;font-family:var(--font-body);}

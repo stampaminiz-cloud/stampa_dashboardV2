@@ -31,7 +31,7 @@ export function Apariencia() {
     <div className="ap">
       <style>{CSS}</style>
       <div className="ap-row">
-        <div className="ap-text"><b>Tema</b><span>Cómo se ve Stampa en este dispositivo. Automático sigue al dispositivo.</span></div>
+        <div className="ap-text"><b>Tema</b><span>Automático sigue al dispositivo.</span></div>
         <div className="ap-seg" role="radiogroup" aria-label="Tema">
           {OPTS.map(o => (
             <button key={o.v} type="button" role="radio" aria-checked={tema === o.v} className={`ap-btn${tema === o.v ? ' is-on' : ''}`} onClick={() => set(o.v)}>
@@ -40,7 +40,7 @@ export function Apariencia() {
           ))}
         </div>
       </div>
-      <div className="ap-note">Vale para el panel, el escáner web y la pantalla del mostrador. La web pública y los formularios de tus clientes quedan claros.</div>
+      <div className="ap-note">Los formularios de tus clientes siempre se ven claros.</div>
     </div>
   )
 }

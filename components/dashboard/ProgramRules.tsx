@@ -97,6 +97,28 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
         })}
       </div>
 
+      </>}
+
+      {part !== 'cards' && <>
+      {/* Cumpleaños */}
+      <div className="pr-block">
+        <div className="pr-title">
+          Cumpleaños
+          
+        </div>
+        <div className="pr-row">
+          <span className="pr-sw">
+            <Switch checked={bEnabled} disabled={readOnly} label={`Cumpleaños: ${bEnabled ? 'activado' : 'desactivado'}`} onChange={v => saveBirthday({ enabled: v })} />
+            {bEnabled ? 'Activado' : 'Desactivado'}
+          </span>
+          <input className="pr-input" value={gift} maxLength={60} disabled={readOnly} placeholder="Regalo (ej: Postre gratis)" onChange={e => setGift(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') saveBirthday({}) }} />
+          {gift.trim() !== giftSaved && <button type="button" className="s-btn s-btn--primary s-btn--sm" disabled={readOnly} onClick={() => saveBirthday({})}>Guardar</button>}
+          {msgFor('bday')}
+        </div>
+        {bEnabled && <div className="pr-note">Solo reciben el regalo los clientes que cargaron su fecha de cumpleaños al registrarse.</div>}
+      </div>
+
       {/* Días dobles */}
       <div className="pr-block">
         <div className="pr-title">
@@ -125,31 +147,8 @@ export function ProgramRules({ businessId, cards, birthday, onCardsChanged, onBu
           )
         })}
       </div>
-
       </>}
 
-      {part !== 'cards' && <>
-      {/* Cumpleaños */}
-      <div className="pr-block">
-        <div className="pr-title">
-          Cumpleaños
-          
-        </div>
-        <div className="pr-row">
-          <span className="pr-sw">
-            <Switch checked={bEnabled} disabled={readOnly} label={`Cumpleaños: ${bEnabled ? 'activado' : 'desactivado'}`} onChange={v => saveBirthday({ enabled: v })} />
-            {bEnabled ? 'Activado' : 'Desactivado'}
-          </span>
-          <input className="pr-input" value={gift} maxLength={60} disabled={readOnly} placeholder="Regalo (ej: Postre gratis)" onChange={e => setGift(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') saveBirthday({}) }} />
-          {gift.trim() !== giftSaved && <button type="button" className="s-btn s-btn--primary s-btn--sm" disabled={readOnly} onClick={() => saveBirthday({})}>Guardar</button>}
-          {msgFor('bday')}
-        </div>
-        {bEnabled && <div className="pr-note">Solo reciben el regalo los clientes que cargaron su fecha de cumpleaños al registrarse.</div>}
-      </div>
-      </>}
-
-      {part === 'all' && <div className="pr-foot">Los avisos automáticos de estas reglas no cuentan para tus envíos del mes.</div>}
     </div>
   )
 }
