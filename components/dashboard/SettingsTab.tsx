@@ -9,6 +9,7 @@ import { useLang } from '@/data/i18n'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { ProgramRules, type RulesCard, type BirthdayRule } from './ProgramRules'
 import { SumarConfig } from './SumarConfig'
+import { Apariencia } from './Apariencia'
 import type { Location } from '@/lib/location'
 
 interface BusinessAlerts { newCustomer?: boolean; nearPrize: boolean; weeklyDigest: boolean; suspicious?: boolean }
@@ -433,20 +434,20 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
     <>
       <style>{`
         .st-content{flex:1;overflow-y:auto;padding:22px 24px;display:flex;flex-direction:column;gap:14px;}
-        .st-card{background:#FFFFFF;border:1px solid rgba(34,32,27,.07);border-radius:14px;padding:18px 20px;box-shadow:0 1px 8px rgba(34,32,27,.04);}
-        .st-card-head{display:flex;align-items:center;gap:8px;padding-bottom:14px;border-bottom:1px solid rgba(34,32,27,.07);margin-bottom:14px;}
-        .st-card-head svg{color:rgba(34,32,27,.5);flex-shrink:0;}
+        .st-card{background:var(--s-blanco);border:1px solid rgb(var(--s-tinta-rgb) / .07);border-radius:14px;padding:18px 20px;box-shadow:0 1px 8px rgba(34,32,27,.04);}
+        .st-card-head{display:flex;align-items:center;gap:8px;padding-bottom:14px;border-bottom:1px solid rgb(var(--s-tinta-rgb) / .07);margin-bottom:14px;}
+        .st-card-head svg{color:rgb(var(--s-tinta-rgb) / .5);flex-shrink:0;}
         .st-card-title{font-family:var(--font-display);font-weight:700;font-size:13.5px;color:var(--s-tinta);}
         .st-rule{display:flex;flex-direction:column;gap:8px;}
         .st-rule-title{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--s-tinta);}
         .st-rule-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-        .st-rule-text{font-size:12px;color:rgba(34,32,27,.75);min-width:130px;}
+        .st-rule-text{font-size:12px;color:rgb(var(--s-tinta-rgb) / .75);min-width:130px;}
         .st-rule-presets{display:flex;gap:6px;}
-        .st-rule-chip{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid rgba(34,32,27,.14);background:#fff;color:rgba(34,32,27,.7);cursor:pointer;font-family:var(--font-body);}
+        .st-rule-chip{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid rgb(var(--s-tinta-rgb) / .14);background:var(--s-blanco);color:rgb(var(--s-tinta-rgb) / .7);cursor:pointer;font-family:var(--font-body);}
         .st-rule-chip.is-on{background:rgba(199,93,58,.1);border-color:var(--s-brasa);color:var(--s-brasa);}
-        .st-field-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(34,32,27,.05);min-height:42px;}
+        .st-field-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgb(var(--s-tinta-rgb) / .05);min-height:42px;}
         .st-field-row:last-child{border-bottom:none;padding-bottom:0;}
-        .st-field-label{font-size:12.5px;color:rgba(34,32,27,.6);}
+        .st-field-label{font-size:12.5px;color:rgb(var(--s-tinta-rgb) / .6);}
         .st-field-value{display:flex;align-items:center;gap:8px;}
         .st-rules-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px 36px;align-items:start;}
         .st-rules-col{display:flex;flex-direction:column;gap:18px;min-width:0;}
@@ -454,50 +455,50 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         .st-rules-foot{font-size:11px;color:var(--s-tinta-3);margin-top:18px;}
         @media(max-width:980px){.st-rules-grid{grid-template-columns:1fr;}}
         .st-field-val{font-size:12.5px;font-weight:600;color:var(--s-tinta);}
-        .st-timezone-select{font-size:12.5px;font-weight:600;color:var(--s-tinta);background:var(--s-salvia);border:1.5px solid rgba(34,32,27,.12);border-radius:8px;padding:6px 10px;font-family:var(--font-body);cursor:pointer;}
+        .st-timezone-select{font-size:12.5px;font-weight:600;color:var(--s-tinta);background:var(--s-salvia);border:1.5px solid rgb(var(--s-tinta-rgb) / .12);border-radius:8px;padding:6px 10px;font-family:var(--font-body);cursor:pointer;}
         .st-inline-input{padding:5px 9px;font-size:12.5px;border:1.5px solid var(--s-brasa);border-radius:7px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);width:180px;outline:none;}
-        .st-pw-input{padding:6px 10px;font-size:12.5px;border:1px solid rgba(34,32,27,.15);border-radius:7px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);width:200px;outline:none;}
+        .st-pw-input{padding:6px 10px;font-size:12.5px;border:1px solid rgb(var(--s-tinta-rgb) / .15);border-radius:7px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);width:200px;outline:none;}
         .st-pw-input:focus{border-color:var(--s-brasa);}
         .st-pw-error{font-size:11.5px;color:var(--s-error);background:rgba(178,59,59,.07);border:1px solid rgba(178,59,59,.2);border-radius:8px;padding:8px 12px;margin-top:10px;}
         .st-pw-success{font-size:11.5px;color:#2C5A2C;background:rgba(91,140,90,.1);border:1px solid rgba(91,140,90,.25);border-radius:8px;padding:8px 12px;margin-top:10px;}
-        .st-number-input{width:60px;padding:5px 9px;font-size:12.5px;border:1px solid rgba(34,32,27,.15);border-radius:7px;text-align:center;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);outline:none;}
+        .st-number-input{width:60px;padding:5px 9px;font-size:12.5px;border:1px solid rgb(var(--s-tinta-rgb) / .15);border-radius:7px;text-align:center;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);outline:none;}
         .st-number-input:focus{border-color:var(--s-brasa);}
-        .st-check-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgba(34,32,27,.05);cursor:pointer;user-select:none;}
+        .st-check-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgb(var(--s-tinta-rgb) / .05);cursor:pointer;user-select:none;}
         .st-check-row:last-child{border-bottom:none;padding-bottom:0;}
         .st-check-label{font-size:12.5px;color:var(--s-tinta);font-weight:500;}
-        .st-check-desc{font-size:11px;color:rgba(34,32,27,.45);margin-top:2px;}
+        .st-check-desc{font-size:11px;color:rgb(var(--s-tinta-rgb) / .45);margin-top:2px;}
         .st-plan-card{background:rgba(199,93,58,.07);border:1px solid rgba(199,93,58,.2);border-radius:11px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;}
         .st-plan-name{font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--s-brasa);}
-        .st-plan-sub{font-size:11px;color:rgba(34,32,27,.5);margin-top:2px;}
+        .st-plan-sub{font-size:11px;color:rgb(var(--s-tinta-rgb) / .5);margin-top:2px;}
         .st-plan-dots{display:flex;gap:6px;margin-top:8px;}
         .st-plan-dot{width:9px;height:9px;border-radius:50%;}
         .st-plan-dot--on{background:var(--s-brasa);}
-        .st-plan-dot--off{background:rgba(34,32,27,.15);}
+        .st-plan-dot--off{background:rgb(var(--s-tinta-rgb) / .15);}
         .st-danger-card{background:rgba(178,59,59,.04);border:1px solid rgba(178,59,59,.15);border-radius:14px;padding:18px 20px;}
         .st-danger-head{display:flex;align-items:center;gap:8px;color:var(--s-error);padding-bottom:14px;border-bottom:1px solid rgba(178,59,59,.1);margin-bottom:14px;}
         .st-danger-title{font-family:var(--font-display);font-weight:700;font-size:13.5px;color:var(--s-error);}
         .st-danger-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(178,59,59,.07);}
         .st-danger-row:last-child{border-bottom:none;padding-bottom:0;}
-        .st-danger-label{font-size:12.5px;color:rgba(34,32,27,.65);}
+        .st-danger-label{font-size:12.5px;color:rgb(var(--s-tinta-rgb) / .65);}
         .st-danger-link{font-size:11.5px;color:var(--s-error);font-weight:700;background:none;border:none;cursor:pointer;}
-        .st-sess{border-top:1px solid rgba(34,32,27,.07);margin-top:16px;padding-top:14px;}
+        .st-sess{border-top:1px solid rgb(var(--s-tinta-rgb) / .07);margin-top:16px;padding-top:14px;}
         .st-sess-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
         .st-sess-text{flex:1;min-width:240px;}
         .st-sess-title{font-size:13.5px;font-weight:600;color:#22201B;margin-bottom:2px;}
-        .st-sess-desc{font-size:12.5px;line-height:1.5;color:rgba(34,32,27,.65);}
+        .st-sess-desc{font-size:12.5px;line-height:1.5;color:rgb(var(--s-tinta-rgb) / .65);}
         .st-delete-confirm{margin-top:12px;background:rgba(178,59,59,.08);border:1px solid rgba(178,59,59,.2);border-radius:10px;padding:14px;}
-        .st-delete-confirm p{font-size:12px;color:rgba(34,32,27,.7);margin-bottom:12px;line-height:1.5;}
+        .st-delete-confirm p{font-size:12px;color:rgb(var(--s-tinta-rgb) / .7);margin-bottom:12px;line-height:1.5;}
         .st-delete-actions{display:flex;gap:8px;}
-        .st-timezone-note{font-size:10.5px;color:rgba(34,32,27,.4);margin-top:8px;line-height:1.5;}
-        .st-rules-note{font-size:12px;color:rgba(34,32,27,.6);line-height:1.6;background:rgba(199,93,58,.06);border:1px solid rgba(199,93,58,.15);border-radius:10px;padding:11px 14px;margin-bottom:14px;}
-        .st-rules-summary{font-size:11.5px;color:rgba(34,32,27,.5);margin-top:10px;line-height:1.6;}
-        .st-sector-confirm{position:absolute;z-index:5;top:calc(100% + 8px);left:0;right:0;min-width:320px;background:#fff;border:1px solid rgba(199,93,58,.25);border-radius:10px;padding:14px;box-shadow:0 8px 24px rgba(34,32,27,.12);}
-        .st-sector-confirm p{font-size:12px;color:rgba(34,32,27,.7);margin-bottom:12px;line-height:1.55;}
-        .st-alerts-note{font-size:11px;color:rgba(34,32,27,.45);margin-bottom:12px;}
+        .st-timezone-note{font-size:10.5px;color:rgb(var(--s-tinta-rgb) / .4);margin-top:8px;line-height:1.5;}
+        .st-rules-note{font-size:12px;color:rgb(var(--s-tinta-rgb) / .6);line-height:1.6;background:rgba(199,93,58,.06);border:1px solid rgba(199,93,58,.15);border-radius:10px;padding:11px 14px;margin-bottom:14px;}
+        .st-rules-summary{font-size:11.5px;color:rgb(var(--s-tinta-rgb) / .5);margin-top:10px;line-height:1.6;}
+        .st-sector-confirm{position:absolute;z-index:5;top:calc(100% + 8px);left:0;right:0;min-width:320px;background:var(--s-blanco);border:1px solid rgba(199,93,58,.25);border-radius:10px;padding:14px;box-shadow:0 8px 24px rgba(34,32,27,.12);}
+        .st-sector-confirm p{font-size:12px;color:rgb(var(--s-tinta-rgb) / .7);margin-bottom:12px;line-height:1.55;}
+        .st-alerts-note{font-size:11px;color:rgb(var(--s-tinta-rgb) / .45);margin-bottom:12px;}
         .st-inline-error{font-size:11px;color:var(--s-error);font-weight:600;margin-top:4px;}
         .st-ok{font-size:11px;color:var(--s-listo);font-weight:600;}
         .st-subform{display:flex;flex-direction:column;gap:8px;background:var(--s-salvia);border-radius:10px;padding:12px;margin:8px 0;}
-        .st-subform .st-pw-input{width:100%;background:#fff;}
+        .st-subform .st-pw-input{width:100%;background:var(--s-blanco);}
         @media(max-width:768px){
           .st-content{padding:14px 16px;}
           .st-plan-card{flex-direction:column;align-items:flex-start;gap:12px;}
@@ -513,6 +514,10 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           <MyAccountSection ownerName={ownerName} ownerEmail={ownerEmail} isManager={isManager} pendingEmail={pendingEmail} />
         </Section>
 
+        <Section title="Apariencia" icon={<Icon name="oscuro" size={16} />}>
+          <Apariencia />
+        </Section>
+
         <Section title="Seguridad" icon={<Icon name="candado" size={16} />}>
           <PasswordSection />
           <SessionsSection />
@@ -521,7 +526,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         <Section title={t('st_profile')} icon={<Icon name="negocio" size={16} />}>
           <FieldRow label={t('st_name')}><EditableText value={business.name} maxLength={60} onSave={v => handleSave('name', v)} /></FieldRow>
           <FieldRow label={t('st_sector')}><SectorField value={business.sector} saving={saving} saved={saved} t={t} onSave={v => { handleSave('sector', v) }} />{msgFor('sector')}</FieldRow>
-          <FieldRow label={<>{t('st_timezone')}<span style={{ display: 'block', fontSize: 11, fontWeight: 400, color: 'rgba(34,32,27,.5)' }}>Tiene que ser la del local.</span></>}>
+          <FieldRow label={<>{t('st_timezone')}<span style={{ display: 'block', fontSize: 11, fontWeight: 400, color: 'rgb(var(--s-tinta-rgb) / .5)' }}>Tiene que ser la del local.</span></>}>
             <select
               className="st-timezone-select"
               value={business.timezone}
@@ -592,7 +597,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
               <SumarConfig part="cards" businessId={businessId} cards={cards as any} onCardsChanged={onCardsChanged} onChoosePlan={onChoosePlan} isManager={isManager} />
             </div>
           </div>
-          <div className="st-rules-foot">La regla vale para la app y para el escáner web.</div>
+          <div className="st-rules-foot">La regla vale para la app, el escáner web y la pantalla del mostrador.</div>
         </Section>
 
         <Section title={t('st_alerts')} icon={<Icon name="mail" size={16} />}>
@@ -633,7 +638,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
               {exporting ? 'Exportando...' : t('st_export_btn')}
             </button>
           </div>
-          {exportError && <div className="st-delete-confirm" style={{ borderColor: 'rgba(178,59,59,.3)' }}><p style={{ color: '#B23B3B' }}>{exportError}</p></div>}
+          {exportError && <div className="st-delete-confirm" style={{ borderColor: 'rgba(178,59,59,.3)' }}><p style={{ color: 'var(--s-error)' }}>{exportError}</p></div>}
 
           {deletionState ? (
             <div className="st-delete-confirm">
@@ -691,21 +696,21 @@ function BillingDetails({ billing, onCancel }: { billing?: BillingStatus | null;
     : 'Cuenta en pausa: elegí un plan para reactivarla.'
   const canCancel = (billing.provider === 'mercadopago' || billing.provider === 'stripe') && billing.access === 'active' && billing.status !== 'cancelled'
   return (
-    <div style={{ marginTop: 10, fontSize: 12, color: 'rgba(43,38,32,.6)', lineHeight: 1.6 }}>
+    <div style={{ marginTop: 10, fontSize: 12, color: 'rgb(var(--s-tinta-rgb) / .6)', lineHeight: 1.6 }}>
       {line}
       {canCancel && !confirming && (
-        <button onClick={() => setConfirming(true)} style={{ marginLeft: 8, background: 'none', border: 'none', color: '#B23B3B', fontWeight: 600, cursor: 'pointer', fontSize: 12, padding: 0 }}>Cancelar suscripción</button>
+        <button onClick={() => setConfirming(true)} style={{ marginLeft: 8, background: 'none', border: 'none', color: 'var(--s-error)', fontWeight: 600, cursor: 'pointer', fontSize: 12, padding: 0 }}>Cancelar suscripción</button>
       )}
       {confirming && (
         <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <span>¿Cancelar? Vas a seguir teniendo acceso hasta el {date(billing.nextPaymentDate)}.</span>
-          <button disabled={busy} onClick={async () => { setBusy(true); setError(null); try { await onCancel?.(); setConfirming(false) } catch (e: any) { setError(e?.error || 'No se pudo cancelar.') } finally { setBusy(false) } }} style={{ background: '#B23B3B', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{busy ? '...' : 'Sí, cancelar'}</button>
-          <button onClick={() => setConfirming(false)} style={{ background: 'none', border: '1px solid rgba(43,38,32,.15)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12 }}>No</button>
+          <button disabled={busy} onClick={async () => { setBusy(true); setError(null); try { await onCancel?.(); setConfirming(false) } catch (e: any) { setError(e?.error || 'No se pudo cancelar.') } finally { setBusy(false) } }} style={{ background: 'var(--s-error)', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{busy ? '...' : 'Sí, cancelar'}</button>
+          <button onClick={() => setConfirming(false)} style={{ background: 'none', border: '1px solid rgb(var(--s-tinta-rgb) / .15)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12 }}>No</button>
         </div>
       )}
-      {error && <div style={{ color: '#B23B3B', marginTop: 6 }}>{error}</div>}
+      {error && <div style={{ color: 'var(--s-error)', marginTop: 6 }}>{error}</div>}
       {billing.subscriptionId && (
-        <div style={{ marginTop: 6, fontSize: 11, color: 'rgba(43,38,32,.4)' }}>
+        <div style={{ marginTop: 6, fontSize: 11, color: 'rgb(var(--s-tinta-rgb) / .4)' }}>
           ID de suscripción ({billing.provider === 'stripe' ? 'Stripe' : 'Mercado Pago'}): <span style={{ fontFamily: 'monospace', userSelect: 'all' }}>{billing.subscriptionId}</span>
         </div>
       )}

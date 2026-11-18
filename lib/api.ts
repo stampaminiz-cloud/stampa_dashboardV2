@@ -122,6 +122,7 @@ export interface Business {
   region: string
   inactiveDays: number
   alerts: { newCustomer: boolean; nearPrize: boolean; weeklyDigest: boolean }
+  sumarMode?: 'staff' | 'screen'
 }
 
 export interface Card {
@@ -673,6 +674,19 @@ export async function apiGetScannerDevices(businessId: string) {
 }
 export async function apiRemoveScannerDevice(businessId: string, deviceId: string) {
   return request<{ ok: boolean }>(`/api/businesses/${businessId}/scanner-links/${deviceId}`, { method: 'DELETE' })
+}
+
+// Pantalla Stampa: tablet o celular fijo en el mostrador que lee el pase. Se
+// vincula con un link de un solo uso (24 h), igual que un celular del equipo.
+export interface ScreenDevice { id: string; name: string; device: string; location: string; linkedAt: string; lastSeenAt: string | null }
+export async function apiCreateScreenLink(businessId: string, name: string, locationId?: string | null) {
+  return request<{ id: string; url: string; expiresAt: string; hours: number; name: string; location: { id: string; name: string } }>(`/api/businesses/${businessId}/screens`, { method: 'POST', body: { name, ...(locationId ? { locationId } : {}) } })
+}
+export async function apiGetScreens(businessId: string) {
+  return request<{ screens: ScreenDevice[] }>(`/api/businesses/${businessId}/screens`)
+}
+export async function apiRemoveScreen(businessId: string, screenId: string) {
+  return request<{ ok: boolean }>(`/api/businesses/${businessId}/screens/${screenId}`, { method: 'DELETE' })
 }
 
 export async function apiGetInvite(token: string) {

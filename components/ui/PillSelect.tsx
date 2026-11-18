@@ -21,8 +21,8 @@ export function PillSelect({ value, options, onChange, ariaLabel }: {
 
 const CSS = `
   .ps-wrap{position:relative;display:inline-flex;}
-  .ps-wrap::after{content:'';position:absolute;right:12px;top:50%;width:6px;height:6px;border-right:1.5px solid rgba(34,32,27,.55);border-bottom:1.5px solid rgba(34,32,27,.55);transform:translateY(-70%) rotate(45deg);pointer-events:none;}
-  .ps{appearance:none;-webkit-appearance:none;font-family:var(--font-body);font-size:12.5px;font-weight:600;color:var(--s-tinta);background:#fff;border:1px solid rgba(34,32,27,.14);border-radius:999px;padding:7px 30px 7px 14px;cursor:pointer;max-width:220px;text-overflow:ellipsis;}
-  .ps:hover{border-color:rgba(34,32,27,.28);}
+  .ps-wrap::after{content:'';position:absolute;right:12px;top:50%;width:6px;height:6px;border-right:1.5px solid rgb(var(--s-tinta-rgb) / .55);border-bottom:1.5px solid rgb(var(--s-tinta-rgb) / .55);transform:translateY(-70%) rotate(45deg);pointer-events:none;}
+  .ps{appearance:none;-webkit-appearance:none;font-family:var(--font-body);font-size:12.5px;font-weight:600;color:var(--s-tinta);background:var(--s-blanco);border:1px solid rgb(var(--s-tinta-rgb) / .14);border-radius:999px;padding:7px 30px 7px 14px;cursor:pointer;max-width:220px;text-overflow:ellipsis;}
+  .ps:hover{border-color:rgb(var(--s-tinta-rgb) / .28);}
   .ps:focus-visible{outline:2px solid var(--s-brasa);outline-offset:1px;}
 `

@@ -16,22 +16,24 @@
   --s-brasa:       #C75D3A;   /* acción principal, acento */
   --s-brasa-2:     #9E4529;   /* brasa sobre fondo claro (texto, hover) */
   --s-tinta:       #22201B;   /* texto principal */
-  --s-tinta-2:     rgba(34, 32, 27, .62);  /* texto secundario */
-  --s-tinta-3:     rgba(34, 32, 27, .42);  /* ayudas, apagado */
-  --s-linea:       rgba(34, 32, 27, .12);  /* bordes y separadores */
+  --s-tinta-rgb:   34 32 27;  /* la misma tinta como números, para ponerle transparencia: rgb(var(--s-tinta-rgb) / .12) */
+  --s-pino-texto:  #1B412F;   /* el verde de marca cuando es el color de un texto */
+  --s-tinta-2:     rgb(var(--s-tinta-rgb) / .62);  /* texto secundario */
+  --s-tinta-3:     rgb(var(--s-tinta-rgb) / .42);  /* ayudas, apagado */
+  --s-linea:       rgb(var(--s-tinta-rgb) / .12);  /* bordes y separadores */
   --s-salvia:      #F1F3EE;   /* fondo de la app y de campos */
   --s-blanco:      #FFFFFF;   /* tarjetas */
   --s-listo:       #2E7D4F;
   --s-aviso:       #9A6A12;
   --s-error:       #B4442A;
-  --s-info:        #185FA5;
+  --s-info:        var(--s-info);
   /* versiones suaves para fondos de avisos y chips */
   --s-brasa-suave: rgba(199, 93, 58, .10);
   --s-listo-suave: rgba(46, 125, 79, .10);
   --s-aviso-suave: rgba(212, 162, 76, .14);
   --s-error-suave: rgba(180, 68, 42, .08);
   --s-info-suave:  rgba(24, 95, 165, .08);
-  --s-hueco:       rgba(34, 32, 27, .05);  /* fondos de hover y esqueletos */
+  --s-hueco:       rgb(var(--s-tinta-rgb) / .05);  /* fondos de hover y esqueletos */
 
   /* ── Letra ─────────────────────────────────────────────────── */
   --s-t-xs:  11px;   /* etiquetas en mayúscula, notas */
@@ -44,8 +46,8 @@
   /* ── Bordes y espacios ─────────────────────────────────────── */
   --s-r-sm: 8px;  --s-r-md: 12px;  --s-r-lg: 16px;  --s-r-pill: 999px;
   --s-e-1: 4px;  --s-e-2: 8px;  --s-e-3: 12px;  --s-e-4: 16px;  --s-e-5: 24px;  --s-e-6: 32px;
-  --s-sombra: 0 1px 8px rgba(34, 32, 27, .05);
-  --s-sombra-alta: 0 14px 40px rgba(34, 32, 27, .16);
+  --s-sombra: 0 1px 8px rgb(var(--s-tinta-rgb) / .05);
+  --s-sombra-alta: 0 14px 40px rgb(var(--s-tinta-rgb) / .16);
 }
 
 /* Botones, campos y menús no heredan la letra en el navegador: sin esto
@@ -79,7 +81,7 @@ select:not([multiple]):not([size]) {
 .s-btn--primary   { background: var(--s-brasa); color: #fff; }
 .s-btn--primary:hover:not(:disabled) { background: var(--s-brasa-2); }
 .s-btn--secondary { background: var(--s-blanco); color: var(--s-tinta); border-color: var(--s-linea); }
-.s-btn--secondary:hover:not(:disabled) { border-color: rgba(34, 32, 27, .3); }
+.s-btn--secondary:hover:not(:disabled) { border-color: rgb(var(--s-tinta-rgb) / .3); }
 .s-btn--text      { background: transparent; color: var(--s-brasa-2); padding-inline: 4px; }
 .s-btn--text:hover:not(:disabled) { text-decoration: underline; }
 .s-btn--danger    { background: var(--s-error); color: #fff; }
@@ -87,8 +89,8 @@ select:not([multiple]):not([size]) {
 .s-btn:focus-visible, .s-switch:focus-visible, .s-chip:focus-visible { outline: 2px solid var(--s-brasa); outline-offset: 2px; }
 
 /* ── Interruptor ───────────────────────────────────────────── */
-.s-switch { width: 36px; height: 21px; border-radius: var(--s-r-pill); background: rgba(34, 32, 27, .18); position: relative; border: none; padding: 0; cursor: pointer; flex-shrink: 0; transition: background .15s; }
-.s-switch::after { content: ''; position: absolute; top: 2.5px; left: 2.5px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .15s; }
+.s-switch { width: 36px; height: 21px; border-radius: var(--s-r-pill); background: rgb(var(--s-tinta-rgb) / .18); position: relative; border: none; padding: 0; cursor: pointer; flex-shrink: 0; transition: background .15s; }
+.s-switch::after { content: ''; position: absolute; top: 2.5px; left: 2.5px; width: 16px; height: 16px; border-radius: 50%; background: var(--s-blanco); box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .15s; }
 .s-switch[aria-checked="true"] { background: var(--s-pino); }
 .s-switch[aria-checked="true"]::after { transform: translateX(15px); }
 .s-switch:disabled { opacity: .5; cursor: default; }
@@ -106,3 +108,59 @@ select:not([multiple]):not([size]) {
 .s-chip[aria-pressed="true"] { border-color: var(--s-brasa); background: var(--s-brasa-suave); color: var(--s-brasa-2); }
 
 @media (prefers-reduced-motion: reduce) { .s-switch, .s-switch::after, .s-btn { transition: none; } }
+
+/* ═══════════════════════════════════════════════════════════════
+   MODO OSCURO (noviembre 2026)
+   Se prende con data-theme="dark" en <html> (components/ThemeSync.tsx, que lo
+   decide según la preferencia guardada o la del dispositivo). Solo cambian los
+   valores de las variables: las pantallas no repiten colores. Lo que no se
+   tematiza: la landing, el login y el alta, los formularios públicos de cada
+   negocio y los pases (llevan los colores del negocio).
+   ═══════════════════════════════════════════════════════════════ */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --s-pino:        #1D4A36;
+  --s-pino-2:      #2A6048;
+  --s-pino-texto:  #8FD0AC;
+  --s-brasa:       #D2694A;
+  --s-brasa-2:     #F0906B;
+  --s-tinta:       #ECEFE9;
+  --s-tinta-rgb:   236 239 233;
+  --s-tinta-2:     rgba(236, 239, 233, .68);
+  --s-tinta-3:     rgba(236, 239, 233, .46);
+  --s-linea:       rgba(236, 239, 233, .14);
+  --s-salvia:      #121613;
+  --s-blanco:      #1B211D;
+  --s-listo:       #62C58C;
+  --s-aviso:       #E3B45E;
+  --s-error:       #EE8A72;
+  --s-info:        #78AEEB;
+  --s-brasa-suave: rgba(210, 105, 74, .16);
+  --s-listo-suave: rgba(98, 197, 140, .14);
+  --s-aviso-suave: rgba(227, 180, 94, .15);
+  --s-error-suave: rgba(238, 138, 114, .13);
+  --s-info-suave:  rgba(120, 174, 235, .13);
+  --s-hueco:       rgba(236, 239, 233, .06);
+  --s-sombra: 0 1px 8px rgba(0, 0, 0, .35);
+  --s-sombra-alta: 0 14px 40px rgba(0, 0, 0, .55);
+}
+:root[data-theme="dark"] select:not([multiple]):not([size]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23ECEFE9' stroke-opacity='.6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb { background: rgba(236, 239, 233, .18); }
+:root[data-theme="dark"] ::placeholder { color: rgba(236, 239, 233, .4); }
+
+/* Vista previa de lo que ve el cliente (formulario, pedido): la web pública de
+   cada negocio es siempre clara, así que dentro de este recuadro las variables
+   vuelven a sus valores claros aunque el panel esté en oscuro. */
+.s-claro {
+  color-scheme: light;
+  --s-pino: #1B412F; --s-pino-2: #24523D; --s-pino-texto: #1B412F;
+  --s-brasa: #C75D3A; --s-brasa-2: #9E4529;
+  --s-tinta: #22201B; --s-tinta-rgb: 34 32 27; --s-tinta-2: rgba(34, 32, 27, .62); --s-tinta-3: rgba(34, 32, 27, .42);
+  --s-linea: rgba(34, 32, 27, .12); --s-salvia: #F1F3EE; --s-blanco: #FFFFFF;
+  --s-listo: #2E7D4F; --s-aviso: #9A6A12; --s-error: #B4442A; --s-info: #185FA5;
+  --s-brasa-suave: rgba(199, 93, 58, .10); --s-listo-suave: rgba(46, 125, 79, .10); --s-aviso-suave: rgba(212, 162, 76, .14);
+  --s-error-suave: rgba(180, 68, 42, .08); --s-info-suave: rgba(24, 95, 165, .08); --s-hueco: rgba(34, 32, 27, .05);
+  color: var(--s-tinta);
+}

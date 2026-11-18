@@ -82,7 +82,7 @@ const CSS = `
   .pp-fields > div{min-width:0;}
   .pp-l{font-size:9px;font-weight:600;letter-spacing:.06em;opacity:.75;}
   .pp-v{font-size:14px;font-weight:500;line-height:1.25;}
-  .pp-qr{margin:4px 20px 20px;background:#fff;border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .pp-qr{margin:4px 20px 20px;background:var(--s-blanco);border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;}
   .pp-powered{font-size:10px;color:#8a8a8a;}
   .pp-g-head{display:flex;align-items:center;gap:10px;padding:16px 18px 6px;font-size:13px;}
   .pp-g-logo{width:28px;height:28px;border-radius:50%;object-fit:contain;background:rgba(255,255,255,.9);}

@@ -196,10 +196,10 @@ const CSS = `
   .wa-btn-row{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr) 28px;gap:8px;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--s-linea);}
   .wa-mode{grid-column:1 / -1;display:inline-flex;gap:2px;background:var(--s-salvia);border-radius:999px;padding:3px;justify-self:start;}
   .wa-mode button{border:none;background:none;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:600;color:var(--s-tinta-2);cursor:pointer;}
-  .wa-mode button.is-on{background:#fff;color:var(--s-tinta);box-shadow:0 1px 3px rgba(34,32,27,.12);}
+  .wa-mode button.is-on{background:var(--s-blanco);color:var(--s-tinta);box-shadow:0 1px 3px rgba(34,32,27,.12);}
   .wa-mode button:disabled{cursor:default;opacity:.6;}
   .wa-x{width:28px;height:28px;border-radius:8px;border:1px solid var(--s-linea);background:var(--s-blanco);color:var(--s-tinta-2);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
-  .wa-x:hover{border-color:rgba(34,32,27,.3);color:var(--s-tinta);}
+  .wa-x:hover{border-color:rgb(var(--s-tinta-rgb) / .3);color:var(--s-tinta);}
   .wa-add{align-self:flex-start;}
   .wa-help{font-size:11.5px;color:var(--s-tinta-2);line-height:1.45;}
   .wa-actions{display:flex;gap:8px;align-items:center;}
