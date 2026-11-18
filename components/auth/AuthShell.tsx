@@ -47,6 +47,22 @@ body{margin:0}
 .au-frase{font-family:var(--font-display);font-weight:800;font-size:clamp(28px,3.2vw,40px);line-height:1.06;letter-spacing:-.03em}
 .au-frase em{font-style:normal;color:#E7C46A;display:inline-block;transition:opacity .2s cubic-bezier(.2,.8,.2,1)}
 .au-frase em.out{opacity:0}
+/* Modo oscuro: mismos grises que la landing; el panel verde de la derecha no cambia. */
+:root[data-theme="dark"] .au{background:#0E0D0C;color:#F2EFE9;color-scheme:dark}
+:root[data-theme="dark"] .au-frame{background:#161513}
+:root[data-theme="dark"] .au-form{background:#1D1B18}
+:root[data-theme="dark"] .au-sub,:root[data-theme="dark"] .au-foot,:root[data-theme="dark"] .au-chk{color:rgba(242,239,233,.68)}
+:root[data-theme="dark"] .au-note,:root[data-theme="dark"] .au-dev{color:rgba(242,239,233,.5)}
+:root[data-theme="dark"] .au-input{background:#25231F;border-color:rgba(242,239,233,.16);color:#F2EFE9}
+:root[data-theme="dark"] .au-input:focus{border-color:#E07B58;background:#2B2926}
+:root[data-theme="dark"] .au-ok{color:#62C58C;background:rgba(98,197,140,.12);border-color:rgba(98,197,140,.3)}
+:root[data-theme="dark"] .au-err,:root[data-theme="dark"] .au-box{color:#EE8A72}
+:root[data-theme="dark"] .au-box{background:rgba(238,138,114,.12);border-color:rgba(238,138,114,.3)}
+:root[data-theme="dark"] .au-btn.pino{background:#E07B58;color:#1a0f0a}:root[data-theme="dark"] .au-btn.pino:hover:not(:disabled){background:#F0936F}
+:root[data-theme="dark"] .au-link{color:#F0936F}
+:root[data-theme="dark"] .au-plan{background:#25231F}
+:root[data-theme="dark"] .au-chk input{accent-color:#E07B58}
+:root[data-theme="dark"] .au-side{background:#23402F}
 @media(max-width:860px){
   .au-logo img{height:38px}
   .au{padding:6px}

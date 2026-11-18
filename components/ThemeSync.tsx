@@ -13,7 +13,7 @@ export const K_TEMA = 'stampa_tema'
 export const TEMA_EVENT = 'stampa-tema'
 
 // Rutas que tienen modo oscuro.
-export const THEMED = /^\/(dashboard|ayuda|escaner|pantalla)(\/|$)/
+export const THEMED = /^\/(dashboard|ayuda|escaner|pantalla|login|register|forgot-password|reset-password|onboarding)(\/|$)|^\/$/
 
 export function getTema(): Tema {
   try { const v = localStorage.getItem(K_TEMA); return v === 'claro' || v === 'oscuro' ? v : 'auto' } catch { return 'auto' }
