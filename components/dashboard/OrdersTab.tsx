@@ -75,7 +75,7 @@ export function OrdersTab({ businessId, isManager = false, onChoosePlan, onOpenS
       <div className="od-card od-locked">
         <div className="od-locked-ic"><Icon name="candado" size={20} /></div>
         <h2>Pedidos está disponible en el plan Pro</h2>
-        <p>Tus clientes arman el pedido desde su tarjeta, con tus productos y precios, el día de entrega y la dirección, y te llega escrito a tu WhatsApp.</p>
+        <p>Tus clientes piden desde su tarjeta y te llega por WhatsApp.</p>
         {isManager ? <p className="od-note">Avisale al dueño.</p> : <button type="button" className="s-btn s-btn--primary" onClick={onChoosePlan}>Ver planes</button>}
       </div>
     </div>
@@ -154,7 +154,7 @@ export function OrdersTab({ businessId, isManager = false, onChoosePlan, onOpenS
           <div className="od-left">
             <div className="od-card">
               <div className="od-title">Productos <span className="od-count">{s.products.length} de {data.maxProducts}</span></div>
-              <div className="od-note">El precio es por la unidad elegida: por kilo, el del kilo; por 100 g, el de 100 g.</div>
+              <div className="od-note">Precio por la unidad elegida.</div>
               <div className="od-prod od-prod--head"><span>Producto</span><span>Precio</span><span>Cómo se vende</span><span>Activo</span><span /></div>
               <div ref={listRef} className="od-prods">
               {s.products.map((p, i) => (
@@ -176,7 +176,7 @@ export function OrdersTab({ businessId, isManager = false, onChoosePlan, onOpenS
 
             <div className="od-card">
               <div className="od-title">Entregas y pago</div>
-              <div className="od-note">Stampa no cobra los pedidos: el cliente avisa cómo va a pagar.</div>
+              <div className="od-note">Stampa no cobra los pedidos.</div>
               <div className="od-row"><span className="od-k">Días de reparto</span>
                 <div className="od-days">{DAYS.map((l, d) => <button key={d} type="button" disabled={isManager} aria-pressed={s.days.includes(d)} aria-label={DAY_FULL[d]} className={`od-day${s.days.includes(d) ? ' is-on' : ''}`} onClick={() => toggle('days', d)}>{l}</button>)}</div>
               </div>
@@ -214,7 +214,7 @@ export function OrdersTab({ businessId, isManager = false, onChoosePlan, onOpenS
 
           <div className="od-preview" aria-label="Así lo ve tu cliente">
             <div className="od-pv-label">Así lo ve tu cliente</div>
-            <div className="od-pv-phone">
+            <div className="od-pv-phone s-claro">
               <div className="od-pv-head" style={{ background: cardColor, color: cardText }}><b>{businessName}</b><span>Hola, Lucía{s.leadHours ? ` · Pedí con ${s.leadHours} horas de anticipación` : ''}</span></div>
               <div className="od-pv-box">
                 {sample.length ? sample.map((p, i) => (
@@ -273,7 +273,7 @@ const CSS = `
   .od-off{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--s-pino);color:#fff;border-radius:12px;padding:10px 14px;font-size:var(--s-t-sm);line-height:1.4;}
   .od-off svg{color:#E7C46A;flex-shrink:0;}
   .od-off span{flex:1;min-width:200px;}
-  .od-off button{background:#fff;color:var(--s-pino);border:0;border-radius:8px;padding:6px 12px;font:inherit;font-weight:500;cursor:pointer;}
+  .od-off button{background:var(--s-blanco);color:var(--s-pino);border:0;border-radius:8px;padding:6px 12px;font:inherit;font-weight:500;cursor:pointer;}
   .od-off button:hover{background:#EDEFE8;}
   .od-prods{display:flex;flex-direction:column;gap:10px;}
   .od-zones{display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex:1;min-width:0;}

@@ -63,16 +63,16 @@ export function PointsRuleEditor({ value, onChange, currency }: { value: PointsR
 const CSS = `
   .pr-box{display:flex;flex-direction:column;gap:12px;}
   .pr-modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-  .pr-mode{text-align:left;display:flex;flex-direction:column;gap:2px;border:1.5px solid rgba(34,32,27,.12);border-radius:10px;padding:9px 11px;background:#fff;cursor:pointer;font-family:inherit;}
+  .pr-mode{text-align:left;display:flex;flex-direction:column;gap:2px;border:1.5px solid rgb(var(--s-tinta-rgb) / .12);border-radius:10px;padding:9px 11px;background:var(--s-blanco);cursor:pointer;font-family:inherit;}
   .pr-mode strong{font-size:12.5px;color:var(--s-tinta);}
-  .pr-mode small{font-size:11px;color:rgba(34,32,27,.55);}
+  .pr-mode small{font-size:11px;color:rgb(var(--s-tinta-rgb) / .55);}
   .pr-mode--on{border-color:var(--s-brasa);background:rgba(199,93,58,.05);}
   .pr-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--s-tinta);}
   .pr-stack{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:4px;}
   .pr-label{font-size:12.5px;color:var(--s-tinta);font-weight:500;}
   .pr-row--wrap{justify-content:flex-start;flex-wrap:wrap;}
-  .pr-money{display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(34,32,27,.18);border-radius:8px;padding:5px 9px;background:#fff;font-size:13px;}
+  .pr-money{display:inline-flex;align-items:center;gap:4px;border:1px solid rgb(var(--s-tinta-rgb) / .18);border-radius:8px;padding:5px 9px;background:var(--s-blanco);font-size:13px;}
   .pr-money input{border:none;outline:none;width:90px;font:inherit;background:transparent;}
-  .pr-note{font-size:11.5px;color:rgba(34,32,27,.6);line-height:1.5;}
+  .pr-note{font-size:11.5px;color:rgb(var(--s-tinta-rgb) / .6);line-height:1.5;}
   @media (max-width:520px){.pr-modes{grid-template-columns:1fr;}}
 `

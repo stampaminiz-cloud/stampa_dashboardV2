@@ -112,13 +112,12 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
       <style>{CSS}</style>
       <div className="wa-cols">
         <div className="wa-form">
-          <p className="wa-intro">Tus clientes te escriben desde la tarjeta con un toque. Sin costo.</p>
 
           <div className="wa-field">
             <label className="wa-label" htmlFor="wa-number">Número</label>
             <input id="wa-number" className="wa-input" inputMode="tel" placeholder="+54 9 11 5555-0000" value={number} disabled={disabled}
               onChange={e => { setNumber(e.target.value); setMsg(null) }} />
-            <div className="wa-help">Con código de país, como lo marcarías desde el exterior.</div>
+            <div className="wa-help">Con código de país.</div>
           </div>
 
           <div className="wa-field">
@@ -175,7 +174,6 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
             ))}
             <div className="wa-pv-row"><span>ÚLTIMA NOVEDAD</span><em>Sin novedades por ahora.</em></div>
           </div>
-          <div className="wa-help">Cada botón abre WhatsApp con "Hola {sug.businessName || 'tu negocio'}, soy Lucía Gómez." y el mensaje del tipo de botón.</div>
         </div>
       </div>
     </div>
@@ -196,10 +194,10 @@ const CSS = `
   .wa-btn-row{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr) 28px;gap:8px;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--s-linea);}
   .wa-mode{grid-column:1 / -1;display:inline-flex;gap:2px;background:var(--s-salvia);border-radius:999px;padding:3px;justify-self:start;}
   .wa-mode button{border:none;background:none;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:600;color:var(--s-tinta-2);cursor:pointer;}
-  .wa-mode button.is-on{background:#fff;color:var(--s-tinta);box-shadow:0 1px 3px rgba(34,32,27,.12);}
+  .wa-mode button.is-on{background:var(--s-blanco);color:var(--s-tinta);box-shadow:0 1px 3px rgba(34,32,27,.12);}
   .wa-mode button:disabled{cursor:default;opacity:.6;}
   .wa-x{width:28px;height:28px;border-radius:8px;border:1px solid var(--s-linea);background:var(--s-blanco);color:var(--s-tinta-2);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
-  .wa-x:hover{border-color:rgba(34,32,27,.3);color:var(--s-tinta);}
+  .wa-x:hover{border-color:rgb(var(--s-tinta-rgb) / .3);color:var(--s-tinta);}
   .wa-add{align-self:flex-start;}
   .wa-help{font-size:11.5px;color:var(--s-tinta-2);line-height:1.45;}
   .wa-actions{display:flex;gap:8px;align-items:center;}

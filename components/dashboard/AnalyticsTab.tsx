@@ -148,7 +148,7 @@ function HoursLines({ hourly, withRedeems }: { hourly: Hourly; withRedeems: bool
     <div className="an-card">
       <div className="an-ctitle">¿Cuándo viene tu gente?</div>
       <div className="an-csub">Promedio por día, por horario{open ? ' · solo el horario en que abrís' : ''}</div>
-      {empty ? <EmptyState title="Todavía sin movimiento" text="Aparece cuando escaneás tarjetas o se registran clientes." compact /> : <>
+      {empty ? <EmptyState title="Todavía sin movimiento" compact /> : <>
         <div className="an-hl-legend">
           {series.map(l => <span key={l.key}><i style={{ background: l.color }} />{l.label}</span>)}
         </div>
@@ -157,11 +157,11 @@ function HoursLines({ hourly, withRedeems }: { hourly: Hourly; withRedeems: bool
           aria-label={`Por horario: visitas con el pico de ${slotLabel(bands[Math.max(pv, 0)])} hs${pr >= 0 ? `, canjes de ${slotLabel(bands[pr])} hs` : ''}`}>
           {ticks.map(t => (
             <g key={t}>
-              <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="rgba(34,32,27,.08)" />
-              <text x={L - 8} y={y(t) + 4} textAnchor="end" fontSize="11" fill="rgba(34,32,27,.5)">{fmt1(t)}</text>
+              <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="rgb(var(--s-tinta-rgb) / .08)" />
+              <text x={L - 8} y={y(t) + 4} textAnchor="end" fontSize="11" fill="rgb(var(--s-tinta-rgb) / .5)">{fmt1(t)}</text>
             </g>
           ))}
-          {bands.map((b, i) => <text key={b} x={x(i)} y={H - 8} textAnchor="middle" fontSize="11" fill="rgba(34,32,27,.55)">{slotLabel(b)}</text>)}
+          {bands.map((b, i) => <text key={b} x={x(i)} y={H - 8} textAnchor="middle" fontSize="11" fill="rgb(var(--s-tinta-rgb) / .55)">{slotLabel(b)}</text>)}
           {series.map(l => (
             <g key={l.key}>
               <polyline fill="none" stroke={l.color} strokeWidth={l.width} strokeLinejoin="round" strokeLinecap="round"
@@ -298,7 +298,7 @@ function TierDistribution({ tiers }: { tiers: { name: string; color: string; bg:
     <div className="an-tiers">
       <div className="an-tiers-bar" role="img" aria-label={tiers.map(t => `${t.name}: ${t.count}`).join(', ')}>
         {total === 0
-          ? <span style={{ flex: 1, background: 'rgba(43,38,32,.07)' }} />
+          ? <span style={{ flex: 1, background: 'rgb(var(--s-tinta-rgb) / .07)' }} />
           : tiers.filter(t => t.count > 0).map(t => <span key={t.name} title={`${t.name}: ${t.count}`} style={{ flex: t.count, background: tierSwatch(t) }} />)}
       </div>
       <div className="an-tiers-legend">
@@ -357,7 +357,7 @@ function AnalyticsLocked({ isManager, onChoosePlan }: { isManager: boolean; onCh
           <Icon name="candado" size={20} />
         </div>
         <div style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 800, color: 'var(--s-tinta)', marginBottom: 6 }}>Analítica está disponible desde Growth</div>
-        <div style={{ fontSize: 13, color: 'rgba(43,38,32,.55)', marginBottom: 18, lineHeight: 1.55 }}>En Inicio tenés el resumen del día. Con Growth ves cómo rinde tu programa en detalle:</div>
+        <div style={{ fontSize: 13, color: 'rgb(var(--s-tinta-rgb) / .55)', marginBottom: 18, lineHeight: 1.55 }}>Con Growth ves cómo rinde tu programa:</div>
         <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 22px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {FEATURES.map(f => (
             <li key={f} style={{ display: 'flex', gap: 9, fontSize: 13, color: 'var(--s-tinta)', lineHeight: 1.4 }}>
@@ -366,7 +366,7 @@ function AnalyticsLocked({ isManager, onChoosePlan }: { isManager: boolean; onCh
           ))}
         </ul>
         {isManager
-          ? <div style={{ fontSize: 12.5, color: 'rgba(43,38,32,.5)' }}>Pedile al dueño de la cuenta que mejore el plan.</div>
+          ? <div style={{ fontSize: 12.5, color: 'rgb(var(--s-tinta-rgb) / .5)' }}>Pedile al dueño de la cuenta que mejore el plan.</div>
           : <button onClick={onChoosePlan} style={{ background: 'var(--s-brasa)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 24px', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>Ver planes</button>}
       </div>
     </div>
@@ -482,7 +482,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
 
   if (!fullAnalytics) return (
     <>
-      <style>{`.an-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;} .an-card{background:#FFFFFF;border:1px solid rgba(34,32,27,.07);border-radius:14px;box-shadow:0 1px 8px rgba(34,32,27,.04);} @media(max-width:768px){.an-content{padding:14px 16px;}}`}</style>
+      <style>{`.an-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;} .an-card{background:var(--s-blanco);border:1px solid rgb(var(--s-tinta-rgb) / .07);border-radius:14px;box-shadow:0 1px 8px rgba(34,32,27,.04);} @media(max-width:768px){.an-content{padding:14px 16px;}}`}</style>
       <AnalyticsLocked isManager={isManager} onChoosePlan={onChoosePlan} />
     </>
   )
@@ -504,16 +504,16 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
     types.some(t => t !== 'membership') && { v: pctV(m?.redemptionRate), l: 'Tasa de canje', sub: 'canjearon al menos una vez', color: 'var(--s-brasa)', icon: 'premios' },
     types.includes('stamp') && m?.avgStampProgress != null && { v: pctV(m.avgStampProgress), l: 'Progreso promedio', sub: 'de la tarjeta de sellos', color: 'var(--s-info)', icon: 'sello' },
     types.includes('stamp') && { v: `${m?.nearPrize ?? 0}`, l: 'A 1–2 sellos del premio', sub: `${m?.toDeliver ?? 0} con la tarjeta completa`, color: 'var(--s-aviso)', icon: 'objetivo' },
-    types.includes('points') && { v: `${m?.canRedeem ?? 0}`, l: 'Pueden canjear un premio', sub: 'ya les alcanzan los puntos', color: 'var(--s-aviso)', icon: 'puntos' },
+    types.includes('points') && { v: `${m?.canRedeem ?? 0}`, l: 'Pueden canjear un premio', color: 'var(--s-aviso)', icon: 'puntos' },
     types.includes('membership') && { v: `${m?.nearLevel ?? 0}`, l: 'Cerca de subir de nivel', sub: 'a 2 visitas o menos', color: 'var(--s-pino)', icon: 'membresia' },
   ].filter(Boolean)) as { v: string; l: string; sub: string; color: string; icon: IconName }[]
 
   const inactiveDays = m?.inactiveDays ?? 60
   const SEGMENTS = [
     { label: 'Activos',          desc: `Vinieron en los últimos ${inactiveDays} días`, color: '#5B8C5A', bg: 'rgba(91,140,90,.1)',  val: m?.active ?? 0,       pct: true },
-    { label: 'Inactivos',        desc: `Más de ${inactiveDays} días sin venir`,        color: '#B23B3B', bg: 'rgba(178,59,59,.08)', val: m?.inactive ?? 0,     pct: true },
-    { label: 'Nuevos este mes',  desc: 'Se registraron este mes',                       color: '#185FA5', bg: 'rgba(24,95,165,.1)',  val: m?.newThisMonth ?? 0, pct: false },
-    { label: 'Con la tarjeta en el Wallet', desc: 'La guardaron en Apple o Google Wallet', color: '#1B412F', bg: 'rgba(27,65,47,.08)', val: m?.withDevice ?? 0,   pct: false },
+    { label: 'Inactivos',        desc: `Más de ${inactiveDays} días sin venir`,        color: 'var(--s-error)', bg: 'rgba(178,59,59,.08)', val: m?.inactive ?? 0,     pct: true },
+    { label: 'Nuevos este mes',  desc: 'Se registraron este mes',                       color: 'var(--s-info)', bg: 'rgba(24,95,165,.1)',  val: m?.newThisMonth ?? 0, pct: false },
+    { label: 'Con la tarjeta en el Wallet', desc: 'La guardaron en Apple o Google Wallet', color: 'var(--s-pino-texto)', bg: 'rgba(27,65,47,.08)', val: m?.withDevice ?? 0,   pct: false },
   ]
 
   const d = detailedLoading ? null : detailed
@@ -578,37 +578,37 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
     <>
       <style>{`
         .an-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
-        .an-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(34,32,27,.38);font-weight:600;display:flex;align-items:center;gap:10px;}
-        .an-lbl::after{content:'';flex:1;height:1px;background:rgba(34,32,27,.1);}
+        .an-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgb(var(--s-tinta-rgb) / .38);font-weight:600;display:flex;align-items:center;gap:10px;}
+        .an-lbl::after{content:'';flex:1;height:1px;background:rgb(var(--s-tinta-rgb) / .1);}
         .an-block-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:6px;}
         .an-block-title{font-family:var(--font-display);font-size:16px;font-weight:800;color:var(--s-tinta);}
-        .an-block-sub{font-size:11.5px;color:rgba(34,32,27,.45);margin-top:2px;}
+        .an-block-sub{font-size:11.5px;color:rgb(var(--s-tinta-rgb) / .45);margin-top:2px;}
         .an-block-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-        .an-card{background:#FFFFFF;border:1px solid rgba(34,32,27,.07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(34,32,27,.04);min-width:0;}
+        .an-card{background:var(--s-blanco);border:1px solid rgb(var(--s-tinta-rgb) / .07);border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(34,32,27,.04);min-width:0;}
         .an-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
         .an-ctitle{font-family:var(--font-display);font-weight:700;font-size:13px;color:var(--s-tinta);margin-bottom:2px;}
-        .an-csub{font-size:11px;color:rgba(34,32,27,.45);margin-bottom:12px;}
+        .an-csub{font-size:11px;color:rgb(var(--s-tinta-rgb) / .45);margin-bottom:12px;}
         .an-card-head .an-csub{margin-bottom:0;}
-        .an-empty-note{font-size:12px;color:rgba(34,32,27,.4);padding:20px 0;text-align:center;}
+        .an-empty-note{font-size:12px;color:rgb(var(--s-tinta-rgb) / .4);padding:20px 0;text-align:center;}
         .an-loading{animation:anPulse 1.2s ease-in-out infinite;}
         @keyframes anPulse{0%,100%{opacity:.4}50%{opacity:1}}
-        .an-skel{background:rgba(34,32,27,.07);border-radius:6px;animation:anPulse 1.2s ease-in-out infinite;}
+        .an-skel{background:rgb(var(--s-tinta-rgb) / .07);border-radius:6px;animation:anPulse 1.2s ease-in-out infinite;}
 
         /* ── Toolbar ── */
         .an-card-selector{display:flex;gap:6px;flex-wrap:wrap;}
-        .an-card-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(34,32,27,.12);background:#FFFFFF;color:rgba(34,32,27,.55);cursor:pointer;transition:all .15s;font-family:var(--font-body);}
-        .an-card-pill:hover{border-color:rgba(34,32,27,.25);}
+        .an-card-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid rgb(var(--s-tinta-rgb) / .12);background:var(--s-blanco);color:rgb(var(--s-tinta-rgb) / .55);cursor:pointer;transition:all .15s;font-family:var(--font-body);}
+        .an-card-pill:hover{border-color:rgb(var(--s-tinta-rgb) / .25);}
         .an-card-pill--on{background:var(--s-pino);border-color:var(--s-pino);color:#F7F0E4;font-weight:600;}
-        .an-rpill{font-size:11px;padding:6px 12px;border-radius:20px;border:1px solid rgba(34,32,27,.12);background:#FFFFFF;color:rgba(34,32,27,.5);cursor:pointer;font-family:var(--font-body);transition:all .15s;}
-        .an-rpill:hover{border-color:rgba(34,32,27,.25);}
+        .an-rpill{font-size:11px;padding:6px 12px;border-radius:20px;border:1px solid rgb(var(--s-tinta-rgb) / .12);background:var(--s-blanco);color:rgb(var(--s-tinta-rgb) / .5);cursor:pointer;font-family:var(--font-body);transition:all .15s;}
+        .an-rpill:hover{border-color:rgb(var(--s-tinta-rgb) / .25);}
         .an-rpill--on{background:rgba(199,93,58,.1);border-color:var(--s-brasa);color:var(--s-brasa);font-weight:600;}
-        .an-export{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid rgba(34,32,27,.15);background:#fff;color:var(--s-tinta);cursor:pointer;font-family:var(--font-body);}
+        .an-export{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid rgb(var(--s-tinta-rgb) / .15);background:var(--s-blanco);color:var(--s-tinta);cursor:pointer;font-family:var(--font-body);}
         .an-export--icon{width:34px;height:34px;padding:0;justify-content:center;}
-        .an-export:hover{border-color:rgba(34,32,27,.3);}
+        .an-export:hover{border-color:rgb(var(--s-tinta-rgb) / .3);}
         .an-export:disabled{opacity:.6;cursor:default;}
         .an-export-err{font-size:11px;color:var(--s-error);}
         .an-error{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:rgba(178,59,59,.07);border:1px solid rgba(178,59,59,.2);color:var(--s-error);border-radius:12px;padding:10px 14px;font-size:12.5px;}
-        .an-error button{background:#fff;border:1px solid rgba(178,59,59,.3);color:var(--s-error);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+        .an-error button{background:var(--s-blanco);border:1px solid rgba(178,59,59,.3);color:var(--s-error);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
 
         /* ── Grids ── */
         .an-2col{display:grid;grid-template-columns:1.7fr 1fr;gap:12px;}
@@ -620,12 +620,12 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-stat-ic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
         .an-stat-now{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--s-tinta);}
         .an-stat-name{font-size:12px;font-weight:600;color:var(--s-tinta);margin-top:4px;}
-        .an-stat-label{font-size:10.5px;color:rgba(34,32,27,.45);}
-        .an-stat-prev{font-size:11px;color:rgba(34,32,27,.35);margin-left:5px;}
+        .an-stat-label{font-size:10.5px;color:rgb(var(--s-tinta-rgb) / .45);}
+        .an-stat-prev{font-size:11px;color:rgb(var(--s-tinta-rgb) / .35);margin-left:5px;}
         .an-stat-delta{font-size:11px;font-weight:700;margin-top:5px;}
         .an-delta-up{color:var(--s-listo);}
         .an-delta-down{color:var(--s-error);}
-        .an-delta-flat{color:rgba(34,32,27,.4);}
+        .an-delta-flat{color:rgb(var(--s-tinta-rgb) / .4);}
         .an-comp{display:flex;flex-direction:column;gap:10px;}
         .an-comp .an-card{padding:12px 14px;}
 
@@ -649,20 +649,20 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
 
         /* ── Barras ── */
         .an-bars-wrap{display:flex;gap:8px;height:170px;}
-        .an-bars-axis{display:flex;flex-direction:column;justify-content:space-between;font-size:9.5px;color:rgba(34,32,27,.35);padding-bottom:20px;text-align:right;min-width:18px;}
+        .an-bars-axis{display:flex;flex-direction:column;justify-content:space-between;font-size:9.5px;color:rgb(var(--s-tinta-rgb) / .35);padding-bottom:20px;text-align:right;min-width:18px;}
         .an-bars{flex:1;display:flex;align-items:stretch;gap:6px;min-width:0;}
         .an-bars[data-dense]{gap:3px;}
         .an-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;cursor:default;min-width:0;}
         .an-bar-track{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;}
         .an-bar-fill{width:100%;max-width:38px;min-height:2px;background:rgba(199,93,58,.55);border-radius:5px 5px 2px 2px;transition:background .15s;}
         .an-bar-fill--on{background:var(--s-brasa);}
-        .an-bar-label{font-size:9.5px;color:rgba(34,32,27,.4);margin-top:6px;height:14px;white-space:nowrap;}
+        .an-bar-label{font-size:9.5px;color:rgb(var(--s-tinta-rgb) / .4);margin-top:6px;height:14px;white-space:nowrap;}
         .an-bar-tip{position:absolute;bottom:calc(100% - 6px);left:50%;transform:translateX(-50%);background:var(--s-tinta);color:#F7F0E4;font-size:11px;padding:6px 9px;border-radius:7px;white-space:nowrap;z-index:5;pointer-events:none;}
 
         /* ── ¿Cuándo viene tu gente? ── */
-        .an-seg-switch{display:flex;background:rgba(34,32,27,.05);border-radius:10px;padding:3px;gap:2px;}
-        .an-seg-switch button{border:none;background:none;font-size:11.5px;padding:5px 11px;border-radius:8px;color:rgba(34,32,27,.55);cursor:pointer;font-family:var(--font-body);}
-        .an-seg-switch button.on{background:#fff;color:var(--s-tinta);font-weight:600;box-shadow:0 1px 3px rgba(34,32,27,.12);}
+        .an-seg-switch{display:flex;background:rgb(var(--s-tinta-rgb) / .05);border-radius:10px;padding:3px;gap:2px;}
+        .an-seg-switch button{border:none;background:none;font-size:11.5px;padding:5px 11px;border-radius:8px;color:rgb(var(--s-tinta-rgb) / .55);cursor:pointer;font-family:var(--font-body);}
+        .an-seg-switch button.on{background:var(--s-blanco);color:var(--s-tinta);font-weight:600;box-shadow:0 1px 3px rgba(34,32,27,.12);}
         .an-when-insights{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;font-size:12.5px;color:var(--s-tinta);line-height:1.45;}
         .an-when-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:8px;vertical-align:middle;}
         .an-when-dot--up{background:var(--s-listo);}
@@ -671,66 +671,66 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-pbc{display:flex;flex-direction:column;gap:9px;}
         .an-pbc-row{display:flex;align-items:center;gap:12px;font-size:12.5px;}
         .an-pbc-name{width:120px;flex-shrink:0;color:var(--s-tinta);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .an-pbc-note{color:rgba(34,32,27,.45);font-size:12px;}
+        .an-pbc-note{color:rgb(var(--s-tinta-rgb) / .45);font-size:12px;}
         .an-pbc-bar{flex:1;display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;}
-        .an-pbc-total{width:76px;text-align:right;color:rgba(34,32,27,.55);font-size:11.5px;flex-shrink:0;}
+        .an-pbc-total{width:76px;text-align:right;color:rgb(var(--s-tinta-rgb) / .55);font-size:11.5px;flex-shrink:0;}
         .an-tiers{display:flex;flex-direction:column;gap:12px;}
         .an-tiers-bar{display:flex;gap:2px;height:14px;border-radius:7px;overflow:hidden;}
         .an-tiers-legend{display:flex;flex-wrap:wrap;gap:8px 22px;}
-        .an-tiers-item{display:flex;align-items:center;gap:7px;font-size:12.5px;color:rgba(34,32,27,.75);}
+        .an-tiers-item{display:flex;align-items:center;gap:7px;font-size:12.5px;color:rgb(var(--s-tinta-rgb) / .75);}
         .an-tiers-item i{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
         .an-tiers-item strong{color:var(--s-tinta);font-weight:700;}
         .an-tabsbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 14px;}
-        .an-tabs{display:flex;gap:4px;background:rgba(34,32,27,.05);border-radius:12px;padding:4px;}
-        .an-tab{border:none;background:transparent;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;color:rgba(34,32,27,.55);cursor:pointer;font-family:var(--font-body);}
-        .an-tab--on{background:#fff;color:var(--s-tinta);box-shadow:0 1px 4px rgba(34,32,27,.1);}
+        .an-tabs{display:flex;gap:4px;background:rgb(var(--s-tinta-rgb) / .05);border-radius:12px;padding:4px;}
+        .an-tab{border:none;background:transparent;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;color:rgb(var(--s-tinta-rgb) / .55);cursor:pointer;font-family:var(--font-body);}
+        .an-tab--on{background:var(--s-blanco);color:var(--s-tinta);box-shadow:0 1px 4px rgba(34,32,27,.1);}
         .an-highlights{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:12px;}
-        .an-hl{background:#FFFBF5;border-color:rgba(199,93,58,.16);}
-        .an-hl-k{display:flex;align-items:center;gap:7px;font-size:12px;color:rgba(34,32,27,.6);}
+        .an-hl{background:var(--s-brasa-suave);border-color:rgba(199,93,58,.16);}
+        .an-hl-k{display:flex;align-items:center;gap:7px;font-size:12px;color:rgb(var(--s-tinta-rgb) / .6);}
         .an-hl-k svg{color:var(--s-brasa);flex-shrink:0;}
         .an-hl-v{font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--s-tinta);margin-top:6px;}
         .an-hl-v--up{color:var(--s-tinta);}
         .an-hl-v--down{color:var(--s-tinta);}
-        .an-hl-s{font-size:11.5px;color:rgba(34,32,27,.45);margin-top:2px;}
+        .an-hl-s{font-size:11.5px;color:rgb(var(--s-tinta-rgb) / .45);margin-top:2px;}
         @media(max-width:768px){.an-highlights{grid-template-columns:1fr;}}
-        .an-subhead{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(34,32,27,.45);margin:18px 0 10px;}
-        .an-dh-lbl{font-size:11.5px;color:rgba(34,32,27,.55);margin:12px 0 8px;}
+        .an-subhead{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgb(var(--s-tinta-rgb) / .45);margin:18px 0 10px;}
+        .an-dh-lbl{font-size:11.5px;color:rgb(var(--s-tinta-rgb) / .55);margin:12px 0 8px;}
         .an-dh-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;height:110px;}
         .an-dh-col{display:flex;flex-direction:column;align-items:center;gap:5px;}
-        .an-dh-col span{font-size:11px;color:rgba(34,32,27,.5);}
+        .an-dh-col span{font-size:11px;color:rgb(var(--s-tinta-rgb) / .5);}
         .an-dh-track{flex:1;width:100%;display:flex;align-items:flex-end;}
         .an-dh-track div{width:100%;border-radius:5px 5px 2px 2px;}
         .an-dh-hours{display:flex;gap:3px;}
         .an-dh-hours span{flex:1;height:20px;border-radius:4px;}
-        .an-dh-ends{display:flex;justify-content:space-between;font-size:10.5px;color:rgba(34,32,27,.4);margin-top:4px;}
-        .an-skel{background:rgba(34,32,27,.06);border-radius:10px;animation:anPulse 1.2s ease-in-out infinite;}
+        .an-dh-ends{display:flex;justify-content:space-between;font-size:10.5px;color:rgb(var(--s-tinta-rgb) / .4);margin-top:4px;}
+        .an-skel{background:rgb(var(--s-tinta-rgb) / .06);border-radius:10px;animation:anPulse 1.2s ease-in-out infinite;}
         @keyframes anPulse{0%,100%{opacity:1}50%{opacity:.5}}
         .an-when-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
         @media(max-width:900px){.an-when-pair{grid-template-columns:1fr;}}
         .an-when{display:grid;gap:4px;align-items:center;min-width:min-content;width:100%;}
-        .an-when-h{font-size:9.5px;color:rgba(34,32,27,.4);text-align:center;white-space:nowrap;}
-        .an-when-d{font-size:10px;color:rgba(34,32,27,.5);font-weight:600;}
+        .an-when-h{font-size:9.5px;color:rgb(var(--s-tinta-rgb) / .4);text-align:center;white-space:nowrap;}
+        .an-when-d{font-size:10px;color:rgb(var(--s-tinta-rgb) / .5);font-weight:600;}
         .an-when-cell{height:24px;border-radius:5px;}
-        .an-hlegend{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:9.5px;color:rgba(34,32,27,.4);}
+        .an-hlegend{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:9.5px;color:rgb(var(--s-tinta-rgb) / .4);}
         .an-hscale{display:flex;gap:3px;}
         .an-hsdot{width:14px;height:10px;border-radius:2px;}
 
         /* ── Rankings ── */
-        .an-tr{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(34,32,27,.06);}
+        .an-tr{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgb(var(--s-tinta-rgb) / .06);}
         .an-tr:last-child{border-bottom:none;}
-        .an-trk{width:22px;height:22px;border-radius:7px;background:rgba(34,32,27,.06);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(34,32,27,.4);flex-shrink:0;}
+        .an-trk{width:22px;height:22px;border-radius:7px;background:rgb(var(--s-tinta-rgb) / .06);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgb(var(--s-tinta-rgb) / .4);flex-shrink:0;}
         .an-trk--1{background:rgba(199,93,58,.12);color:var(--s-brasa);}
         .an-tn{font-size:12px;color:var(--s-tinta);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
         .an-tn--link{background:none;border:none;padding:0;cursor:pointer;font-family:inherit;text-align:left;}
         .an-tn--link:hover{color:var(--s-brasa);text-decoration:underline;}
         .an-tv{font-size:12px;font-weight:700;color:var(--s-brasa);white-space:nowrap;}
-        .an-tbar{height:4px;background:rgba(34,32,27,.06);border-radius:2px;overflow:hidden;margin-top:3px;}
+        .an-tbar{height:4px;background:rgb(var(--s-tinta-rgb) / .06);border-radius:2px;overflow:hidden;margin-top:3px;}
         .an-tfill{height:100%;background:var(--s-pino);border-radius:2px;}
-        .an-tsub{font-size:10.5px;color:rgba(34,32,27,.45);margin-top:3px;}
+        .an-tsub{font-size:10.5px;color:rgb(var(--s-tinta-rgb) / .45);margin-top:3px;}
 
         /* ── Frecuencia ── */
         .an-freq-stat{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--s-tinta);}
-        .an-freq-unit{font-size:13px;color:rgba(34,32,27,.45);}
+        .an-freq-unit{font-size:13px;color:rgb(var(--s-tinta-rgb) / .45);}
         .an-hl-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--s-tinta-2);margin:10px 0 2px;}
         .an-hl-legend i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:6px;vertical-align:3px;}
         .an-hlines{display:block;max-width:100%;}
@@ -750,10 +750,10 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         .an-freq-trend{font-size:12px;color:var(--s-tinta-2);margin-bottom:12px;}
         .an-freq-bars{display:flex;flex-direction:column;gap:6px;}
         .an-freq-row{display:flex;align-items:center;gap:8px;}
-        .an-freq-lbl{font-size:10.5px;color:rgba(34,32,27,.5);width:92px;flex-shrink:0;}
-        .an-freq-bar{flex:1;height:9px;background:rgba(34,32,27,.06);border-radius:4px;overflow:hidden;}
+        .an-freq-lbl{font-size:10.5px;color:rgb(var(--s-tinta-rgb) / .5);width:92px;flex-shrink:0;}
+        .an-freq-bar{flex:1;height:9px;background:rgb(var(--s-tinta-rgb) / .06);border-radius:4px;overflow:hidden;}
         .an-freq-fill{height:100%;background:var(--s-pino);border-radius:4px;}
-        .an-freq-cnt{font-size:10.5px;font-weight:600;color:rgba(34,32,27,.5);width:22px;text-align:right;}
+        .an-freq-cnt{font-size:10.5px;font-weight:600;color:rgb(var(--s-tinta-rgb) / .5);width:22px;text-align:right;}
 
         @media(max-width:900px){
           .an-2col,.an-2even{grid-template-columns:1fr;}
@@ -832,9 +832,9 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           <div className="an-2col">
             <div className="an-card">
               <div className="an-ctitle">{chart.title}</div>
-              <div className="an-csub">{range === '90d' ? 'Por semana' : 'Por día'} · pasá el mouse por una barra para ver el detalle</div>
+              <div className="an-csub">{range === '90d' ? 'Por semana' : 'Por día'}</div>
               {!d ? (detailedError && !detailedLoading ? <Loading /> : <MascotLoader text="Armando tus números…" size={44} minHeight={170} />) : chartEmpty
-                ? <EmptyState title="Todavía sin movimientos" text="Aparecen cuando escaneás tarjetas con la app." />
+                ? <EmptyState title="Sin movimientos" />
                 : <BarChart data={d.visitsOverTime} valueKey={chart.key} tooltip={chartTip} />}
             </div>
             <div className="an-comp">
@@ -862,7 +862,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           {/* Mismo anillo que Inicio. */}
           <div className="an-card">
             <div className="an-ctitle">¿Tu programa retiene?</div>
-            <div className="an-csub">Clientes que volvieron vs clientes nuevos, en los últimos {range.replace('d', '')} días</div>
+            <div className="an-csub">Últimos {range.replace('d', '')} días</div>
             {!d ? <Loading /> : d.retention && (d.retention.current.returning + d.retention.current.newCustomers) > 0
               ? <RetentionRing data={d.retention} />
               : <EmptyState title="Todavía sin movimientos" text="Aparece cuando tus clientes vuelvan o se registren." />}
@@ -871,7 +871,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           {(d?.locationComparison?.length || 0) >= 2 && (
             <div className="an-card">
               <div className="an-ctitle">Comparación entre sucursales</div>
-              <div className="an-csub">En los últimos {range.replace('d', '')} días · nuevos: según el QR de sucursal con el que se registraron (el link general cuenta en la principal)</div>
+              <div className="an-csub">Últimos {range.replace('d', '')} días · nuevos según el QR con el que se registraron</div>
               <LocationComparison data={d!.locationComparison!} />
             </div>
           )}
@@ -1007,7 +1007,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
                     ))}
                   </div>
                 ) })()
-              : <EmptyState title="Todavía sin toques" text="Aparece cuando tus clientes toquen los botones de WhatsApp de su tarjeta. El número se carga en Configuración." />}
+              : <EmptyState title="Todavía sin toques" text="Aparece cuando tus clientes toquen los botones de WhatsApp." />}
           </div>
           {types.includes('membership') && (
             <div className="an-card">
@@ -1025,7 +1025,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         {view === 'program' && showCards && (
           <div className="an-card">
             <div className="an-ctitle">Comparación entre tarjetas</div>
-            <div className="an-csub">En los últimos {range.replace('d', '')} días (clientes: total)</div>
+            <div className="an-csub">Últimos {range.replace('d', '')} días</div>
             {!d ? <Loading /> : (d.cardComparison?.length || 0) >= 2
               ? <CardComparison data={d.cardComparison!} />
               : <EmptyState title="Necesitás 2 o más tarjetas" />}

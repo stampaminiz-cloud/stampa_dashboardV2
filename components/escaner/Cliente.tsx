@@ -5,8 +5,8 @@
 //
 // - Doble escaneo: si se le registró algo hace menos de un minuto, pide
 //   confirmación antes de volver a sumar.
-// - Regla de frecuencia (1.8.0): avisa antes de tocar el botón; "Sumar igual"
-//   solo si el dueño lo permite (queda marcado en el historial).
+// - Regla de frecuencia (1.8.0): avisa antes de tocar el botón y no deja sumar
+//   hasta que la regla lo permita.
 // - Después de sumar: pantalla "Listo" con Deshacer que vuelve sola a la
 //   cámara. Si completa la tarjeta o sube de nivel, festejo con los colores
 //   de la tarjeta (como la app) y el Deshacer queda a mano unos segundos.
@@ -75,13 +75,6 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
     if (!(ago >= 0 && ago < DOUBLE_SCAN_WINDOW_S)) return true
     return window.confirm(`¿Otra vez?\n\nA ${first} ya se le registró algo hace ${ago < 5 ? 'unos segundos' : `${ago} segundos`}. ¿Querés ${what} igual?`)
   }
-  // Con la regla alcanzada, sumar igual pide confirmación (y queda marcado).
-  function guardLimit(): boolean | null {
-    if (!limit) return false
-    if (!limit.canOverride) return null
-    return window.confirm(`${limit.message}\n\n¿Sumar igual? Queda marcado en el historial.`) ? true : null
-  }
-
   async function run(key: string, fn: () => Promise<ActionResult | CustomerView>, after?: (r: ActionResult) => void) {
     setBusy(key); setError(null)
     try {
@@ -102,9 +95,9 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
   }
 
   function addStamp() {
-    const force = guardLimit(); if (force === null) return
+    if (limit) return
     if (!guardDoubleScan('sumarle otro sello')) return
-    run('stamp', () => escaner.addStamp(view.customer.id, force), r => {
+    run('stamp', () => escaner.addStamp(view.customer.id), r => {
       const n = r.action?.amount ?? 1
       const s = r.stamp!
       if (r.events?.completed) { setCelebration({ kind: 'stamp' }); if (r.action) showUndo(r.action.visitId, 'Sello sumado'); return }
@@ -116,9 +109,9 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
     run('deliver', () => escaner.deliverReward(view.customer.id), () => { setUndo(null); finish({ visitId: null, title: 'Premio entregado', sub: 'La tarjeta volvió a cero.' }) })
   }
   function addPoints() {
-    const force = guardLimit(); if (force === null) return
+    if (limit) return
     if (!guardDoubleScan('sumarle puntos otra vez')) return
-    run('points', () => escaner.addPoints(view.customer.id, byAmount ? purchase : undefined, force), r => {
+    run('points', () => escaner.addPoints(view.customer.id, byAmount ? purchase : undefined), r => {
       const compra = r.action?.purchase != null && rule ? ` · compra de ${formatMoney(r.action.purchase, rule.currency)}` : ''
       const nuevos = (r.events?.newlyUnlocked || []).map(i => i.name)
       setUnlocked(nuevos)
@@ -131,9 +124,9 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
     run('redeem', () => escaner.redeemPoints(view.customer.id, item.id), r => { setUnlocked([]); setUndo(null); finish({ visitId: null, title: 'Premio canjeado', sub: `${item.name} · le quedan ${r.points?.balance ?? 0} puntos` }) })
   }
   function addVisit() {
-    const force = guardLimit(); if (force === null) return
+    if (limit) return
     if (!guardDoubleScan('sumarle otra visita')) return
-    run('visit', () => escaner.addVisit(view.customer.id, force), r => {
+    run('visit', () => escaner.addVisit(view.customer.id), r => {
       const tier = r.events?.tierUp || null
       if (tier) { setCelebration({ kind: 'tier', tier }); if (r.action) showUndo(r.action.visitId, 'Visita sumada'); return }
       const m = r.membership
@@ -211,7 +204,7 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
         )}
         {limit && (
           <div className="esc-cli-limit" style={{ background: p.fg, color: p.bg }}>
-            <b>{limit.canOverride ? 'Ya sumó lo que permite el local.' : 'Hoy no puede sumar más.'}</b> {limit.message}
+            <b>Hoy no puede sumar más.</b> {limit.message}
           </div>
         )}
 
@@ -242,8 +235,8 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
       <div className="esc-cli-actions" style={{ ['--btn-bg' as string]: p.fg, ['--btn-fg' as string]: p.bg } as React.CSSProperties}>
         {view.stamp && (view.stamp.completed
           ? <button className="esc-btn" onClick={deliver} disabled={!!busy}>{busy === 'deliver' ? 'Guardando...' : 'Confirmar entrega'}</button>
-          : <button className="esc-btn" onClick={addStamp} disabled={!!busy || (!!limit && !limit.canOverride)}>
-              {busy === 'stamp' ? 'Sumando...' : limit ? (limit.canOverride ? 'Sumar igual' : 'No puede sumar ahora') : view.doubleToday && view.stamp.remaining > 1 ? '+ 2 sellos' : '+ Sello'}
+          : <button className="esc-btn" onClick={addStamp} disabled={!!busy || !!limit}>
+              {busy === 'stamp' ? 'Sumando...' : limit ? 'No puede sumar ahora' : view.doubleToday && view.stamp.remaining > 1 ? '+ 2 sellos' : '+ Sello'}
             </button>)}
         {view.points && byAmount && rule && (
           <div className="esc-amount" style={{ borderColor: p.fg }}>
@@ -257,15 +250,15 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
           </div>
         )}
         {view.points && (
-          <button className="esc-btn" onClick={addPoints} disabled={!!busy || (byAmount && amountPoints <= 0) || (!!limit && !limit.canOverride)}>
-            {busy === 'points' ? 'Sumando...' : limit && !limit.canOverride ? 'No puede sumar ahora'
-              : byAmount ? (amountPoints > 0 ? `${limit ? 'Sumar igual ' : '+ '}${amountPoints} puntos${view.doubleToday ? ' (x2)' : ''}` : 'Escribí el monto')
-              : `${limit ? 'Sumar igual ' : '+ '}${view.points.pointsPerVisit * (view.doubleToday ? 2 : 1)} puntos${view.doubleToday ? ' (x2)' : ''}`}
+          <button className="esc-btn" onClick={addPoints} disabled={!!busy || (byAmount && amountPoints <= 0) || !!limit}>
+            {busy === 'points' ? 'Sumando...' : limit ? 'No puede sumar ahora'
+              : byAmount ? (amountPoints > 0 ? `+ ${amountPoints} puntos${view.doubleToday ? ' (x2)' : ''}` : 'Escribí el monto')
+              : `+ ${view.points.pointsPerVisit * (view.doubleToday ? 2 : 1)} puntos${view.doubleToday ? ' (x2)' : ''}`}
           </button>
         )}
         {view.membership && (
-          <button className="esc-btn" onClick={addVisit} disabled={!!busy || (!!limit && !limit.canOverride)}>
-            {busy === 'visit' ? 'Sumando...' : limit ? (limit.canOverride ? 'Sumar igual' : 'No puede sumar ahora') : '+ Visita'}
+          <button className="esc-btn" onClick={addVisit} disabled={!!busy || !!limit}>
+            {busy === 'visit' ? 'Sumando...' : limit ? 'No puede sumar ahora' : '+ Visita'}
           </button>
         )}
       </div>

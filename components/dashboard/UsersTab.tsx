@@ -28,13 +28,13 @@ interface StaffUser {
 
 const ROLE: Record<Role, { label: string; color: string; bg: string; desc: string; perms: string[] }> = {
   owner:   { label: 'Dueño',     color: '#C75D3A', bg: 'rgba(199,93,58,.1)',   desc: 'La cuenta que paga el plan', perms: ['Todo el dashboard', 'Plan y facturación', 'Gestión del equipo', 'Eliminar clientes y la cuenta'] },
-  manager: { label: 'Encargado', color: '#185FA5', bg: 'rgba(24,95,165,.1)',   desc: 'Maneja el panel con su email', perms: ['Clientes, premios, notificaciones y diseño', 'Analítica y formulario', 'Sin plan, equipo ni eliminar clientes'] },
-  scanner: { label: 'Empleado',  color: '#9C7530', bg: 'rgba(212,162,76,.15)', desc: 'Escanea en el mostrador con su PIN', perms: ['Solo el escáner (app o web)', 'Suma sellos, puntos y visitas', 'Entrega premios'] },
+  manager: { label: 'Encargado', color: 'var(--s-info)', bg: 'rgba(24,95,165,.1)',   desc: 'Maneja el panel con su email', perms: ['Clientes, premios, notificaciones y diseño', 'Analítica y formulario', 'Sin plan, equipo ni eliminar clientes'] },
+  scanner: { label: 'Empleado',  color: 'var(--s-aviso)', bg: 'rgba(212,162,76,.15)', desc: 'Escanea en el mostrador con su PIN', perms: ['Solo el escáner (app o web)', 'Suma sellos, puntos y visitas', 'Entrega premios'] },
 }
 const STATUS: Record<Status, { label: string; color: string; bg: string }> = {
   active:   { label: 'Activo',        color: '#5B8C5A', bg: 'rgba(91,140,90,.12)' },
-  invited:  { label: 'Invitado',      color: '#9C7530', bg: 'rgba(212,162,76,.15)' },
-  disabled: { label: 'Deshabilitado', color: 'rgba(43,38,32,.45)', bg: 'rgba(43,38,32,.07)' },
+  invited:  { label: 'Invitado',      color: 'var(--s-aviso)', bg: 'rgba(212,162,76,.15)' },
+  disabled: { label: 'Deshabilitado', color: 'rgb(var(--s-tinta-rgb) / .45)', bg: 'rgb(var(--s-tinta-rgb) / .07)' },
 }
 
 function initials(name: string) { return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() }
@@ -178,7 +178,7 @@ function AddPersonModal({ businessId, locs, selectedId, onClose, onAdd }: { busi
               <>
                 <div className="us-label">PIN para entrar</div>
                 <div className="us-pin-box"><span className="us-pin-num">{pin}</span><button className="us-link" onClick={() => setPin(newPin())}>Otro PIN</button></div>
-                <div className="us-hint">Se lo decís vos. No se repite con el de otro empleado.</div>
+                <div className="us-hint">No se repite con el de otro empleado.</div>
               </>
             )}
             {error && <div className="us-error">{error}</div>}
@@ -198,7 +198,7 @@ function AddPersonModal({ businessId, locs, selectedId, onClose, onAdd }: { busi
             <div className="us-pin-box"><span className="us-pin-num">{pin}</span></div>
             <div className="us-hint">Anotalo o decíselo ahora: después no se vuelve a mostrar. Si lo olvida, le armás uno nuevo desde Equipo con "Nuevo PIN".</div>
             <div className="us-label">¿Cómo entra?</div>
-            <div className="us-text" style={{ marginBottom: 8 }}>Si el celular del local ya está vinculado, abre el escáner y entra con su PIN. Si va a usar su propio celular, mandale el link.</div>
+            <div className="us-text" style={{ marginBottom: 8 }}>Si el celular del local ya está vinculado, entra con su PIN. Si no, mandale el link.</div>
             {locs.length >= 2 && (
               <select className="us-input" style={{ marginBottom: 8 }} value={locId} onChange={e => setLocId(e.target.value)} aria-label="Sucursal del celular">
                 {locs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -258,7 +258,7 @@ function NewPinModal({ businessId, user, onClose }: { businessId: string; user: 
         {!saved ? (
           <>
             <div className="us-pin-box"><span className="us-pin-num">{pin}</span><button className="us-link" onClick={() => setPin(newPin())}>Otro PIN</button></div>
-            <div className="us-hint">Con el PIN anterior ya no se puede entrar. No se repite con el de otro empleado.</div>
+            <div className="us-hint">El PIN anterior deja de servir.</div>
             {error && <div className="us-error">{error}</div>}
             <div className="us-modal-foot">
               <button className="s-btn s-btn--secondary s-btn--sm" onClick={onClose}>Cancelar</button>
@@ -311,8 +311,7 @@ function ActivateDeviceModal({ businessId, locs, selectedId, onClose }: { busine
           <li>Abrila y apuntá la cámara a este código.</li>
           <li>Listo: ese celular queda vinculado {locs.length >= 2 && loc ? `a ${loc.name}` : 'a este negocio'}. Cada empleado entra con su PIN{locs.length >= 2 ? ' y sus escaneos quedan en esa sucursal' : ''}.</li>
         </ol>
-        <div className="us-hint">Se hace una sola vez por celular. Sin un PIN válido, nadie puede sumar sellos ni ver clientes.</div>
-      </div>
+              </div>
     </div>
   )
 }
@@ -364,7 +363,6 @@ function DevicesCard({ businessId, locs, selectedId, onLinkApp }: { businessId: 
       <div className="us-block-head">
         <div style={{ flex: 1, minWidth: 240 }}>
           <div className="us-block-title">Celulares del local</div>
-          <p className="us-block-sub">Se vincula una vez por celular; cada empleado entra con su PIN.</p>
         </div>
         <div className="us-block-actions">
           {multi && (
@@ -397,10 +395,10 @@ function DevicesCard({ businessId, locs, selectedId, onLinkApp }: { businessId: 
       ) : null}
 
       <div className="us-hint us-block-foot">
-        Cada link vale 24 horas y es para un solo celular. Si preferís la app de iPhone:{' '}
+        Cada link vale 24 horas, para un solo celular. App de iPhone:{' '}
         {SCANNER_IOS_URL
           ? <a className="us-link" href={SCANNER_IOS_URL} target="_blank" rel="noreferrer">descargar Stampa Escáner</a>
-          : <span>Stampa Escáner (próximamente en App Store)</span>}
+          : <span>Stampa Escáner, próximamente</span>}
         {' · '}
         <button className="us-link" onClick={onLinkApp}>vincularla con un código QR</button>
       </div>
@@ -415,7 +413,7 @@ function DevicesCard({ businessId, locs, selectedId, onLinkApp }: { businessId: 
               <li>Toca el link que aparece: se abre el escáner en el navegador.</li>
               <li>Entra con su PIN. Ese celular queda vinculado{multi ? ` a ${qr.place}` : ''}.</li>
             </ol>
-            <div className="us-hint">Este QR sirve para un solo celular y vence en 24 horas. Para otro celular, generá uno nuevo.</div>
+            <div className="us-hint">Un solo celular. Vence en 24 horas.</div>
           </div>
         </div>
       )}
@@ -613,7 +611,7 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
             </div>
             {!loaded && users.length === 0 && [0, 1].map(i => <div key={i} className="us-skel" style={{ height: 52, margin: '8px 16px' }} />)}
             {loaded && users.length === 0 && (
-              <div className="us-empty">Todavía no sumaste a nadie. Sumá a un empleado para que pueda escanear tarjetas desde el celular del local.</div>
+              <div className="us-empty">Todavía no sumaste a nadie.</div>
             )}
             {shown.map(u => {
               const st = STATUS[u.status]
@@ -696,86 +694,86 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
 
 const CSS = `
   .us-del{color:var(--s-error);}
-  .us-access{margin-top:4px;font-size:11px;color:rgba(34,32,27,.65);background:var(--s-salvia);border:1px solid rgba(34,32,27,.12);border-radius:6px;padding:3px 6px;font-family:var(--font-body);max-width:100%;}
+  .us-access{margin-top:4px;font-size:11px;color:rgb(var(--s-tinta-rgb) / .65);background:var(--s-salvia);border:1px solid rgb(var(--s-tinta-rgb) / .12);border-radius:6px;padding:3px 6px;font-family:var(--font-body);max-width:100%;}
 
   .us-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
   .us-block{padding:18px 20px;}
   .us-block-head{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px;}
   .us-block-title{font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--s-tinta);}
-  .us-block-sub{font-size:12px;color:rgba(34,32,27,.55);margin:3px 0 0;line-height:1.5;max-width:460px;}
+  .us-block-sub{font-size:12px;color:rgb(var(--s-tinta-rgb) / .55);margin:3px 0 0;line-height:1.5;max-width:460px;}
   .us-block-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-  .us-block-foot{margin-top:12px;padding-top:10px;border-top:1px solid rgba(34,32,27,.07);}
+  .us-block-foot{margin-top:12px;padding-top:10px;border-top:1px solid rgb(var(--s-tinta-rgb) / .07);}
   .us-block-actions .us-link,.us-web-dev .us-link,.us-block-foot .us-link{font-size:12px;}
   .us-input--sm{width:auto;min-width:140px;padding:6px 10px;font-size:12px;}
-  .us-web-list{display:flex;flex-direction:column;border:1px solid rgba(34,32,27,.07);border-radius:10px;}
-  .us-web-dev{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid rgba(34,32,27,.05);}
+  .us-web-list{display:flex;flex-direction:column;border:1px solid rgb(var(--s-tinta-rgb) / .07);border-radius:10px;}
+  .us-web-dev{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid rgb(var(--s-tinta-rgb) / .05);}
   .us-web-dev:first-child{border-top:none;}
-  .us-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(34,32,27,.38);font-weight:600;display:flex;align-items:center;gap:10px;margin-top:4px;}
-  .us-lbl::after{content:'';flex:1;height:1px;background:rgba(34,32,27,.1);}
-  .us-card{background:#fff;border:1px solid rgba(34,32,27,.07);border-radius:14px;box-shadow:0 1px 8px rgba(34,32,27,.04);}
+  .us-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgb(var(--s-tinta-rgb) / .38);font-weight:600;display:flex;align-items:center;gap:10px;margin-top:4px;}
+  .us-lbl::after{content:'';flex:1;height:1px;background:rgb(var(--s-tinta-rgb) / .1);}
+  .us-card{background:var(--s-blanco);border:1px solid rgb(var(--s-tinta-rgb) / .07);border-radius:14px;box-shadow:0 1px 8px rgba(34,32,27,.04);}
   .us-pills{display:flex;gap:5px;flex:1;flex-wrap:wrap;}
-  .us-count{font-size:11.5px;color:rgba(34,32,27,.5);}
+  .us-count{font-size:11.5px;color:rgb(var(--s-tinta-rgb) / .5);}
   .us-count--full{color:var(--s-error);font-weight:600;}
   .us-list{display:flex;flex-direction:column;}
-  .us-list--boxed{border:1px solid rgba(34,32,27,.07);border-radius:12px;overflow:hidden;}
-  .us-row{display:grid;grid-template-columns:minmax(180px,1.4fr) 170px minmax(150px,1.2fr) 300px;gap:14px;align-items:center;padding:12px 16px;border-top:1px solid rgba(34,32,27,.05);}
+  .us-list--boxed{border:1px solid rgb(var(--s-tinta-rgb) / .07);border-radius:12px;overflow:hidden;}
+  .us-row{display:grid;grid-template-columns:minmax(180px,1.4fr) 170px minmax(150px,1.2fr) 300px;gap:14px;align-items:center;padding:12px 16px;border-top:1px solid rgb(var(--s-tinta-rgb) / .05);}
   .us-row:first-child{border-top:none;}
   .us-row--owner{background:rgba(199,93,58,.03);}
   .us-row--off{opacity:.6;}
   .us-person{display:flex;align-items:center;gap:10px;min-width:0;}
   .us-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;}
   .us-name{font-weight:600;color:var(--s-tinta);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .us-sub{font-size:11px;color:rgba(34,32,27,.45);overflow:hidden;text-overflow:ellipsis;}
+  .us-sub{font-size:11px;color:rgb(var(--s-tinta-rgb) / .45);overflow:hidden;text-overflow:ellipsis;}
   .us-badges{display:flex;gap:5px;flex-wrap:wrap;}
   .us-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:700;white-space:nowrap;}
-  .us-activity{font-size:11.5px;color:rgba(34,32,27,.6);}
+  .us-activity{font-size:11.5px;color:rgb(var(--s-tinta-rgb) / .6);}
   .us-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;}
   .us-link{background:none;border:none;padding:0;color:var(--s-brasa);font-weight:600;cursor:pointer;font-family:inherit;font-size:inherit;text-align:left;}
   .us-link:hover{text-decoration:underline;}
   .us-link:disabled{opacity:.5;cursor:default;}
-  .us-muted{color:rgba(34,32,27,.45);white-space:nowrap;}
-  .us-empty{font-size:12.5px;color:rgba(34,32,27,.5);padding:18px 16px;line-height:1.5;}
+  .us-muted{color:rgb(var(--s-tinta-rgb) / .45);white-space:nowrap;}
+  .us-empty{font-size:12.5px;color:rgb(var(--s-tinta-rgb) / .5);padding:18px 16px;line-height:1.5;}
   .us-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-  .us-role-card{background:#fff;border:1px solid rgba(34,32,27,.07);border-radius:14px;padding:14px 16px;box-shadow:0 1px 8px rgba(34,32,27,.04);}
+  .us-role-card{background:var(--s-blanco);border:1px solid rgb(var(--s-tinta-rgb) / .07);border-radius:14px;padding:14px 16px;box-shadow:0 1px 8px rgba(34,32,27,.04);}
   .us-role-head{margin-bottom:6px;}
-  .us-perm{font-size:11.5px;color:rgba(34,32,27,.7);padding:4px 0;}
-  .us-overlay{position:fixed;inset:0;background:rgba(34,32,27,.4);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
-  .us-modal{background:#fff;border-radius:18px;padding:24px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(34,32,27,.2);}
+  .us-perm{font-size:11.5px;color:rgb(var(--s-tinta-rgb) / .7);padding:4px 0;}
+  .us-overlay{position:fixed;inset:0;background:rgb(var(--s-tinta-rgb) / .4);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
+  .us-modal{background:var(--s-blanco);border-radius:18px;padding:24px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(34,32,27,.2);}
   .us-modal--wide{max-width:560px;}
   .us-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;}
   .us-modal-title{font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--s-tinta);}
   .us-modal-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px;flex-wrap:wrap;}
-  .us-x{background:none;border:none;font-size:20px;line-height:1;color:rgba(34,32,27,.4);cursor:pointer;padding:2px 6px;}
-  .us-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:rgba(34,32,27,.45);font-weight:700;margin:14px 0 7px;}
+  .us-x{background:none;border:none;font-size:20px;line-height:1;color:rgb(var(--s-tinta-rgb) / .4);cursor:pointer;padding:2px 6px;}
+  .us-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:rgb(var(--s-tinta-rgb) / .45);font-weight:700;margin:14px 0 7px;}
   .us-roles{display:flex;gap:8px;}
-  .us-role-opt{flex:1;display:flex;flex-direction:column;gap:4px;text-align:left;padding:12px 14px;border:1.5px solid rgba(34,32,27,.12);border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;}
+  .us-role-opt{flex:1;display:flex;flex-direction:column;gap:4px;text-align:left;padding:12px 14px;border:1.5px solid rgb(var(--s-tinta-rgb) / .12);border-radius:12px;background:var(--s-blanco);cursor:pointer;font-family:inherit;}
   .us-role-opt strong{font-size:13px;color:var(--s-tinta);}
-  .us-role-opt span{font-size:11.5px;color:rgba(34,32,27,.55);line-height:1.45;}
+  .us-role-opt span{font-size:11.5px;color:rgb(var(--s-tinta-rgb) / .55);line-height:1.45;}
   .us-role-opt:hover{border-color:var(--s-brasa);background:rgba(199,93,58,.05);}
-  .us-input{width:100%;padding:10px 13px;font-size:13px;border:1.5px solid rgba(34,32,27,.12);border-radius:10px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);outline:none;}
+  .us-input{width:100%;padding:10px 13px;font-size:13px;border:1.5px solid rgb(var(--s-tinta-rgb) / .12);border-radius:10px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);outline:none;}
   .us-input:focus{border-color:var(--s-brasa);}
-  .us-hint{font-size:11px;color:rgba(34,32,27,.5);margin-top:6px;line-height:1.5;}
-  .us-pin-box{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--s-salvia);border:1px solid rgba(34,32,27,.1);border-radius:10px;padding:10px 14px;}
+  .us-hint{font-size:11px;color:rgb(var(--s-tinta-rgb) / .5);margin-top:6px;line-height:1.5;}
+  .us-pin-box{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--s-salvia);border:1px solid rgb(var(--s-tinta-rgb) / .1);border-radius:10px;padding:10px 14px;}
   .us-pin-num{font-family:monospace;font-size:26px;font-weight:800;color:var(--s-tinta);letter-spacing:5px;}
   .us-danger{background:var(--s-error);color:#fff;border:none;border-radius:9px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
   .us-danger:disabled{opacity:.6;}
-  .us-text{font-size:13px;color:rgba(34,32,27,.7);line-height:1.6;margin-bottom:12px;}
+  .us-text{font-size:13px;color:rgb(var(--s-tinta-rgb) / .7);line-height:1.6;margin-bottom:12px;}
   .us-error{padding:10px 14px;background:rgba(178,59,59,.08);border-radius:10px;font-size:12.5px;color:var(--s-error);margin-top:12px;line-height:1.5;}
   .us-success{padding:10px 14px;background:rgba(91,140,90,.12);border-radius:10px;font-size:12.5px;color:var(--s-listo);font-weight:600;margin-top:12px;line-height:1.5;}
-  .us-qr{display:flex;justify-content:center;background:var(--s-salvia);border:1px solid rgba(34,32,27,.1);border-radius:14px;padding:18px;margin-bottom:14px;}
-  .us-qr img{border-radius:6px;background:#fff;}
-  .us-steps{margin:0 0 8px;padding-left:18px;font-size:12.5px;color:rgba(34,32,27,.75);line-height:1.6;}
+  .us-qr{display:flex;justify-content:center;background:var(--s-salvia);border:1px solid rgb(var(--s-tinta-rgb) / .1);border-radius:14px;padding:18px;margin-bottom:14px;}
+  .us-qr img{border-radius:6px;background:var(--s-blanco);}
+  .us-steps{margin:0 0 8px;padding-left:18px;font-size:12.5px;color:rgb(var(--s-tinta-rgb) / .75);line-height:1.6;}
   .us-stats{display:flex;gap:10px;flex-wrap:wrap;}
   .us-stats div{flex:1;min-width:90px;background:var(--s-salvia);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;}
   .us-stats strong{font-family:var(--font-display);font-size:20px;color:var(--s-tinta);}
-  .us-stats span{font-size:10.5px;color:rgba(34,32,27,.5);}
+  .us-stats span{font-size:10.5px;color:rgb(var(--s-tinta-rgb) / .5);}
   .us-alerts{margin-top:12px;background:rgba(212,162,76,.1);border:1px solid rgba(212,162,76,.35);border-radius:11px;padding:10px 12px;}
   .us-alerts-title{font-size:12px;font-weight:700;color:#7A5A12;margin-bottom:6px;}
   .us-alert{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--s-tinta);padding:4px 0;flex-wrap:wrap;}
   .us-recent{display:flex;flex-direction:column;}
-  .us-recent-row{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:rgba(34,32,27,.75);padding:7px 0;border-bottom:1px solid rgba(34,32,27,.05);flex-wrap:wrap;}
+  .us-recent-row{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:rgb(var(--s-tinta-rgb) / .75);padding:7px 0;border-bottom:1px solid rgb(var(--s-tinta-rgb) / .05);flex-wrap:wrap;}
   .us-recent-row:last-child{border-bottom:none;}
-  .us-skel{background:rgba(34,32,27,.07);border-radius:10px;animation:usPulse 1.2s ease-in-out infinite;}
+  .us-skel{background:rgb(var(--s-tinta-rgb) / .07);border-radius:10px;animation:usPulse 1.2s ease-in-out infinite;}
   @keyframes usPulse{0%,100%{opacity:.45}50%{opacity:1}}
   @media(max-width:1180px){
     .us-row{grid-template-columns:1fr auto;grid-template-areas:"person badges" "activity activity" "actions actions";}

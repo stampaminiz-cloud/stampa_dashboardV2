@@ -130,7 +130,7 @@ function LocationCard({ loc, businessId, open, onToggle, selected, tools, isMana
 
       {open && (
         <div className="lt-body">
-          {loc.status === 'paused' && <div className="lt-note">Esta sucursal está pausada porque tu plan no la incluye: no escanea ni registra clientes, pero su historial queda guardado. Se reactiva sola si volvés a un plan que la incluya.</div>}
+          {loc.status === 'paused' && <div className="lt-note">Pausada: tu plan no la incluye. El historial queda guardado.</div>}
 
           <div className="lt-sec">
             <div className="lt-grid">
@@ -145,7 +145,7 @@ function LocationCard({ loc, businessId, open, onToggle, selected, tools, isMana
           {tools && <>
             <div className="lt-sec">
               <div className="lt-sec-title">Ubicación</div>
-              <div className="lt-sub">Con la ubicación, el cliente ve al pasar cerca: “{nearText}”</div>
+              <div className="lt-sub">Al pasar cerca, el cliente ve: “{nearText}”</div>
               <div className="lt-maps">
                 <input className="lt-input" value={draft.mapsUrl} maxLength={500} disabled={readOnly} placeholder="https://maps.app.goo.gl/…" aria-label={`Link de Google Maps de ${loc.name}`} onChange={e => setDraft({ ...draft, mapsUrl: e.target.value })} />
                 {loc.hasCoords && draft.mapsUrl === loc.mapsUrl && <span className="lt-pill lt-pill--on">Aviso de cercanía activo</span>}
@@ -232,9 +232,9 @@ export function LocationsTab({ businessId, businessName, isManager = false, sele
           <div className="lt-card lt-locked">
             <div className="lt-locked-title">Ubicación y horarios de tu local</div>
             <ul className="lt-locked-list">
-              <li><strong>Aviso de cercanía:</strong> cuando un cliente pasa cerca del local, su iPhone le muestra la tarjeta en la pantalla bloqueada.</li>
-              <li><strong>Horarios:</strong> aparecen en el dorso de la tarjeta y en el formulario de registro.</li>
-              <li><strong>Sucursales:</strong> hasta 3 con Pro, todas con la misma tarjeta y los mismos clientes.</li>
+              <li><strong>Aviso de cercanía:</strong> el iPhone muestra la tarjeta al pasar cerca.</li>
+              <li><strong>Horarios:</strong> en el dorso de la tarjeta y el formulario.</li>
+              <li><strong>Sucursales:</strong> hasta 3 con Pro.</li>
             </ul>
             {!isManager && onChoosePlan && <button type="button" className="s-btn s-btn--primary s-btn--sm" onClick={onChoosePlan}>Disponible desde Growth</button>}
             {/* Bajó de un plan con sucursales: se ven, pausadas, para consultar su historial. */}
@@ -266,7 +266,7 @@ export function LocationsTab({ businessId, businessName, isManager = false, sele
                 <label className="lt-field"><span className="lt-label">Nombre de la nueva sucursal</span>
                   <input className="lt-input" autoFocus value={newName} maxLength={60} placeholder="Playa" onChange={e => setNewName(e.target.value)} /></label>
                 {addErr && <div className="lt-err">{addErr}</div>}
-                <div className="lt-actions"><span className="lt-sub">Después cargás la dirección, la ubicación y los horarios.</span>
+                <div className="lt-actions"><span className="lt-sub" />
                   <span className="lt-actions-end"><button type="button" className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setAdding(false); setAddErr('') }}>Cancelar</button><button type="submit" className="s-btn s-btn--primary s-btn--sm" disabled={addBusy}>{addBusy ? 'Creando…' : 'Crear sucursal'}</button></span></div>
               </form>
             )}
@@ -288,48 +288,48 @@ const CSS = `
   .lt-muted{color:var(--s-tinta-3);}
   .lt-content{flex:1;overflow-y:auto;padding:22px 24px;display:flex;flex-direction:column;gap:12px;}
   .lt-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
-  .lt-count{font-size:13px;color:rgba(34,32,27,.6);}
-  .lt-card{background:#fff;border:1px solid rgba(34,32,27,.07);border-radius:14px;box-shadow:0 1px 8px rgba(34,32,27,.04);}
+  .lt-count{font-size:13px;color:rgb(var(--s-tinta-rgb) / .6);}
+  .lt-card{background:var(--s-blanco);border:1px solid rgb(var(--s-tinta-rgb) / .07);border-radius:14px;box-shadow:0 1px 8px rgba(34,32,27,.04);}
   .lt-card--here{border:2px solid rgba(199,93,58,.55);}
-  .lt-card--dim .lt-name{color:rgba(34,32,27,.55);}
+  .lt-card--dim .lt-name{color:rgb(var(--s-tinta-rgb) / .55);}
   .lt-head{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;background:none;border:none;text-align:left;padding:16px 20px;cursor:pointer;font-family:var(--font-body);border-radius:14px;}
   .lt-head:focus-visible{outline:2px solid var(--s-brasa);outline-offset:-2px;}
   .lt-head-main{display:flex;flex-direction:column;gap:3px;min-width:0;}
   .lt-name{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-family:var(--font-display);font-size:14.5px;font-weight:700;color:var(--s-tinta);}
-  .lt-sum{font-size:12px;color:rgba(34,32,27,.55);}
+  .lt-sum{font-size:12px;color:rgb(var(--s-tinta-rgb) / .55);}
   .lt-toggle{font-size:12px;font-weight:600;color:var(--s-brasa);flex-shrink:0;}
-  .lt-pill{font-family:var(--font-body);font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(34,32,27,.06);color:rgba(34,32,27,.6);}
+  .lt-pill{font-family:var(--font-body);font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgb(var(--s-tinta-rgb) / .06);color:rgb(var(--s-tinta-rgb) / .6);}
   .lt-pill--on{background:rgba(91,140,90,.12);color:#3E6B3D;}
   .lt-pill--here{background:rgba(199,93,58,.12);color:#A9472A;}
   .lt-pill--paused{background:rgba(212,162,76,.18);color:#8A6420;}
   .lt-body{padding:0 20px 18px;display:flex;flex-direction:column;}
-  .lt-sec{border-top:1px solid rgba(34,32,27,.07);padding:14px 0;}
+  .lt-sec{border-top:1px solid rgb(var(--s-tinta-rgb) / .07);padding:14px 0;}
   .lt-sec-title{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--s-tinta);margin-bottom:4px;}
-  .lt-sub{font-size:11.5px;color:rgba(34,32,27,.55);line-height:1.5;margin-bottom:8px;}
+  .lt-sub{font-size:11.5px;color:rgb(var(--s-tinta-rgb) / .55);line-height:1.5;margin-bottom:8px;}
   .lt-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:12px;}
   .lt-field{display:flex;flex-direction:column;gap:4px;min-width:0;}
-  .lt-label{font-size:11.5px;font-weight:600;color:rgba(34,32,27,.7);}
-  .lt-label em{font-style:normal;font-weight:400;color:rgba(34,32,27,.45);}
-  .lt-input{width:100%;box-sizing:border-box;padding:8px 10px;font-size:12.5px;border:1px solid rgba(34,32,27,.15);border-radius:8px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);outline:none;min-width:0;}
+  .lt-label{font-size:11.5px;font-weight:600;color:rgb(var(--s-tinta-rgb) / .7);}
+  .lt-label em{font-style:normal;font-weight:400;color:rgb(var(--s-tinta-rgb) / .45);}
+  .lt-input{width:100%;box-sizing:border-box;padding:8px 10px;font-size:12.5px;border:1px solid rgb(var(--s-tinta-rgb) / .15);border-radius:8px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);outline:none;min-width:0;}
   .lt-input:focus{border-color:var(--s-brasa);}
   .lt-maps{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .lt-maps .lt-input{flex:1;min-width:220px;}
   .lt-hours{display:flex;flex-direction:column;gap:6px;}
   .lt-hrow{display:grid;grid-template-columns:86px 48px 1fr;align-items:center;gap:8px;min-height:32px;}
   .lt-day{font-size:12.5px;font-weight:600;color:var(--s-tinta);}
-  .lt-closed{font-size:12.5px;color:rgba(34,32,27,.5);}
+  .lt-closed{font-size:12.5px;color:rgb(var(--s-tinta-rgb) / .5);}
   .lt-shifts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
   .lt-shift{display:inline-flex;align-items:center;gap:5px;}
-  .lt-time{padding:5px 6px;font-size:12px;border:1px solid rgba(34,32,27,.15);border-radius:7px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);}
-  .lt-a,.lt-y{font-size:11.5px;color:rgba(34,32,27,.5);}
-  .lt-x{display:inline-flex;align-items:center;background:none;border:none;line-height:1;color:rgba(34,32,27,.45);cursor:pointer;padding:0 2px;}
+  .lt-time{padding:5px 6px;font-size:12px;border:1px solid rgb(var(--s-tinta-rgb) / .15);border-radius:7px;background:var(--s-salvia);color:var(--s-tinta);font-family:var(--font-body);}
+  .lt-a,.lt-y{font-size:11.5px;color:rgb(var(--s-tinta-rgb) / .5);}
+  .lt-x{display:inline-flex;align-items:center;background:none;border:none;line-height:1;color:rgb(var(--s-tinta-rgb) / .45);cursor:pointer;padding:0 2px;}
   .lt-hours-actions{display:flex;gap:16px;margin-top:6px;}
-  .lt-empty-hours{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(34,32,27,.55);}
+  .lt-empty-hours{display:flex;align-items:center;gap:10px;font-size:12px;color:rgb(var(--s-tinta-rgb) / .55);}
   a.lt-btn-ghost{text-decoration:none;display:inline-block;}
   .lt-contact{display:inline-flex;flex-direction:column;align-items:flex-end;gap:4px;}
-  .lt-mail{font-size:11.5px;color:rgba(34,32,27,.55);text-decoration:none;}
+  .lt-mail{font-size:11.5px;color:rgb(var(--s-tinta-rgb) / .55);text-decoration:none;}
   .lt-mail:hover{text-decoration:underline;}
-  .lt-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid rgba(34,32,27,.07);padding-top:14px;}
+  .lt-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid rgb(var(--s-tinta-rgb) / .07);padding-top:14px;}
   .lt-actions-end{display:flex;align-items:center;gap:10px;}
   .lt-ok{font-size:11.5px;color:var(--s-listo);font-weight:600;}
   .lt-err{font-size:11.5px;color:var(--s-error);font-weight:600;margin-top:6px;}
@@ -338,8 +338,8 @@ const CSS = `
   .lt-add .lt-actions{border-top:none;padding-top:0;}
   .lt-locked{padding:22px 24px;display:flex;flex-direction:column;gap:12px;align-items:flex-start;}
   .lt-locked-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--s-tinta);}
-  .lt-locked-list{margin:0;padding-left:18px;font-size:12.5px;color:rgba(34,32,27,.7);line-height:1.6;display:flex;flex-direction:column;gap:4px;}
-  .lt-skel{height:120px;border-radius:14px;background:rgba(34,32,27,.05);}
+  .lt-locked-list{margin:0;padding-left:18px;font-size:12.5px;color:rgb(var(--s-tinta-rgb) / .7);line-height:1.6;display:flex;flex-direction:column;gap:4px;}
+  .lt-skel{height:120px;border-radius:14px;background:rgb(var(--s-tinta-rgb) / .05);}
   @media(max-width:768px){
     .lt-content{padding:14px 16px;}
     .lt-grid{grid-template-columns:1fr;}

@@ -8,6 +8,7 @@ import '@/styles/stampa-tokens.css'
 import '@/styles/sistema.css'
 import '@/app/globals.css'
 import { SITE_URL } from '@/lib/site'
+import { ThemeSync } from '@/components/ThemeSync'
 import { Red_Hat_Display, Red_Hat_Text } from 'next/font/google'
 
 // Letras del sistema (docs: styles/stampa-tokens.css). Se sirven desde el
@@ -23,10 +24,15 @@ export const metadata: Metadata = {
   description: 'Tarjetas de fidelidad en Apple y Google Wallet para tu negocio.',
 }
 
+// Antes de pintar: si hay que abrir en oscuro, se marca <html> ya, así no hay un
+// destello claro. Mismo criterio que components/ThemeSync.tsx.
+const THEME_SCRIPT = `(function(){try{if(!/^\\/(dashboard|ayuda|escaner|pantalla|login|register|forgot-password|reset-password|onboarding)(\\/|$)|^\\/$/.test(location.pathname))return;var t=localStorage.getItem('stampa_tema');if(t==='oscuro'||(t!=='claro'&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.setAttribute('data-theme','dark')}catch(e){}})()`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${display.variable} ${body.variable}`}>
-      <body>{children}</body>
+    <html lang="es" className={`${display.variable} ${body.variable}`} suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} /></head>
+      <body>{children}<ThemeSync /></body>
     </html>
   )
 }

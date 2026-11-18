@@ -135,12 +135,12 @@ export const escaner = {
   search: (q: string) => request<{ results: SearchResult[] }>('GET', `/api/scanner/search?q=${encodeURIComponent(q)}`),
   customer: (id: string) => request<CustomerView>('GET', `/api/scanner/customers/${id}`),
   lookup: (qrValue: string) => request<CustomerView>('POST', '/api/scanner/lookup', { qrValue }),
-  addStamp: (id: string, force = false) => request<ActionResult>('POST', `/api/scanner/customers/${id}/stamp`, force ? { force } : {}),
+  addStamp: (id: string) => request<ActionResult>('POST', `/api/scanner/customers/${id}/stamp`, {}),
   deliverReward: (id: string) => request<ActionResult>('POST', `/api/scanner/customers/${id}/deliver-reward`),
   deliverBirthday: (id: string) => request<CustomerView>('POST', `/api/scanner/customers/${id}/deliver-birthday`),
-  addPoints: (id: string, purchase?: number, force = false) => request<ActionResult>('POST', `/api/scanner/customers/${id}/points`, { ...(purchase != null ? { amount: purchase } : {}), ...(force ? { force } : {}) }),
+  addPoints: (id: string, purchase?: number) => request<ActionResult>('POST', `/api/scanner/customers/${id}/points`, purchase != null ? { amount: purchase } : {}),
   redeemPoints: (id: string, catalogItemId: string) => request<ActionResult>('POST', `/api/scanner/customers/${id}/redeem-points`, { catalogItemId }),
-  addVisit: (id: string, force = false) => request<ActionResult>('POST', `/api/scanner/customers/${id}/visit`, force ? { force } : {}),
+  addVisit: (id: string) => request<ActionResult>('POST', `/api/scanner/customers/${id}/visit`, {}),
   undo: (visitId: string) => request<CustomerView>('POST', `/api/scanner/undo/${visitId}`),
 }
 

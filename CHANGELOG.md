@@ -2,7 +2,18 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.9.0 (por salir) — Web, onboarding y guía inicial
+## 1.10.0 (por salir) — Pantalla Stampa
+
+**Nuevo**
+- `/pantalla`: una tablet o un celular fijo en el mostrador, con la cámara mirando al cliente, que lee el QR del pase y suma sin empleado. Muestra el resultado según el tipo de tarjeta: sellos (con la barra y el premio al completar), puntos (con lo que suma, el saldo y el aviso cuando ya alcanza para canjear) y niveles (con la visita, el nivel y cuánto falta para el siguiente). Si la regla del local frena la suma, dice cuándo vuelve a poder. Con una tarjeta de puntos por monto pide que un empleado sume la compra.
+- Se queda prendida sola (la pantalla no se apaga), la cámara no se reinicia entre un cliente y otro y avisa si el dueño la desactivó o la quitó.
+- Configuración, Cómo suman tus clientes: "Quién suma" pasa a opciones para elegir (Escanear con el equipo, Pantalla en el mostrador, Con cada cobro y Cajita Stampa; las dos últimas dicen Próximamente). Desde Growth. Si hay una tarjeta por monto, avisa que la pantalla no puede sumarla sola.
+- "Pantallas del local": vincular una pantalla con un link de un solo uso (24 horas) y un QR para abrirlo en la tablet, ver cuándo se usó por última vez y quitarla.
+- Modo oscuro en el panel, el escáner web, la pantalla del mostrador y la ayuda. Se elige en Configuración, Apariencia (Claro, Oscuro o Automático, que sigue al dispositivo) o con "Modo oscuro" en el menú de tu usuario. Se guarda en cada navegador y cambia al instante, sin recargar. La landing, el ingreso, el alta, los formularios públicos de cada negocio, los pases y el panel de administración de Stampa quedan claros. Las vistas previas de lo que ve el cliente (formulario y pedido) también quedan claras.
+
+Necesita el backend 1.10.0.
+
+## 1.9.0 (14/11/2026) — Web, onboarding y guía inicial
 
 **Cambios**
 - Landing: ocupa todo el ancho (con 24 px de margen; antes se frenaba en 1.240 px), header más alto con el logo de 18 a 34 px, título del hero más grande y un iPhone que flota solo, sin recuadro gris, con el pase real: suma un sello y le cae un aviso. El gráfico de "Sabés quién volvió" llena su bloque (sin huecos). Vuelve el cierre naranja, ahora grande y con una pila de tarjetas, y el pie lleva el logo.

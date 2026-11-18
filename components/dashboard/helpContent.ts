@@ -49,16 +49,9 @@ export const HELP: Record<string, TabHelp> = {
   ] },
 
   settings: { title: 'Ayuda de Configuración', items: [
-    { q: '¿Para qué sirve la zona horaria?', a: 'Se usa para "hoy", "este mes", los horarios de Analítica y la hora de las alertas por email. Tiene que ser la del local.' },
-    { q: '¿Qué cuenta como cliente inactivo?', a: 'Se usa en Inicio, Clientes, Analítica y en la audiencia "Inactivos" de Notificaciones. No borra ni cambia nada del cliente.' },
-    { q: '¿Quién suma los sellos?', a: 'Hoy suma un empleado: escanea el QR de la tarjeta con la app o con el escáner web (se vincula desde Equipo). Los modos automáticos, en los que el cliente acerca su tarjeta a una pantalla o caja de Stampa o suma con cada pago, llegan pronto.' },
+    { q: '¿Quién suma los sellos?', a: 'Un empleado escanea el pase, o el cliente lo apoya en la pantalla del mostrador (Growth). Con cada cobro y la cajita llegan pronto.' },
     { q: '¿Cómo se entrega el premio?', a: 'Al escanear, el empleado ve "Tiene un premio" y lo entrega. "Sin personas", para locales sin empleados, llega próximamente, desde Pro.' },
-    { q: '¿Qué es el máximo por día?', a: 'Cuántas veces puede sumar un mismo cliente en el día del negocio. Un café a la mañana y otro a la tarde: elegí 2. Vale para la app y para el escáner web.' },
-    { q: '¿Y el tiempo mínimo entre una suma y otra?', a: 'Cuántas horas tienen que pasar desde la última vez que sumó. Evita que alguien sume dos veces seguidas en la misma visita. Se puede combinar con el máximo por día.' },
-    { q: '¿Cuándo dejo que el empleado la saltee?', a: 'Si está activado, cuando un cliente ya sumó lo que permite la regla el empleado ve el aviso y puede tocar "Sumar igual". Queda marcado en el historial. Si no, no puede sumar.' },
     { q: '¿Cómo funciona el vencimiento por inactividad?', a: 'Si un cliente no vuelve en ese tiempo, pierde los sellos o puntos acumulados; en membresía baja un nivel por cada período sin venir. Cada visita vuelve a empezar el plazo. Le avisamos por push 7 días antes. Un premio listo para entregar no vence.' },
-    { q: '¿Cómo funcionan los días dobles?', a: 'Esos días cada escaneo vale x2: dos sellos o el doble de puntos. Sirve para llenar los días flojos. Se muestra en el reverso de la tarjeta.' },
-    { q: '¿Cómo funciona el regalo de cumpleaños?', a: 'Agrega "Fecha de cumpleaños" al formulario (opcional para el cliente). El día del cumple le llega un push y tiene 7 días para retirar el regalo, que se entrega desde la app de escaneo.' },
     { q: '¿Qué define el tipo de cada botón de WhatsApp?', a: 'El tipo define el mensaje que llega escrito y el título en la tarjeta. "Con pedido" abre primero la página de pedido (se arma en la pestaña Pedidos).' },
     { q: '¿Qué es el título en el frente de la tarjeta?', a: 'Va en la fila de abajo, al lado de las visitas. Si lo dejás vacío, sale del primer botón.' },
   ] },

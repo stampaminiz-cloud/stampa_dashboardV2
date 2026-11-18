@@ -28,13 +28,13 @@ export default function VincularPage() {
 
   if (state === 'ok') return <EscanerApp />
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#F1F3EE', fontFamily: 'var(--font-body)', textAlign: 'center' }}>
+    <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'var(--s-salvia)', fontFamily: 'var(--font-body)', textAlign: 'center' }}>
       {state === 'linking'
         ? <p>Vinculando este celular...</p>
         : <div style={{ maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <b style={{ fontSize: 20 }}>No pudimos vincular este celular</b>
-            <span style={{ color: 'rgba(34,32,27,.62)' }}>{state.error}</span>
-            <a href="/escaner" style={{ color: '#1B412F', fontWeight: 700 }}>Ir al escáner</a>
+            <span style={{ color: 'rgb(var(--s-tinta-rgb) / .62)' }}>{state.error}</span>
+            <a href="/escaner" style={{ color: 'var(--s-pino-texto)', fontWeight: 700 }}>Ir al escáner</a>
           </div>}
     </div>
   )
