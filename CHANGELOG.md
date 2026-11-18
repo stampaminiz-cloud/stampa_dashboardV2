@@ -2,6 +2,11 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.10.3 (18/11/2026) — Cámara de la pantalla
+
+**Arreglos**
+- La pantalla del mostrador (`/pantalla`) no podía usar la cámara: el encabezado `Permissions-Policy` general la bloqueaba y solo `/escaner` tenía permiso. Ahora `/pantalla` también puede pedir la cámara (solo del propio sitio, nunca en un iframe).
+
 ## 1.10.0 (por salir) — Pantalla Stampa
 
 **Nuevo**
