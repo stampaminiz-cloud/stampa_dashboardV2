@@ -289,16 +289,16 @@ const CSS = `
   .sc-link{background:none;border:none;padding:0;font-family:inherit;font-size:12px;font-weight:700;color:var(--s-brasa-2);text-decoration:underline;cursor:pointer;}
   .pr-seg-btn:disabled{opacity:.45;cursor:not-allowed;}
   .sc-opts{display:flex;flex-direction:column;gap:8px;}
-  .sc-opt{display:flex;align-items:flex-start;gap:12px;text-align:left;width:100%;padding:12px 14px;border:1.5px solid var(--s-linea);border-radius:12px;background:var(--s-blanco);color:var(--s-tinta);cursor:pointer;font-family:var(--font-body);}
+  .sc-opt{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px 12px;text-align:left;width:100%;padding:12px 14px;border:1.5px solid var(--s-linea);border-radius:12px;background:var(--s-blanco);color:var(--s-tinta);cursor:pointer;font-family:var(--font-body);}
   .sc-opt:hover:not(:disabled){border-color:var(--s-tinta-3);}
   .sc-opt.is-on{border-color:var(--s-brasa);background:var(--s-brasa-suave);}
   .sc-opt:disabled{opacity:.55;cursor:not-allowed;}
   .sc-radio{flex:none;width:16px;height:16px;margin-top:2px;border-radius:50%;border:1.5px solid var(--s-tinta-3);}
   .sc-opt.is-on .sc-radio{border:5px solid var(--s-brasa);}
-  .sc-opt-text{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .sc-opt-text{flex:1;display:flex;flex-direction:column;gap:2px;min-width:150px;}
   .sc-opt-text b{font-size:13.5px;font-weight:700;}
   .sc-opt-text span{font-size:12px;color:var(--s-tinta-2);line-height:1.4;}
-  .sc-tag{flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--s-hueco);color:var(--s-tinta-2);white-space:nowrap;}
+  .sc-tag{flex:none;margin-left:auto;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--s-hueco);color:var(--s-tinta-2);white-space:nowrap;}
   .sc-warn{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--s-aviso-suave);color:var(--s-aviso);font-size:12px;line-height:1.45;}
   .sc-warn svg{flex:none;margin-top:1px;}
   .sc-screens{display:flex;flex-direction:column;}
