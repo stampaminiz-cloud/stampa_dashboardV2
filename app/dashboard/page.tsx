@@ -1120,7 +1120,6 @@ export default function DashboardPage() {
             doubleDays: c.doubleDays || [],
             maxPerDay: c.maxPerDay ?? null,
             minHoursBetween: c.minHoursBetween || 0,
-            limitOverride: c.limitOverride !== false,
           })))
         } else console.error('cards load error:', cardsRes.reason)
 
@@ -1223,7 +1222,6 @@ export default function DashboardPage() {
             doubleDays: c.doubleDays || [],
             maxPerDay: c.maxPerDay ?? null,
             minHoursBetween: c.minHoursBetween || 0,
-            limitOverride: c.limitOverride !== false,
       })))
     } catch (err) {
       console.error('Error refreshing cards:', err)

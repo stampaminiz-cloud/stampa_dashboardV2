@@ -20,8 +20,8 @@ import { RULES_CSS } from './ProgramRules'
 // que vale igual para la app y para el escáner web. Starter solo puede elegir
 // "1 por día"; lo demás es desde Growth (customLimits).
 
-export interface SumarCard { id: string; name: string; type: string; isActive: boolean; pointsMode?: string; maxPerDay?: number | null; minHoursBetween?: number; limitOverride?: boolean }
-type Rule = { maxPerDay: number | null; minHoursBetween: number; limitOverride: boolean }
+export interface SumarCard { id: string; name: string; type: string; isActive: boolean; pointsMode?: string; maxPerDay?: number | null; minHoursBetween?: number }
+type Rule = { maxPerDay: number | null; minHoursBetween: number }
 
 const PER_DAY: (number | null)[] = [1, 2, 3, null]
 const HOURS = [0, 1, 3, 6]
@@ -32,7 +32,7 @@ function unit(c: SumarCard, n: number) {
   if (c.type === 'membership') return n === 1 ? 'visita' : 'visitas'
   return n === 1 ? 'sello' : 'sellos'
 }
-const ruleOf = (c: SumarCard): Rule => ({ maxPerDay: c.maxPerDay ?? null, minHoursBetween: c.minHoursBetween || 0, limitOverride: c.limitOverride !== false })
+const ruleOf = (c: SumarCard): Rule => ({ maxPerDay: c.maxPerDay ?? null, minHoursBetween: c.minHoursBetween || 0 })
 
 export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, isManager = false, part = 'all' }: {
   businessId?: string; cards: SumarCard[]; onCardsChanged?: () => void; onChoosePlan?: () => void; isManager?: boolean
@@ -88,20 +88,19 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
       {part !== 'cards' && <>
         <div className="pr-block">
           <div className="pr-title">Quién suma</div>
-          <div className="pr-note">Elegí cómo suman tus clientes. Podés cambiarlo cuando quieras.</div>
           <div className="sc-opts" role="radiogroup" aria-label="Quién suma">
-            <ModeOption icon="escanear" title="Escanear con el equipo" text="Un empleado escanea el pase con su celular." on={mode === 'staff'} onPick={() => pickMode('staff')} />
-            <ModeOption icon="pantalla" title="Pantalla en el mostrador" text="El cliente acerca su pase a una pantalla fija. Sin empleado."
+            <ModeOption icon="escanear" title="Escanear con el equipo" text="Un empleado escanea el pase." on={mode === 'staff'} onPick={() => pickMode('staff')} />
+            <ModeOption icon="pantalla" title="Pantalla en el mostrador" text="El cliente apoya su pase en una pantalla fija."
               on={mode === 'screen'} onPick={() => pickMode('screen')} tag={screenAllowed ? undefined : 'Desde Growth'} />
-            <ModeOption icon="cobro" title="Con cada cobro" text="Conectá tu sistema de cobro y la compra suma sola, con el monto real." disabled tag="Próximamente · desde Pro" />
-            <ModeOption icon="cajita" title="Cajita Stampa" text="Un lector fijo con NFC. En comodato en el plan anual de Pro." disabled tag="Próximamente" />
+            <ModeOption icon="cobro" title="Con cada cobro" text="La compra suma sola." disabled tag="Próximamente · desde Pro" />
+            <ModeOption icon="cajita" title="Cajita Stampa" text="Lector fijo con NFC." disabled tag="Próximamente" />
           </div>
           {msgFor('mode')}
           {!screenAllowed && !isManager && onChoosePlan && <div className="pr-note">La pantalla en el mostrador está en Growth. <button type="button" className="sc-link" onClick={onChoosePlan}>Ver planes</button></div>}
           {mode === 'screen' && amountCards.length > 0 && (
             <div className="sc-warn" role="status">
               <Icon name="atencion" size={16} />
-              <span>{amountCards.length === 1 ? `Tu tarjeta ${amountCards[0].name} suma por monto` : 'Algunas de tus tarjetas suman por monto'}. La pantalla no sabe cuánto gastó el cliente: para esas tarjetas le pide que un empleado sume la compra. Para sumar solo con la pantalla necesitás &quot;Con cada cobro&quot;.</span>
+              <span>{amountCards.length === 1 ? amountCards[0].name : 'Algunas tarjetas'} suma{amountCards.length === 1 ? '' : 'n'} por monto: la pantalla le pide al cliente que un empleado sume la compra.</span>
             </div>
           )}
         </div>
@@ -177,28 +176,6 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
             )
           })}
         </div>
-
-        {/* El empleado puede saltear la regla */}
-        <div className="pr-block">
-          <div className="pr-title">
-            Dejar que el empleado la saltee
-            
-          </div>
-          {ordered.length === 0 ? <div className="pr-note">Todavía no tenés tarjetas.</div> : ordered.map(c => {
-            const r = local[c.id] ?? ruleOf(c)
-            const hasRule = !!(r.maxPerDay || r.minHoursBetween)
-            return (
-              <div key={c.id} className="pr-row">
-                {cardLabel(c)}
-                <span className="pr-sw">
-                  <Switch checked={r.limitOverride} disabled={!hasRule} label={`Saltear la regla en ${c.name}: ${r.limitOverride ? 'activado' : 'desactivado'}`} onChange={v => save(c, { limitOverride: v }, `ovr-${c.id}`)} />
-                  {hasRule ? (r.limitOverride ? 'Activado' : 'Desactivado') : 'Primero elegí una regla'}
-                </span>
-                {msgFor(`ovr-${c.id}`)}
-              </div>
-            )
-          })}
-        </div>
       </>}
     </div>
   )
@@ -250,7 +227,7 @@ function Screens({ businessId, isManager, active }: { businessId?: string; isMan
   async function refresh() { if (businessId) apiGetScreens(businessId).then(r => setList(r.screens)).catch(() => {}) }
 
   async function remove(d: ScreenDevice) {
-    if (!businessId || !window.confirm(`¿Quitar la pantalla ${d.name}?\n\nDeja de sumar al instante. Para volver a usarla, vinculala de nuevo con un link.`)) return
+    if (!businessId || !window.confirm(`¿Quitar la pantalla ${d.name}? Deja de sumar al instante.`)) return
     setBusy(d.id)
     try { await apiRemoveScreen(businessId, d.id); setList(l => (l || []).filter(x => x.id !== d.id)) }
     catch (err: any) { setMsg({ ok: false, text: err?.error || 'No pudimos quitar la pantalla.' }) }
@@ -259,13 +236,13 @@ function Screens({ businessId, isManager, active }: { businessId?: string; isMan
 
   async function copy() {
     if (!link) return
-    try { await navigator.clipboard.writeText(link.url); setMsg({ ok: true, text: 'Link copiado. Abrilo en la tablet o el celular del mostrador.' }) } catch { setMsg({ ok: false, text: 'No pudimos copiar el link.' }) }
+    try { await navigator.clipboard.writeText(link.url); setMsg({ ok: true, text: 'Link copiado.' }) } catch { setMsg({ ok: false, text: 'No pudimos copiar el link.' }) }
   }
 
   return (
     <div className="pr-block">
       <div className="pr-title">Pantallas del local</div>
-      <div className="pr-note">{active ? 'Cada pantalla es una tablet o un celular fijo en el mostrador, con la cámara mirando al cliente.' : 'Podés vincularlas ya. Empiezan a sumar cuando elijas "Pantalla en el mostrador".'}</div>
+      {!active && <div className="pr-note">Suman cuando elijas &quot;Pantalla en el mostrador&quot;.</div>}
 
       {list && list.length > 0 && (
         <div className="sc-screens">
@@ -295,17 +272,12 @@ function Screens({ businessId, isManager, active }: { businessId?: string; isMan
         <div className="sc-link-box">
           <img src={link.qr} width={150} height={150} alt="QR del link de la pantalla" />
           <div className="sc-link-text">
-            <b>{link.name}: abrí este link en la tablet</b>
-            <ol>
-              <li>En la tablet o el celular del mostrador, apuntá la cámara a este código, o copiá el link y abrilo ahí.</li>
-              <li>Permití la cámara cuando el navegador lo pida.</li>
-              <li>Dejala apoyada con la cámara mirando al cliente. Queda prendida sola.</li>
-            </ol>
+            <b>{link.name}</b>
+            <span className="pr-note">Escaneá el código con la tablet o abrí el link ahí. Un solo uso, vence en {link.hours} horas.</span>
             <div className="pr-row">
               <button type="button" className="s-btn s-btn--secondary s-btn--sm" onClick={copy}>Copiar link</button>
               <button type="button" className="s-btn s-btn--primary s-btn--sm" onClick={() => { setLink(null); setMsg(null); refresh() }}>Listo</button>
             </div>
-            <span className="pr-note">Sirve para una sola pantalla y vence en {link.hours} horas.</span>
           </div>
         </div>
       )}
@@ -336,5 +308,4 @@ const CSS = `
   .sc-link-box{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;padding:14px;border:1.5px solid var(--s-linea);border-radius:12px;background:var(--s-blanco);}
   .sc-link-box img{border-radius:8px;flex:none;background:var(--s-blanco);}
   .sc-link-text{flex:1;min-width:220px;display:flex;flex-direction:column;gap:8px;font-size:12.5px;}
-  .sc-link-text ol{margin:0;padding-left:18px;color:var(--s-tinta-2);font-size:12px;line-height:1.5;}
 `
