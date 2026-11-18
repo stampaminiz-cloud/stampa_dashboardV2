@@ -148,7 +148,7 @@ function HoursLines({ hourly, withRedeems }: { hourly: Hourly; withRedeems: bool
     <div className="an-card">
       <div className="an-ctitle">¿Cuándo viene tu gente?</div>
       <div className="an-csub">Promedio por día, por horario{open ? ' · solo el horario en que abrís' : ''}</div>
-      {empty ? <EmptyState title="Todavía sin movimiento" text="Aparece cuando escaneás tarjetas o se registran clientes." compact /> : <>
+      {empty ? <EmptyState title="Todavía sin movimiento" compact /> : <>
         <div className="an-hl-legend">
           {series.map(l => <span key={l.key}><i style={{ background: l.color }} />{l.label}</span>)}
         </div>
@@ -357,7 +357,7 @@ function AnalyticsLocked({ isManager, onChoosePlan }: { isManager: boolean; onCh
           <Icon name="candado" size={20} />
         </div>
         <div style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 800, color: 'var(--s-tinta)', marginBottom: 6 }}>Analítica está disponible desde Growth</div>
-        <div style={{ fontSize: 13, color: 'rgb(var(--s-tinta-rgb) / .55)', marginBottom: 18, lineHeight: 1.55 }}>En Inicio tenés el resumen del día. Con Growth ves cómo rinde tu programa en detalle:</div>
+        <div style={{ fontSize: 13, color: 'rgb(var(--s-tinta-rgb) / .55)', marginBottom: 18, lineHeight: 1.55 }}>Con Growth ves cómo rinde tu programa:</div>
         <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 22px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {FEATURES.map(f => (
             <li key={f} style={{ display: 'flex', gap: 9, fontSize: 13, color: 'var(--s-tinta)', lineHeight: 1.4 }}>
@@ -504,7 +504,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
     types.some(t => t !== 'membership') && { v: pctV(m?.redemptionRate), l: 'Tasa de canje', sub: 'canjearon al menos una vez', color: 'var(--s-brasa)', icon: 'premios' },
     types.includes('stamp') && m?.avgStampProgress != null && { v: pctV(m.avgStampProgress), l: 'Progreso promedio', sub: 'de la tarjeta de sellos', color: 'var(--s-info)', icon: 'sello' },
     types.includes('stamp') && { v: `${m?.nearPrize ?? 0}`, l: 'A 1–2 sellos del premio', sub: `${m?.toDeliver ?? 0} con la tarjeta completa`, color: 'var(--s-aviso)', icon: 'objetivo' },
-    types.includes('points') && { v: `${m?.canRedeem ?? 0}`, l: 'Pueden canjear un premio', sub: 'ya les alcanzan los puntos', color: 'var(--s-aviso)', icon: 'puntos' },
+    types.includes('points') && { v: `${m?.canRedeem ?? 0}`, l: 'Pueden canjear un premio', color: 'var(--s-aviso)', icon: 'puntos' },
     types.includes('membership') && { v: `${m?.nearLevel ?? 0}`, l: 'Cerca de subir de nivel', sub: 'a 2 visitas o menos', color: 'var(--s-pino)', icon: 'membresia' },
   ].filter(Boolean)) as { v: string; l: string; sub: string; color: string; icon: IconName }[]
 
@@ -832,9 +832,9 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           <div className="an-2col">
             <div className="an-card">
               <div className="an-ctitle">{chart.title}</div>
-              <div className="an-csub">{range === '90d' ? 'Por semana' : 'Por día'} · pasá el mouse por una barra para ver el detalle</div>
+              <div className="an-csub">{range === '90d' ? 'Por semana' : 'Por día'}</div>
               {!d ? (detailedError && !detailedLoading ? <Loading /> : <MascotLoader text="Armando tus números…" size={44} minHeight={170} />) : chartEmpty
-                ? <EmptyState title="Todavía sin movimientos" text="Aparecen cuando escaneás tarjetas con la app." />
+                ? <EmptyState title="Sin movimientos" />
                 : <BarChart data={d.visitsOverTime} valueKey={chart.key} tooltip={chartTip} />}
             </div>
             <div className="an-comp">
@@ -862,7 +862,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           {/* Mismo anillo que Inicio. */}
           <div className="an-card">
             <div className="an-ctitle">¿Tu programa retiene?</div>
-            <div className="an-csub">Clientes que volvieron vs clientes nuevos, en los últimos {range.replace('d', '')} días</div>
+            <div className="an-csub">Últimos {range.replace('d', '')} días</div>
             {!d ? <Loading /> : d.retention && (d.retention.current.returning + d.retention.current.newCustomers) > 0
               ? <RetentionRing data={d.retention} />
               : <EmptyState title="Todavía sin movimientos" text="Aparece cuando tus clientes vuelvan o se registren." />}
@@ -871,7 +871,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
           {(d?.locationComparison?.length || 0) >= 2 && (
             <div className="an-card">
               <div className="an-ctitle">Comparación entre sucursales</div>
-              <div className="an-csub">En los últimos {range.replace('d', '')} días · nuevos: según el QR de sucursal con el que se registraron (el link general cuenta en la principal)</div>
+              <div className="an-csub">Últimos {range.replace('d', '')} días · nuevos según el QR con el que se registraron</div>
               <LocationComparison data={d!.locationComparison!} />
             </div>
           )}
@@ -1007,7 +1007,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
                     ))}
                   </div>
                 ) })()
-              : <EmptyState title="Todavía sin toques" text="Aparece cuando tus clientes toquen los botones de WhatsApp de su tarjeta. El número se carga en Configuración." />}
+              : <EmptyState title="Todavía sin toques" text="Aparece cuando tus clientes toquen los botones de WhatsApp." />}
           </div>
           {types.includes('membership') && (
             <div className="an-card">
@@ -1025,7 +1025,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
         {view === 'program' && showCards && (
           <div className="an-card">
             <div className="an-ctitle">Comparación entre tarjetas</div>
-            <div className="an-csub">En los últimos {range.replace('d', '')} días (clientes: total)</div>
+            <div className="an-csub">Últimos {range.replace('d', '')} días</div>
             {!d ? <Loading /> : (d.cardComparison?.length || 0) >= 2
               ? <CardComparison data={d.cardComparison!} />
               : <EmptyState title="Necesitás 2 o más tarjetas" />}

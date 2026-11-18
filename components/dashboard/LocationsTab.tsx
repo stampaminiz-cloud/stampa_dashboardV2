@@ -130,7 +130,7 @@ function LocationCard({ loc, businessId, open, onToggle, selected, tools, isMana
 
       {open && (
         <div className="lt-body">
-          {loc.status === 'paused' && <div className="lt-note">Esta sucursal está pausada porque tu plan no la incluye: no escanea ni registra clientes, pero su historial queda guardado. Se reactiva sola si volvés a un plan que la incluya.</div>}
+          {loc.status === 'paused' && <div className="lt-note">Pausada: tu plan no la incluye. El historial queda guardado.</div>}
 
           <div className="lt-sec">
             <div className="lt-grid">
@@ -145,7 +145,7 @@ function LocationCard({ loc, businessId, open, onToggle, selected, tools, isMana
           {tools && <>
             <div className="lt-sec">
               <div className="lt-sec-title">Ubicación</div>
-              <div className="lt-sub">Con la ubicación, el cliente ve al pasar cerca: “{nearText}”</div>
+              <div className="lt-sub">Al pasar cerca, el cliente ve: “{nearText}”</div>
               <div className="lt-maps">
                 <input className="lt-input" value={draft.mapsUrl} maxLength={500} disabled={readOnly} placeholder="https://maps.app.goo.gl/…" aria-label={`Link de Google Maps de ${loc.name}`} onChange={e => setDraft({ ...draft, mapsUrl: e.target.value })} />
                 {loc.hasCoords && draft.mapsUrl === loc.mapsUrl && <span className="lt-pill lt-pill--on">Aviso de cercanía activo</span>}
@@ -232,9 +232,9 @@ export function LocationsTab({ businessId, businessName, isManager = false, sele
           <div className="lt-card lt-locked">
             <div className="lt-locked-title">Ubicación y horarios de tu local</div>
             <ul className="lt-locked-list">
-              <li><strong>Aviso de cercanía:</strong> cuando un cliente pasa cerca del local, su iPhone le muestra la tarjeta en la pantalla bloqueada.</li>
-              <li><strong>Horarios:</strong> aparecen en el dorso de la tarjeta y en el formulario de registro.</li>
-              <li><strong>Sucursales:</strong> hasta 3 con Pro, todas con la misma tarjeta y los mismos clientes.</li>
+              <li><strong>Aviso de cercanía:</strong> el iPhone muestra la tarjeta al pasar cerca.</li>
+              <li><strong>Horarios:</strong> en el dorso de la tarjeta y el formulario.</li>
+              <li><strong>Sucursales:</strong> hasta 3 con Pro.</li>
             </ul>
             {!isManager && onChoosePlan && <button type="button" className="s-btn s-btn--primary s-btn--sm" onClick={onChoosePlan}>Disponible desde Growth</button>}
             {/* Bajó de un plan con sucursales: se ven, pausadas, para consultar su historial. */}
@@ -266,7 +266,7 @@ export function LocationsTab({ businessId, businessName, isManager = false, sele
                 <label className="lt-field"><span className="lt-label">Nombre de la nueva sucursal</span>
                   <input className="lt-input" autoFocus value={newName} maxLength={60} placeholder="Playa" onChange={e => setNewName(e.target.value)} /></label>
                 {addErr && <div className="lt-err">{addErr}</div>}
-                <div className="lt-actions"><span className="lt-sub">Después cargás la dirección, la ubicación y los horarios.</span>
+                <div className="lt-actions"><span className="lt-sub" />
                   <span className="lt-actions-end"><button type="button" className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setAdding(false); setAddErr('') }}>Cancelar</button><button type="submit" className="s-btn s-btn--primary s-btn--sm" disabled={addBusy}>{addBusy ? 'Creando…' : 'Crear sucursal'}</button></span></div>
               </form>
             )}

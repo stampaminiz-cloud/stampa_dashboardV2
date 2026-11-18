@@ -414,12 +414,12 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
 
   // ── Para atender (según los tipos de tarjeta) ──
   const ATTENTION = [
-    hasStamp && { key: 'deliver', value: a?.toDeliver ?? 0, label: 'Premios para entregar', hint: 'Tarjetas completas: el premio se entrega desde la app de escaneo.', strong: true },
-    hasStamp && { key: 'near', value: a?.nearPrize ?? 0, label: 'A 1–2 sellos del premio', hint: 'Buen momento para una notificación.' },
-    hasPoints && { key: 'redeem', value: a?.canRedeem ?? 0, label: 'Pueden canjear un premio', hint: 'Ya les alcanzan los puntos.' },
+    hasStamp && { key: 'deliver', value: a?.toDeliver ?? 0, label: 'Premios para entregar', hint: 'Tarjetas completas.', strong: true },
+    hasStamp && { key: 'near', value: a?.nearPrize ?? 0, label: 'A 1–2 sellos del premio' },
+    hasPoints && { key: 'redeem', value: a?.canRedeem ?? 0, label: 'Pueden canjear un premio' },
     hasMembership && { key: 'level', value: a?.nearLevel ?? 0, label: 'Cerca de subir de nivel', hint: 'A 2 visitas o menos.' },
-    showOrders && { key: 'orders', value: orderStats.toDeliverToday, label: 'Pedidos para entregar hoy', hint: 'Están en la pestaña Pedidos.', strong: true },
-  ].filter(Boolean) as { key: string; value: number; label: string; hint: string; strong?: boolean }[]
+    showOrders && { key: 'orders', value: orderStats.toDeliverToday, label: 'Pedidos para entregar hoy', strong: true },
+  ].filter(Boolean) as { key: string; value: number; label: string; hint?: string; strong?: boolean }[]
 
   // ── Métricas avanzadas (solo las que aplican) ──
   const ADVANCED = [
@@ -520,7 +520,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
           {chartLoading
             ? <div className="ov-chart-skel">{Array.from({ length: 7 }).map((_, i) => <div key={i} style={{ height: `${30 + ((i * 37) % 60)}%` }} />)}</div>
             : chartEmpty
-            ? <div className="ov-chart-loading">Todavía no hay movimientos en este período. Aparecen cuando escaneás tarjetas con la app.</div>
+            ? <div className="ov-chart-loading">Sin movimientos en este período.</div>
             : <div className="ov-chart-wrap">
                 <div className="ov-chart-axis">
                   {axisSteps.map((v, i) => <span key={i}>{v}</span>)}
@@ -547,9 +547,8 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
             <button className="ov-more-link" onClick={() => setActive('analytics')}>Ver analítica completa</button>
           )}
         </div>
-        <div className="db-card">
+        <div className="db-card ov-att-card">
           <div className="ov-card-title">Para atender</div>
-          <div className="ov-card-sub">Lo que conviene mirar hoy</div>
           <div className="ov-attention">
             {loadingData
               ? [0, 1].map(i => <div key={i} className="ov-attention-row"><Sk w={32} h={22} /><Sk w="70%" /></div>)
@@ -560,7 +559,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
                     <div className="ov-attention-num">{item.value}</div>
                     <div>
                       <div className="ov-attention-label">{item.label}</div>
-                      <div className="ov-attention-hint">{item.hint}</div>
+                      {item.hint && <div className="ov-attention-hint">{item.hint}</div>}
                     </div>
                   </div>
                 ))
@@ -603,7 +602,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
               <div className="ov-card-title-row">
                 <div>
                   <div className="ov-card-title">¿Tu programa retiene?</div>
-                  <div className="ov-card-sub">{RANGE_SUBTITLES[granularity]} · clientes que volvieron vs clientes nuevos</div>
+                  <div className="ov-card-sub">{RANGE_SUBTITLES[granularity]}</div>
                 </div>
               </div>
               <RetentionRing data={rangeRetention} />
@@ -918,8 +917,9 @@ const CSS = `
   .ov-chart-skel{display:flex;align-items:flex-end;gap:10px;height:150px;padding:10px 4px 22px;}
   .ov-chart-skel div{flex:1;border-radius:6px 6px 0 0;background:rgb(var(--s-tinta-rgb) / .07);animation:ov-pulse 1.2s ease-in-out infinite;}
   @keyframes ov-pulse{0%,100%{opacity:.6}50%{opacity:1}}
-  .ov-attention{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
-  .ov-attention-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:rgb(var(--s-tinta-rgb) / .03);}
+  .ov-att-card{display:flex;flex-direction:column;}
+  .ov-attention{display:flex;flex-direction:column;gap:10px;margin-top:14px;flex:1;}
+  .ov-attention-row{display:flex;align-items:center;gap:12px;flex:1;padding:10px 12px;border-radius:12px;background:rgb(var(--s-tinta-rgb) / .03);}
   .ov-attention-row--strong{background:rgba(199,93,58,.08);}
   .ov-attention-num{font-family:var(--font-display);font-weight:800;font-size:22px;color:var(--s-tinta);min-width:34px;text-align:center;}
   .ov-attention-row--strong .ov-attention-num{color:var(--s-brasa);}
@@ -1120,7 +1120,6 @@ export default function DashboardPage() {
             doubleDays: c.doubleDays || [],
             maxPerDay: c.maxPerDay ?? null,
             minHoursBetween: c.minHoursBetween || 0,
-            limitOverride: c.limitOverride !== false,
           })))
         } else console.error('cards load error:', cardsRes.reason)
 
@@ -1223,7 +1222,6 @@ export default function DashboardPage() {
             doubleDays: c.doubleDays || [],
             maxPerDay: c.maxPerDay ?? null,
             minHoursBetween: c.minHoursBetween || 0,
-            limitOverride: c.limitOverride !== false,
       })))
     } catch (err) {
       console.error('Error refreshing cards:', err)

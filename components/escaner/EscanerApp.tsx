@@ -519,7 +519,7 @@ const SCAN_FAQ = [
   { q: 'Me equivoqué', a: 'Justo después de sumar aparece "Deshacer". Si ya pasó, andá a la pestaña Hoy: se puede deshacer hasta 10 minutos después. Más tarde, lo corrige el encargado desde el dashboard.' },
   { q: 'Entregar un premio', a: 'Sellos: cuando la tarjeta está completa, entregá el premio y tocá "Confirmar entrega". Puntos: tocá el premio que elige el cliente en la lista.' },
   { q: 'El cliente no tiene el celular o el QR no se lee', a: 'Andá a Buscar y escribí su nombre, su email o los últimos dígitos de su teléfono.' },
-  { q: 'Dice que ya sumó', a: 'El local tiene una regla de cuántas veces por día (o cada cuántas horas) puede sumar un cliente. Si el dueño lo permite, aparece "Sumar igual" y queda marcado en el historial.' },
+  { q: 'Dice que ya sumó', a: 'El local limita cuántas veces puede sumar un cliente. Tiene que volver más tarde.' },
   { q: 'Regalo de cumpleaños y días dobles', a: 'Si el cliente cumple años, aparece el regalo arriba de su tarjeta con el botón "Entregar". Los días dobles cada escaneo suma el doble solo.' },
   { q: 'La cámara no anda', a: 'Revisá que el navegador tenga permiso de cámara (el candado al lado de la dirección) y recargá. Limpiá la lente y probá con más luz.' },
 ]

@@ -191,7 +191,6 @@ function Share({ businessName, slug, card, whiteLabel, locations = [], selectedL
     <div className="fm-share">
       <div className="fm-card">
         <div className="fm-card-title">Link del formulario</div>
-        <div className="fm-card-sub">Compartilo por WhatsApp, en la bio de Instagram o donde quieras</div>
         <div className="fm-link-row">
           <div className="fm-link-box" title={generalLink}>{generalLink.replace(/^https?:\/\//, '') || '—'}</div>
           <button className={`fm-copy${copied ? ' fm-copy--done' : ''}`} onClick={copy} disabled={!generalLink}>{copied ? '✓ Copiado' : 'Copiar'}</button>
@@ -202,7 +201,6 @@ function Share({ businessName, slug, card, whiteLabel, locations = [], selectedL
         <div className="fm-qr">{qr ? <img src={qr} alt="QR del formulario" /> : <div className="fm-skel" style={{ width: 132, height: 132 }} />}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="fm-card-title">QR y cartel</div>
-          <div className="fm-card-sub">Para el mostrador, la vidriera o las mesas</div>
           {qrLocs.length >= 2 && (
             <label className="fm-qr-loc">QR de
               <select value={qrLoc?.id || ''} onChange={e => setQrLocId(e.target.value)} aria-label="Sucursal del QR">
@@ -378,7 +376,6 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
         <div className="fm-top">
           <div>
             <div className="fm-title">Formulario de registro</div>
-            <div className="fm-sub">Lo que completa tu cliente para obtener la tarjeta</div>
           </div>
           <div className="fm-top-actions">
             {dirty && <button className="s-btn s-btn--secondary s-btn--sm" onClick={discard} disabled={saving}>Descartar</button>}
@@ -400,7 +397,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
               <span className="fm-swatch" style={{ background: `linear-gradient(135deg, ${card.color || '#1B412F'}, ${card.secondColor || card.color || '#1B412F'})` }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="fm-card-title">Usa el diseño de tu tarjeta</div>
-                <div className="fm-card-sub" style={{ margin: 0 }}>El color y el logo del formulario son los de "{card.name}".</div>
+                <div className="fm-card-sub" style={{ margin: 0 }}>Color y logo de "{card.name}".</div>
               </div>
               <button className="s-btn s-btn--secondary s-btn--sm" onClick={onGoToDesign}>Editar en Diseño</button>
             </div>
@@ -413,7 +410,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
                   <div className="fm-card-sub" style={{ margin: 0 }}>
                     {askReward
                       ? <>Lo elige el cliente al registrarse{rClean.length ? <>: {rClean.join(' · ')}</> : ''}.</>
-                      : rFixed ? <>{rFixed}, el mismo para todos. La pregunta del premio no se muestra.</> : 'Todavía no definiste el premio.'}
+                      : rFixed ? <>{rFixed}, el mismo para todos.</> : 'Todavía no definiste el premio.'}
                   </div>
                 </div>
                 <button className="s-btn s-btn--secondary s-btn--sm" onClick={onGoToRewards}>Editar en Premios</button>
@@ -422,7 +419,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
 
             <div className="fm-card">
               <div className="fm-card-title">Campos</div>
-              <div className="fm-card-sub">Usá las flechas para ordenar. Los cambios se aplican al tocar "Guardar cambios".</div>
+              <div className="fm-card-sub">Ordená con las flechas.</div>
               <div className="fm-list">
                 {['Nombre completo', 'Email'].map(l => (
                   <div key={l} className="fm-row fm-row--fixed">

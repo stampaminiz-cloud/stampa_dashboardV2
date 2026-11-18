@@ -75,7 +75,7 @@ export function OrdersTab({ businessId, isManager = false, onChoosePlan, onOpenS
       <div className="od-card od-locked">
         <div className="od-locked-ic"><Icon name="candado" size={20} /></div>
         <h2>Pedidos está disponible en el plan Pro</h2>
-        <p>Tus clientes arman el pedido desde su tarjeta, con tus productos y precios, el día de entrega y la dirección, y te llega escrito a tu WhatsApp.</p>
+        <p>Tus clientes piden desde su tarjeta y te llega por WhatsApp.</p>
         {isManager ? <p className="od-note">Avisale al dueño.</p> : <button type="button" className="s-btn s-btn--primary" onClick={onChoosePlan}>Ver planes</button>}
       </div>
     </div>
@@ -154,7 +154,7 @@ export function OrdersTab({ businessId, isManager = false, onChoosePlan, onOpenS
           <div className="od-left">
             <div className="od-card">
               <div className="od-title">Productos <span className="od-count">{s.products.length} de {data.maxProducts}</span></div>
-              <div className="od-note">El precio es por la unidad elegida: por kilo, el del kilo; por 100 g, el de 100 g.</div>
+              <div className="od-note">Precio por la unidad elegida.</div>
               <div className="od-prod od-prod--head"><span>Producto</span><span>Precio</span><span>Cómo se vende</span><span>Activo</span><span /></div>
               <div ref={listRef} className="od-prods">
               {s.products.map((p, i) => (
@@ -176,7 +176,7 @@ export function OrdersTab({ businessId, isManager = false, onChoosePlan, onOpenS
 
             <div className="od-card">
               <div className="od-title">Entregas y pago</div>
-              <div className="od-note">Stampa no cobra los pedidos: el cliente avisa cómo va a pagar.</div>
+              <div className="od-note">Stampa no cobra los pedidos.</div>
               <div className="od-row"><span className="od-k">Días de reparto</span>
                 <div className="od-days">{DAYS.map((l, d) => <button key={d} type="button" disabled={isManager} aria-pressed={s.days.includes(d)} aria-label={DAY_FULL[d]} className={`od-day${s.days.includes(d) ? ' is-on' : ''}`} onClick={() => toggle('days', d)}>{l}</button>)}</div>
               </div>

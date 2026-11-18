@@ -112,13 +112,12 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
       <style>{CSS}</style>
       <div className="wa-cols">
         <div className="wa-form">
-          <p className="wa-intro">Tus clientes te escriben desde la tarjeta con un toque. Sin costo.</p>
 
           <div className="wa-field">
             <label className="wa-label" htmlFor="wa-number">Número</label>
             <input id="wa-number" className="wa-input" inputMode="tel" placeholder="+54 9 11 5555-0000" value={number} disabled={disabled}
               onChange={e => { setNumber(e.target.value); setMsg(null) }} />
-            <div className="wa-help">Con código de país, como lo marcarías desde el exterior.</div>
+            <div className="wa-help">Con código de país.</div>
           </div>
 
           <div className="wa-field">
@@ -175,7 +174,6 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
             ))}
             <div className="wa-pv-row"><span>ÚLTIMA NOVEDAD</span><em>Sin novedades por ahora.</em></div>
           </div>
-          <div className="wa-help">Cada botón abre WhatsApp con "Hola {sug.businessName || 'tu negocio'}, soy Lucía Gómez." y el mensaje del tipo de botón.</div>
         </div>
       </div>
     </div>
