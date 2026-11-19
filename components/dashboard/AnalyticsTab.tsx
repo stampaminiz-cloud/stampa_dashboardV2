@@ -1,10 +1,11 @@
 'use client'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { PillSelect } from '@/components/ui/PillSelect'
+import { CardChips } from '@/components/ui/CardChips'
 import React, { useState, useEffect, useRef } from 'react'
 import { readCache, getJson } from '@/lib/cache'
 import { withLoc } from '@/lib/location'
-import { MascotLoader } from '@/components/ui/MascotLoader'
+import { Cargando } from '@/components/ui/Cargando'
 import { EmptyState, RetentionRing, ProgressDistribution, FormAnswers, CardComparison, LocationComparison, type LocationRow, type NvrBucket, type Retention, type ProgressDist, type FormAnswer as FormAnswerData, type CardRow } from './charts'
 import { usePlan } from '@/data/plans'
 import { BASE_URL } from '@/lib/api'
@@ -789,10 +790,6 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
             ))}
           </div>
           <div className="an-block-tools">
-            {activeCards.length > 1 && (
-              <PillSelect ariaLabel="Tarjeta" value={selectedCard?.id || 'all'} onChange={setSelectedCardId}
-                options={[{ id: 'all', label: 'Todas las tarjetas' }, ...activeCards.map(c => ({ id: c.id, label: c.name }))]} />
-            )}
             <PillSelect ariaLabel="Período" value={range} onChange={v => setRange(v as Range)}
               options={RANGES.map(r => ({ id: r.key, label: `Últimos ${r.label}` }))} />
             <button className="an-export an-export--icon" onClick={exportCsv} disabled={exporting} title="Exportar CSV: los movimientos del período, para Excel" aria-label="Exportar CSV">
@@ -800,6 +797,10 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
             </button>
           </div>
         </div>
+        {activeCards.length > 1 && (
+          <CardChips value={selectedCard?.id || 'all'} onChange={setSelectedCardId}
+            options={[{ id: 'all', label: 'Todas' }, ...activeCards.map(c => ({ id: c.id, label: c.name }))]} />
+        )}
         {exportError && <div className="an-export-err">{exportError}</div>}
 
         {/* ═══════════════ PROGRAMA ═══════════════ */}
@@ -833,7 +834,7 @@ export function AnalyticsTab({ analyticsData, cards, isManager = false, onChoose
             <div className="an-card">
               <div className="an-ctitle">{chart.title}</div>
               <div className="an-csub">{range === '90d' ? 'Por semana' : 'Por día'}</div>
-              {!d ? (detailedError && !detailedLoading ? <Loading /> : <MascotLoader text="Armando tus números…" size={44} minHeight={170} />) : chartEmpty
+              {!d ? (detailedError && !detailedLoading ? <Loading /> : <Cargando minHeight={170} />) : chartEmpty
                 ? <EmptyState title="Sin movimientos" />
                 : <BarChart data={d.visitsOverTime} valueKey={chart.key} tooltip={chartTip} />}
             </div>

@@ -9,7 +9,7 @@ import { BASE_URL } from '@/lib/api'
 import { Icon } from '@/components/ui/Icon'
 import { usePlan } from '@/data/plans'
 import { readCache, getJson, writeCache } from '@/lib/cache'
-import { MascotLoader } from '@/components/ui/MascotLoader'
+import { Cargando } from '@/components/ui/Cargando'
 
 type Kind = { kind: string; label: string; mode?: 'direct' | 'order' }
 type Suggestions = {
@@ -62,7 +62,7 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
   }, [businessId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loadError) return <div className="wa-help">No pudimos cargar WhatsApp. Recargá la página.</div>
-  if (!sug) return <MascotLoader text="Cargando WhatsApp…" size={48} minHeight={160} />
+  if (!sug) return <Cargando minHeight={160} />
 
   const has = !!saved?.number
   const disabled = isManager
@@ -122,6 +122,7 @@ export function WhatsappSettings({ businessId, isManager, onSaved, color = '#1B4
 
           <div className="wa-field">
             <div className="wa-label">Botones <span className="wa-count">{buttons.length} de {sug.maxButtons}</span></div>
+            {buttons.length > 0 && <div className="wa-colhead"><span>Tipo</span><span>Texto en la tarjeta</span><span /></div>}
             {buttons.map((b, i) => (
               <div key={i} className="wa-btn-row">
                 <select className="wa-select" value={b.kind} disabled={disabled} aria-label={`Tipo del botón ${i + 1}`}
@@ -191,6 +192,7 @@ const CSS = `
   .wa-input{width:100%;}
   .wa-input--short{max-width:200px;}
   .wa-input:focus,.wa-select:focus{outline:2px solid var(--s-brasa);outline-offset:1px;}
+  .wa-colhead{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr) 28px;gap:8px;font-size:11px;color:var(--s-tinta-3);}
   .wa-btn-row{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr) 28px;gap:8px;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--s-linea);}
   .wa-mode{grid-column:1 / -1;display:inline-flex;gap:2px;background:var(--s-salvia);border-radius:999px;padding:3px;justify-self:start;}
   .wa-mode button{border:none;background:none;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:600;color:var(--s-tinta-2);cursor:pointer;}

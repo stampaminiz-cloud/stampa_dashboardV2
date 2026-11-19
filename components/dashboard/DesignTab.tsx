@@ -3,7 +3,7 @@ import { Icon } from '@/components/ui/Icon'
 import { Switch } from '@/components/ui/Switch'
 import { readCache } from '@/lib/cache'
 import React, { useState, useRef, useEffect } from 'react'
-import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS } from '@/lib/colorPresets'
+import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS, logoBrand } from '@/lib/colorPresets'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
 import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiGetPointsCatalog, apiWalletPreview } from '@/lib/api'
@@ -218,14 +218,17 @@ function RealPassPreview({ design, images, rewardLabel, tiers, previewTierIndex 
   const activeTier = tiers[previewTierIndex] || tiers[0]
   const tc = design.type === 'membership' && activeTier ? activeTier.color : (design.textColor || '#FFFFFF')
   const lc = design.type !== 'membership' && design.labelColor && /^#[0-9A-Fa-f]{6}$/.test(design.labelColor) ? design.labelColor : hexToRgba(tc, 0.65)
+  const nextTier = tiers[previewTierIndex + 1]
   const second = design.type === 'stamp' ? { label: 'PREMIO', value: rewardLabel }
-    : design.type === 'points' ? { label: 'VISITAS', value: '14' } : null
+    : design.type === 'points' ? { label: 'VISITAS', value: '14' }
+    : design.type === 'membership' ? { label: 'NIVEL', value: activeTier?.name || '' } : null
+  const third = design.type === 'membership' && nextTier ? { label: 'SIGUIENTE', value: `${nextTier.name} · ${nextTier.threshold}` } : null
   return (
     <div className="dt-real-pass" style={{ background: solidBg(design, activeTier) }}>
       <div className="dt-real-pass-top">
         {images?.apple.logo ? <img src={images.apple.logo} className="dt-real-pass-logo-real" alt="" /> : <div className="dt-skel-logo" />}
       </div>
-      {images?.apple.strip ? <img src={images.apple.strip} className="dt-real-pass-strip" alt="" /> : <div className="dt-skel-strip" />}
+      {images?.apple.strip ? <img src={images.apple.strip} className="dt-real-pass-strip" alt="" /> : (design.type === 'membership' && images ? null : <div className="dt-skel-strip" />)}
       <div className="dt-real-pass-info">
         <div className="dt-real-pass-info-field">
           <div className="dt-real-pass-info-label" style={{ color: lc }}>TITULAR</div>
@@ -234,6 +237,10 @@ function RealPassPreview({ design, images, rewardLabel, tiers, previewTierIndex 
         {second && <div className="dt-real-pass-info-field">
           <div className="dt-real-pass-info-label" style={{ color: lc }}>{second.label}</div>
           <div className="dt-real-pass-info-val" style={{ color: tc }}>{second.value}</div>
+        </div>}
+        {third && <div className="dt-real-pass-info-field">
+          <div className="dt-real-pass-info-label" style={{ color: lc }}>{third.label}</div>
+          <div className="dt-real-pass-info-val" style={{ color: tc }}>{third.value}</div>
         </div>}
       </div>
       <div className="dt-real-pass-qr-section">
@@ -370,7 +377,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const [flipSubMessage, setFlipSubMessage] = useState(init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio')
   const [isFlipping, setIsFlipping]         = useState(false)
   const [prizeImage, setPrizeImage]           = useState<string | null>(card.flipImageUrl || null)
-  // Foto de fondo de la imagen de puntos (opcional; el backend la oscurece abajo).
+  // Foto de fondo de la imagen de puntos o del nivel (opcional; el backend la oscurece abajo).
   const [stripImage, setStripImage]           = useState<string | null>(card.stripImageUrl || null)
   const stripImageRef                         = useRef<HTMLInputElement>(null)
   const prizeImageRef                         = useRef<HTMLInputElement>(null)
@@ -391,11 +398,22 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
     JSON.stringify([c.name, c.color, c.secondColor, c.textColor || null, c.labelColor || null, c.publicDescription || '', c.stampsRequired, c.rewardMode, c.rewardField || '', l, fm, fs, img, ppv])
   const [baseline, setBaseline] = useState(() => snapshot(init, { businessLogo: init.logoUrl || null, earnedIcon: init.earnedIcon || null, emptyIcon: init.emptyIcon || null, pointsIcon: init.pointsIcon || null }, init.flipMessage || '¡Lo lograste!', init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio', JSON.stringify([init.flipImageUrl || null, init.stripImageUrl || null]), JSON.stringify({ pointsMode: init.pointsMode === 'amount' ? 'amount' : 'visit', pointsPerVisit: init.pointsPerVisit || 10, pointsPerAmount: init.pointsPerAmount || 1, pointsAmountUnit: init.pointsAmountUnit || DEFAULT_UNIT[currency] })))
 
-  function setLogo(key: keyof LogoState) { return (url: string | null) => setLogos({ ...logos, [key]: url }) }
+  // Al subir un logo nuevo se ofrece usar su color (nunca se cambia solo: la
+  // tarjeta ya la usan clientes).
+  const [logoChanged, setLogoChanged] = useState(false)
+  function setLogo(key: keyof LogoState) { return (url: string | null) => { setLogos({ ...logos, [key]: url }); if (key === 'businessLogo') setLogoChanged(!!url) } }
   const dirty = snapshot(card, logos, flipMessage, flipSubMessage, JSON.stringify([prizeImage, stripImage]), pointsPerVisit) !== baseline
   const textColorBad = !!card.textColor && !isHex(card.textColor)
   const labelColorBad = !!card.labelColor && !isHex(card.labelColor)
   const logoColors = useLogoColors(logos.businessLogo)
+  const logoSuggestion = logoChanged && logoColors.length > 0 ? logoBrand(logoColors) : null
+  const offerLogoColor = !!logoSuggestion && logoSuggestion.color.toLowerCase() !== (card.color || '').toLowerCase()
+  function useLogoColor() {
+    if (!logoSuggestion) return
+    const v = logoSuggestion.color
+    setCard({ ...card, color: v, secondColor: secondFor(v), ...(card.type === 'membership' ? { textColor: autoTextFor(v) } : {}) })
+    setLogoChanged(false)
+  }
 
   async function handleSave() {
     if (!businessId) {
@@ -601,6 +619,13 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
               <LogoUpload label="Sello vacío" hint="Ícono vacío" value={logos.emptyIcon} onChange={setLogo('emptyIcon')} />
             </>}
           </div>
+          {offerLogoColor && logoSuggestion && (
+            <div className="dt-logo-color">
+              <span className="dt-logo-color-sw" style={{ background: logoSuggestion.color }} />
+              <span>{logoSuggestion.darkened ? 'Tu logo tiene un color nuevo (en un tono más oscuro para que se lea).' : 'Tu logo tiene un color nuevo.'}</span>
+              <button type="button" className="s-btn s-btn--secondary s-btn--sm" onClick={useLogoColor}>Usar el color de tu logo</button>
+            </div>
+          )}
 
           {/* Form fields — la gestión real (agregar, ocultar, reordenar) vive
               en Forms. Acá solo un puntero, para no tener el mismo campo
@@ -668,8 +693,8 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
             </>
           )}
 
-          {/* ── Foto de fondo (puntos) ── */}
-          {card.type === 'points' && (
+          {/* ── Foto de fondo (puntos y membresía) ── */}
+          {(card.type === 'points' || card.type === 'membership') && (
             <>
               <div className="dt-panel-section-title" style={{ marginTop: 20 }}>
                 <Icon name="imagen" size={12} className="dt-ic-brasa dt-ic-inline" />
@@ -681,7 +706,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
                   : <>
                       <Icon name="imagen" size={20} className="dt-ic-faint" />
                       <span className="dt-prize-upload-hint">Subir una foto (opcional)</span>
-                      <span className="dt-prize-upload-sub">JPG o PNG horizontal, detrás de los puntos</span>
+                      <span className="dt-prize-upload-sub">JPG o PNG horizontal, {card.type === 'membership' ? 'detrás del nivel' : 'detrás de los puntos'}</span>
                     </>
                 }
                 <input ref={stripImageRef} type="file" accept="image/*" style={{ display: 'none' }}
@@ -1181,6 +1206,8 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-save-error{font-size:12px;color:var(--s-error);background:rgba(178,59,59,.07);border-bottom:1px solid rgba(178,59,59,.15);padding:8px 20px;}
         .dt-save-notice{font-size:12px;color:var(--s-listo);background:rgba(91,140,90,.1);border-bottom:1px solid rgba(91,140,90,.2);padding:8px 20px;}
         .dt-save-warn{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12.5px;color:#7A5A12;background:rgba(212,162,76,.14);border-bottom:1px solid rgba(212,162,76,.3);padding:10px 20px;}
+        .dt-logo-color{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgb(var(--s-tinta-rgb) / .05);border-radius:10px;padding:9px 11px;margin-top:10px;font-size:12.5px;color:var(--s-tinta);}
+        .dt-logo-color-sw{width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1px rgb(0 0 0 / .15);flex-shrink:0;}
         .dt-tier-chips{display:flex;flex-wrap:wrap;gap:6px;}
         .dt-tier-chip{font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(34,32,27,.08);}
         .dt-color-warn{font-size:11px;color:var(--s-brasa-2);background:rgba(199,93,58,.08);border-radius:7px;padding:6px 9px;margin-top:6px;line-height:1.4;}

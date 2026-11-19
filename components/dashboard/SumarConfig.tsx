@@ -43,12 +43,13 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
   const [local, setLocal] = useState<Record<string, Rule>>({})
   const [msg, setMsg] = useState<{ key: string; ok: boolean; text: string } | null>(null)
   const [mode, setMode] = useState<'staff' | 'screen'>('staff')
+  const [autoDeliver, setAutoDeliver] = useState(false)
   const screenAllowed = can('screenMode')
   const amountCards = cards.filter(c => c.isActive && c.type === 'points' && c.pointsMode === 'amount')
   // El modo vive en el negocio; solo lo lee la columna "del negocio".
   useEffect(() => {
     if (!businessId || part === 'cards') return
-    apiGetBusinesses().then(list => { const b = list.find(x => x._id === businessId); if (b?.sumarMode) setMode(b.sumarMode) }).catch(() => {})
+    apiGetBusinesses().then(list => { const b = list.find(x => x._id === businessId); if (b?.sumarMode) setMode(b.sumarMode); setAutoDeliver(!!b?.screenAutoDeliver) }).catch(() => {})
   }, [businessId, part])
   useEffect(() => { setLocal(Object.fromEntries(cards.map(c => [c.id, ruleOf(c)]))) }, [cards])
 
@@ -76,6 +77,14 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
     setMode(next)
     try { await apiUpdateBusiness(businessId, { sumarMode: next }); flash('mode', true, '') }
     catch (err: any) { setMode(prev); flash('mode', false, err?.error || 'No se pudo guardar.') }
+  }
+
+  async function toggleAuto(next: boolean) {
+    if (!businessId || isManager) return
+    const prev = autoDeliver
+    setAutoDeliver(next)
+    try { await apiUpdateBusiness(businessId, { screenAutoDeliver: next }); flash('auto', true, '') }
+    catch (err: any) { setAutoDeliver(prev); flash('auto', false, err?.error || 'No se pudo guardar.') }
   }
 
   const ordered = [...cards].sort((a, b) => Number(b.isActive) - Number(a.isActive))
@@ -106,6 +115,18 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
         </div>
 
         {screenAllowed && <Screens businessId={businessId} isManager={isManager} active={mode === 'screen'} />}
+        {screenAllowed && (
+          <div className="pr-block">
+            <div className="sc-auto">
+              <Switch checked={autoDeliver} disabled={isManager} label="Entregar el premio al apoyar el pase" onChange={toggleAuto} />
+              <span>
+                <b>Entregar el premio al apoyar el pase</b>
+                <small>Apagado: el empleado toca &quot;Entregar&quot; en la pantalla. Encendido: se entrega solo, para cuando siempre hay alguien mirando. Solo tarjetas de sellos.</small>
+              </span>
+            </div>
+            {msgFor('auto')}
+          </div>
+        )}
       </>}
 
       {part !== 'business' && <>
@@ -248,6 +269,16 @@ function Screens({ businessId, isManager, active }: { businessId?: string; isMan
         </div>
       )}
       {list && list.length === 0 && <div className="pr-note">Todavía no vinculaste ninguna pantalla.</div>}
+      {list && list.length > 0 && (
+        <div className="sc-addr">
+          <div className="sc-addr-main">
+            <span>Dirección de la pantalla</span>
+            <b>{typeof window !== 'undefined' ? `${window.location.host}/pantalla` : '/pantalla'}</b>
+            <small>Abrila siempre acá: la tablet recuerda que está vinculada. Guardala en favoritos o en la pantalla de inicio.</small>
+          </div>
+          <button type="button" className="s-btn s-btn--secondary s-btn--sm" onClick={async () => { try { await navigator.clipboard.writeText(`${window.location.origin}/pantalla`); setMsg({ ok: true, text: 'Dirección copiada.' }) } catch { setMsg({ ok: false, text: 'No pudimos copiar.' }) } }}>Copiar</button>
+        </div>
+      )}
 
       {!isManager && !adding && !link && (
         <div className="pr-row"><button type="button" className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setAdding(true); setMsg(null) }}>Vincular una pantalla</button></div>
@@ -294,6 +325,13 @@ const CSS = `
   .sc-tag{flex:none;margin-left:auto;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--s-hueco);color:var(--s-tinta-2);white-space:nowrap;}
   .sc-warn{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--s-aviso-suave);color:var(--s-aviso);font-size:12px;line-height:1.45;}
   .sc-warn svg{flex:none;margin-top:1px;}
+  .sc-auto{display:flex;align-items:flex-start;gap:10px;}
+  .sc-auto span{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--s-tinta);}
+  .sc-auto small{font-size:11.5px;color:var(--s-tinta-2);line-height:1.4;}
+  .sc-addr{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--s-hueco);border-radius:10px;padding:10px 12px;margin-top:8px;}
+  .sc-addr-main{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:12px;color:var(--s-tinta-2);}
+  .sc-addr-main b{font-size:13px;color:var(--s-tinta);overflow-wrap:anywhere;}
+  .sc-addr-main small{font-size:11.5px;color:var(--s-tinta-3);line-height:1.4;}
   .sc-screens{display:flex;flex-direction:column;}
   .sc-screen{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--s-linea);font-size:12.5px;}
   .sc-screen-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
