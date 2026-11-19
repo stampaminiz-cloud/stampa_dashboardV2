@@ -104,7 +104,7 @@ export function viewOf(r: ScanResult): View {
       return { inverted: true, title: r.card.flipMessage || '¡Felicitaciones!', blocks }
     }
     return {
-      inverted: false, title: `¡Sumaste${hi}!`,
+      inverted: false, title: r.repeat ? `Ya sumaste${hi}` : `¡Sumaste${hi}!`,
       blocks: [
         { k: 'strip', stamps: stamp.stamps, required: stamp.required, fresh: !r.repeat },
         { k: 'line', text: `${stamp.stamps} de ${stamp.required}${stamp.remaining > 0 ? `. Te ${stamp.remaining === 1 ? 'falta 1' : `faltan ${stamp.remaining}`}` : ''}` },
@@ -118,9 +118,10 @@ export function viewOf(r: ScanResult): View {
     if (r.state === 'prize' && n > 0) {
       return { inverted: true, title: n === 1 ? `¡Desbloqueaste ${points.unlocked[0]}!` : `¡Desbloqueaste ${n} premios!`, blocks: [balance, { k: 'catalog', title: 'Para canjear ahora', rows: points.catalog, balance: points.balance }] }
     }
-    const blocks: Block[] = [{ k: 'points', added: points.added }, balance]
+    // Si vuelve a apoyar el pase enseguida no se suma de nuevo: no se muestra el "+N".
+    const blocks: Block[] = [...(r.repeat ? [] : [{ k: 'points', added: points.added } as Block]), balance]
     if (points.catalog.length) blocks.push({ k: 'catalog', title: 'Premios', rows: points.catalog, balance: points.balance })
-    return { inverted: false, title: `¡Sumaste${hi}!`, blocks }
+    return { inverted: false, title: r.repeat ? `Ya sumaste${hi}` : `¡Sumaste${hi}!`, blocks }
   }
 
   if (membership) {
@@ -133,7 +134,7 @@ export function viewOf(r: ScanResult): View {
     if (membership.tier) blocks.push({ k: 'tier', tier: membership.tier })
     if (membership.nextTier && membership.progress != null) blocks.push({ k: 'bar', value: membership.progress })
     blocks.push({ k: 'line', text: membership.nextTier && membership.visitsToNext != null ? `Te ${membership.visitsToNext === 1 ? 'falta 1' : `faltan ${membership.visitsToNext}`} para ${membership.nextTier.name}` : 'Ya estás en el nivel más alto' })
-    return { inverted: false, title: `Visita ${membership.totalVisits}`, blocks }
+    return { inverted: false, title: r.repeat ? `Ya sumaste${hi}` : `Visita ${membership.totalVisits}`, blocks }
   }
 
   return { inverted: false, title: `¡Sumaste${hi}!`, blocks: [] }
