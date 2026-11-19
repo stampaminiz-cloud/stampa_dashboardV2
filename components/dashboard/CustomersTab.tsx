@@ -3,7 +3,7 @@ import { Icon, type IconName } from '@/components/ui/Icon'
 import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
 import { PLAN_LIMITS, type Plan } from '@/data/plans'
-import { BASE_URL, apiGetPointsCatalog, apiRedeemPoints } from '@/lib/api'
+import { BASE_URL, apiGetPointsCatalog, apiRedeemPoints, apiJoinCard, apiLeaveCard } from '@/lib/api'
 import { formatMoney } from '@/lib/money'
 
 interface CardEntry {
@@ -32,7 +32,7 @@ type SortDir = 'asc' | 'desc'
 interface CustomersTabProps {
   customers: Customer[]
   // Tarjetas activas del negocio — para el filtro por tarjeta cuando hay más de una.
-  cards?: Array<{ id: string; name: string; type: string }>
+  cards?: Array<{ id: string; name: string; type: string; inviteOnly?: boolean }>
   cardFilter?: string
   onCardFilterChange?: (cardId: string) => void
   // El backend filtra, ordena, pagina y cuenta; esto solo dispara callbacks.
@@ -314,9 +314,54 @@ function History({ customer }: { customer: Customer }) {
   )
 }
 
-function CustomerPanel({ customer, canDelete, onClose, onDelete, onChanged }: {
+// ─── Club VIP (membresía por invitación) ─────────────────────────────────────
+// Las tarjetas "solo por invitación" no salen en el QR: las suma el dueño acá.
+function VipSection({ customer, vipCards, onChanged }: { customer: Customer; vipCards: Array<{ id: string; name: string }>; onChanged: () => void }) {
+  const [busy, setBusy] = useState<string | null>(null)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  if (!vipCards.length) return null
+  async function run(card: { id: string; name: string }, joined: boolean) {
+    const businessId = localStorage.getItem('stampa_business_id')
+    if (!businessId) return
+    setBusy(card.id); setMsg(null)
+    try {
+      if (joined) {
+        const origin = customer.cards.find(c => c.cardId !== card.id)
+        if (!origin) return
+        await apiLeaveCard(businessId, origin.customerId, card.id)
+        setMsg({ ok: true, text: `${customer.name} salió de ${card.name}.` })
+      } else {
+        await apiJoinCard(businessId, customer.cards[0].customerId, card.id)
+        setMsg({ ok: true, text: `Listo: le mandamos ${card.name} por email para que la sume a su Wallet.` })
+      }
+      onChanged()
+    } catch (err: any) {
+      setMsg({ ok: false, text: err?.message || err?.error || 'No pudimos hacerlo. Probá de nuevo.' })
+    } finally { setBusy(null) }
+  }
+  return (
+    <div className="ct-panel-section">
+      <div className="ct-panel-section-title">Por invitación</div>
+      {vipCards.map(card => {
+        const joined = customer.cards.some(c => c.cardId === card.id)
+        return (
+          <div key={card.id} className="ct-panel-field-row" style={{ alignItems: 'center', gap: 8 }}>
+            <span className="ct-panel-field-label" style={{ flex: 1 }}>{card.name}{joined && <span style={{ color: 'var(--s-listo)', marginLeft: 6 }}>· en su Wallet</span>}</span>
+            <button className={joined ? 's-btn s-btn--text s-btn--sm' : 's-btn s-btn--primary s-btn--sm'} disabled={busy === card.id} onClick={() => run(card, joined)}>
+              {busy === card.id ? '…' : joined ? 'Sacar' : `Sumar a ${card.name}`}
+            </button>
+          </div>
+        )
+      })}
+      {msg && <div className={`ct-resync-msg${msg.ok ? '' : ' ct-resync-msg--err'}`}>{msg.text}</div>}
+    </div>
+  )
+}
+
+function CustomerPanel({ customer, canDelete, onClose, onDelete, onChanged, vipCards = [] }: {
   customer: Customer; canDelete: boolean; onClose: () => void
   onDelete: (id: string) => Promise<boolean>; onChanged: () => void
+  vipCards?: Array<{ id: string; name: string }>
 }) {
   const t = useLang()
   const color = avatarColor(customer.name)
@@ -354,6 +399,7 @@ function CustomerPanel({ customer, canDelete, onClose, onDelete, onChanged }: {
           <CardSection key={card.customerId} customer={customer} card={card} canDelete={canDelete} onDelete={onDelete} onChanged={onChanged} />
         ))}
 
+        {canDelete && <VipSection customer={customer} vipCards={vipCards} onChanged={onChanged} />}
         <CustomerOrders customer={customer} />
         <History customer={customer} />
       </div>
@@ -790,7 +836,7 @@ export function CustomersTab({
           )}
         </div>
 
-        {selected && <CustomerPanel customer={selected} canDelete={!isManager} onClose={() => setSelected(null)} onDelete={deleteCustomer} onChanged={onRefresh} />}
+        {selected && <CustomerPanel customer={selected} canDelete={!isManager} onClose={() => setSelected(null)} onDelete={deleteCustomer} onChanged={onRefresh} vipCards={cards.filter(c => c.inviteOnly)} />}
       </div>
     </>
   )

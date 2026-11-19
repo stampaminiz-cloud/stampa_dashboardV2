@@ -123,6 +123,7 @@ export interface Business {
   inactiveDays: number
   alerts: { newCustomer: boolean; nearPrize: boolean; weeklyDigest: boolean }
   sumarMode?: 'staff' | 'screen'
+  screenAutoDeliver?: boolean
 }
 
 export interface Card {
@@ -460,7 +461,7 @@ export async function apiGetPublicBusiness(businessId: string, locationId?: stri
     // Horarios de la sucursal del QR (o de la principal), desde Growth.
     location?: { name: string | null; hours: string; openNow: boolean | null } | null
     whiteLabel?: boolean
-    cards: Array<{ id: string; name: string; type: string; description?: string; color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null }>
+    cards: Array<{ id: string; name: string; type: string; description?: string; color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null; baseFields?: { name: { label: string; placeholder: string; isRequired: boolean; isActive: boolean }; email: { label: string; placeholder: string } } }>
     fields: Array<{ _id?: string; label: string; fieldType: string; isLocked: boolean; builtIn?: boolean; isRewardSource?: boolean; isRequired?: boolean; options?: string[]; placeholder?: string }>
   }>(`/api/businesses/${businessId}/public${locationId ? `?s=${encodeURIComponent(locationId)}` : ''}`, { noAuth: true })
 }
@@ -798,4 +799,11 @@ export async function apiScheduleNotification(businessId: string, data: {
     `/api/businesses/${businessId}/notifications/scheduled`,
     { method: 'POST', body: data }
   )
+}
+// Membresía por invitación (club VIP): el dueño suma o saca a un cliente.
+export async function apiJoinCard(businessId: string, customerId: string, cardId: string) {
+  return request<{ customerId: string; card: { id: string; name: string; type: string } }>(`/api/businesses/${businessId}/customers/${customerId}/join-card`, { method: 'POST', body: { cardId } })
+}
+export async function apiLeaveCard(businessId: string, customerId: string, cardId: string) {
+  return request<void>(`/api/businesses/${businessId}/customers/${customerId}/join-card/${cardId}`, { method: 'DELETE' })
 }

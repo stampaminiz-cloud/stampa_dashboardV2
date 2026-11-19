@@ -17,6 +17,7 @@ import { beep } from '@/lib/escaner'
 import { getScreen, setScreen, pantalla, ScreenError, type BrandCard, type CatalogRow, type ScanResult, type ScreenStatus, type TierLook } from '@/lib/pantalla'
 
 const SHOW_MS = 4500       // cuánto se ve el resultado
+const DELIVER_MS = 15000   // cuánto espera el botón "Entregar" antes de volver a esperar
 const ERROR_MS = 3500
 const SAME_CODE_MS = 3000  // el mismo QR apenas leído no se vuelve a procesar
 const STATUS_EVERY_MS = 60 * 1000
@@ -77,6 +78,8 @@ export type Block =
   | { k: 'tier'; tier: TierLook }
   | { k: 'bar'; value: number }
   | { k: 'line'; text: string; strong?: boolean }
+  | { k: 'deliver' }
+  | { k: 'check' }
 
 export interface View { inverted: boolean; title: string; blocks: Block[] }
 
@@ -98,9 +101,20 @@ export function viewOf(r: ScanResult): View {
   }
 
   if (stamp) {
+    if (r.state === 'delivered') {
+      return {
+        inverted: false, title: '¡Entregado!',
+        blocks: [
+          { k: 'check' },
+          ...(r.reward ? [{ k: 'line', text: `${r.reward}. Tu tarjeta arranca de nuevo.` } as Block] : [{ k: 'line', text: 'Tu tarjeta arranca de nuevo.' } as Block]),
+          { k: 'strip', stamps: 0, required: stamp.required, fresh: false },
+        ],
+      }
+    }
     if (r.state === 'prize') {
       const blocks: Block[] = [{ k: 'prize-img', required: stamp.required }]
       if (stamp.reward) blocks.push({ k: 'line', text: stamp.reward, strong: true })
+      if (r.deliverable) blocks.push({ k: 'deliver' })
       return { inverted: true, title: r.card.flipMessage || '¡Felicitaciones!', blocks }
     }
     return {
@@ -219,10 +233,10 @@ export function PantallaApp() {
     setPhase({ t: 'busy' })
     try {
       const r = await pantalla.scan(key, text)
-      beep(r.state === 'ok' || r.state === 'prize' || r.state === 'tier_up')
+      beep(r.state === 'ok' || r.state === 'prize' || r.state === 'tier_up' || r.state === 'delivered')
       // Una tarjeta nueva que todavía no bajamos: trae las imágenes para la próxima.
       if (!brandRef.current.some(c => c.id === r.card.id)) loadBrand()
-      showFor({ t: 'result', r }, SHOW_MS)
+      showFor({ t: 'result', r }, r.deliverable && r.state === 'prize' ? DELIVER_MS : SHOW_MS)
     } catch (e) {
       beep(false)
       if (e instanceof ScreenError && e.status === 401) { setScreen(null); keyRef.current = null; setPhase({ t: 'unlinked' }); return }
@@ -230,6 +244,24 @@ export function PantallaApp() {
       showFor({ t: 'error', message: e instanceof ScreenError && e.status > 0 && e.message ? e.message : 'No pudimos leer el pase. Probá de nuevo.' }, ERROR_MS)
     }
   }, [refresh, showFor, loadBrand])
+
+  // El empleado toca "Entregar": la tarjeta de sellos completa vuelve a 0.
+  const [delivering, setDelivering] = useState(false)
+  const onDeliver = useCallback(async () => {
+    const key = keyRef.current
+    const code = lastCode.current?.text
+    if (!key || !code || delivering) return
+    setDelivering(true)
+    try {
+      const r = await pantalla.deliver(key, code)
+      beep(true)
+      showFor({ t: 'result', r }, SHOW_MS)
+    } catch (e) {
+      beep(false)
+      if (e instanceof ScreenError && e.status === 401) { setScreen(null); keyRef.current = null; setPhase({ t: 'unlinked' }); return }
+      showFor({ t: 'error', message: e instanceof ScreenError && e.status > 0 && e.message ? e.message : 'No pudimos entregar el premio. Probá de nuevo.' }, ERROR_MS)
+    } finally { setDelivering(false) }
+  }, [delivering, showFor])
 
   const v = phase.t === 'result' ? viewOf(phase.r) : null
   const waiting = phase.t === 'wait'
@@ -281,7 +313,7 @@ export function PantallaApp() {
           </div>
         )}
 
-        {v && phase.t === 'result' && <Resultado v={v} brand={brandCard} fresh={!phase.r.repeat} />}
+        {v && phase.t === 'result' && <Resultado v={v} brand={brandCard} fresh={!phase.r.repeat} onDeliver={onDeliver} delivering={delivering} />}
 
         {phase.t === 'error' && (
           <div className="pan-msg">
@@ -298,16 +330,16 @@ export function PantallaApp() {
 }
 
 // ─── Resultado ──────────────────────────────────────────────────────────────
-export function Resultado({ v, brand, fresh }: { v: View; brand: Partial<BrandCard> | null; fresh: boolean }) {
+export function Resultado({ v, brand, fresh, onDeliver, delivering = false }: { v: View; brand: Partial<BrandCard> | null; fresh: boolean; onDeliver?: () => void; delivering?: boolean }) {
   return (
     <div className="pan-msg pan-result">
       <h1>{v.title}</h1>
-      {v.blocks.map((b, i) => <BlockView key={i} b={b} brand={brand} fresh={fresh} />)}
+      {v.blocks.map((b, i) => <BlockView key={i} b={b} brand={brand} fresh={fresh} onDeliver={onDeliver} delivering={delivering} />)}
     </div>
   )
 }
 
-function BlockView({ b, brand, fresh }: { b: Block; brand: Partial<BrandCard> | null; fresh: boolean }) {
+function BlockView({ b, brand, fresh, onDeliver, delivering = false }: { b: Block; brand: Partial<BrandCard> | null; fresh: boolean; onDeliver?: () => void; delivering?: boolean }) {
   switch (b.k) {
     case 'strip': return <Strip n={b.stamps} required={b.required} fresh={b.fresh && fresh} all={b.all} brand={brand} />
     case 'prize-img':
@@ -333,6 +365,14 @@ function BlockView({ b, brand, fresh }: { b: Block; brand: Partial<BrandCard> | 
     case 'tier': return <Tier t={b.tier} />
     case 'bar': return <div className="pan-bar"><i style={{ width: `${Math.round(Math.min(1, Math.max(0, b.value)) * 100)}%` }} /></div>
     case 'line': return <p className={b.strong ? 'pan-line1' : undefined}>{b.text}</p>
+    case 'check': return <div className="pan-chk" aria-hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></div>
+    case 'deliver':
+      return (
+        <>
+          <button type="button" className="pan-deliver" onClick={onDeliver} disabled={delivering}>{delivering ? 'Entregando…' : 'Entregar premio'}</button>
+          <div className="pan-hint"><div className="pan-drain"><i /></div>Si nadie toca, vuelve a esperar</div>
+        </>
+      )
   }
 }
 
@@ -452,6 +492,15 @@ export const PANTALLA_CSS = `
 
 .pan-prz{width:clamp(200px,36vmin,340px);aspect-ratio:1;border-radius:28px;overflow:hidden;background:color-mix(in srgb,var(--fg) 14%,transparent);display:flex;align-items:center;justify-content:center;animation:pan-pop .6s ease-out}
 .pan-prz img{width:100%;height:100%;object-fit:contain}
+.pan-deliver{font:800 clamp(22px,3vw,32px) var(--font-display),sans-serif;padding:clamp(16px,2.6vh,24px) clamp(34px,6vw,64px);border-radius:99px;border:0;background:var(--fg);color:var(--bg);cursor:pointer;box-shadow:0 6px 0 color-mix(in srgb,var(--fg) 40%,transparent)}
+.pan-deliver:active{transform:translateY(3px);box-shadow:0 3px 0 color-mix(in srgb,var(--fg) 40%,transparent)}
+.pan-deliver:disabled{opacity:.7}
+.pan-hint{font-size:15px;opacity:.7;display:flex;flex-direction:column;align-items:center;gap:8px}
+.pan-drain{width:min(260px,60vw);height:6px;border-radius:99px;background:color-mix(in srgb,var(--fg) 22%,transparent);overflow:hidden}
+.pan-drain i{display:block;height:100%;width:100%;background:var(--fg);transform-origin:left;animation:pan-drain 15s linear forwards}
+@keyframes pan-drain{0%{transform:scaleX(1)}100%{transform:scaleX(0)}}
+.pan-chk{width:clamp(120px,20vmin,180px);aspect-ratio:1;border-radius:50%;background:var(--acc);color:var(--bg);display:flex;align-items:center;justify-content:center;animation:pan-pop .6s ease-out}
+.pan-chk svg{width:56%;height:56%}
 .pan-pts{display:flex;align-items:center;gap:16px;animation:pan-pop .6s ease-out}
 .pan-pts img{width:clamp(48px,8vw,84px);height:clamp(48px,8vw,84px);object-fit:contain}
 .pan-big{font-family:var(--font-display);font-size:clamp(80px,14vw,140px);font-weight:800;line-height:1}

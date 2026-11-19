@@ -218,14 +218,17 @@ function RealPassPreview({ design, images, rewardLabel, tiers, previewTierIndex 
   const activeTier = tiers[previewTierIndex] || tiers[0]
   const tc = design.type === 'membership' && activeTier ? activeTier.color : (design.textColor || '#FFFFFF')
   const lc = design.type !== 'membership' && design.labelColor && /^#[0-9A-Fa-f]{6}$/.test(design.labelColor) ? design.labelColor : hexToRgba(tc, 0.65)
+  const nextTier = tiers[previewTierIndex + 1]
   const second = design.type === 'stamp' ? { label: 'PREMIO', value: rewardLabel }
-    : design.type === 'points' ? { label: 'VISITAS', value: '14' } : null
+    : design.type === 'points' ? { label: 'VISITAS', value: '14' }
+    : design.type === 'membership' ? { label: 'NIVEL', value: activeTier?.name || '' } : null
+  const third = design.type === 'membership' && nextTier ? { label: 'SIGUIENTE', value: `${nextTier.name} · ${nextTier.threshold}` } : null
   return (
     <div className="dt-real-pass" style={{ background: solidBg(design, activeTier) }}>
       <div className="dt-real-pass-top">
         {images?.apple.logo ? <img src={images.apple.logo} className="dt-real-pass-logo-real" alt="" /> : <div className="dt-skel-logo" />}
       </div>
-      {images?.apple.strip ? <img src={images.apple.strip} className="dt-real-pass-strip" alt="" /> : <div className="dt-skel-strip" />}
+      {images?.apple.strip ? <img src={images.apple.strip} className="dt-real-pass-strip" alt="" /> : (design.type === 'membership' && images ? null : <div className="dt-skel-strip" />)}
       <div className="dt-real-pass-info">
         <div className="dt-real-pass-info-field">
           <div className="dt-real-pass-info-label" style={{ color: lc }}>TITULAR</div>
@@ -234,6 +237,10 @@ function RealPassPreview({ design, images, rewardLabel, tiers, previewTierIndex 
         {second && <div className="dt-real-pass-info-field">
           <div className="dt-real-pass-info-label" style={{ color: lc }}>{second.label}</div>
           <div className="dt-real-pass-info-val" style={{ color: tc }}>{second.value}</div>
+        </div>}
+        {third && <div className="dt-real-pass-info-field">
+          <div className="dt-real-pass-info-label" style={{ color: lc }}>{third.label}</div>
+          <div className="dt-real-pass-info-val" style={{ color: tc }}>{third.value}</div>
         </div>}
       </div>
       <div className="dt-real-pass-qr-section">
@@ -370,7 +377,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   const [flipSubMessage, setFlipSubMessage] = useState(init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio')
   const [isFlipping, setIsFlipping]         = useState(false)
   const [prizeImage, setPrizeImage]           = useState<string | null>(card.flipImageUrl || null)
-  // Foto de fondo de la imagen de puntos (opcional; el backend la oscurece abajo).
+  // Foto de fondo de la imagen de puntos o del nivel (opcional; el backend la oscurece abajo).
   const [stripImage, setStripImage]           = useState<string | null>(card.stripImageUrl || null)
   const stripImageRef                         = useRef<HTMLInputElement>(null)
   const prizeImageRef                         = useRef<HTMLInputElement>(null)
@@ -668,8 +675,8 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
             </>
           )}
 
-          {/* ── Foto de fondo (puntos) ── */}
-          {card.type === 'points' && (
+          {/* ── Foto de fondo (puntos y membresía) ── */}
+          {(card.type === 'points' || card.type === 'membership') && (
             <>
               <div className="dt-panel-section-title" style={{ marginTop: 20 }}>
                 <Icon name="imagen" size={12} className="dt-ic-brasa dt-ic-inline" />
@@ -681,7 +688,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
                   : <>
                       <Icon name="imagen" size={20} className="dt-ic-faint" />
                       <span className="dt-prize-upload-hint">Subir una foto (opcional)</span>
-                      <span className="dt-prize-upload-sub">JPG o PNG horizontal, detrás de los puntos</span>
+                      <span className="dt-prize-upload-sub">JPG o PNG horizontal, {card.type === 'membership' ? 'detrás del nivel' : 'detrás de los puntos'}</span>
                     </>
                 }
                 <input ref={stripImageRef} type="file" accept="image/*" style={{ display: 'none' }}

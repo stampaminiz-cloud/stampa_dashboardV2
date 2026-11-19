@@ -2,6 +2,23 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.13.0 (19/11/2026) — Últimos arreglos
+
+**Arreglos**
+- Inicio: las tarjetas "Nuevos este mes" y "Premios entregados" perdían el fondo de color del ícono.
+- Los selectores de tarjeta tenían dos flechas encimadas.
+- Sucursales: el nombre de la principal sigue al del negocio (backend).
+
+**Cambios**
+- Analítica: el selector de tarjeta pasa a chips chicos en su propia fila. "Comparación entre tarjetas" es una columna por tarjeta, con su número y sus barras. "Respuestas del formulario" muestra el reparto en una barra y, al tocar una respuesta, su detalle con el botón de avisar.
+- Premios: pestañas de tarjeta (como Programa / Clientes) y un gráfico de premios por semana.
+- Formulario: Nombre y Email vienen puestos y se editan como los demás (texto, ayuda y, en el nombre, si se pide o se muestra). El email se pide siempre.
+- Membresía: 1 a 6 niveles, "Solo por invitación" (no sale en el QR; se suma desde la ficha del cliente en Clientes) y foto de fondo opcional. Sin puntitos: el pase muestra el nivel y el siguiente.
+- Equipo: una sola lista con personas y celulares, y un solo botón "Sumar" que pregunta si es una persona o un celular.
+- Configuración: Mis alertas y Plan, lado a lado; el WhatsApp rotula "Tipo" y "Texto en la tarjeta"; las pantallas muestran su dirección fija.
+- Pantalla del mostrador: con la tarjeta de sellos completa, muestra el premio con el botón "Entregar premio" (si nadie toca en 15 segundos vuelve a esperar) y después "¡Entregado!" con la tarjeta de nuevo en 0. En Configuración, "Cómo suman tus clientes", el interruptor "Entregar el premio al apoyar el pase" (apagado de fábrica) lo entrega solo. Solo sellos.
+- Logo: solo "STAMPA" en la letra de la marca, sin mascota, en el menú y en todos lados. Carga sin texto: el nombre con una línea al abrir el panel y la forma de la sección al pasar de una pestaña a otra.
+
 ## 1.12.1 (19/11/2026) — Ya sumaste y reglas más claras
 
 **Arreglos**

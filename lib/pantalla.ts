@@ -21,13 +21,17 @@ export const setScreen = (s: ScreenLink | null) => {
   try { if (s) localStorage.setItem(K_SCREEN, JSON.stringify(s)); else localStorage.removeItem(K_SCREEN) } catch { /* modo privado */ }
 }
 
-export type ScreenState = 'ok' | 'prize' | 'tier_up' | 'limit' | 'needs_staff'
+export type ScreenState = 'ok' | 'prize' | 'tier_up' | 'limit' | 'needs_staff' | 'delivered'
 export interface TierLook { name: string; perk: string | null; color: string | null; bg: string | null; icon: string | null }
 export interface CatalogRow { name: string; pointsCost: number; affordable: boolean; unlocked: boolean }
 export interface ScanResult {
   state: ScreenState
   repeat: boolean
   message: string | null
+  // Tarjeta de sellos completa: el empleado puede tocar "Entregar".
+  deliverable?: boolean
+  // Con state "delivered": el premio que se entregó.
+  reward?: string | null
   name: string
   card: { id: string; type: 'stamp' | 'points' | 'membership'; name: string; color: string; secondColor: string; textColor: string; flipMessage: string | null }
   limit?: { rule: 'day' | 'hours'; nextAt: string | null }
@@ -74,4 +78,5 @@ export const pantalla = {
   status: (key: string) => call<ScreenStatus>('GET', '/api/screen/status', key),
   brand: (key: string) => call<{ cards: BrandCard[] }>('GET', '/api/screen/brand', key),
   scan: (key: string, qrValue: string) => call<ScanResult>('POST', '/api/screen/scan', key, { qrValue }),
+  deliver: (key: string, qrValue: string) => call<ScanResult>('POST', '/api/screen/deliver', key, { qrValue }),
 }

@@ -12,7 +12,7 @@ import { BASE_URL } from '@/lib/api'
 import { formatMoney } from '@/lib/money'
 import { Icon } from '@/components/ui/Icon'
 import { Switch } from '@/components/ui/Switch'
-import { MascotLoader } from '@/components/ui/MascotLoader'
+import { Cargando } from '@/components/ui/Cargando'
 import { readCache, getJson, writeCache } from '@/lib/cache'
 
 type Product = { _id?: string; name: string; price: number | string; unit: 'unidad' | 'kg' | '100g'; active: boolean }
@@ -68,7 +68,7 @@ export function OrdersTab({ businessId, isManager = false, onChoosePlan, onOpenS
   }
 
   if (loadError) return <div className="od-content"><style>{CSS}</style><div className="od-note">No pudimos cargar Pedidos. Recargá la página.</div></div>
-  if (!data || !s) return <div className="od-content"><style>{CSS}</style><MascotLoader text="Cargando Pedidos…" /></div>
+  if (!data || !s) return <div className="od-content"><style>{CSS}</style><Cargando /></div>
 
   if (!data.allowed) return (
     <div className="od-content"><style>{CSS}</style>

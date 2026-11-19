@@ -316,20 +316,17 @@ function ActivateDeviceModal({ businessId, locs, selectedId, onClose }: { busine
   )
 }
 
-// ─── Celulares del local ──────────────────────────────────────────────────────
+// ─── Sumar un celular del local ───────────────────────────────────────────────
 // El dueño manda un link (un solo uso, 24 h) al celular; ese navegador queda
-// vinculado a la sucursal y cada empleado entra con su PIN. Quitar un celular
-// corta su sesión al instante.
-function DevicesCard({ businessId, locs, selectedId, onLinkApp }: { businessId: string; locs: Location[]; selectedId?: string | null; onLinkApp: () => void }) {
+// vinculado a la sucursal y cada empleado entra con su PIN. Los celulares ya
+// vinculados se ven en la lista de Equipo, donde también se quitan.
+function PhoneModal({ businessId, locs, selectedId, onClose, onLinkApp }: { businessId: string; locs: Location[]; selectedId?: string | null; onClose: () => void; onLinkApp: () => void }) {
   const [locId, setLocId] = useState('')
   const [qr, setQr] = useState<{ img: string; place: string } | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
-  const [devices, setDevices] = useState<ScannerDevice[] | null>(null)
   const loc = locs.find(l => l.id === locId) || locs.find(l => l.id === selectedId) || locs.find(l => l.isPrimary) || locs[0]
   const multi = locs.length >= 2
-
-  useEffect(() => { apiGetScannerDevices(businessId).then(r => setDevices(r.devices)).catch(() => setDevices([])) }, [businessId])
 
   async function act(kind: 'whatsapp' | 'copy' | 'qr') {
     setBusy(kind); setMsg(null)
@@ -350,73 +347,70 @@ function DevicesCard({ businessId, locs, selectedId, onLinkApp }: { businessId: 
     } finally { setBusy(null) }
   }
 
-  async function removeDevice(d: ScannerDevice) {
-    if (!window.confirm(`¿Quitar ${d.label} (${d.location})?\n\nEse celular deja de poder escanear al instante. Para volver a usarlo, mandale un link nuevo.`)) return
-    setBusy(d.id)
-    try { await apiRemoveScannerDevice(businessId, d.id); setDevices(list => (list || []).filter(x => x.id !== d.id)) }
-    catch (err: any) { setMsg({ ok: false, text: err?.error || 'No pudimos quitar el celular.' }) }
-    finally { setBusy(null) }
-  }
-
   return (
-    <div className="us-card us-block">
-      <div className="us-block-head">
-        <div style={{ flex: 1, minWidth: 240 }}>
-          <div className="us-block-title">Celulares del local</div>
+    <div className="us-overlay" onClick={onClose}>
+      <div className="us-modal" onClick={e => e.stopPropagation()}>
+        <div className="us-modal-head">
+          <div className="us-modal-title">Vincular un celular del local</div>
+          <button className="us-x" onClick={onClose} aria-label="Cerrar">×</button>
         </div>
-        <div className="us-block-actions">
-          {multi && (
-            <select className="us-input us-input--sm" value={loc?.id || ''} onChange={e => setLocId(e.target.value)} aria-label="Sucursal del celular">
-              {locs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
-          )}
-          <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => act('whatsapp')} disabled={!!busy}>{busy === 'whatsapp' ? 'Creando…' : 'Mandar link por WhatsApp'}</button>
-          <button className="us-link" onClick={() => act('copy')} disabled={!!busy}>Copiar link</button>
-          <button className="us-link" onClick={() => act('qr')} disabled={!!busy}>Mostrar QR</button>
-        </div>
-      </div>
-
-      {msg && <div className={msg.ok ? 'us-success' : 'us-error'} style={{ margin: '0 0 12px' }}>{msg.text}</div>}
-
-      {devices && devices.length > 0 ? (
-        <div className="us-web-list">
-          {devices.map(d => (
-            <div key={d.id} className="us-web-dev">
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="us-name">{d.label}</div>
-                <div className="us-sub">{d.location} · vinculado {relTime(d.linkedAt)}{d.lastSeenAt ? ` · usado ${relTime(d.lastSeenAt)}` : ''}</div>
-              </div>
-              <button className="us-link us-del" onClick={() => removeDevice(d)} disabled={busy === d.id}>{busy === d.id ? 'Quitando…' : 'Quitar'}</button>
-            </div>
-          ))}
-        </div>
-      ) : devices ? (
-        <div className="us-hint" style={{ marginTop: 0 }}>Todavía no vinculaste ningún celular.</div>
-      ) : null}
-
-      <div className="us-hint us-block-foot">
-        Cada link vale 24 horas, para un solo celular. App de iPhone:{' '}
-        {SCANNER_IOS_URL
-          ? <a className="us-link" href={SCANNER_IOS_URL} target="_blank" rel="noreferrer">descargar Stampa Escáner</a>
-          : <span>Stampa Escáner, próximamente</span>}
-        {' · '}
-        <button className="us-link" onClick={onLinkApp}>vincularla con un código QR</button>
-      </div>
-
-      {qr && (
-        <div className="us-overlay" onClick={() => setQr(null)}>
-          <div className="us-modal" onClick={e => e.stopPropagation()}>
-            <div className="us-modal-head"><div className="us-modal-title">Escáner web{multi ? ` · ${qr.place}` : ''}</div><button className="us-x" onClick={() => setQr(null)} aria-label="Cerrar">×</button></div>
+        {qr ? (
+          <>
             <div className="us-qr"><img src={qr.img} width={220} height={220} alt="QR del link del escáner web" /></div>
             <ol className="us-steps">
-              <li>El empleado abre la cámara de su celular y apunta a este código.</li>
-              <li>Toca el link que aparece: se abre el escáner en el navegador.</li>
-              <li>Entra con su PIN. Ese celular queda vinculado{multi ? ` a ${qr.place}` : ''}.</li>
+              <li>Abrí la cámara del celular del local y apuntá a este código.</li>
+              <li>Tocá el link que aparece.</li>
+              <li>Entrá con tu PIN. Ese celular queda vinculado{multi ? ` a ${qr.place}` : ''}.</li>
             </ol>
             <div className="us-hint">Un solo celular. Vence en 24 horas.</div>
-          </div>
+            <div className="us-modal-foot"><button className="us-link" onClick={() => setQr(null)}>Volver</button><button className="s-btn s-btn--primary s-btn--sm" onClick={onClose}>Listo</button></div>
+          </>
+        ) : (
+          <>
+            <p className="us-text" style={{ marginTop: 0 }}>Mandá el link y abrilo en el celular del local. Sirve una vez y dura 24 horas.</p>
+            {multi && (
+              <select className="us-input" value={loc?.id || ''} onChange={e => setLocId(e.target.value)} aria-label="Sucursal del celular">
+                {locs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+            )}
+            {msg && <div className={msg.ok ? 'us-success' : 'us-error'} style={{ margin: '10px 0 0' }}>{msg.text}</div>}
+            <div className="us-modal-foot" style={{ flexWrap: 'wrap' }}>
+              <button className="s-btn s-btn--primary s-btn--sm" onClick={() => act('whatsapp')} disabled={!!busy}>{busy === 'whatsapp' ? 'Creando…' : 'Mandar por WhatsApp'}</button>
+              <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => act('copy')} disabled={!!busy}>Copiar link</button>
+              <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => act('qr')} disabled={!!busy}>Mostrar QR</button>
+            </div>
+            {SCANNER_IOS_URL && (
+              <div className="us-hint">
+                ¿iPhone con la app? <a className="us-link" href={SCANNER_IOS_URL} target="_blank" rel="noreferrer">Descargar Stampa Escáner</a> · <button className="us-link" onClick={onLinkApp}>vincularla con un código QR</button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── ¿Una persona o un celular? ───────────────────────────────────────────────
+function ChooseAddModal({ onClose, onPerson, onPhone }: { onClose: () => void; onPerson: () => void; onPhone: () => void }) {
+  return (
+    <div className="us-overlay" onClick={onClose}>
+      <div className="us-modal" onClick={e => e.stopPropagation()}>
+        <div className="us-modal-head">
+          <div className="us-modal-title">¿Qué querés sumar?</div>
+          <button className="us-x" onClick={onClose} aria-label="Cerrar">×</button>
         </div>
-      )}
+        <div className="us-roles">
+          <button className="us-role-opt" onClick={onPerson}>
+            <strong>Una persona</strong>
+            <span>Un empleado que escanea con su PIN, o un encargado del panel.</span>
+          </button>
+          <button className="us-role-opt" onClick={onPhone}>
+            <strong>Un celular del local</strong>
+            <span>El que está en el mostrador. Se vincula una vez con un link.</span>
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -497,6 +491,9 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
   const [filter, setFilter] = useState<'all' | 'manager' | 'scanner'>('all')
   const [showAdd, setShowAdd] = useState(false)
   const [showLinkApp, setShowLinkApp] = useState(false)
+  const [showChoose, setShowChoose] = useState(false)
+  const [showPhone, setShowPhone] = useState(false)
+  const [devices, setDevices] = useState<ScannerDevice[]>([])
   const [activityOf, setActivityOf] = useState<StaffUser | null>(null)
   const [pinOf, setPinOf] = useState<StaffUser | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<StaffUser | null>(null)
@@ -515,6 +512,17 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
     try { setUsers((await apiGetTeam(businessId)).map(mapUser)) } catch { /* quedan los que vinieron */ } finally { setLoaded(true) }
   }
   useEffect(() => { load() }, [businessId]) // eslint-disable-line react-hooks/exhaustive-deps
+  const loadDevices = () => { if (businessId) apiGetScannerDevices(businessId).then(r => setDevices(r.devices)).catch(() => setDevices([])) }
+  useEffect(loadDevices, [businessId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function removeDevice(d: ScannerDevice) {
+    if (!businessId) return
+    if (!window.confirm(`¿Quitar ${d.label} (${d.location})?\n\nEse celular deja de poder escanear al instante. Para volver a usarlo, mandale un link nuevo.`)) return
+    setBusyId(d.id); setNotice(null)
+    try { await apiRemoveScannerDevice(businessId, d.id); setDevices(list => list.filter(x => x.id !== d.id)) }
+    catch (err: any) { setNotice({ ok: false, text: err?.error || 'No pudimos quitar el celular.' }) }
+    finally { setBusyId(null) }
+  }
 
   const occupying = users.filter(u => u.status !== 'disabled').length
   const atLimit = teamLimit < 999 && occupying >= teamLimit
@@ -578,14 +586,14 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
         <div className="us-card us-block">
           <div className="us-block-head">
             <div style={{ flex: 1, minWidth: 240 }}>
-              <div className="us-block-title">Personas</div>
-              <p className="us-block-sub">Quién escanea y quién maneja el panel.</p>
+              <div className="us-block-title">Equipo</div>
+              <p className="us-block-sub">Personas y celulares que usan Stampa en el local.</p>
             </div>
             <div className="us-block-actions">
               {teamLimit < 999 && <span className={`us-count${atLimit ? ' us-count--full' : ''}`}>{occupying} de {teamLimit} en tu plan</span>}
               {atLimit
                 ? (onChoosePlan && <button className="s-btn s-btn--secondary s-btn--sm" onClick={onChoosePlan}>Más lugares</button>)
-                : <button className="s-btn s-btn--primary s-btn--sm" onClick={() => setShowAdd(true)} disabled={!businessId}><Icon name="agregar" size={14} /> Sumar a alguien</button>}
+                : <button className="s-btn s-btn--primary s-btn--sm" onClick={() => setShowChoose(true)} disabled={!businessId}><Icon name="agregar" size={14} /> Sumar</button>}
             </div>
           </div>
 
@@ -610,7 +618,7 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
               <span />
             </div>
             {!loaded && users.length === 0 && [0, 1].map(i => <div key={i} className="us-skel" style={{ height: 52, margin: '8px 16px' }} />)}
-            {loaded && users.length === 0 && (
+            {loaded && users.length === 0 && devices.length === 0 && (
               <div className="us-empty">Todavía no sumaste a nadie.</div>
             )}
             {shown.map(u => {
@@ -654,10 +662,20 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
                 </div>
               )
             })}
+            {devices.map(d => (
+              <div key={d.id} className="us-row">
+                <div className="us-person">
+                  <div className="us-av" style={{ background: 'var(--s-pino)' }}><Icon name="pantalla" size={16} /></div>
+                  <div style={{ minWidth: 0 }}><div className="us-name">{d.label}</div><div className="us-sub">{d.location}</div></div>
+                </div>
+                <span className="us-badges"><span className="us-badge" style={{ color: 'var(--s-pino-texto)', background: 'var(--s-hueco)' }}>Celular del local</span></span>
+                <span className="us-activity">Vinculado {relTime(d.linkedAt)}{d.lastSeenAt ? ` · usado ${relTime(d.lastSeenAt)}` : ''}</span>
+                <span className="us-actions"><button className="s-btn s-btn--text s-btn--sm us-del" disabled={busyId === d.id} onClick={() => removeDevice(d)}>{busyId === d.id ? 'Quitando…' : 'Quitar'}</button></span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {businessId && <DevicesCard businessId={businessId} locs={locs} selectedId={selectedLocationId} onLinkApp={() => setShowLinkApp(true)} />}
 
         <div className="us-lbl">Roles y permisos</div>
         <div className="us-3col">
@@ -671,6 +689,8 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
         </div>
       </div>
 
+      {showChoose && <ChooseAddModal onClose={() => setShowChoose(false)} onPerson={() => { setShowChoose(false); setShowAdd(true) }} onPhone={() => { setShowChoose(false); setShowPhone(true) }} />}
+      {showPhone && businessId && <PhoneModal businessId={businessId} locs={locs} selectedId={selectedLocationId} onClose={() => { setShowPhone(false); loadDevices() }} onLinkApp={() => { setShowPhone(false); setShowLinkApp(true) }} />}
       {showLinkApp && businessId && <ActivateDeviceModal businessId={businessId} locs={locs} selectedId={selectedLocationId} onClose={() => setShowLinkApp(false)} />}
       {showAdd && businessId && <AddPersonModal businessId={businessId} locs={locs} selectedId={selectedLocationId} onClose={() => { setShowAdd(false); load() }} onAdd={u => setUsers(prev => [...prev, u])} />}
       {pinOf && businessId && <NewPinModal businessId={businessId} user={pinOf} onClose={() => setPinOf(null)} />}

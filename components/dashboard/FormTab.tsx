@@ -7,12 +7,13 @@ import type { Location } from '@/lib/location'
 import { OptionsEditor } from './OptionsEditor'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { Switch } from '@/components/ui/Switch'
-import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields } from '@/lib/api'
+import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields, apiUpdateCard } from '@/lib/api'
 import { usePlan } from '@/data/plans'
 
-// Formulario de registro, por tarjeta. Nombre y email son fijos; el resto
-// (preguntas del rubro, pregunta de premio y campos propios) se edita acá y
-// se guarda todo junto con "Guardar cambios". El color y el logo del
+// Formulario de registro, por tarjeta. Nombre y email vienen puestos y se
+// editan como los demás (texto, ayuda y, en el nombre, si se pide o se
+// muestra); el email se pide siempre porque identifica al cliente. Todo se
+// guarda junto con "Guardar cambios". El color y el logo del
 // formulario son los de la tarjeta (se editan en Diseño).
 
 type FieldType = 'text' | 'date' | 'select' | 'tel' | 'number'
@@ -34,7 +35,15 @@ interface CardInfo {
   id: string; name: string; type: 'stamp' | 'points' | 'membership'; isActive: boolean
   color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null
   rewardMode?: string | null; rewardField?: string | null
+  baseFields?: any
 }
+
+// Nombre y email del formulario (Card.baseFields).
+interface BaseCfg { name: { label: string; placeholder: string; isRequired: boolean; isActive: boolean }; email: { label: string; placeholder: string } }
+const baseOf = (c?: any): BaseCfg => ({
+  name: { label: c?.baseFields?.name?.label || '', placeholder: c?.baseFields?.name?.placeholder || '', isRequired: c?.baseFields?.name?.isRequired !== false, isActive: c?.baseFields?.name?.isActive !== false },
+  email: { label: c?.baseFields?.email?.label || '', placeholder: c?.baseFields?.email?.placeholder || '' },
+})
 
 const TYPE_LABEL: Record<FieldType, string> = { text: 'Texto', number: 'Número', date: 'Fecha', select: 'Lista de opciones', tel: 'Teléfono' }
 const TYPE_ICON: Record<FieldType, IconName> = { text: 'texto', number: 'numero', date: 'fecha', select: 'lista', tel: 'telefono' }
@@ -66,7 +75,7 @@ function validate(fields: EditField[]): string | null {
 }
 
 // ─── Vista previa ─────────────────────────────────────────────────────────────
-function Preview({ card, businessName, fields, askReward, whiteLabel }: { card?: CardInfo; businessName: string; fields: EditField[]; askReward: boolean; whiteLabel: boolean }) {
+function Preview({ card, businessName, fields, askReward, whiteLabel, base }: { card?: CardInfo; businessName: string; fields: EditField[]; askReward: boolean; whiteLabel: boolean; base: BaseCfg }) {
   const color = card?.color || '#1B412F'
   const second = card?.secondColor || color
   const shown = fields.filter(f => f.isActive && (!f.isRewardSource || askReward))
@@ -80,8 +89,11 @@ function Preview({ card, businessName, fields, askReward, whiteLabel }: { card?:
           {card && <div className="fm-pv-badge">{card.name}</div>}
         </div>
         <div className="fm-pv-body">
-          {[{ label: 'Nombre completo', ph: 'Tu nombre y apellido' }, { label: 'Email', ph: 'tu@email.com' }].map(f => (
-            <div key={f.label} className="fm-pv-field"><div className="fm-pv-label">{f.label}</div><div className="fm-pv-input">{f.ph}</div></div>
+          {[
+            ...(base.name.isActive ? [{ label: base.name.label || 'Nombre completo', ph: base.name.placeholder || 'Tu nombre y apellido', req: base.name.isRequired }] : []),
+            { label: base.email.label || 'Email', ph: base.email.placeholder || 'tu@email.com', req: true },
+          ].map(f => (
+            <div key={f.label} className="fm-pv-field"><div className="fm-pv-label">{f.label}{f.req && <span style={{ color }}> *</span>}</div><div className="fm-pv-input">{f.ph}</div></div>
           ))}
           {shown.map(f => (
             <div key={f.key} className="fm-pv-field">
@@ -246,6 +258,9 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
   const [rOpts, setROpts] = useState<string[]>([])
   const askReward = isStamp && rMode === 'dynamic'
 
+  const [base, setBase] = useState<BaseCfg>(() => baseOf(card))
+  const [baseSaved, setBaseSaved] = useState<BaseCfg>(() => baseOf(card))
+  useEffect(() => { setBase(baseOf(card)); setBaseSaved(baseOf(card)) }, [card?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   const [saved, setSaved] = useState<EditField[] | null>(null)
   const [draft, setDraft] = useState<EditField[] | null>(null)
   const [removed, setRemoved] = useState<EditField[]>([])
@@ -282,7 +297,8 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
 
   // Hay cambios si cambió algo de algún campo, el orden, o se agregó/borró uno.
   const fieldsDirty = useMemo(() => !!saved && !!draft && JSON.stringify(draft.map(comparable)) !== JSON.stringify(saved.map(comparable)), [saved, draft])
-  const dirty = fieldsDirty
+  const baseDirty = JSON.stringify(base) !== JSON.stringify(baseSaved)
+  const dirty = fieldsDirty || baseDirty
 
   const customCount = (draft || []).filter(f => f.isCustom || !f.id).filter(f => !f.isRewardSource).length
   const rewardField = (draft || []).find(f => f.isRewardSource)
@@ -307,14 +323,19 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
     }])
     setNotice(null)
   }
-  function discard() { setDraft(saved); setRemoved([]); setError(null); resetReward((saved || []).find(f => f.isRewardSource)?.options || []) }
+  function discard() { setBase(baseSaved); setDraft(saved); setRemoved([]); setError(null); resetReward((saved || []).find(f => f.isRewardSource)?.options || []) }
 
   async function save() {
     if (!businessId || !card || !draft || !saved) return
     const v = validate(draft.filter(f => !f.isRewardSource))
     if (v) { setError(v); return }
+    if ([base.name.label, base.name.placeholder, base.email.label, base.email.placeholder].some(t => t.trim().length > 80)) { setError('Los textos de nombre y email pueden tener hasta 80 caracteres.'); return }
     setSaving(true); setError(null); setNotice(null)
     try {
+      if (baseDirty) {
+        await apiUpdateCard(businessId, card.id, { baseFields: { name: base.name, email: base.email } })
+        setBaseSaved(base)
+      }
       for (const f of removed) await apiDeleteField(businessId, card.id, f.id!)
       const ids: string[] = []
       for (const f of draft) {
@@ -421,11 +442,26 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
               <div className="fm-card-title">Campos</div>
               <div className="fm-card-sub">Ordená con las flechas.</div>
               <div className="fm-list">
-                {['Nombre completo', 'Email'].map(l => (
-                  <div key={l} className="fm-row fm-row--fixed">
-                    <div className="fm-row-main"><span className="fm-type"><Icon name={l === 'Email' ? 'email' : 'texto'} size={14} /></span><span className="fm-fixed-label">{l}</span><span className="fm-badge">Fijo · obligatorio</span></div>
+                <div className={`fm-row${!base.name.isActive ? ' fm-row--off' : ''}`}>
+                  <div className="fm-row-main">
+                    <span className="fm-type"><Icon name="texto" size={14} /></span>
+                    <input className="fm-label-input" value={base.name.label} placeholder="Nombre completo" maxLength={80} onChange={e => { setBase(b => ({ ...b, name: { ...b.name, label: e.target.value } })); setNotice(null) }} />
                   </div>
-                ))}
+                  <input className="fm-ph-input" value={base.name.placeholder} maxLength={80} placeholder="Tu nombre y apellido" onChange={e => { setBase(b => ({ ...b, name: { ...b.name, placeholder: e.target.value } })); setNotice(null) }} />
+                  <div className="fm-row-foot">
+                    <span className="fm-sw"><Switch checked={base.name.isActive} label="Nombre: visible" onChange={v => { setBase(b => ({ ...b, name: { ...b.name, isActive: v } })); setNotice(null) }} />Visible</span>
+                    <span className="fm-sw"><Switch checked={base.name.isRequired} disabled={!base.name.isActive} label="Nombre: obligatorio" onChange={v => { setBase(b => ({ ...b, name: { ...b.name, isRequired: v } })); setNotice(null) }} />Obligatorio</span>
+                    {!base.name.isActive && <span className="fm-hint" style={{ margin: 0 }}>Sin nombre, el cliente queda como "Cliente".</span>}
+                  </div>
+                </div>
+                <div className="fm-row">
+                  <div className="fm-row-main">
+                    <span className="fm-type"><Icon name="email" size={14} /></span>
+                    <input className="fm-label-input" value={base.email.label} placeholder="Email" maxLength={80} onChange={e => { setBase(b => ({ ...b, email: { ...b.email, label: e.target.value } })); setNotice(null) }} />
+                  </div>
+                  <input className="fm-ph-input" value={base.email.placeholder} maxLength={80} placeholder="tu@email.com" onChange={e => { setBase(b => ({ ...b, email: { ...b.email, placeholder: e.target.value } })); setNotice(null) }} />
+                  <div className="fm-row-foot"><span className="fm-badge" title="Con el email se evitan duplicados y se junta a la persona entre sus tarjetas">Siempre se pide: identifica a tu cliente</span></div>
+                </div>
                 {draft === null ? [0, 1].map(i => <div key={i} className="fm-skel" style={{ height: 56 }} />) : draft.map((f, i) => {
                   const hiddenReward = f.isRewardSource && !askReward
                   return (
@@ -485,7 +521,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
 
           <div className="fm-preview-col">
             <div className="fm-preview-title">Así lo ve tu cliente</div>
-            <div className="s-claro" style={{ display: 'contents' }}><Preview card={card} businessName={businessName} fields={previewFields} askReward={askReward} whiteLabel={whiteLabel} /></div>
+            <div className="s-claro" style={{ display: 'contents' }}><Preview card={card} businessName={businessName} fields={previewFields} askReward={askReward} whiteLabel={whiteLabel} base={base} /></div>
           </div>
         </div>
 

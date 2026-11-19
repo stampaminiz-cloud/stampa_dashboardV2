@@ -78,7 +78,7 @@ interface PublicField { _id?: string; label: string; fieldType: string; isLocked
 // Nombre y email se dibujan aparte; el resto (incluida la pregunta de
 // premio, que está bloqueada pero hay que contestarla) va en el formulario.
 const askable = (f: PublicField) => f.builtIn !== undefined ? !f.builtIn : (!f.isLocked || !!f.isRewardSource)
-interface PublicCard { id: string; name: string; type: string; description?: string; color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null }
+interface PublicCard { id: string; name: string; type: string; description?: string; color?: string; secondColor?: string; textColor?: string; logoUrl?: string | null; baseFields?: { name: { label: string; placeholder: string; isRequired: boolean; isActive: boolean }; email: { label: string; placeholder: string } } }
 
 export default function PublicRegisterPage() {
   const params = useParams()
@@ -144,7 +144,10 @@ export default function PublicRegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!fullName.trim() || !email.trim()) { setError('Completá tu nombre y email.'); return }
+    const nameCfg = selectedCard?.baseFields?.name
+    const nameShown = nameCfg?.isActive !== false
+    if (nameShown && nameCfg?.isRequired !== false && !fullName.trim()) { setError(`Completá: ${(nameCfg?.label || 'Nombre completo').toLowerCase()}.`); return }
+    if (!email.trim()) { setError(`Completá: ${(selectedCard?.baseFields?.email?.label || 'Email').toLowerCase()}.`); return }
     const missing = fields.filter(f => askable(f) && f.isRequired && !(answers[f._id as string] || '').trim())
     if (missing.length) { setError(`Completá: ${missing.map(f => f.label).join(', ')}.`); return }
     setSubmitting(true)
@@ -224,7 +227,7 @@ export default function PublicRegisterPage() {
               <div className="rg-body">
                 {result ? (
                   <div className="rg-success">
-                    <div className="rg-success-title">¡Listo, {fullName.split(' ')[0]}!</div>
+                    <div className="rg-success-title">¡Listo{fullName.trim() ? `, ${fullName.trim().split(' ')[0]}` : ''}!</div>
                     <div className="rg-success-note">Ya estás registrado en {businessName} — {result.cardName}.</div>
                     {/* Primero el botón del Wallet de este teléfono (Android → Google). */}
                     {(() => {
@@ -265,13 +268,15 @@ export default function PublicRegisterPage() {
                       <div className="rg-loading">Cargando formulario...</div>
                     ) : (
                       <form onSubmit={handleSubmit}>
+                        {selectedCard?.baseFields?.name?.isActive !== false && (
+                          <div className="rg-field">
+                            <label className="rg-label">{selectedCard?.baseFields?.name?.label || 'Nombre completo'}{selectedCard?.baseFields?.name?.isRequired !== false && <span style={{ color: 'var(--brand-color)' }}> *</span>}</label>
+                            <input className="rg-input" placeholder={selectedCard?.baseFields?.name?.placeholder || 'Tu nombre y apellido'} value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" />
+                          </div>
+                        )}
                         <div className="rg-field">
-                          <label className="rg-label">Nombre completo</label>
-                          <input className="rg-input" placeholder="Tu nombre y apellido" value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" />
-                        </div>
-                        <div className="rg-field">
-                          <label className="rg-label">Email</label>
-                          <input className="rg-input" type="email" placeholder="tu@email.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
+                          <label className="rg-label">{selectedCard?.baseFields?.email?.label || 'Email'}<span style={{ color: 'var(--brand-color)' }}> *</span></label>
+                          <input className="rg-input" type="email" placeholder={selectedCard?.baseFields?.email?.placeholder || 'tu@email.com'} value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
                         </div>
                         {fields.filter(askable).map(f => (
                           <div className="rg-field" key={f._id}>

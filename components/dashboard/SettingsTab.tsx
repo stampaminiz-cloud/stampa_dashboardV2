@@ -492,6 +492,9 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
         .st-timezone-note{font-size:10.5px;color:rgb(var(--s-tinta-rgb) / .4);margin-top:8px;line-height:1.5;}
         .st-rules-note{font-size:12px;color:rgb(var(--s-tinta-rgb) / .6);line-height:1.6;background:rgba(199,93,58,.06);border:1px solid rgba(199,93,58,.15);border-radius:10px;padding:11px 14px;margin-bottom:14px;}
         .st-rules-summary{font-size:11.5px;color:rgb(var(--s-tinta-rgb) / .5);margin-top:10px;line-height:1.6;}
+        .st-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch;}
+        .st-pair>.st-card{height:100%;}
+        @media(max-width:860px){.st-pair{grid-template-columns:1fr;}}
         .st-sector-confirm{position:absolute;z-index:5;top:calc(100% + 8px);left:0;right:0;min-width:320px;background:var(--s-blanco);border:1px solid rgba(199,93,58,.25);border-radius:10px;padding:14px;box-shadow:0 8px 24px rgba(34,32,27,.12);}
         .st-sector-confirm p{font-size:12px;color:rgb(var(--s-tinta-rgb) / .7);margin-bottom:12px;line-height:1.55;}
         .st-alerts-note{font-size:11px;color:rgb(var(--s-tinta-rgb) / .45);margin-bottom:12px;}
@@ -598,6 +601,8 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           </div>
         </Section>
 
+        {/* Mis alertas y Plan, lado a lado (el plan es solo del dueño). */}
+        <div className={isManager ? undefined : 'st-pair'}>
         <Section title={t('st_alerts')} icon={<Icon name="mail" size={16} />}>
           {isManager
             ? <div className="st-alerts-note">Las alertas por email le llegan al dueño del negocio.</div>
@@ -610,9 +615,7 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
               </>}
         </Section>
 
-        {/* Plan y zona de peligro: solo el dueño (el manager tiene "todo el
-            dashboard, sin billing ni equipo, sin zona de peligro"). */}
-        {!isManager && <>
+          {!isManager && (
         <Section title={t('st_plan')} icon={<Icon name="plan" size={16} />}>
           <div className="st-plan-card">
             <div>
@@ -624,7 +627,12 @@ export function SettingsTab({ business: mockBusiness, businessId, ownerName = ''
           </div>
           <BillingDetails billing={billing} onCancel={onCancelSubscription} />
         </Section>
+          )}
+        </div>
 
+        {/* Zona de peligro: solo el dueño (el manager tiene "todo el
+            dashboard, sin billing ni equipo, sin zona de peligro"). */}
+        {!isManager && <>
         <div className="st-danger-card">
           <div className="st-danger-head">
             <Icon name="atencion" size={16} />

@@ -9,7 +9,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { BASE_URL } from '@/lib/api'
 import { formatMoney } from '@/lib/money'
-import { MascotLoader } from '@/components/ui/MascotLoader'
+import { Cargando } from '@/components/ui/Cargando'
 
 type Product = { id: string; name: string; price: number; unit: 'unidad' | 'kg' | '100g'; active: boolean }
 type Day = { date: string; label: string; dayNum: number; long: string; available: boolean; reason: string | null }
@@ -104,7 +104,7 @@ export default function OrderPage() {
   }
 
   if (loadError) return <Shell><div className="op-msg">{loadError}</div></Shell>
-  if (!page) return <Shell><MascotLoader text="Cargando tu pedido…" minHeight={320} /></Shell>
+  if (!page) return <Shell><Cargando minHeight={320} /></Shell>
 
   return (
     <Shell color={page.card.color} textColor={page.card.textColor}>
