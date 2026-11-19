@@ -45,3 +45,19 @@ export function darkenHex(hex: string, factor = 0.7): string {
   const f = (i: number) => Math.round(parseInt(c.slice(i, i + 2), 16) * factor).toString(16).padStart(2, '0')
   return `#${f(0)}${f(2)}${f(4)}`
 }
+
+// Color de tarjeta que sale del logo: el primero de los colores que más
+// aparecen en el logo que se lea bien con texto blanco (ni muy claro ni
+// casi blanco). Si ninguno sirve, null y queda el color que ya había.
+const lumOf = (hex: string) => {
+  const n = parseInt(hex.slice(1), 16)
+  const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 }
+  return 0.2126 * f(n >> 16) + 0.7152 * f((n >> 8) & 255) + 0.0722 * f(n & 255)
+}
+export function brandFromLogo(colors: string[]): string | null {
+  for (const c of colors) {
+    if (!/^#[0-9a-fA-F]{6}$/.test(c)) continue
+    if (1.05 / (lumOf(c) + 0.05) >= 3) return c   // contraste con blanco
+  }
+  return null
+}

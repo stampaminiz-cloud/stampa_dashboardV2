@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { apiMe, apiOnboarding, apiOnboardingPreview, getToken } from '@/lib/api'
 import { NumberStepper } from '@/components/ui/NumberStepper'
-import { darkenHex, DEFAULT_CARD_COLOR, presetsForPlan } from '@/lib/colorPresets'
+import { darkenHex, DEFAULT_CARD_COLOR, presetsForPlan, brandFromLogo } from '@/lib/colorPresets'
 import { ColorField, useLogoColors } from '@/components/dashboard/ColorField'
 import { Icon } from '@/components/ui/Icon'
 import { PassPreview, type PassImages } from '@/components/dashboard/PassPreview'
@@ -381,6 +381,16 @@ function Step5({ state, onChange, onNext, onBack, plan }: StepProps & { plan: st
   const [logoError, setLogoError] = useState<string | null>(null)
   const presets = presetsForPlan(plan)
   const logoColors = useLogoColors(state.brandLogo)
+
+  // Al subir el logo, la tarjeta toma el color más fuerte del logo, pero solo
+  // si el dueño todavía no eligió otro (sigue el color de fábrica). Si lo
+  // eligió él, o si no sube logo, se respeta tal cual.
+  useEffect(() => {
+    if (!state.brandLogo || logoColors.length === 0) return
+    if (state.brandColor.toLowerCase() !== DEFAULT_CARD_COLOR.start.toLowerCase()) return
+    const c = brandFromLogo(logoColors)
+    if (c) onChange({ brandColor: c })
+  }, [state.brandLogo, logoColors.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return

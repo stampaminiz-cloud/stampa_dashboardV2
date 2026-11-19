@@ -17,6 +17,7 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
 - Equipo: una sola lista con personas y celulares, y un solo botón "Sumar" que pregunta si es una persona o un celular.
 - Configuración: Mis alertas y Plan, lado a lado; el WhatsApp rotula "Tipo" y "Texto en la tarjeta"; las pantallas muestran su dirección fija.
 - Pantalla del mostrador: con la tarjeta de sellos completa, muestra el premio con el botón "Entregar premio" (si nadie toca en 15 segundos vuelve a esperar) y después "¡Entregado!" con la tarjeta de nuevo en 0. En Configuración, "Cómo suman tus clientes", el interruptor "Entregar el premio al apoyar el pase" (apagado de fábrica) lo entrega solo. Solo sellos.
+- Onboarding: al subir el logo, la tarjeta toma el color más fuerte del logo que se lea con texto blanco, salvo que ya hayas elegido otro color. Sin logo, queda el color que elijas (o el verde de fábrica).
 - Logo: solo "STAMPA" en la letra de la marca, sin mascota, en el menú y en todos lados. Carga sin texto: el nombre con una línea al abrir el panel y la forma de la sección al pasar de una pestaña a otra.
 
 ## 1.12.1 (19/11/2026) — Ya sumaste y reglas más claras
