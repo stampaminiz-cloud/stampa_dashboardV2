@@ -3,7 +3,7 @@ import { Icon } from '@/components/ui/Icon'
 import { Switch } from '@/components/ui/Switch'
 import { readCache } from '@/lib/cache'
 import React, { useState, useRef, useEffect } from 'react'
-import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS } from '@/lib/colorPresets'
+import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS, logoBrand } from '@/lib/colorPresets'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
 import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiGetPointsCatalog, apiWalletPreview } from '@/lib/api'
@@ -398,11 +398,22 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
     JSON.stringify([c.name, c.color, c.secondColor, c.textColor || null, c.labelColor || null, c.publicDescription || '', c.stampsRequired, c.rewardMode, c.rewardField || '', l, fm, fs, img, ppv])
   const [baseline, setBaseline] = useState(() => snapshot(init, { businessLogo: init.logoUrl || null, earnedIcon: init.earnedIcon || null, emptyIcon: init.emptyIcon || null, pointsIcon: init.pointsIcon || null }, init.flipMessage || '¡Lo lograste!', init.flipSubMessage || 'Presentá esta tarjeta para canjear tu premio', JSON.stringify([init.flipImageUrl || null, init.stripImageUrl || null]), JSON.stringify({ pointsMode: init.pointsMode === 'amount' ? 'amount' : 'visit', pointsPerVisit: init.pointsPerVisit || 10, pointsPerAmount: init.pointsPerAmount || 1, pointsAmountUnit: init.pointsAmountUnit || DEFAULT_UNIT[currency] })))
 
-  function setLogo(key: keyof LogoState) { return (url: string | null) => setLogos({ ...logos, [key]: url }) }
+  // Al subir un logo nuevo se ofrece usar su color (nunca se cambia solo: la
+  // tarjeta ya la usan clientes).
+  const [logoChanged, setLogoChanged] = useState(false)
+  function setLogo(key: keyof LogoState) { return (url: string | null) => { setLogos({ ...logos, [key]: url }); if (key === 'businessLogo') setLogoChanged(!!url) } }
   const dirty = snapshot(card, logos, flipMessage, flipSubMessage, JSON.stringify([prizeImage, stripImage]), pointsPerVisit) !== baseline
   const textColorBad = !!card.textColor && !isHex(card.textColor)
   const labelColorBad = !!card.labelColor && !isHex(card.labelColor)
   const logoColors = useLogoColors(logos.businessLogo)
+  const logoSuggestion = logoChanged && logoColors.length > 0 ? logoBrand(logoColors) : null
+  const offerLogoColor = !!logoSuggestion && logoSuggestion.color.toLowerCase() !== (card.color || '').toLowerCase()
+  function useLogoColor() {
+    if (!logoSuggestion) return
+    const v = logoSuggestion.color
+    setCard({ ...card, color: v, secondColor: secondFor(v), ...(card.type === 'membership' ? { textColor: autoTextFor(v) } : {}) })
+    setLogoChanged(false)
+  }
 
   async function handleSave() {
     if (!businessId) {
@@ -608,6 +619,13 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
               <LogoUpload label="Sello vacío" hint="Ícono vacío" value={logos.emptyIcon} onChange={setLogo('emptyIcon')} />
             </>}
           </div>
+          {offerLogoColor && logoSuggestion && (
+            <div className="dt-logo-color">
+              <span className="dt-logo-color-sw" style={{ background: logoSuggestion.color }} />
+              <span>{logoSuggestion.darkened ? 'Tu logo tiene un color nuevo (en un tono más oscuro para que se lea).' : 'Tu logo tiene un color nuevo.'}</span>
+              <button type="button" className="s-btn s-btn--secondary s-btn--sm" onClick={useLogoColor}>Usar el color de tu logo</button>
+            </div>
+          )}
 
           {/* Form fields — la gestión real (agregar, ocultar, reordenar) vive
               en Forms. Acá solo un puntero, para no tener el mismo campo
@@ -1188,6 +1206,8 @@ export function DesignTab({ cards, businessId, businessName, onSaved, onChoosePl
         .dt-save-error{font-size:12px;color:var(--s-error);background:rgba(178,59,59,.07);border-bottom:1px solid rgba(178,59,59,.15);padding:8px 20px;}
         .dt-save-notice{font-size:12px;color:var(--s-listo);background:rgba(91,140,90,.1);border-bottom:1px solid rgba(91,140,90,.2);padding:8px 20px;}
         .dt-save-warn{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12.5px;color:#7A5A12;background:rgba(212,162,76,.14);border-bottom:1px solid rgba(212,162,76,.3);padding:10px 20px;}
+        .dt-logo-color{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgb(var(--s-tinta-rgb) / .05);border-radius:10px;padding:9px 11px;margin-top:10px;font-size:12.5px;color:var(--s-tinta);}
+        .dt-logo-color-sw{width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1px rgb(0 0 0 / .15);flex-shrink:0;}
         .dt-tier-chips{display:flex;flex-wrap:wrap;gap:6px;}
         .dt-tier-chip{font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(34,32,27,.08);}
         .dt-color-warn{font-size:11px;color:var(--s-brasa-2);background:rgba(199,93,58,.08);border-radius:7px;padding:6px 9px;margin-top:6px;line-height:1.4;}
