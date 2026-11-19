@@ -22,16 +22,25 @@ export const setScreen = (s: ScreenLink | null) => {
 }
 
 export type ScreenState = 'ok' | 'prize' | 'tier_up' | 'limit' | 'needs_staff'
+export interface TierLook { name: string; perk: string | null; color: string | null; bg: string | null; icon: string | null }
+export interface CatalogRow { name: string; pointsCost: number; affordable: boolean; unlocked: boolean }
 export interface ScanResult {
   state: ScreenState
   repeat: boolean
   message: string | null
   name: string
-  card: { type: 'stamp' | 'points' | 'membership'; name: string }
+  card: { id: string; type: 'stamp' | 'points' | 'membership'; name: string; color: string; secondColor: string; textColor: string; flipMessage: string | null }
   limit?: { rule: 'day' | 'hours'; nextAt: string | null }
   stamp?: { stamps: number; required: number; remaining: number; completed: boolean; reward: string | null }
-  points?: { added: number | null; balance: number; redeem: { name: string; pointsCost: number } | null }
-  membership?: { totalVisits: number; tier: { name: string; perk: string | null } | null; nextTier: { name: string } | null; visitsToNext: number | null; tierUp: { name: string; perk: string | null } | null }
+  points?: { added: number | null; balance: number; catalog: CatalogRow[]; unlocked: string[] }
+  membership?: { totalVisits: number; tier: TierLook | null; nextTier: { name: string } | null; visitsToNext: number | null; progress: number | null; tierUp: TierLook | null }
+}
+// Marca de una tarjeta: colores y textos viajan siempre; las imágenes (base64,
+// pesadas) solo con /brand.
+export interface BrandCard {
+  id: string; type: 'stamp' | 'points' | 'membership'
+  color: string; secondColor: string; textColor: string; flipMessage: string | null
+  logoUrl: string | null; earnedIcon: string | null; emptyIcon: string | null; pointsIcon: string | null; flipImageUrl: string | null
 }
 export interface ScreenStatus { business: { name: string }; location: { name: string }; screen: { name: string }; active: boolean; reason: 'paused' | 'plan' | 'disabled' | null; message: string | null }
 
@@ -63,5 +72,6 @@ async function call<T>(method: string, path: string, key: string | null, body?: 
 export const pantalla = {
   claim: (token: string) => call<{ deviceKey: string; kind: string; business: { id: string; name: string } }>('POST', '/api/auth/scanner-link/claim', null, { token, kind: 'screen' }),
   status: (key: string) => call<ScreenStatus>('GET', '/api/screen/status', key),
+  brand: (key: string) => call<{ cards: BrandCard[] }>('GET', '/api/screen/brand', key),
   scan: (key: string, qrValue: string) => call<ScanResult>('POST', '/api/screen/scan', key, { qrValue }),
 }

@@ -50,7 +50,7 @@ export const HELP: Record<string, TabHelp> = {
 
   settings: { title: 'Ayuda de Configuración', items: [
     { q: '¿Quién suma los sellos?', a: 'Un empleado escanea el pase, o el cliente lo apoya en la pantalla del mostrador (Growth). Con cada cobro y la cajita llegan pronto.' },
-    { q: '¿Cómo se entrega el premio?', a: 'Al escanear, el empleado ve "Tiene un premio" y lo entrega. "Sin personas", para locales sin empleados, llega próximamente, desde Pro.' },
+    { q: '¿Cómo se entrega el premio?', a: 'Al escanear, el empleado ve "Tiene un premio" y lo entrega.' },
     { q: '¿Cómo funciona el vencimiento por inactividad?', a: 'Si un cliente no vuelve en ese tiempo, pierde los sellos o puntos acumulados; en membresía baja un nivel por cada período sin venir. Cada visita vuelve a empezar el plazo. Le avisamos por push 7 días antes. Un premio listo para entregar no vence.' },
     { q: '¿Qué define el tipo de cada botón de WhatsApp?', a: 'El tipo define el mensaje que llega escrito y el título en la tarjeta. "Con pedido" abre primero la página de pedido (se arma en la pestaña Pedidos).' },
     { q: '¿Qué es el título en el frente de la tarjeta?', a: 'Va en la fila de abajo, al lado de las visitas. Si lo dejás vacío, sale del primer botón.' },
