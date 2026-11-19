@@ -7,7 +7,15 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
 **Arreglos**
 - La pantalla del mostrador (`/pantalla`) no podía usar la cámara: el encabezado `Permissions-Policy` general la bloqueaba y solo `/escaner` tenía permiso. Ahora `/pantalla` también puede pedir la cámara (solo del propio sitio, nunca en un iframe).
 
-## 1.10.0 (por salir) — Pantalla Stampa
+## 1.10.2 (18/11/2026) — Menos texto, Configuración compacta
+
+**Cambios**
+- Menos texto explicativo en todas las pestañas: se quitaron los subtítulos y las notas que repetían lo obvio, y la tarjeta "Consejos" de Notificaciones. Las filas de "Para atender" en Inicio llenan su tarjeta.
+- Configuración: "Cómo suman tus clientes" y "Reglas del programa" en dos columnas parejas; "Cancelar" de Vincular una pantalla con el mismo tamaño que los demás controles; las opciones de "Quién suma" se acomodan en pantalla angosta.
+- Centro de ayuda de Configuración: se quitan zona horaria, cliente inactivo, máximo por día, tiempo mínimo, saltear la regla, días dobles y cumpleaños.
+- Se quita "Sumar igual" del escáner web y el interruptor de saltear la regla (nadie puede saltearla). Necesita el backend 1.10.2.
+
+## 1.10.0 (18/11/2026) — Pantalla Stampa
 
 **Nuevo**
 - `/pantalla`: una tablet o un celular fijo en el mostrador, con la cámara mirando al cliente, que lee el QR del pase y suma sin empleado. Muestra el resultado según el tipo de tarjeta: sellos (con la barra y el premio al completar), puntos (con lo que suma, el saldo y el aviso cuando ya alcanza para canjear) y niveles (con la visita, el nivel y cuánto falta para el siguiente). Si la regla del local frena la suma, dice cuándo vuelve a poder. Con una tarjeta de puntos por monto pide que un empleado sume la compra.
