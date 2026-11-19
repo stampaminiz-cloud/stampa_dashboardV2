@@ -166,16 +166,6 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
             )
           })}
         </div>
-
-        <div className="pr-block">
-          <div className="pr-title">Cómo se entrega el premio</div>
-          <div className="pr-row">
-            <div className="pr-seg" role="radiogroup" aria-label="Cómo se entrega el premio">
-              <button type="button" role="radio" aria-checked className="pr-seg-btn is-on">Lo entrega un empleado</button>
-              <button type="button" role="radio" aria-checked={false} disabled className="pr-seg-btn">Sin personas</button>
-            </div>
-          </div>
-        </div>
       </>}
     </div>
   )
