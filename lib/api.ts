@@ -123,6 +123,7 @@ export interface Business {
   inactiveDays: number
   alerts: { newCustomer: boolean; nearPrize: boolean; weeklyDigest: boolean }
   sumarMode?: 'staff' | 'screen'
+  screenAutoDeliver?: boolean
 }
 
 export interface Card {
