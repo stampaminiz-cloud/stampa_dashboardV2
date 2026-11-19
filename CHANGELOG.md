@@ -2,6 +2,11 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.11.0 (19/11/2026) — Extender la prueba desde /admin
+
+**Cambios**
+- En el detalle de una cuenta en prueba (o con la prueba vencida y sin haber pagado nunca) hay una tarjeta "Prueba gratis" con botones +7, +14 y +30 días. El cambio queda en el historial del negocio ("Prueba extendida N días"). Necesita el backend 1.11.0.
+
 ## 1.10.3 (18/11/2026) — Cámara de la pantalla
 
 **Arreglos**
