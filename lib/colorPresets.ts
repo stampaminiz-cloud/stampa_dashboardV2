@@ -75,3 +75,45 @@ export function logoBrand(colors: string[]): { color: string; darkened: boolean 
   }
   return null
 }
+
+// ── Niveles de la membresía con el color de la tarjeta ──────────────────────
+// Espejo de defaultTiers / tiersAreUntouched de config/sectorFields.js del
+// backend: si cambia allá, cambiar acá. Cada nivel mezcla el color de la
+// tarjeta con bronce, plata, oro o negro; el texto es claro u oscuro según el
+// fondo. Sirve para que la vista previa siga al color mientras los niveles no
+// se hayan editado a mano.
+export interface TierColors { name: string; threshold: number; perk: string; color: string; bg: string }
+const TIER_BASE: TierColors[] = [
+  { name: 'Bronce', threshold: 0, perk: 'Bienvenida', color: '#854F0B', bg: '#FAEEDA' },
+  { name: 'Plata', threshold: 10, perk: '5% de descuento', color: '#444441', bg: '#EAEAEA' },
+  { name: 'Oro', threshold: 25, perk: 'Regalo de cumpleaños', color: '#633806', bg: '#FAC775' },
+  { name: 'Black', threshold: 50, perk: 'Beneficios exclusivos', color: '#F7F0E4', bg: '#1A1A18' },
+]
+const METALS: [string, number][] = [['#8C6A3F', 0.5], ['#C3C9C5', 0.6], ['#D4B04A', 0.55], ['#101312', 0.82]]
+const mixHex = (a: string, b: string, k: number) => toHex(rgbOf(a).map((v, i) => v * (1 - k) + rgbOf(b)[i] * k))
+const contrastOf = (a: string, b: string) => { const [x, y] = [lumOf(a), lumOf(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05) }
+export function defaultTiersFor(baseColor: string | null | undefined): TierColors[] {
+  if (!/^#[0-9a-fA-F]{6}$/.test(baseColor || '')) return TIER_BASE
+  return TIER_BASE.map((t, i) => {
+    const bg = mixHex(baseColor!, METALS[i][0], METALS[i][1])
+    return { ...t, bg, color: contrastOf(bg, '#1B1B18') >= contrastOf(bg, '#F7F0E4') ? '#1B1B18' : '#F7F0E4' }
+  })
+}
+const nearHex = (a: string, b: string, tol = 3) => rgbOf(a).every((v, i) => Math.abs(v - rgbOf(b)[i]) <= tol)
+export function tiersAreUntouched(tiers: { color: string; bg: string }[]): boolean {
+  if (!Array.isArray(tiers) || tiers.length !== 4) return false
+  const same = (list: TierColors[]) => tiers.every((t, i) => !!t.color && !!t.bg && nearHex(t.bg, list[i].bg) && t.color.toLowerCase() === list[i].color.toLowerCase())
+  if (same(TIER_BASE)) return true
+  const [m, k] = METALS[0]
+  const mm = rgbOf(m)
+  const x = rgbOf(tiers[0].bg).map((v, i) => (v - mm[i] * k) / (1 - k))
+  if (x.some(v => v < -3 || v > 258)) return false
+  return same(defaultTiersFor(toHex(x)))
+}
+// Los niveles tal como se ven con el color actual de la tarjeta: si siguen
+// siendo los de fábrica, con el color nuevo; si no, como los dejó el dueño.
+export function followTiers<T extends { color: string; bg: string }>(tiers: T[], cardColor: string): T[] {
+  if (!tiersAreUntouched(tiers)) return tiers
+  const fresh = defaultTiersFor(cardColor)
+  return tiers.map((t, i) => ({ ...t, color: fresh[i].color, bg: fresh[i].bg }))
+}
