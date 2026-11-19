@@ -126,7 +126,7 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
                     const on = r.maxPerDay === n
                     return (
                       <button key={String(n)} type="button" role="radio" aria-checked={on} disabled={locked} title={locked ? 'Desde el plan Growth' : undefined}
-                        className={`pr-seg-btn${on ? ' is-on' : ''}`} onClick={() => !on && save(c, { maxPerDay: n }, `max-${c.id}`)}>{n === null ? 'Sin límite' : n}</button>
+                        className={`pr-seg-btn${on ? ' is-on' : ''}`} onClick={() => !on && save(c, n === 1 ? { maxPerDay: 1, minHoursBetween: 0 } : { maxPerDay: n }, `max-${c.id}`)}>{n === null ? 'Sin límite' : n}</button>
                     )
                   })}
                 </div>
@@ -135,6 +135,7 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
               </div>
             )
           })}
+          <div className="pr-note">El día cambia a medianoche, hora del local.</div>
           {!custom && (
             <div className="pr-note">Más de una por día y horas entre visitas están en Growth.{onChoosePlan && !isManager && <> <button type="button" className="sc-link" onClick={onChoosePlan}>Ver planes</button></>}</div>
           )}
@@ -153,14 +154,16 @@ export function SumarConfig({ businessId, cards, onCardsChanged, onChoosePlan, i
                 {cardLabel(c)}
                 <div className="pr-seg" role="radiogroup" aria-label={`Tiempo mínimo de ${c.name}`}>
                   {HOURS.map(h => {
-                    const locked = !custom && h > 0
-                    const on = r.minHoursBetween === h
+                    const oneDay = r.maxPerDay === 1
+                    const locked = oneDay || (!custom && h > 0)
+                    const on = oneDay ? h === 0 : r.minHoursBetween === h
                     return (
-                      <button key={h} type="button" role="radio" aria-checked={on} disabled={locked} title={locked ? 'Desde el plan Growth' : undefined}
+                      <button key={h} type="button" role="radio" aria-checked={on} disabled={locked} title={oneDay ? 'Con 1 por día no hace falta' : locked ? 'Desde el plan Growth' : undefined}
                         className={`pr-seg-btn${on ? ' is-on' : ''}`} onClick={() => !on && save(c, { minHoursBetween: h }, `hrs-${c.id}`)}>{h === 0 ? 'Sin mínimo' : `${h} h`}</button>
                     )
                   })}
                 </div>
+                {r.maxPerDay === 1 && <span className="pr-x2">Con 1 por día no hace falta</span>}
                 {msgFor(`hrs-${c.id}`)}
               </div>
             )

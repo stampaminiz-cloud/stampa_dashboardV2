@@ -2,10 +2,13 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.12.1 (19/11/2026) — Ya sumaste
+## 1.12.1 (19/11/2026) — Ya sumaste y reglas más claras
 
 **Arreglos**
 - Pantalla del mostrador: si el cliente volvía a apoyar el pase enseguida, mostraba "¡Sumaste!" y el sello nuevo aunque no sumaba nada. Ahora dice "Ya sumaste", sin festejo ni "+N". Con regla de frecuencia, avisa el límite ("Hoy ya sumaste, volvé mañana").
+
+**Cambios**
+- Configuración, reglas: con "1 por día" el tiempo mínimo entre sumas se deshabilita (no tiene efecto) y queda en "Sin mínimo". Aclara que el día cambia a medianoche, hora del local.
 
 ## 1.12.0 (19/11/2026) — La pantalla con la marca del negocio
 
