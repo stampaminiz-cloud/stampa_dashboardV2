@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { apiMe, apiOnboarding, apiOnboardingPreview, getToken } from '@/lib/api'
 import { NumberStepper } from '@/components/ui/NumberStepper'
-import { darkenHex, DEFAULT_CARD_COLOR, presetsForPlan, brandFromLogo } from '@/lib/colorPresets'
+import { darkenHex, DEFAULT_CARD_COLOR, presetsForPlan, logoBrand } from '@/lib/colorPresets'
 import { ColorField, useLogoColors } from '@/components/dashboard/ColorField'
 import { Icon } from '@/components/ui/Icon'
 import { PassPreview, type PassImages } from '@/components/dashboard/PassPreview'
@@ -382,15 +382,19 @@ function Step5({ state, onChange, onNext, onBack, plan }: StepProps & { plan: st
   const presets = presetsForPlan(plan)
   const logoColors = useLogoColors(state.brandLogo)
 
-  // Al subir el logo, la tarjeta toma el color más fuerte del logo, pero solo
-  // si el dueño todavía no eligió otro (sigue el color de fábrica). Si lo
-  // eligió él, o si no sube logo, se respeta tal cual.
+  // Al subir el logo, la tarjeta toma el color más fuerte del logo (en un tono
+  // más oscuro si es muy claro para el texto blanco), pero solo si el dueño
+  // todavía no eligió otro (sigue el color de fábrica). Si lo eligió él, o no
+  // hay logo, se respeta tal cual. Un logo sin color avisa que elija uno.
+  const fromLogo = state.brandLogo && logoColors.length > 0 ? logoBrand(logoColors) : null
   useEffect(() => {
-    if (!state.brandLogo || logoColors.length === 0) return
+    if (!fromLogo) return
     if (state.brandColor.toLowerCase() !== DEFAULT_CARD_COLOR.start.toLowerCase()) return
-    const c = brandFromLogo(logoColors)
-    if (c) onChange({ brandColor: c })
-  }, [state.brandLogo, logoColors.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
+    onChange({ brandColor: fromLogo.color })
+  }, [state.brandLogo, fromLogo?.color]) // eslint-disable-line react-hooks/exhaustive-deps
+  const logoRowColors = fromLogo && !logoColors.some(c => c.toLowerCase() === fromLogo.color.toLowerCase()) ? [...logoColors, fromLogo.color] : logoColors
+  const usingLogoColor = !!fromLogo && state.brandColor.toLowerCase() === fromLogo.color.toLowerCase()
+  const noLogoColor = !!state.brandLogo && logoColors.length > 0 && !fromLogo && state.brandColor.toLowerCase() === DEFAULT_CARD_COLOR.start.toLowerCase()
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return
@@ -426,7 +430,7 @@ function Step5({ state, onChange, onNext, onBack, plan }: StepProps & { plan: st
           {logoColors.length > 0 && (<>
             <div className="ob-color-sub">De tu logo</div>
             <div className="ob-color-row">
-              {logoColors.map(c => (
+              {logoRowColors.map(c => (
                 <button key={c} title={c} aria-label={c}
                   className={`ob-color-dot${state.brandColor.toLowerCase() === c.toLowerCase() ? ' ob-color-dot--on' : ''}`}
                   style={{ background: c }} onClick={() => onChange({ brandColor: c })} />
@@ -434,6 +438,8 @@ function Step5({ state, onChange, onNext, onBack, plan }: StepProps & { plan: st
             </div>
             <div className="ob-color-sub">Sugeridos</div>
           </>)}
+          {usingLogoColor && <div className="ob-logo-color-note">{fromLogo!.darkened ? 'Usamos un tono más oscuro del color de tu logo para que se lea el texto. Podés cambiarlo.' : 'Tomamos el color de tu logo. Podés cambiarlo.'}</div>}
+          {noLogoColor && <div className="ob-logo-color-note ob-logo-color-note--warn">Tu logo no tiene color: elegí uno para tu tarjeta.</div>}
           <div className="ob-color-row">
             {presets.map(c => (
               <button key={c.start} title={c.label} aria-label={c.label}
@@ -614,6 +620,8 @@ const CSS = `
   .ob-logo-zone:hover { border-color:var(--s-brasa); }
   .ob-logo-hint { font-size:10px; color:rgb(var(--s-tinta-rgb) / .4); }
   .ob-logo-remove { font-size:11px; color:var(--s-error); background:none; border:none; cursor:pointer; margin-top:6px; }
+  .ob-logo-color-note { font-size:12.5px; color:var(--s-tinta); background:rgb(var(--s-tinta-rgb) / .05); border-radius:10px; padding:9px 11px; margin:10px 0 4px; line-height:1.4; }
+  .ob-logo-color-note--warn { outline:1.5px dashed var(--s-brasa); }
   .ob-color-sub { font-size:11px; color:rgb(var(--s-tinta-rgb) / .5); margin:4px 0 8px; }
   .ob-color-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
   .ob-color-dot { width:32px; height:32px; border-radius:50%; border:2.5px solid transparent; cursor:pointer; transition:all .15s; }
