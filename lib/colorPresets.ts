@@ -45,3 +45,33 @@ export function darkenHex(hex: string, factor = 0.7): string {
   const f = (i: number) => Math.round(parseInt(c.slice(i, i + 2), 16) * factor).toString(16).padStart(2, '0')
   return `#${f(0)}${f(2)}${f(4)}`
 }
+
+// Color de tarjeta que sale del logo: el color con más presencia del logo
+// que tenga color de verdad (no blanco, gris ni negro). Si es muy claro para
+// el texto blanco, se usa un tono más oscuro del mismo color. Si el logo no
+// tiene color (blanco y negro), null: el dueño elige.
+const rgbOf = (hex: string) => { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255] }
+const lumOf = (hex: string) => {
+  const [r, g, b] = rgbOf(hex).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 })
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+const okWithWhite = (hex: string) => 1.05 / (lumOf(hex) + 0.05) >= 3
+const hasColor = (hex: string) => {
+  const [r, g, b] = rgbOf(hex).map(v => v / 255)
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  const sat = max === min ? 0 : (max - min) / (1 - Math.abs(2 * l - 1))
+  return sat >= 0.25 && l > 0.08 && l < 0.95
+}
+const toHex = (v: number[]) => '#' + v.map(x => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, '0')).join('')
+export function logoBrand(colors: string[]): { color: string; darkened: boolean } | null {
+  const c = colors.find(x => /^#[0-9a-fA-F]{6}$/.test(x) && hasColor(x))
+  if (!c) return null
+  if (okWithWhite(c)) return { color: c, darkened: false }
+  const rgb = rgbOf(c)
+  for (let k = 0.96; k > 0.2; k -= 0.04) {
+    const t = toHex(rgb.map(v => v * k))
+    if (okWithWhite(t)) return { color: t, darkened: true }
+  }
+  return null
+}
