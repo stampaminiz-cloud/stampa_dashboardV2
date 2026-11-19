@@ -1,8 +1,9 @@
 'use client'
 import { Icon } from '@/components/ui/Icon'
-import { PillSelect } from '@/components/ui/PillSelect'
+import { Switch } from '@/components/ui/Switch'
+import { CardTabs } from '@/components/ui/CardTabs'
 import { readCache, getJson } from '@/lib/cache'
-import { MascotLoader } from '@/components/ui/MascotLoader'
+import { Cargando } from '@/components/ui/Cargando'
 import React, { useState, useEffect } from 'react'
 import {
   BASE_URL, apiGetPointsCatalog, apiCreatePointsCatalogItem, apiUpdatePointsCatalogItem, apiDeletePointsCatalogItem,
@@ -52,6 +53,31 @@ function Stat({ label, value, sub, tone }: { label: string; value: React.ReactNo
   )
 }
 
+// Premios entregados por semana (8 ventanas de 7 días): la última, resaltada.
+function WeeklyRedeems({ weekly }: { weekly?: { from: number; count: number }[] }) {
+  const w = weekly || []
+  const max = Math.max(1, ...w.map(x => x.count))
+  const last = w[w.length - 1]?.count ?? 0
+  return (
+    <div className="rw-card">
+      <div className="rw-card-title">Premios por semana</div>
+      <div className="rw-card-sub">Últimas 8 semanas</div>
+      {w.every(x => x.count === 0)
+        ? <div className="rw-empty-note">Sin premios entregados todavía.</div>
+        : <>
+            <div className="rw-wk" role="img" aria-label={w.map(x => `${x.count}`).join(', ')}>
+              {w.map((x, i) => (
+                <div key={x.from} className="rw-wk-col" title={`${x.count} ${x.count === 1 ? 'premio' : 'premios'}`}>
+                  <div className={`rw-wk-bar${i === w.length - 1 ? ' rw-wk-bar--now' : ''}`} style={{ height: `${Math.max(4, (x.count / max) * 100)}%` }} />
+                </div>
+              ))}
+            </div>
+            <div className="rw-card-sub" style={{ margin: 0 }}>Esta semana: <b>{last}</b> {last === 1 ? 'premio' : 'premios'}</div>
+          </>}
+    </div>
+  )
+}
+
 function Redemptions({ items, onOpenCustomer, empty }: { items: Redemption[]; onOpenCustomer?: (email: string) => void; empty: string }) {
   if (!items.length) return <div className="rw-empty-note">{empty}</div>
   return (
@@ -93,7 +119,7 @@ function RulePreview({ businessId, card, override, rewardLabel, tiers, tierIndex
   const [err, setErr] = useState(false)
   const design = JSON.stringify({
     name: card.name, color: card.color, secondColor: card.secondColor, textColor: card.textColor, labelColor: card.labelColor,
-    logoUrl: card.logoUrl, earnedIcon: card.earnedIcon, emptyIcon: card.emptyIcon, pointsIcon: card.pointsIcon,
+    logoUrl: card.logoUrl, earnedIcon: card.earnedIcon, emptyIcon: card.emptyIcon, pointsIcon: card.pointsIcon, stripImageUrl: card.stripImageUrl,
     stampsRequired: card.stampsRequired, pointsMode: card.pointsMode, pointsPerVisit: card.pointsPerVisit,
     pointsPerAmount: card.pointsPerAmount, pointsAmountUnit: card.pointsAmountUnit, ...override,
     ...(tiers ? { tiers } : {}),
@@ -115,9 +141,10 @@ function RulePreview({ businessId, card, override, rewardLabel, tiers, tierIndex
     <div className="rw-pv">
       <div className="rw-pv-pass" style={{ background: tier ? tier.bg : card.color || '#1B412F', color: tc }}>
         <div className="rw-pv-top">{img?.apple.logo ? <img src={img.apple.logo} alt="" className="rw-pv-logo" /> : <div className="rw-pv-logo rw-skel" />}</div>
-        {img?.apple.strip ? <img src={img.apple.strip} alt="" className="rw-pv-strip" /> : <div className="rw-pv-strip rw-skel" style={{ aspectRatio: '375/123' }} />}
+        {img?.apple.strip ? <img src={img.apple.strip} alt="" className="rw-pv-strip" /> : (tier && img ? null : <div className="rw-pv-strip rw-skel" style={{ aspectRatio: '375/123' }} />)}
         <div className="rw-pv-fields">
           <div><div className="rw-pv-l" style={{ color: lc }}>TITULAR</div><div className="rw-pv-v">Nombre del cliente</div></div>
+          {tier && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>NIVEL</div><div className="rw-pv-v">{tier.name || '—'}</div></div>}
           {rewardLabel !== undefined && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>PREMIO</div><div className="rw-pv-v">{rewardLabel || '—'}</div></div>}
         </div>
       </div>
@@ -338,9 +365,12 @@ function StampRewards({ businessId, card, data, onSaved, onOpenCustomer }: { bus
         </div>
       )}
 
-      <div className="rw-card">
-        <div className="rw-card-title">Últimos premios entregados</div>
-        <Redemptions items={data.recentRedemptions || []} onOpenCustomer={onOpenCustomer} empty="Sin premios entregados." />
+      <div className="rw-2col">
+        <WeeklyRedeems weekly={data.weekly} />
+        <div className="rw-card">
+          <div className="rw-card-title">Últimos premios entregados</div>
+          <Redemptions items={data.recentRedemptions || []} onOpenCustomer={onOpenCustomer} empty="Sin premios entregados." />
+        </div>
       </div>
     </div>
   )
@@ -499,6 +529,8 @@ function PointsRewards({ businessId, card, data, currency, onSaved, onOpenCustom
         )}
       </div>
 
+      <WeeklyRedeems weekly={data.weekly} />
+
       <div className="rw-2col">
         <div className="rw-card">
           <div className="rw-card-title">Últimos canjes</div>
@@ -549,7 +581,7 @@ const TIER_PALETTE = [
 let tierKey = 0
 
 function validateTiers(tiers: EditTier[]): string | null {
-  if (tiers.length < 2) return 'La membresía necesita al menos 2 niveles.'
+  if (tiers.length < 1) return 'La membresía necesita al menos 1 nivel.'
   if (tiers.length > 6) return 'Hasta 6 niveles.'
   for (const [i, t] of tiers.entries()) {
     if (!t.name.trim()) return `El nivel ${i + 1} necesita un nombre.`
@@ -586,6 +618,15 @@ function MembershipRewards({ businessId, card, data, onChanged }: { businessId: 
   const dist: Array<{ tier: string; count: number; color: string; bg: string }> = data.distribution || []
   const total = data.total ?? 0
 
+  const [invite, setInvite] = useState<boolean>(!!card.inviteOnly)
+  const [inviteBusy, setInviteBusy] = useState(false)
+  useEffect(() => { setInvite(!!card.inviteOnly) }, [card.id, card.inviteOnly])
+  async function toggleInvite(v: boolean) {
+    setInviteBusy(true); setError(null)
+    try { await apiUpdateCard(businessId, cardId, { inviteOnly: v }); setInvite(v); onChanged() }
+    catch (err: any) { setError(err?.error || 'No pudimos cambiarlo. Probá de nuevo.') }
+    finally { setInviteBusy(false) }
+  }
   function update(key: string, patch: Partial<EditTier>) { setDraft(d => (d || []).map(t => t.key === key ? { ...t, ...patch } : t)); setNotice(null) }
   function remove(key: string) { setDraft(d => (d || []).filter(t => t.key !== key)); setNotice(null) }
   function add() {
@@ -640,8 +681,12 @@ function MembershipRewards({ businessId, card, data, onChanged }: { businessId: 
         <div className="rw-card-head-row">
           <div>
             <div className="rw-card-title">Niveles y beneficios</div>
-            <div className="rw-card-sub" style={{ marginBottom: 0 }}>Al bajar las visitas de un nivel, los clientes que ya las cumplen suben al guardar.</div>
+            <div className="rw-card-sub" style={{ marginBottom: 0 }}>Al bajar las visitas de un nivel, los clientes que ya las cumplen suben al guardar. Con un solo nivel es un club: el pase muestra el nombre y el beneficio.</div>
           </div>
+          <label className="rw-invite">
+            <Switch checked={invite} disabled={inviteBusy} label="Solo por invitación" onChange={toggleInvite} />
+            <span><b>Solo por invitación</b><small>No sale en el QR del local. La sumás vos desde Clientes.</small></span>
+          </label>
         </div>
         {error && <div className="rw-error">{error}</div>}
         {notice && <div className="rw-notice">{notice}</div>}
@@ -676,7 +721,7 @@ function MembershipRewards({ businessId, card, data, onChanged }: { businessId: 
                       : <NumberStepper value={Number(t.threshold) || 1} onChange={n => update(t.key, { threshold: String(n) })} min={1} max={10000} suffix="visitas" size="sm" ariaLabel="Visitas necesarias" />}
                   </div>
                   <input className="rw-inline-input" placeholder="Ej: 10% de descuento" maxLength={80} value={t.perk} onChange={e => update(t.key, { perk: e.target.value })} aria-label="Beneficio" />
-                  <button className="rw-icon-btn rw-icon-btn--danger" onClick={() => remove(t.key)} disabled={draft.length <= 2 || i === 0} title={i === 0 ? 'El primer nivel no se puede borrar' : draft.length <= 2 ? 'Mínimo 2 niveles' : 'Borrar nivel'}>
+                  <button className="rw-icon-btn rw-icon-btn--danger" onClick={() => remove(t.key)} disabled={draft.length <= 1 || i === 0} title={i === 0 ? 'El primer nivel no se puede borrar' : 'Borrar nivel'}>
                     <Icon name="borrar" size={14} />
                   </button>
                 </div>
@@ -767,6 +812,13 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         .rw-card-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
         .rw-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
         .rw-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+        .rw-invite{display:flex;align-items:flex-start;gap:10px;cursor:pointer;max-width:300px;}
+        .rw-invite span{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--s-tinta);}
+        .rw-invite small{font-size:11.5px;color:var(--s-tinta-2);line-height:1.4;}
+        .rw-wk{display:flex;align-items:flex-end;gap:8px;height:96px;margin:8px 0 10px;}
+        .rw-wk-col{flex:1;height:100%;display:flex;align-items:flex-end;min-width:0;}
+        .rw-wk-bar{width:100%;border-radius:5px;background:rgb(var(--s-tinta-rgb) / .12);}
+        .rw-wk-bar--now{background:var(--s-brasa);}
         .rw-stat-label{font-size:10.5px;color:rgb(var(--s-tinta-rgb) / .5);margin-bottom:6px;}
         .rw-stat-val{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--s-tinta);}
         .rw-stat-sub{font-size:10.5px;color:rgb(var(--s-tinta-rgb) / .45);margin-top:3px;line-height:1.4;}
@@ -871,7 +923,7 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
       <div className="rw-shell">
         {activeCards.length > 1 && (
           <div className="rw-toolbar">
-            <PillSelect ariaLabel="Tarjeta" value={selected?.id || ''} onChange={setSelectedId} options={activeCards.map(c => ({ id: c.id, label: c.name }))} />
+            <CardTabs value={selected?.id || ''} onChange={setSelectedId} options={activeCards.map(c => ({ id: c.id, label: c.name }))} />
           </div>
         )}
         {!selected ? (
@@ -879,7 +931,7 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         ) : error && dataFor === selected.id ? (
           <div className="rw-content"><div className="rw-error" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>No pudimos cargar los premios. <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setDataFor(null); setReload(n => n + 1) }}>Reintentar</button></div></div>
         ) : !ready ? (
-          <div className="rw-content"><MascotLoader text="Buscando tus premios…" /></div>
+          <div className="rw-content"><Cargando /></div>
         ) : selected.type === 'stamp' ? (
           <StampRewards businessId={businessId!} card={selected} data={data} onSaved={afterSave} onOpenCustomer={onOpenCustomer} />
         ) : selected.type === 'points' ? (

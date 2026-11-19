@@ -6,7 +6,7 @@ import { PlanProvider, PLAN_LIMITS, usePlan } from '@/data/plans'
 import { apiMe, apiGetTeam, apiGetCards, getBusinessId, setBusinessId, BASE_URL, apiBillingStatus, apiCancelSubscription, apiGetLocations, type BillingStatus } from '@/lib/api'
 import { getLocationId, setLocationId, withLoc, type Location, type LocationsResponse } from '@/lib/location'
 import { BillingBanner, BillingStyles, PlanModal } from '@/components/dashboard/Billing'
-import { MascotLoader } from '@/components/ui/MascotLoader'
+import { Cargando } from '@/components/ui/Cargando'
 import { getJson, prefetch } from '@/lib/cache'
 import { RetentionRing, EmptyState as EmptyNote, type Retention } from '@/components/dashboard/charts'
 import { BrandLogo } from '@/components/brand/BrandLogo'
@@ -116,7 +116,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, t, mobileOpen, se
         {/* Logo */}
         <div className="sb-logo" onClick={() => setCollapsed(!collapsed)} style={{cursor:'pointer', justifyContent: collapsed ? 'center' : 'flex-start'}}>
           {collapsed
-            ? <img src="/stampa-mascot-cream.png" alt="Stampa" width={30} height={28} style={{ display: 'block' }} />
+            ? <span aria-label="Stampa" style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, color: '#F7F0E4', lineHeight: 1 }}>S</span>
             : <BrandLogo height={28} tone="cream" />}
         </div>
 
@@ -488,7 +488,7 @@ function OverviewTab({ t, analyticsData, detailedAnalytics, cards, setActive, is
         {METRICS.map(({ label, value, delta, deltaTitle, color, icon, sub }) => (
           <div key={label} className="ov-metric-card">
             <div className="ov-metric-top">
-              <div className="ov-metric-dot" style={{ background: `${color}1A`, color }}>
+              <div className="ov-metric-dot" style={{ background: `color-mix(in srgb, ${color} 10%, transparent)`, color }}>
                 <Icon name={icon} size={18} />
               </div>
               {delta != null && (
@@ -1119,7 +1119,7 @@ export default function DashboardPage() {
             expiryMonths: c.expiryMonths || 0,
             doubleDays: c.doubleDays || [],
             maxPerDay: c.maxPerDay ?? null,
-            minHoursBetween: c.minHoursBetween || 0,
+            minHoursBetween: c.minHoursBetween || 0, inviteOnly: !!c.inviteOnly, baseFields: c.baseFields || null,
           })))
         } else console.error('cards load error:', cardsRes.reason)
 
@@ -1221,7 +1221,7 @@ export default function DashboardPage() {
             expiryMonths: c.expiryMonths || 0,
             doubleDays: c.doubleDays || [],
             maxPerDay: c.maxPerDay ?? null,
-            minHoursBetween: c.minHoursBetween || 0,
+            minHoursBetween: c.minHoursBetween || 0, inviteOnly: !!c.inviteOnly, baseFields: c.baseFields || null,
       })))
     } catch (err) {
       console.error('Error refreshing cards:', err)
@@ -1490,7 +1490,7 @@ export default function DashboardPage() {
         {active !== 'customers' && <LimitBanner usage={analyticsData?.customerUsage} isManager={owner?.role === 'manager'} onChoosePlan={() => setShowPlans(true)} onOpen={() => { setActive('customers'); localStorage.setItem('stampa_active_tab', 'customers') }} />}
         {loading
           ? <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MascotLoader text="Preparando tu negocio…" size={64} />
+              <Cargando variante="pagina" />
             </div>
           : renderTab()
         }

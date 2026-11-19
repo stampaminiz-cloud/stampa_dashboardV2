@@ -14,16 +14,12 @@ export interface ProgressDist { kind: 'stamp' | 'points'; segments: { label: str
 export interface FormAnswer { fieldId: string; label: string; cardName: string; total: number; options: { value: string; count: number; active?: number; avgVisits?: number; redeemed?: number }[] }
 export interface CardRow { cardId: string; name: string; type: string; color: string; isActive: boolean; visits: number; redeems: number; signups: number; customers: number }
 
-// Estado vacío único (todas las secciones de Analítica): la mascota y un
-// título corto, mismo tamaño de letra en todos lados.
+// Estado vacío único (todas las secciones de Analítica): un título corto,
+// mismo tamaño de letra en todos lados.
 export function EmptyState({ title, text, compact = false }: { title: string; text?: string; compact?: boolean }) {
   return (
     <div className={`ch-empty${compact ? ' ch-empty--sm' : ''}`}>
       <style dangerouslySetInnerHTML={{ __html: EMPTY_CSS }} />
-      <span className="ch-empty-art">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/stampa-mascot-coral.png" alt="" width={34} height={32} />
-      </span>
       <div className="ch-empty-title">{title}</div>
       {text && <div className="ch-empty-text">{text}</div>}
     </div>
@@ -155,49 +151,51 @@ export function ProgressDistribution({ data }: { data: ProgressDist }) {
 // MIN_GROUP clientes no se muestran porcentajes ni promedios (no dicen nada).
 // La cantidad de clientes es el botón para mandarles un aviso.
 const MIN_GROUP = 5
+const ANSWER_COLORS = ['var(--s-brasa)', '#E6AE98', '#5B8C5A', '#5B86C7', '#D4A24C', '#8E3B20', '#8A9A90', '#B7C4BA']
 export function FormAnswers({ data, onNotify }: { data: FormAnswer[]; onNotify?: (fieldId: string, value: string) => void }) {
   const [idx, setIdx] = useState(0)
+  const [sel, setSel] = useState<string | null>(null)
   if (!data.length) return <EmptyState title="Todavía sin respuestas" text="Aparece cuando respondan preguntas de lista del formulario, como talle o bebida favorita." />
   const f = data[Math.min(idx, data.length - 1)]
-  const max = Math.max(1, ...f.options.map(o => o.count))
+  const opts = f.options.slice(0, 8)
+  const total = Math.max(1, opts.reduce((a, o) => a + o.count, 0))
+  const open = opts.find(o => o.value === sel) || opts[0]
   const withStats = f.options.some(o => o.active != null)
-  const small = f.options.some(o => o.count < MIN_GROUP)
   return (
     <div className="ch">
       <style>{CSS}</style>
       {data.length > 1 && (
-        <select className="ch-select" value={idx} onChange={e => setIdx(Number(e.target.value))} aria-label="Pregunta">
+        <select className="ch-select" value={idx} onChange={e => { setIdx(Number(e.target.value)); setSel(null) }} aria-label="Pregunta">
           {data.map((q, i) => <option key={q.fieldId} value={i}>{q.label}{q.cardName ? ` · ${q.cardName}` : ''}</option>)}
         </select>
       )}
       {data.length === 1 && <div className="ch-q">{f.label}</div>}
-      <div className="ch-at" role="table" aria-label={f.label}>
-        <div className="ch-at-row ch-at-head" role="row">
-          <span role="columnheader">Respuesta</span>
-          {withStats && <><span role="columnheader">Activos</span><span role="columnheader">Visitas prom.</span><span role="columnheader">Canjearon</span></>}
-          <span role="columnheader">Clientes</span>
-        </div>
-        {f.options.slice(0, 8).map(o => {
+      <div className="ch-hbar" role="img" aria-label={opts.map(o => `${o.value}: ${o.count}`).join(', ')}>
+        {opts.map((o, i) => <div key={o.value} title={`${o.value}: ${o.count} (${pct(o.count, total)}%)`} style={{ flex: o.count, background: ANSWER_COLORS[i % ANSWER_COLORS.length] }} />)}
+      </div>
+      <div className="ch-ans">
+        {opts.map((o, i) => {
+          const on = o === open
           const show = o.count >= MIN_GROUP
           return (
-            <div key={o.value} className="ch-at-row" role="row">
-              <span className="ch-at-name" role="cell">{o.value}<span className="ch-at-bar"><i style={{ width: `${(o.count / max) * 100}%` }} /></span></span>
-              {withStats && <>
-                <span role="cell">{show ? `${pct(o.active || 0, o.count)}%` : '—'}</span>
-                <span role="cell">{show ? String(o.avgVisits ?? 0).replace('.', ',') : '—'}</span>
-                <span role="cell">{show ? o.redeemed || 0 : '—'}</span>
-              </>}
-              <span role="cell">
-                {onNotify
-                  ? <button type="button" className="ch-at-cnt" onClick={() => onNotify(f.fieldId, o.value)} title={`Mandar un aviso a los ${o.count} que respondieron "${o.value}"`} aria-label={`${o.count} clientes. Mandarles un aviso`}>{o.count}<Icon name="notificaciones" size={12} /></button>
-                  : o.count}
-              </span>
+            <div key={o.value} className={`ch-ans-row${on ? ' ch-ans-row--on' : ''}`}>
+              <button type="button" className="ch-ans-head" aria-expanded={on} onClick={() => setSel(o.value)}>
+                <span className="ch-ans-name"><i style={{ background: ANSWER_COLORS[i % ANSWER_COLORS.length] }} />{o.value}</span>
+                <span className="ch-ans-n">{pct(o.count, total)}% · {o.count} {o.count === 1 ? 'cliente' : 'clientes'}</span>
+              </button>
+              {on && (
+                <div className="ch-ans-det">
+                  {withStats && (show
+                    ? <span>{pct(o.active || 0, o.count)}% activos · {String(o.avgVisits ?? 0).replace('.', ',')} visitas en promedio · {o.redeemed || 0} {o.redeemed === 1 ? 'canjeó' : 'canjearon'}</span>
+                    : <span>Con menos de {MIN_GROUP} clientes no se muestran porcentajes ni promedios.</span>)}
+                  {onNotify && <button type="button" className="s-btn s-btn--primary s-btn--sm" onClick={() => onNotify(f.fieldId, o.value)}>Avisar a los {o.count}</button>}
+                </div>
+              )}
             </div>
           )
         })}
       </div>
       {insight(f) && <div className="ch-note">{insight(f)}</div>}
-      <div className="ch-note">{onNotify ? 'Tocá la cantidad de clientes para mandarles un aviso.' : `${f.total} respuestas.`}{withStats && small ? ` Con menos de ${MIN_GROUP} clientes no se muestran porcentajes ni promedios.` : ''}</div>
     </div>
   )
 }
@@ -216,31 +214,35 @@ function insight(f: FormAnswer): string | null {
   return `Los que respondieron "${best.value}" vienen ${fmtVisits(best.avgVisits || 0)} en promedio; el resto, ${fmtVisits(Math.round(restAvg * 10) / 10)}.`
 }
 
-// ── Comparación entre tarjetas: tabla con barra en cada métrica ──────────────
+// ── Comparación entre tarjetas: una columna por tarjeta ──────────────────────
 const METRICS: { key: keyof CardRow; label: string }[] = [
   { key: 'visits', label: 'Visitas' }, { key: 'redeems', label: 'Canjes' }, { key: 'signups', label: 'Nuevos' }, { key: 'customers', label: 'Clientes' },
 ]
+// El color de la tarjeta, acercado al color del texto para que se lea en claro y en oscuro.
+const legible = (c: string) => `color-mix(in srgb, ${c} 65%, var(--s-tinta) 35%)`
 export function CardComparison({ data }: { data: CardRow[] }) {
   const max = Object.fromEntries(METRICS.map(m => [m.key, Math.max(1, ...data.map(r => Number(r[m.key]) || 0))]))
+  const rest = METRICS.filter(m => m.key !== 'visits')
   return (
     <div className="ch">
       <style>{CSS}</style>
-      <div className="ch-table" style={{ gridTemplateColumns: `minmax(120px,1.2fr) repeat(${METRICS.length}, minmax(70px,1fr))` }}>
-        <div className="ch-th" />
-        {METRICS.map(m => <div key={m.key} className="ch-th">{m.label}</div>)}
+      <div className="ch-cols">
         {data.map(r => (
-          <React.Fragment key={r.cardId}>
-            <div className="ch-card"><i style={{ background: r.color }} />{r.name}{!r.isActive && <em>inactiva</em>}</div>
-            {METRICS.map(m => {
-              const v = Number(r[m.key]) || 0
-              return (
-                <div key={m.key} className="ch-cell" title={`${r.name} · ${m.label}: ${v}`}>
-                  <span>{v}</span>
-                  <div className="ch-cell-track"><div style={{ width: `${(v / max[m.key]) * 100}%` }} /></div>
-                </div>
-              )
-            })}
-          </React.Fragment>
+          <div key={r.cardId} className="ch-col">
+            <div className="ch-col-name"><i style={{ background: legible(r.color) }} />{r.name}{!r.isActive && <em>inactiva</em>}</div>
+            <div><div className="ch-col-big">{Number(r.visits) || 0}</div><div className="ch-col-sub">visitas</div></div>
+            <div className="ch-col-rows">
+              {rest.map(m => {
+                const v = Number(r[m.key]) || 0
+                return (
+                  <div key={m.key} title={`${r.name} · ${m.label}: ${v}`}>
+                    <div className="ch-col-row"><span>{m.label}</span><b>{v}</b></div>
+                    <div className="ch-cell-track"><div style={{ width: `${(v / max[m.key]) * 100}%`, background: legible(r.color) }} /></div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -298,6 +300,25 @@ const CSS = `
   .ch-card em{font-style:normal;font-weight:500;font-size:10px;color:rgb(var(--s-tinta-rgb) / .4);margin-left:6px;}
   .ch-cell{display:flex;flex-direction:column;gap:4px;}
   .ch-cell span{font-weight:700;color:var(--s-tinta);font-variant-numeric:tabular-nums;}
+  .ch-hbar{display:flex;gap:2px;height:22px;border-radius:7px;overflow:hidden;}
+  .ch-ans{display:flex;flex-direction:column;gap:6px;}
+  .ch-ans-row{background:var(--s-hueco);border-radius:10px;overflow:hidden;}
+  .ch-ans-row--on{outline:2px solid var(--s-brasa);}
+  .ch-ans-head{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;border:none;background:none;padding:9px 11px;font:inherit;font-size:13px;color:var(--s-tinta);cursor:pointer;text-align:left;}
+  .ch-ans-name{display:flex;align-items:center;gap:8px;font-weight:600;min-width:0;}
+  .ch-ans-name i{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
+  .ch-ans-n{font-size:12px;color:var(--s-tinta-2);white-space:nowrap;}
+  .ch-ans-det{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:0 11px 10px 28px;font-size:12px;color:var(--s-tinta-2);}
+  .ch-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;}
+  .ch-col{background:var(--s-hueco);border-radius:12px;padding:13px 14px;display:flex;flex-direction:column;gap:10px;min-width:0;}
+  .ch-col-name{display:flex;align-items:center;gap:7px;font-family:var(--font-display);font-weight:700;font-size:13.5px;color:var(--s-tinta);min-width:0;}
+  .ch-col-name i{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
+  .ch-col-name em{font-style:normal;font-weight:500;font-size:10px;color:var(--s-tinta-3);}
+  .ch-col-big{font-family:var(--font-display);font-weight:800;font-size:30px;line-height:1;color:var(--s-tinta);font-variant-numeric:tabular-nums;}
+  .ch-col-sub{font-size:12px;color:var(--s-tinta-2);}
+  .ch-col-rows{display:flex;flex-direction:column;gap:9px;}
+  .ch-col-row{display:flex;justify-content:space-between;font-size:12px;color:var(--s-tinta-2);margin-bottom:3px;}
+  .ch-col-row b{color:var(--s-tinta);font-variant-numeric:tabular-nums;}
   .ch-cell-track{height:6px;background:rgb(var(--s-tinta-rgb) / .05);border-radius:3px;overflow:hidden;}
   .ch-cell-track div{height:100%;background:#C75D3A;border-radius:0 3px 3px 0;}
 `
