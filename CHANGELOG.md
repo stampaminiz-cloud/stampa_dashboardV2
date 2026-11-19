@@ -2,7 +2,7 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
-## 1.11.0 (19/11/2026) — La pantalla con la marca del negocio
+## 1.12.0 (19/11/2026) — La pantalla con la marca del negocio
 
 **Cambios**
 - La Pantalla Stampa se viste con lo que el negocio configuró en la tarjeta: colores, logo, íconos de sello e imagen del premio. Stampa queda en un renglón al pie. Si un color no se lee sobre el fondo, se cae a blanco o negro.
@@ -12,6 +12,11 @@ Formato: la versión más nueva arriba. El panel y el backend llevan el mismo n�
 - Niveles: barra hacia el próximo nivel, y al subir se ve la insignia con los colores del nivel y su beneficio.
 - La última marca se guarda en el navegador para que la pantalla no arranque con colores genéricos.
 - Configuración: se quita el selector "Cómo se entrega el premio" (siempre lo entrega un empleado) y su frase de la ayuda.
+
+## 1.11.0 (19/11/2026) — Extender la prueba desde /admin
+
+**Cambios**
+- En el detalle de una cuenta en prueba (o con la prueba vencida y sin haber pagado nunca) hay una tarjeta "Prueba gratis" con botones +7, +14 y +30 días. El cambio queda en el historial del negocio ("Prueba extendida N días"). Necesita el backend 1.11.0.
 
 ## 1.10.3 (18/11/2026) — Cámara de la pantalla
 

@@ -289,7 +289,7 @@ export interface AdminBusinessDetail {
   endUsers: { returning: number | null; avgVisits: number | null; medianGapDays: number | null; redeemed: number | null }
   models: AdminModels
   notifications: { title: string | null; audience: string; recipients: number | null; sentAt: string }[]
-  history: { type: string; at: string; from?: string | { amount: number; currency: string } | null; to?: string | { amount: number; currency: string } | null; planFrom?: string; planTo?: string; plan?: string }[]
+  history: { type: string; at: string; from?: string | { amount: number; currency: string } | null; to?: string | { amount: number; currency: string } | null; planFrom?: string; planTo?: string; plan?: string; days?: number }[]
 }
 export async function apiAdminOverview(days: number, country: string) {
   return request<AdminOverview>(`/api/admin/overview?days=${days}&country=${encodeURIComponent(country)}`)
@@ -302,6 +302,11 @@ export async function apiAdminSetRegion(id: string, region: 'AR' | 'ES' | 'EU') 
 }
 export async function apiAdminSetManualBilling(id: string, amount: number, currency: string) {
   return request<{ amount: number; currency: string | null }>(`/api/admin/businesses/${id}/manual-billing`, { method: 'PATCH', body: { amount, currency } })
+}
+
+// Extiende la prueba gratis: suma días al vencimiento (o desde hoy si ya venció).
+export async function apiAdminExtendTrial(id: string, days: number) {
+  return request<{ trialEndsAt: string }>(`/api/admin/businesses/${id}/trial`, { method: 'PATCH', body: { days } })
 }
 
 // Plan especial de Mercado Pago (ej. Pro al precio de Growth). planId vacío lo borra.
