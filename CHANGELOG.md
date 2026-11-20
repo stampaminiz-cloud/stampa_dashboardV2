@@ -2,6 +2,12 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.14.1 (20/11/2026) — Pase único (Club VIP)
+
+**Cambios**
+- Diseño: "Nueva tarjeta" tiene la opción Club VIP (pase único, por invitación). Premios y Diseño quedan simples, sin interruptores: nombre del pase, beneficio permanente y beneficio mensual; el color sigue al de la tarjeta.
+- La vista previa del pase muestra el beneficio del mes dentro de la franja, debajo de "Socio Nº", y deja solo TITULAR y MIEMBRO DESDE abajo.
+
 ## 1.14.0 (20/11/2026) — El Club VIP como carnet
 
 **Cambios**
