@@ -23,7 +23,7 @@ import { pointsRuleText, currencyFor, formatMoney, type Currency } from '@/lib/m
 // app de escaneo o el dashboard).
 
 type CardType = 'stamp' | 'points' | 'membership'
-interface ActiveCard { id: string; name: string; type: CardType; isActive: boolean }
+interface ActiveCard { id: string; name: string; type: CardType; isActive: boolean; inviteOnly?: boolean; periodBenefit?: { enabled?: boolean; name?: string } | null }
 interface Redemption { name: string; email: string | null; prize: string; at: number }
 
 
@@ -140,11 +140,15 @@ function RulePreview({ businessId, card, override, rewardLabel, tiers, tierIndex
   return (
     <div className="rw-pv">
       <div className="rw-pv-pass" style={{ background: tier ? tier.bg : card.color || '#1B412F', color: tc }}>
-        <div className="rw-pv-top">{img?.apple.logo ? <img src={img.apple.logo} alt="" className="rw-pv-logo" /> : <div className="rw-pv-logo rw-skel" />}</div>
+        <div className="rw-pv-top" style={card.inviteOnly ? { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 } : undefined}>
+          {img?.apple.logo ? <img src={img.apple.logo} alt="" className="rw-pv-logo" /> : <div className="rw-pv-logo rw-skel" />}
+          {card.inviteOnly && tier && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>BENEFICIO</div><div className="rw-pv-v">{tier.perk || '—'}</div></div>}
+        </div>
         {img?.apple.strip ? <img src={img.apple.strip} alt="" className="rw-pv-strip" /> : (tier && img ? null : <div className="rw-pv-strip rw-skel" style={{ aspectRatio: '375/123' }} />)}
         <div className="rw-pv-fields">
           <div><div className="rw-pv-l" style={{ color: lc }}>TITULAR</div><div className="rw-pv-v">Nombre del cliente</div></div>
-          {tier && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>NIVEL</div><div className="rw-pv-v">{tier.name || '—'}</div></div>}
+          {tier && !card.inviteOnly && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>NIVEL</div><div className="rw-pv-v">{tier.name || '—'}</div></div>}
+          {tier && card.inviteOnly && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>MIEMBRO DESDE</div><div className="rw-pv-v">nov 2026</div></div>}
           {rewardLabel !== undefined && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>PREMIO</div><div className="rw-pv-v">{rewardLabel || '—'}</div></div>}
         </div>
       </div>
@@ -593,6 +597,86 @@ function validateTiers(tiers: EditTier[]): string | null {
   return null
 }
 
+// ─── Pase único (Club VIP) ───────────────────────────────────────────────────
+// Un carnet por invitación: un solo nivel, sin QR. Se configura con tres datos:
+// el nombre del pase, el beneficio y, si quieren, un beneficio que se entrega
+// una vez por mes (el pase muestra Disponible o Entregado).
+function ClubRewards({ businessId, card, data, onChanged }: { businessId: string; card: any; data: any; onChanged: () => void }) {
+  const cardId = card.id
+  const [tiers, setTiers] = useState<any[] | null>(null)
+  const [name, setName] = useState('')
+  const [perk, setPerk] = useState('')
+  const [monthly, setMonthly] = useState<string>(card.periodBenefit?.enabled ? (card.periodBenefit.name || '') : '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [saved, setSaved] = useState({ name: '', perk: '', monthly: '' })
+  useEffect(() => {
+    let off = false
+    apiGetTiers(businessId, cardId).then(list => {
+      if (off) return
+      setTiers(list)
+      const n = list[0]?.name || 'Club VIP', p = list[0]?.perk || ''
+      const m = card.periodBenefit?.enabled ? (card.periodBenefit.name || '') : ''
+      setName(n); setPerk(p); setMonthly(m); setSaved({ name: n, perk: p, monthly: m })
+    }).catch(() => { if (!off) setTiers([]) })
+    return () => { off = true }
+  }, [businessId, cardId]) // eslint-disable-line react-hooks/exhaustive-deps
+  const dirty = name.trim() !== saved.name || perk.trim() !== saved.perk || monthly.trim() !== saved.monthly
+  const first = tiers?.[0]
+  const previewTier = first ? [{ name: name.trim() || 'Club VIP', threshold: 0, perk: perk.trim(), color: first.color, bg: first.bg }] : undefined
+
+  async function save() {
+    if (!tiers?.length) return
+    if (!name.trim()) { setError('Poné un nombre al pase.'); return }
+    setSaving(true); setError(null); setNotice(null)
+    try {
+      const next = tiers.map((t, i) => ({ id: t._id, name: i === 0 ? name.trim() : t.name, threshold: t.threshold, perk: i === 0 ? perk.trim() : (t.perk || ''), color: t.color, bg: t.bg }))
+      await apiSaveTiers(businessId, cardId, next)
+      await apiUpdateCard(businessId, cardId, { periodBenefit: { enabled: !!monthly.trim(), name: monthly.trim() } })
+      setSaved({ name: name.trim(), perk: perk.trim(), monthly: monthly.trim() })
+      setNotice('Guardado. Los pases de tus socios se actualizan solos.')
+      onChanged()
+    } catch (err: any) { setError(err?.error || 'No pudimos guardar. Probá de nuevo.') }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div className="rw-content">
+      <div className="rw-card">
+        <div className="rw-card-head-row">
+          <div>
+            <div className="rw-card-title">Tu pase único</div>
+            <div className="rw-card-sub" style={{ marginBottom: 0 }}>Un carnet por invitación, sin QR ni niveles. Lo sumás vos desde Clientes y lo podés dar de baja cuando quieras.</div>
+          </div>
+          <div className="rw-club-count"><b>{data?.total ?? 0}</b><span>{(data?.total ?? 0) === 1 ? 'socio' : 'socios'}</span></div>
+        </div>
+        {error && <div className="rw-error">{error}</div>}
+        {notice && <div className="rw-notice">{notice}</div>}
+        {tiers === null ? <div className="rw-skel" style={{ height: 120 }} /> : (
+          <div className="rw-rules rw-rules--wide">
+            <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <label className="rw-club-fld">Nombre del pase
+                <input className="rw-inline-input" maxLength={20} value={name} onChange={e => { setName(e.target.value); setNotice(null) }} placeholder="Club VIP" />
+              </label>
+              <label className="rw-club-fld">Beneficio permanente
+                <input className="rw-inline-input" maxLength={80} value={perk} onChange={e => { setPerk(e.target.value); setNotice(null) }} placeholder="Ej: 20% en todo" />
+                <small>Vale siempre, no hay que controlarlo. Se ve arriba en el pase, con la tarjeta cerrada.</small>
+              </label>
+              <label className="rw-club-fld">Beneficio mensual
+                <input className="rw-inline-input" maxLength={40} value={monthly} onChange={e => { setMonthly(e.target.value); setNotice(null) }} placeholder="Ej: Café del mes" />
+                <small>Se entrega una vez por mes. El pase muestra “Disponible” o “Entregado” y se renueva el día 1. Si tu club no tiene uno, dejalo vacío.</small>
+              </label>
+              <div className="rw-editor-foot"><div style={{ flex: 1 }} /><button className="s-btn s-btn--primary" onClick={save} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button></div>
+            </div>
+            <RulePreview businessId={businessId} card={card} override={{ periodBenefit: { enabled: !!monthly.trim(), name: monthly.trim() } }} tiers={previewTier} tierIndex={0} />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function MembershipRewards({ businessId, card, data, onChanged }: { businessId: string; card: any; data: any; onChanged: () => void }) {
   const cardId = card.id
   const [pvTier, setPvTier] = useState(0)
@@ -618,24 +702,6 @@ function MembershipRewards({ businessId, card, data, onChanged }: { businessId: 
   const dist: Array<{ tier: string; count: number; color: string; bg: string }> = data.distribution || []
   const total = data.total ?? 0
 
-  const [invite, setInvite] = useState<boolean>(!!card.inviteOnly)
-  const [inviteBusy, setInviteBusy] = useState(false)
-  // Club VIP: beneficio que se entrega una vez por mes.
-  const [pbOn, setPbOn] = useState<boolean>(!!card.periodBenefit?.enabled)
-  const [pbName, setPbName] = useState<string>(card.periodBenefit?.name || '')
-  useEffect(() => { setPbOn(!!card.periodBenefit?.enabled); setPbName(card.periodBenefit?.name || '') }, [card.id]) // eslint-disable-line react-hooks/exhaustive-deps
-  async function savePeriod(enabled: boolean, name: string) {
-    setError(null)
-    try { await apiUpdateCard(businessId, cardId, { periodBenefit: { enabled, name: name.trim() } }); setPbOn(enabled); onChanged() }
-    catch (err: any) { setError(err?.error || 'No pudimos guardar el beneficio. Probá de nuevo.') }
-  }
-  useEffect(() => { setInvite(!!card.inviteOnly) }, [card.id, card.inviteOnly])
-  async function toggleInvite(v: boolean) {
-    setInviteBusy(true); setError(null)
-    try { await apiUpdateCard(businessId, cardId, { inviteOnly: v }); setInvite(v); onChanged() }
-    catch (err: any) { setError(err?.error || 'No pudimos cambiarlo. Probá de nuevo.') }
-    finally { setInviteBusy(false) }
-  }
   function update(key: string, patch: Partial<EditTier>) { setDraft(d => (d || []).map(t => t.key === key ? { ...t, ...patch } : t)); setNotice(null) }
   function remove(key: string) { setDraft(d => (d || []).filter(t => t.key !== key)); setNotice(null) }
   function add() {
@@ -690,24 +756,8 @@ function MembershipRewards({ businessId, card, data, onChanged }: { businessId: 
         <div className="rw-card-head-row">
           <div>
             <div className="rw-card-title">Niveles y beneficios</div>
-            <div className="rw-card-sub" style={{ marginBottom: 0 }}>Al bajar las visitas de un nivel, los clientes que ya las cumplen suben al guardar. Con un solo nivel es un club: el pase muestra el nombre y el beneficio.</div>
+            <div className="rw-card-sub" style={{ marginBottom: 0 }}>Al bajar las visitas de un nivel, los clientes que ya las cumplen suben al guardar.</div>
           </div>
-          <label className="rw-invite">
-            <Switch checked={invite} disabled={inviteBusy} label="Solo por invitación" onChange={toggleInvite} />
-            <span><b>Solo por invitación</b><small>No sale en el QR del local. La sumás vos desde Clientes.</small></span>
-          </label>
-          {invite && (
-            <div className="rw-club">
-              <label className="rw-invite">
-                <Switch checked={pbOn} label="Beneficio una vez por mes" onChange={v => savePeriod(v, pbName || 'Beneficio del mes')} />
-                <span><b>Beneficio una vez por mes</b><small>Ej: &quot;Café del mes&quot;. El pase muestra Disponible o Entregado y se renueva el día 1.</small></span>
-              </label>
-              {pbOn && <input className="rw-inline-input" placeholder="Café del mes" maxLength={40} value={pbName} onChange={e => setPbName(e.target.value)} onBlur={() => savePeriod(true, pbName)} aria-label="Nombre del beneficio del mes" />}
-              {invite && draft && draft.length === 1 && /^(bronce|black|bronze)$/i.test(draft[0].name.trim()) && (
-                <button type="button" className="s-btn s-btn--text s-btn--sm" onClick={() => update(draft[0].key, { name: 'Club VIP' })}>Llamarlo &quot;Club VIP&quot;</button>
-              )}
-            </div>
-          )}
         </div>
         {error && <div className="rw-error">{error}</div>}
         {notice && <div className="rw-notice">{notice}</div>}
@@ -833,10 +883,12 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         .rw-card-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
         .rw-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
         .rw-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-        .rw-club{display:flex;flex-direction:column;gap:8px;align-items:flex-start;margin-top:10px;max-width:300px;width:100%;}
-        .rw-invite{display:flex;align-items:flex-start;gap:10px;cursor:pointer;max-width:300px;}
-        .rw-invite span{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--s-tinta);}
-        .rw-invite small{font-size:11.5px;color:var(--s-tinta-2);line-height:1.4;}
+        .rw-club-count{display:flex;flex-direction:column;align-items:center;background:var(--s-hueco);border-radius:12px;padding:10px 16px;min-width:84px;}
+        .rw-club-count b{font-family:var(--font-display);font-size:26px;font-weight:800;line-height:1;color:var(--s-tinta);}
+        .rw-club-count span{font-size:11.5px;color:var(--s-tinta-2);}
+        .rw-club-fld{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;color:var(--s-tinta);}
+        .rw-club-fld em{font-style:normal;font-weight:400;color:var(--s-tinta-3);}
+        .rw-club-fld small{font-weight:400;font-size:11.5px;color:var(--s-tinta-2);line-height:1.4;}
         .rw-wk{display:flex;align-items:flex-end;gap:8px;height:96px;margin:8px 0 10px;}
         .rw-wk-col{flex:1;height:100%;display:flex;align-items:flex-end;min-width:0;}
         .rw-wk-bar{width:100%;border-radius:5px;background:rgb(var(--s-tinta-rgb) / .12);}
@@ -959,7 +1011,9 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         ) : selected.type === 'points' ? (
           <PointsRewards businessId={businessId!} card={selected} data={data} currency={currency} onSaved={afterSave} onOpenCustomer={onOpenCustomer} onChanged={() => setReload(n => n + 1)} />
         ) : (
-          <MembershipRewards businessId={businessId!} card={selected} data={data} onChanged={() => setReload(n => n + 1)} />
+          selected.inviteOnly
+            ? <ClubRewards businessId={businessId!} card={selected} data={data} onChanged={() => setReload(n => n + 1)} />
+            : <MembershipRewards businessId={businessId!} card={selected} data={data} onChanged={() => setReload(n => n + 1)} />
         )}
       </div>
     </>
