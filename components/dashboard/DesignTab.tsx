@@ -3,7 +3,7 @@ import { Icon } from '@/components/ui/Icon'
 import { Switch } from '@/components/ui/Switch'
 import { readCache } from '@/lib/cache'
 import React, { useState, useRef, useEffect } from 'react'
-import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS, logoBrand } from '@/lib/colorPresets'
+import { STARTER_PRESETS, GROWTH_EXTRA_PRESETS, logoBrand, followTiers } from '@/lib/colorPresets'
 import { usePlan, PlanGate, PLAN_GATE_CSS } from '@/data/plans'
 import { useLang } from '@/data/i18n'
 import { apiCreateCard, apiUpdateCard, apiDeleteCard, apiGetTiers, apiGetFields, apiCardStats, apiGetPointsCatalog, apiWalletPreview } from '@/lib/api'
@@ -338,7 +338,13 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
   // Campos y niveles reales de ESTA tarjeta (antes salían de datos de ejemplo).
   const [fields, setFields] = useState<FormField[]>([])
   const [tiers, setTiers] = useState<MembershipTier[]>(DEFAULT_TIERS)
+  // Los niveles siguen al color de la tarjeta mientras sean los de fábrica.
+  const shownTiers = followTiers(tiers, card.color)
   const [catalog, setCatalog] = useState<{ name: string; cost: number }[]>([])
+  const loadTiers = () => {
+    if (!businessId || init.type !== 'membership') return
+    apiGetTiers(businessId, init.id).then(list => { if (list.length) setTiers(list.map(t => ({ id: t._id, name: t.name, threshold: t.threshold, perk: t.perk, color: t.color, bg: t.bg }))) }).catch(() => {})
+  }
   useEffect(() => {
     if (!businessId) return
     apiGetFields(businessId, init.id).then(list => setFields(list.map((f: any) => ({ id: f._id, label: f.label, type: f.fieldType, isLocked: f.isLocked, isActive: f.isActive, isRewardSource: f.isRewardSource, order: f.order, options: f.options || [] })))).catch(() => {})
@@ -444,6 +450,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
         pointsIcon: logos.pointsIcon || null,
       })
 
+      loadTiers()
       setSaved(true)
       setBaseline(snapshot(card, logos, flipMessage, flipSubMessage, JSON.stringify([prizeImage, stripImage]), pointsPerVisit))
       setSaveNotice(res?.passUpdates ? `Guardado. Se actualizó la tarjeta en ${res.passUpdates} celular${res.passUpdates === 1 ? '' : 'es'}.` : 'Guardado.')
@@ -521,7 +528,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
         {card.type === 'membership' && (
           <div className="dt-tier-preview-selector">
             <span className="dt-tier-preview-label">Previsualizar como:</span>
-            {tiers.map((t: MembershipTier, i: number) => (
+            {shownTiers.map((t: MembershipTier, i: number) => (
               <button key={t.id}
                 className={`dt-tier-preview-btn${previewTierIndex === i ? ' dt-tier-preview-btn--on' : ''}`}
                 style={previewTierIndex === i ? { background: t.bg, color: t.color, borderColor: t.bg } : {}}
@@ -536,7 +543,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           {!walletPreview && walletPreviewError && card.type === 'stamp' && previewSide === 'prize'
             ? PrizeCard
             : platform === 'real'
-              ? <RealPassPreview design={card} images={walletPreview} rewardLabel={previewReward} tiers={tiers} previewTierIndex={previewTierIndex} />
+              ? <RealPassPreview design={card} images={walletPreview} rewardLabel={previewReward} tiers={shownTiers} previewTierIndex={previewTierIndex} />
               : <GooglePreview design={card} businessName={businessName} images={walletPreview} rewardLabel={previewReward} />
           }
         </div>
@@ -663,11 +670,11 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
               <div className="dt-reward-goto-forms" style={{ marginTop: 8 }}>También en el formulario y en Google Wallet.</div>
               <div className="dt-appearance-label" style={{ marginTop: 16 }}>En Apple Wallet, el color de cada nivel</div>
               <div className="dt-tier-chips">
-                {tiers.map(t => <span key={t.id || t.name} className="dt-tier-chip" style={{ background: t.bg, color: t.color }}>{t.name}</span>)}
+                {shownTiers.map(t => <span key={t.id || t.name} className="dt-tier-chip" style={{ background: t.bg, color: t.color }}>{t.name}</span>)}
               </div>
               <div className="dt-reward-goto-forms" style={{ marginTop: 8 }}>Nombre, color, visitas y beneficio de cada nivel se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('rewards')}>Premios</button>.</div>
               {(() => {
-                const faded = tiers.filter(t => logoFadesOn(logoColors, t.bg)).map(t => t.name)
+                const faded = shownTiers.filter(t => logoFadesOn(logoColors, t.bg)).map(t => t.name)
                 return faded.length > 0 && <div className="dt-color-warn">Tu logo casi no se ve en {faded.length > 1 ? `${faded.slice(0, -1).join(', ')} y ${faded[faded.length - 1]}` : faded[0]}. Probá un logo más oscuro o cambiá el color de {faded.length > 1 ? 'esos niveles' : 'ese nivel'} en Premios.</div>
               })()}
             </>
@@ -984,8 +991,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
       const created: any = await apiCreateCard(businessId, {
         name:           draft.name,
         type:           draft.type,
-        color:          draft.color,
-        secondColor:    draft.secondColor,
+        // Sin color: el backend arranca con el de la primera tarjeta del negocio.
         stampsRequired: draft.stampsRequired || undefined,
         rewardMode:     draft.rewardMode || undefined,
         pointsPerVisit: draft.pointsPerVisit || undefined,
@@ -1002,6 +1008,8 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
         rewardMode:     created.rewardMode ?? draft.rewardMode,
         rewardField:    created.rewardFixedValue || null,
         logoUrl:        created.logoUrl || null,
+        textColor:      created.textColor || null,
+        labelColor:     created.labelColor || null,
         earnedIcon:     created.earnedIcon || null,
         emptyIcon:      created.emptyIcon || null,
         pointsPerVisit: created.pointsPerVisit || null,
@@ -1053,7 +1061,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
       <div className="dt-cards-grid">
         {cards.map((card: CardDesign) => (
           <div key={card.id} className="dt-card-tile">
-            <MiniPass design={card} businessName={businessName} tiers={tiersByCard[card.id]} logos={{ businessLogo: card.logoUrl || null, earnedIcon: card.earnedIcon || null, emptyIcon: card.emptyIcon || null, pointsIcon: card.pointsIcon || null }} />
+            <MiniPass design={card} businessName={businessName} tiers={tiersByCard[card.id] ? followTiers(tiersByCard[card.id], card.color) : undefined} logos={{ businessLogo: card.logoUrl || null, earnedIcon: card.earnedIcon || null, emptyIcon: card.emptyIcon || null, pointsIcon: card.pointsIcon || null }} />
             <div className="dt-tile-info">
               <div className="dt-tile-name-row">
                 <span className="dt-tile-name">{card.name}</span>

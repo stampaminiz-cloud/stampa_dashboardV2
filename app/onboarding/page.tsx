@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { apiMe, apiOnboarding, apiOnboardingPreview, getToken } from '@/lib/api'
 import { NumberStepper } from '@/components/ui/NumberStepper'
-import { darkenHex, DEFAULT_CARD_COLOR, presetsForPlan, logoBrand } from '@/lib/colorPresets'
+import { darkenHex, DEFAULT_CARD_COLOR, presetsForPlan, logoBrand, defaultTiersFor } from '@/lib/colorPresets'
 import { ColorField, useLogoColors } from '@/components/dashboard/ColorField'
 import { Icon } from '@/components/ui/Icon'
 import { PassPreview, type PassImages } from '@/components/dashboard/PassPreview'
@@ -219,12 +219,7 @@ function Step2({ state, onChange, onNext, onBack }: { state: OBState; onChange: 
 
 type StepProps = { state: OBState; onChange: (p: Partial<OBState>) => void; onNext: () => void; onBack: () => void }
 
-const MEMBERSHIP_TIERS = [
-  { name: 'Bronce', threshold: 0,  perk: 'Bienvenida',             color: '#854F0B', bg: '#FAEEDA' },
-  { name: 'Plata',  threshold: 10, perk: '5% de descuento',        color: '#444441', bg: '#EAEAEA' },
-  { name: 'Oro',    threshold: 25, perk: 'Regalo de cumpleaños',   color: '#633806', bg: '#FAC775' },
-  { name: 'Black',  threshold: 50, perk: 'Beneficios exclusivos',  color: '#F7F0E4', bg: '#1A1A18' },
-]
+// Los niveles salen del color de la tarjeta (defaultTiersFor, igual que el backend).
 
 
 function Step3({ state, onChange, onNext, onBack, currency }: StepProps & { currency: Currency }) {
@@ -259,7 +254,7 @@ function Step3({ state, onChange, onNext, onBack, currency }: StepProps & { curr
       )}
       {state.cardType === 'membership' && (
         <div className="ob-tiers">
-          {MEMBERSHIP_TIERS.map(t => (
+          {defaultTiersFor(state.brandColor).map(t => (
             <div key={t.name} className="ob-tier-row">
               <div className="ob-tier-badge" style={{ background: t.bg, color: t.color }}>★ {t.name}</div>
               <div className="ob-tier-info">
@@ -490,7 +485,7 @@ function Step6({ state, onBack, onFinish, finishing, error, currency }: { state:
           </div>
           <PassPreview platform={platform} type={state.cardType} images={images} color={state.brandColor}
             businessName={state.businessName || 'Tu negocio'} cardName={state.businessName || 'Tu tarjeta'} rewardLabel={rewardLabel}
-            tier={state.cardType === 'membership' ? MEMBERSHIP_TIERS[0] : null} />
+            tier={state.cardType === 'membership' ? defaultTiersFor(state.brandColor)[0] : null} />
           <div className="ob-preview-note">{previewError ? 'No pudimos cargar la vista previa. Tu tarjeta se crea igual.' : platform === 'apple' ? 'Así se ve en un iPhone, con un cliente de ejemplo.' : 'Así se ve en Google Wallet (Android), con un cliente de ejemplo.'}</div>
         </div>
         <div className="ob-summary">
@@ -716,7 +711,7 @@ function LiveCard({ state, currency }: { state: OBState; currency: Currency }) {
   return (
     <PassPreview platform="apple" type={state.cardType} images={images} color={state.brandColor}
       businessName={state.businessName || 'Tu negocio'} cardName={state.businessName || 'Tu tarjeta'} rewardLabel={rewardLabel}
-      tier={state.cardType === 'membership' ? MEMBERSHIP_TIERS[0] : null} />
+      tier={state.cardType === 'membership' ? defaultTiersFor(state.brandColor)[0] : null} />
   )
 }
 

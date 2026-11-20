@@ -2,6 +2,12 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.13.1 (19/11/2026) — El color de las tarjetas nuevas y de los niveles
+
+**Arreglos**
+- Diseño, tarjeta nueva: ya no manda un color inválido; arranca con el color, los textos y el logo de la primera tarjeta (lo resuelve el backend).
+- Membresía: los niveles siguen al color de la tarjeta mientras no se hayan editado a mano, en Diseño (vista previa, chips y miniatura) y en el onboarding (antes mostraban un Bronce fijo, beige).
+
 ## 1.13.0 (19/11/2026) — Últimos arreglos
 
 **Arreglos**
