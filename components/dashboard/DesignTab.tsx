@@ -607,11 +607,12 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           <div className="dt-panel-section-title">Tipo de tarjeta</div>
           <div className="dt-type-fixed">
             <span className="dt-type-fixed-label">
-              {card.type === 'stamp' ? 'Sellos' : card.type === 'points' ? 'Puntos' : 'Membresía'}
+              {card.type === 'stamp' ? 'Sellos' : card.type === 'points' ? 'Puntos' : card.inviteOnly ? 'Pase único (Club VIP)' : 'Membresía'}
             </span>
             <span style={{ marginLeft: 10, fontSize: 12, color: 'rgb(var(--s-tinta-rgb) / .55)' }}>No se cambia después de crear la tarjeta.</span>
           </div>
 
+          {!(card.type === 'membership' && card.inviteOnly) && (<>
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Descripción pública</div>
           <input
             className="dt-public-desc-input"
@@ -624,6 +625,8 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
             {(card.publicDescription || '').length}/100
             
           </div>
+
+          </>)}
 
           {/* Logos */}
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Logos e íconos</div>
@@ -646,8 +649,10 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
               en Forms. Acá solo un puntero, para no tener el mismo campo
               editable desde dos tabs distintas (mismo criterio que ya
               aplicamos con el selector de premio). */}
+          {!(card.type === 'membership' && card.inviteOnly) && (<>
           <div className="dt-panel-section-title" style={{ marginTop: 20 }}>Campos del formulario</div>
           <div className="dt-reward-goto-forms">Se editan en <button className="dt-inline-link" onClick={() => onGoTo?.('form')}>Formulario</button>. </div>
+          </>)}
 
           {/* La regla y el premio se editan en Premios (un solo lugar). */}
           {card.type !== 'membership' && (
@@ -665,8 +670,14 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           )}
 
           {/* Appearance */}
-          <div className="dt-panel-section-title" style={{ marginTop: 20 }}>{card.type === 'membership' ? 'Colores de la tarjeta' : 'Apariencia de la tarjeta'}</div>
-          {card.type === 'membership' ? (
+          <div className="dt-panel-section-title" style={{ marginTop: 20 }}>{card.type === 'membership' ? (card.inviteOnly ? 'Color del pase' : 'Colores de la tarjeta') : 'Apariencia de la tarjeta'}</div>
+          {card.type === 'membership' && card.inviteOnly ? (
+            <>
+              <ColorField ariaLabel="Color del pase" value={card.color} suggestions={BG_SUGGESTIONS} logoColors={logoColors}
+                onChange={v => v && setCard({ ...card, color: v, secondColor: secondFor(v), textColor: autoTextFor(v) })} />
+              <div className="dt-reward-goto-forms" style={{ marginTop: 8 }}>El texto se elige solo, claro u oscuro, para que se lea. Al guardar, el pase de tus socios se actualiza.</div>
+            </>
+          ) : card.type === 'membership' ? (
             <>
               {/* Membresía: en Apple la tarjeta toma el color de cada nivel
                   (Premios). Google Wallet usa un solo color por tarjeta: este,
@@ -792,24 +803,28 @@ function NewCardModal({ onClose, onAdd, existingCount, currency = 'ARS' }: {
 }) {
   const [step, setStep]         = useState<1 | 2>(1)
   const [name, setName]         = useState('')
-  const [type, setType]         = useState<CardType>('stamp')
+  const [type, setType]         = useState<CardType | 'club'>('stamp')
+  const [clubPerk, setClubPerk]       = useState('')
+  const [clubMonthly, setClubMonthly] = useState('')
   const [stamps, setStamps]     = useState(8)
   const [rule, setRule]         = useState<PointsRuleValue>({ pointsMode: 'visit', pointsPerVisit: 10, pointsPerAmount: 1, pointsAmountUnit: DEFAULT_UNIT[currency] })
   const [rewardMode, setRewardMode] = useState<'dynamic' | 'fixed'>('dynamic')
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState<string | null>(null)
 
-  const TYPES: Array<{ id: CardType; label: string; desc: string }> = [
+  const TYPES: Array<{ id: CardType | 'club'; label: string; desc: string }> = [
     { id: 'stamp',      label: 'Tarjeta de sellos',   desc: 'Visitas → premio al completar' },
     { id: 'points',     label: 'Puntos',              desc: 'Suman por visita o por monto y los canjean por premios' },
     { id: 'membership', label: 'Membresía por niveles', desc: 'Bronce → Plata → Oro → Black (los editás en Premios)' },
+    { id: 'club',       label: 'Pase único (Club VIP)', desc: 'Un carnet por invitación, sin QR ni niveles. Lo sumás vos desde Clientes' },
   ]
 
   async function handleCreate() {
-    const DEFAULT_NAMES: Record<CardType, string> = { stamp: 'Sellos', points: 'Puntos', membership: 'Membresía' }
-    const draft: Omit<CardDesign, 'id'> = {
+    const DEFAULT_NAMES: Record<CardType | 'club', string> = { stamp: 'Sellos', points: 'Puntos', membership: 'Membresía', club: 'Club VIP' }
+    const draft: Omit<CardDesign, 'id'> & { club?: boolean; clubPerk?: string; clubMonthly?: string } = {
       name:           name.trim() || DEFAULT_NAMES[type],
-      type,
+      type:           type === 'club' ? 'membership' : type,
+      ...(type === 'club' ? { club: true, clubPerk: clubPerk.trim(), clubMonthly: clubMonthly.trim() } : {}),
       isActive:       false,
       color:          'var(--s-pino-texto)',
       secondColor:    '#132F22',
@@ -908,6 +923,17 @@ function NewCardModal({ onClose, onAdd, existingCount, currency = 'ARS' }: {
               </>
             )}
 
+            {type === 'club' && (
+              <>
+                <div className="dt-modal-field-label">Beneficio</div>
+                <input className="dt-modal-input" placeholder="Ej: 20% en todo" maxLength={80} value={clubPerk} onChange={e => setClubPerk(e.target.value)} autoFocus />
+                <div className="dt-modal-hint">Es lo que se ve arriba en el pase.</div>
+                <div className="dt-modal-field-label" style={{ marginTop: 12 }}>Beneficio del mes (opcional)</div>
+                <input className="dt-modal-input" placeholder="Ej: Café del mes" maxLength={40} value={clubMonthly} onChange={e => setClubMonthly(e.target.value)} />
+                <div className="dt-modal-hint">Si lo completás, el pase muestra Disponible o Entregado y se renueva el día 1.</div>
+              </>
+            )}
+
             {type === 'membership' && (
               <>
                 <div className="dt-modal-hint" style={{ marginBottom: 0 }}>
@@ -1003,6 +1029,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
         stampsRequired: draft.stampsRequired || undefined,
         rewardMode:     draft.rewardMode || undefined,
         pointsPerVisit: draft.pointsPerVisit || undefined,
+        ...((draft as any).club ? { club: true, perk: (draft as any).clubPerk || '', periodBenefit: { enabled: !!(draft as any).clubMonthly, name: (draft as any).clubMonthly || '' } } : {}),
         ...(draft.type === 'points' ? { pointsMode: draft.pointsMode, pointsPerAmount: draft.pointsPerAmount, pointsAmountUnit: draft.pointsAmountUnit } : {}),
       } as any)
       const newCard: CardDesign = {
@@ -1018,6 +1045,8 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
         logoUrl:        created.logoUrl || null,
         textColor:      created.textColor || null,
         labelColor:     created.labelColor || null,
+        inviteOnly:     !!created.inviteOnly,
+        periodBenefit:  created.periodBenefit || null,
         earnedIcon:     created.earnedIcon || null,
         emptyIcon:      created.emptyIcon || null,
         pointsPerVisit: created.pointsPerVisit || null,
@@ -1078,7 +1107,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
               <div className="dt-tile-sub">
                 {card.type === 'stamp'      && `${card.stampsRequired} sellos · ${card.rewardMode === 'dynamic' ? 'el cliente elige' : 'premio fijo'}`}
                 {card.type === 'points'     && pointsRuleText(card, currency)}
-                {card.type === 'membership' && `${tiersByCard[card.id]?.length || 4} niveles`}
+                {card.type === 'membership' && (card.inviteOnly ? 'Pase único · por invitación' : `${tiersByCard[card.id]?.length || 4} niveles`)}
                 {stats[card.id] ? ` · ${stats[card.id].customers} cliente${stats[card.id].customers === 1 ? '' : 's'}` : ''}
                 {!card.isActive && ' · Inactiva'}
               </div>
