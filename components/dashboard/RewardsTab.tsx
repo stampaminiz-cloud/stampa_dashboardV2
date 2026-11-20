@@ -111,8 +111,8 @@ function Redemptions({ items, onOpenCustomer, empty }: { items: Redemption[]; on
 
 // Vista previa del pase con las imágenes reales (las arma el backend con lo
 // que se está editando, igual que en Diseño).
-function RulePreview({ businessId, card, override, rewardLabel, tiers, tierIndex = 0 }: {
-  businessId: string; card: any; override: Record<string, any>; rewardLabel?: string
+function RulePreview({ businessId, card, override, rewardLabel, tiers, tierIndex = 0, monthly }: {
+  businessId: string; card: any; override: Record<string, any>; rewardLabel?: string; monthly?: string
   tiers?: { name: string; threshold: number; color: string; bg: string; perk?: string }[]; tierIndex?: number
 }) {
   const [img, setImg] = useState<{ apple: { logo: string | null; strip: string | null } } | null>(null)
@@ -140,13 +140,22 @@ function RulePreview({ businessId, card, override, rewardLabel, tiers, tierIndex
   return (
     <div className="rw-pv">
       <div className="rw-pv-pass" style={{ background: tier ? tier.bg : card.color || '#1B412F', color: tc }}>
-        <div className="rw-pv-top">{img?.apple.logo ? <img src={img.apple.logo} alt="" className="rw-pv-logo" /> : <div className="rw-pv-logo rw-skel" />}</div>
+        <div className="rw-pv-top" style={card.inviteOnly ? { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 } : undefined}>
+          {img?.apple.logo ? <img src={img.apple.logo} alt="" className="rw-pv-logo" /> : <div className="rw-pv-logo rw-skel" />}
+          {card.inviteOnly && tier && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>BENEFICIO</div><div className="rw-pv-v">{tier.perk || '—'}</div></div>}
+        </div>
         {img?.apple.strip ? <img src={img.apple.strip} alt="" className="rw-pv-strip" /> : (tier && img ? null : <div className="rw-pv-strip rw-skel" style={{ aspectRatio: '375/123' }} />)}
         <div className="rw-pv-fields">
           <div><div className="rw-pv-l" style={{ color: lc }}>TITULAR</div><div className="rw-pv-v">Nombre del cliente</div></div>
-          {tier && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>{card.inviteOnly ? 'BENEFICIO' : 'NIVEL'}</div><div className="rw-pv-v">{(card.inviteOnly ? (tier.perk || tier.name) : tier.name) || '—'}</div></div>}
+          {tier && !card.inviteOnly && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>NIVEL</div><div className="rw-pv-v">{tier.name || '—'}</div></div>}
+          {tier && card.inviteOnly && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>MIEMBRO DESDE</div><div className="rw-pv-v">nov 2026</div></div>}
           {rewardLabel !== undefined && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>PREMIO</div><div className="rw-pv-v">{rewardLabel || '—'}</div></div>}
         </div>
+        {card.inviteOnly && !!monthly?.trim() && (
+          <div className="rw-pv-fields" style={{ paddingTop: 0 }}>
+            <div><div className="rw-pv-l" style={{ color: lc }}>{monthly.trim().toUpperCase()}</div><div className="rw-pv-v">Disponible</div></div>
+          </div>
+        )}
       </div>
       <div className="rw-hint" style={{ textAlign: 'center' }}>{err ? 'No pudimos actualizar la vista previa.' : 'Así la ve tu cliente en la Wallet.'}</div>
     </div>
@@ -655,17 +664,17 @@ function ClubRewards({ businessId, card, data, onChanged }: { businessId: string
               <label className="rw-club-fld">Nombre del pase
                 <input className="rw-inline-input" maxLength={20} value={name} onChange={e => { setName(e.target.value); setNotice(null) }} placeholder="Club VIP" />
               </label>
-              <label className="rw-club-fld">Beneficio
+              <label className="rw-club-fld">Beneficio permanente
                 <input className="rw-inline-input" maxLength={80} value={perk} onChange={e => { setPerk(e.target.value); setNotice(null) }} placeholder="Ej: 20% en todo" />
-                <small>Es lo que se ve arriba en el pase, con la tarjeta cerrada.</small>
+                <small>Vale siempre, no hay que controlarlo. Se ve arriba en el pase, con la tarjeta cerrada.</small>
               </label>
-              <label className="rw-club-fld">Beneficio del mes <em>(opcional)</em>
+              <label className="rw-club-fld">Beneficio mensual
                 <input className="rw-inline-input" maxLength={40} value={monthly} onChange={e => { setMonthly(e.target.value); setNotice(null) }} placeholder="Ej: Café del mes" />
-                <small>Si lo completás, el pase muestra “Disponible” o “Entregado” y se renueva el día 1. Lo entregás desde la ficha del cliente o la app del empleado.</small>
+                <small>Se entrega una vez por mes. El pase muestra “Disponible” o “Entregado” y se renueva el día 1. Si tu club no tiene uno, dejalo vacío.</small>
               </label>
               <div className="rw-editor-foot"><div style={{ flex: 1 }} /><button className="s-btn s-btn--primary" onClick={save} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button></div>
             </div>
-            <RulePreview businessId={businessId} card={card} override={{}} tiers={previewTier} tierIndex={0} />
+            <RulePreview businessId={businessId} card={card} override={{}} tiers={previewTier} tierIndex={0} monthly={monthly} />
           </div>
         )}
       </div>

@@ -925,12 +925,12 @@ function NewCardModal({ onClose, onAdd, existingCount, currency = 'ARS' }: {
 
             {type === 'club' && (
               <>
-                <div className="dt-modal-field-label">Beneficio</div>
+                <div className="dt-modal-field-label">Beneficio permanente</div>
                 <input className="dt-modal-input" placeholder="Ej: 20% en todo" maxLength={80} value={clubPerk} onChange={e => setClubPerk(e.target.value)} autoFocus />
-                <div className="dt-modal-hint">Es lo que se ve arriba en el pase.</div>
-                <div className="dt-modal-field-label" style={{ marginTop: 12 }}>Beneficio del mes (opcional)</div>
+                <div className="dt-modal-hint">Vale siempre, no hay que controlarlo. Se ve arriba en el pase.</div>
+                <div className="dt-modal-field-label" style={{ marginTop: 12 }}>Beneficio mensual</div>
                 <input className="dt-modal-input" placeholder="Ej: Café del mes" maxLength={40} value={clubMonthly} onChange={e => setClubMonthly(e.target.value)} />
-                <div className="dt-modal-hint">Si lo completás, el pase muestra Disponible o Entregado y se renueva el día 1.</div>
+                <div className="dt-modal-hint">Se entrega una vez por mes: el pase muestra Disponible o Entregado. Si tu club no tiene uno, dejalo vacío.</div>
               </>
             )}
 
