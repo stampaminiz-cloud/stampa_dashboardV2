@@ -27,6 +27,7 @@ import { HELP } from '@/components/dashboard/helpContent'
 import { toggleTema, useTema } from '@/components/dashboard/Apariencia'
 import { isDark } from '@/components/ThemeSync'
 import { currencyFor, formatMoney } from '@/lib/money'
+import { RubroProvider } from '@/lib/ejemplos'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TabId = 'overview' | 'customers' | 'analytics' | 'rewards' | 'orders' | 'notifications' | 'design' | 'form' | 'users' | 'locations' | 'settings'
@@ -1493,7 +1494,7 @@ export default function DashboardPage() {
           ? <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Cargando variante="pagina" />
             </div>
-          : renderTab()
+          : <RubroProvider value={business?.sector ?? null}>{renderTab()}</RubroProvider>
         }
       </div>
     </div>

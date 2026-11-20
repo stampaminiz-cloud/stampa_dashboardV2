@@ -3,7 +3,8 @@ import { Icon, type IconName } from '@/components/ui/Icon'
 import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
 import { PLAN_LIMITS, type Plan } from '@/data/plans'
-import { BASE_URL, apiGetPointsCatalog, apiRedeemPoints, apiJoinCard, apiLeaveCard, apiDeliverBenefit, apiAddCustomer, type ClubInfo } from '@/lib/api'
+import { confirmar } from '@/lib/confirmar'
+import { BASE_URL, apiGetPointsCatalog, apiRedeemPoints, apiJoinCard, apiLeaveCard, apiRemoveClubMember, apiDeliverBenefit, apiAddCustomer, type ClubInfo } from '@/lib/api'
 import { formatMoney } from '@/lib/money'
 
 interface CardEntry {
@@ -102,7 +103,8 @@ function summaryOf(card: CardEntry): string {
 // ¿Tiene algo para hacer? (premio listo, beneficio del mes disponible): arranca abierta.
 const hasAction = (card: CardEntry) => isReady(card) || !!(card.club && !card.club.ended && card.club.benefit?.available)
 
-function CardSection({ customer, card, canDelete, onDelete, onChanged, open, onToggle }: {
+function CardSection({ customer, card, canDelete, onDelete, onChanged, onGone, open, onToggle }: {
+  onGone?: () => void
   customer: Customer; card: CardEntry; canDelete: boolean
   onDelete: (customerId: string) => Promise<boolean>
   onChanged: () => void
@@ -229,7 +231,7 @@ function CardSection({ customer, card, canDelete, onDelete, onChanged, open, onT
           {redeemMsg && <div className={`ct-resync-msg${redeemMsg.ok ? '' : ' ct-resync-msg--err'}`}>{redeemMsg.text}</div>}
         </>
       ) : (
-        card.club ? <ClubBlock customer={customer} card={card} canDelete={canDelete} onChanged={onChanged} /> : (
+        card.club ? <ClubBlock customer={customer} card={card} canDelete={canDelete} onChanged={onChanged} onGone={onGone} /> : (
           <div className="ct-panel-progress-num" style={{ fontSize: 22 }}>{card.membershipTier ? `Nivel ${card.membershipTier}` : 'Sin nivel todavía'}</div>
         )
       )}
@@ -332,23 +334,23 @@ function History({ customer }: { customer: Customer }) {
 
 
 // ─── Club VIP: socio, beneficio del mes y baja ──────────────────────────────
-function ClubBlock({ customer, card, canDelete, onChanged }: { customer: Customer; card: CardEntry; canDelete: boolean; onChanged: () => void }) {
+function ClubBlock({ customer, card, canDelete, onChanged, onGone }: { customer: Customer; card: CardEntry; canDelete: boolean; onChanged: () => void; onGone?: () => void }) {
   const club = card.club!
-  const [busy, setBusy] = useState<'benefit' | 'leave' | 'join' | null>(null)
+  const [busy, setBusy] = useState<'benefit' | 'leave' | 'delete' | 'join' | null>(null)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const businessId = typeof window !== 'undefined' ? localStorage.getItem('stampa_business_id') : null
   const since = club.since ? new Date(club.since).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' }) : ''
-  async function run(kind: 'benefit' | 'leave' | 'join') {
+  const first = customer.name.split(' ')[0]
+  async function run(kind: 'benefit' | 'leave' | 'delete' | 'join') {
     if (!businessId) return
+    if (kind === 'leave' && !(await confirmar({ titulo: `¿Dar de baja a ${first}?`, mensaje: 'Su pase pasa a "Membresía finalizada". Guardamos su número por si vuelve.', confirmar: 'Dar de baja' }))) return
+    if (kind === 'delete' && !(await confirmar({ titulo: `¿Eliminar a ${first}?`, mensaje: 'Se borra de esta tarjeta para siempre y no se puede deshacer. Sus otras tarjetas siguen igual.', confirmar: 'Eliminar', peligro: true }))) return
     setBusy(kind); setMsg(null)
     try {
       if (kind === 'benefit') { await apiDeliverBenefit(businessId, card.customerId); setMsg({ ok: true, text: `${club.benefit?.name || 'Beneficio'} entregado. Su pase ya lo muestra.` }) }
-      else {
-        const origin = customer.cards.find(c => !c.club)
-        if (!origin || !card.cardId) return
-        if (kind === 'leave') { await apiLeaveCard(businessId, origin.customerId, card.cardId); setMsg({ ok: true, text: 'Lo diste de baja. Su pase dice "Membresía finalizada".' }) }
-        else { await apiJoinCard(businessId, origin.customerId, card.cardId); setMsg({ ok: true, text: 'Volvió al Club. Le mandamos su pase por email.' }) }
-      }
+      else if (kind === 'leave') { await apiRemoveClubMember(businessId, card.customerId); setMsg({ ok: true, text: 'Lo diste de baja. Su pase dice "Membresía finalizada".' }) }
+      else if (kind === 'delete') { await apiRemoveClubMember(businessId, card.customerId, true); setMsg({ ok: true, text: `${first} ya no está en esta tarjeta.` }); onChanged(); onGone?.(); return }
+      else if (card.cardId) { await apiJoinCard(businessId, card.customerId, card.cardId); setMsg({ ok: true, text: 'Volvió a la tarjeta. Le mandamos su pase por email.' }) }
       onChanged()
     } catch (err: any) { setMsg({ ok: false, text: err?.message || err?.error || 'No pudimos hacerlo. Probá de nuevo.' }) }
     finally { setBusy(null) }
@@ -360,6 +362,7 @@ function ClubBlock({ customer, card, canDelete, onChanged }: { customer: Custome
         <>
           <div className="ct-near-note">Dado de baja. Su pase dice "Membresía finalizada".</div>
           {canDelete && <button className="ct-resync-btn" disabled={busy === 'join'} onClick={() => run('join')}>{busy === 'join' ? '…' : 'Volver a sumarlo'}</button>}
+          {canDelete && <button className="ct-danger-link" disabled={busy === 'delete'} onClick={() => run('delete')}>{busy === 'delete' ? '…' : 'Eliminar para siempre'}</button>}
         </>
       ) : (
         <>
@@ -369,7 +372,12 @@ function ClubBlock({ customer, card, canDelete, onChanged }: { customer: Custome
               {club.benefit.available && <button className="ct-resync-btn" disabled={busy === 'benefit'} onClick={() => run('benefit')}>{busy === 'benefit' ? '…' : `Entregar ${club.benefit.name.toLowerCase()}`}</button>}
             </div>
           )}
-          {canDelete && <button className="ct-redeem-cancel" disabled={busy === 'leave'} onClick={() => { if (window.confirm(`¿Sacar a ${customer.name} del Club? Su pase pasa a "Membresía finalizada".`)) run('leave') }}>{busy === 'leave' ? '…' : 'Sacar del Club'}</button>}
+          {canDelete && (
+            <div className="ct-club-actions">
+              <button className="ct-redeem-cancel" disabled={busy === 'leave'} onClick={() => run('leave')}>{busy === 'leave' ? '…' : 'Dar de baja'}</button>
+              <button className="ct-danger-link" disabled={busy === 'delete'} onClick={() => run('delete')}>{busy === 'delete' ? '…' : 'Eliminar'}</button>
+            </div>
+          )}
         </>
       )}
       {msg && <div className={`ct-resync-msg${msg.ok ? '' : ' ct-resync-msg--err'}`}>{msg.text}</div>}
@@ -413,7 +421,7 @@ function AddCustomerModal({ cards, onClose, onAdded }: { cards: Array<{ id: stri
             <div className="ct-fld">Tarjeta
               <div className="ct-chips">{cards.map(c => <button key={c.id} type="button" className="s-chip" aria-pressed={cardId === c.id} onClick={() => setCardId(c.id)}>{c.name}{c.inviteOnly ? ' · por invitación' : ''}</button>)}</div>
             </div>
-            <div className="ct-hint">Le llega el pase por email. Si es del Club, se le asigna su número de socio.</div>
+            <div className="ct-hint">Le llega el pase por email. Si es la tarjeta del local, se le asigna su número de socio.</div>
             {error && <div className="ct-resync-msg ct-resync-msg--err">{error}</div>}
             <div className="ct-modal-foot">
               <button className="s-btn s-btn--secondary s-btn--sm" onClick={onClose}>Cancelar</button>
@@ -511,7 +519,7 @@ function CustomerPanel({ customer, canDelete, onClose, onDelete, onChanged, vipC
         </div>
 
         {customer.cards.map(card => (
-          <CardSection key={card.customerId} customer={customer} card={card} canDelete={canDelete} onDelete={onDelete} onChanged={onChanged} open={openId === card.customerId} onToggle={() => setOpenId(openId === card.customerId ? null : card.customerId)} />
+          <CardSection key={card.customerId} customer={customer} card={card} canDelete={canDelete} onDelete={onDelete} onChanged={onChanged} onGone={onClose} open={openId === card.customerId} onToggle={() => setOpenId(openId === card.customerId ? null : card.customerId)} />
         ))}
 
         {canDelete && <VipSection customer={customer} vipCards={vipCards} onChanged={onChanged} />}
@@ -780,6 +788,8 @@ export function CustomersTab({
         .ct-redeem-item{display:flex;align-items:center;justify-content:space-between;width:100%;font-size:12px;padding:9px 12px;border-radius:8px;background:var(--s-salvia);border:1px solid rgb(var(--s-tinta-rgb) / .1);color:var(--s-tinta);cursor:pointer;font-family:var(--font-body);}
         .ct-redeem-item:disabled{opacity:.4;cursor:not-allowed;}
         .ct-redeem-cost{font-weight:700;color:var(--s-brasa);}
+        .ct-club-actions{display:flex;justify-content:center;gap:18px;margin-top:6px;}
+        .ct-danger-link{font-size:11px;font-weight:600;color:var(--s-error);background:none;border:none;cursor:pointer;align-self:center;margin-top:4px;font-family:inherit;}
         .ct-redeem-cancel{font-size:11px;color:rgb(var(--s-tinta-rgb) / .5);background:none;border:none;cursor:pointer;align-self:center;margin-top:4px;font-family:inherit;}
         .ct-resync-btn:disabled{opacity:.6;cursor:not-allowed;}
         .ct-resync-hint{font-size:11px;color:rgb(var(--s-tinta-rgb) / .45);line-height:1.5;margin-top:4px;}

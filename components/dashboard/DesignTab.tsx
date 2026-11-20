@@ -11,6 +11,7 @@ import { ColorField, contrastRatio, useLogoColors, logoFadesOn } from './ColorFi
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { PointsRuleEditor, DEFAULT_UNIT, type PointsRuleValue } from './PointsRuleEditor'
 import { currencyFor, pointsRuleText, type Currency } from '@/lib/money'
+import { useEjemplos } from '@/lib/ejemplos'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CardType = "stamp" | "points" | "membership"
@@ -607,7 +608,7 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
           <div className="dt-panel-section-title">Tipo de tarjeta</div>
           <div className="dt-type-fixed">
             <span className="dt-type-fixed-label">
-              {card.type === 'stamp' ? 'Sellos' : card.type === 'points' ? 'Puntos' : card.inviteOnly ? 'Pase único (Club VIP)' : 'Membresía'}
+              {card.type === 'stamp' ? 'Sellos' : card.type === 'points' ? 'Puntos' : card.inviteOnly ? 'Tarjeta del local' : 'Membresía'}
             </span>
             <span style={{ marginLeft: 10, fontSize: 12, color: 'rgb(var(--s-tinta-rgb) / .55)' }}>No se cambia después de crear la tarjeta.</span>
           </div>
@@ -795,12 +796,14 @@ function CardEditor({ card: init, businessId, businessName, onSaved, onBack, onG
 
 // ─── Card Manager (Level 1) ───────────────────────────────────────────────────
 // ─── New card modal ───────────────────────────────────────────────────────────
-function NewCardModal({ onClose, onAdd, existingCount, currency = 'ARS' }: {
+function NewCardModal({ onClose, onAdd, existingCount, currency = 'ARS', businessName }: {
+  businessName?: string | null
   onClose: () => void
   onAdd:   (card: Omit<CardDesign, 'id'>) => Promise<string | null>
   existingCount: number
   currency?: Currency
 }) {
+  const ej = useEjemplos()
   const [step, setStep]         = useState<1 | 2>(1)
   const [name, setName]         = useState('')
   const [type, setType]         = useState<CardType | 'club'>('stamp')
@@ -816,11 +819,11 @@ function NewCardModal({ onClose, onAdd, existingCount, currency = 'ARS' }: {
     { id: 'stamp',      label: 'Tarjeta de sellos',   desc: 'Visitas → premio al completar' },
     { id: 'points',     label: 'Puntos',              desc: 'Suman por visita o por monto y los canjean por premios' },
     { id: 'membership', label: 'Membresía por niveles', desc: 'Bronce → Plata → Oro → Black (los editás en Premios)' },
-    { id: 'club',       label: 'Pase único (Club VIP)', desc: 'Un carnet por invitación, sin QR ni niveles. Lo sumás vos desde Clientes' },
+    { id: 'club',       label: 'Tarjeta del local', desc: 'Un carnet de socio por invitación, sin QR ni niveles. Lo sumás vos desde Clientes' },
   ]
 
   async function handleCreate() {
-    const DEFAULT_NAMES: Record<CardType | 'club', string> = { stamp: 'Sellos', points: 'Puntos', membership: 'Membresía', club: 'Club VIP' }
+    const DEFAULT_NAMES: Record<CardType | 'club', string> = { stamp: 'Sellos', points: 'Puntos', membership: 'Membresía', club: businessName?.trim() || ej.tarjetaLocal }
     const draft: Omit<CardDesign, 'id'> & { club?: boolean; clubPerk?: string; clubMonthly?: string } = {
       name:           name.trim() || DEFAULT_NAMES[type],
       type:           type === 'club' ? 'membership' : type,
@@ -855,7 +858,7 @@ function NewCardModal({ onClose, onAdd, existingCount, currency = 'ARS' }: {
         {step === 1 && (
           <>
             <div className="dt-modal-field-label">Nombre de la tarjeta</div>
-            <input className="dt-modal-input" placeholder="Ej: Club Café" maxLength={40} value={name} onChange={e => setName(e.target.value)} autoFocus />
+            <input className="dt-modal-input" placeholder={`Ej: ${ej.tarjetaLocal}`} maxLength={40} value={name} onChange={e => setName(e.target.value)} autoFocus />
 
             <div className="dt-modal-field-label" style={{ marginTop: 16 }}>Tipo de programa</div>
             <div className="dt-modal-types">
@@ -926,10 +929,10 @@ function NewCardModal({ onClose, onAdd, existingCount, currency = 'ARS' }: {
             {type === 'club' && (
               <>
                 <div className="dt-modal-field-label">Beneficio permanente</div>
-                <input className="dt-modal-input" placeholder="Ej: 20% en todo" maxLength={80} value={clubPerk} onChange={e => setClubPerk(e.target.value)} autoFocus />
+                <input className="dt-modal-input" placeholder={`Ej: ${ej.beneficioPermanente}`} maxLength={80} value={clubPerk} onChange={e => setClubPerk(e.target.value)} autoFocus />
                 <div className="dt-modal-hint">Vale siempre, no hay que controlarlo. Se ve arriba en el pase.</div>
                 <div className="dt-modal-field-label" style={{ marginTop: 12 }}>Beneficio mensual</div>
-                <input className="dt-modal-input" placeholder="Ej: Café del mes" maxLength={40} value={clubMonthly} onChange={e => setClubMonthly(e.target.value)} />
+                <input className="dt-modal-input" placeholder={`Ej: ${ej.beneficioMensual}`} maxLength={40} value={clubMonthly} onChange={e => setClubMonthly(e.target.value)} />
                 <div className="dt-modal-hint">Se entrega una vez por mes: el pase muestra Disponible o Entregado. Si tu club no tiene uno, dejalo vacío.</div>
               </>
             )}
@@ -1145,6 +1148,7 @@ function CardManager({ cards: init, businessId, businessName, onSaved, onEdit, o
           onAdd={handleCardAdded}
           existingCount={cards.length}
           currency={currency}
+          businessName={businessName}
         />
       )}
 

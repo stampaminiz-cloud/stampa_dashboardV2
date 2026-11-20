@@ -6,6 +6,7 @@ import { usePlan } from '@/data/plans'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { Switch } from '@/components/ui/Switch'
 import { RULES_CSS } from './ProgramRules'
+import { confirmar } from '@/lib/confirmar'
 
 // Configuración → "Cómo suman tus clientes" (1.8.0). Mismo diseño y mismo
 // criterio que "Reglas del programa": a la izquierda lo de todo el negocio
@@ -241,7 +242,7 @@ function Screens({ businessId, isManager, active }: { businessId?: string; isMan
   async function refresh() { if (businessId) apiGetScreens(businessId).then(r => setList(r.screens)).catch(() => {}) }
 
   async function remove(d: ScreenDevice) {
-    if (!businessId || !window.confirm(`¿Quitar la pantalla ${d.name}? Deja de sumar al instante.`)) return
+    if (!businessId || !(await confirmar({ titulo: `¿Quitar la pantalla ${d.name}?`, mensaje: 'Deja de sumar al instante.', confirmar: 'Quitar', peligro: true }))) return
     setBusy(d.id)
     try { await apiRemoveScreen(businessId, d.id); setList(l => (l || []).filter(x => x.id !== d.id)) }
     catch (err: any) { setMsg({ ok: false, text: err?.error || 'No pudimos quitar la pantalla.' }) }

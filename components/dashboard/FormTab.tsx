@@ -9,6 +9,7 @@ import { Icon, type IconName } from '@/components/ui/Icon'
 import { Switch } from '@/components/ui/Switch'
 import { apiGetFields, apiCreateField, apiUpdateField, apiDeleteField, apiReorderFields, apiUpdateCard } from '@/lib/api'
 import { usePlan } from '@/data/plans'
+import { confirmar } from '@/lib/confirmar'
 
 // Formulario de registro, por tarjeta. Nombre y email vienen puestos y se
 // editan como los demás (texto, ayuda y, en el nombre, si se pide o se
@@ -409,7 +410,7 @@ export function FormTab({ businessName, businessSlug, cards, businessId, onGoToD
 
         {activeCards.length > 1 && (
           <CardSwitcher value={card.id} options={activeCards.map(c => ({ id: c.id, label: c.name }))}
-            onChange={id => { if (dirty && !confirm('Tenés cambios sin guardar en este formulario. ¿Descartarlos?')) return; setSelectedId(id) }} />
+            onChange={async id => { if (dirty && !(await confirmar({ titulo: '¿Descartar los cambios?', mensaje: 'Tenés cambios sin guardar en este formulario.', confirmar: 'Descartar', peligro: true }))) return; setSelectedId(id) }} />
         )}
 
         <div className="fm-grid">
