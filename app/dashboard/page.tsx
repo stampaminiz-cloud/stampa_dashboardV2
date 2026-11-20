@@ -738,6 +738,7 @@ function mapCustomersForTab(rawCustomers: any[]) {
       pointsBalance: card.pointsBalance || 0,
       membershipTier: card.membershipTier || null,
       lastUpdate: card.lastUpdate || 0,
+      club: card.club || null,
       premio: card.premio,
       formResponses: card.formResponses || [],
     })),
@@ -1119,7 +1120,7 @@ export default function DashboardPage() {
             expiryMonths: c.expiryMonths || 0,
             doubleDays: c.doubleDays || [],
             maxPerDay: c.maxPerDay ?? null,
-            minHoursBetween: c.minHoursBetween || 0, inviteOnly: !!c.inviteOnly, baseFields: c.baseFields || null,
+            minHoursBetween: c.minHoursBetween || 0, inviteOnly: !!c.inviteOnly, periodBenefit: c.periodBenefit || null, baseFields: c.baseFields || null,
           })))
         } else console.error('cards load error:', cardsRes.reason)
 
@@ -1221,7 +1222,7 @@ export default function DashboardPage() {
             expiryMonths: c.expiryMonths || 0,
             doubleDays: c.doubleDays || [],
             maxPerDay: c.maxPerDay ?? null,
-            minHoursBetween: c.minHoursBetween || 0, inviteOnly: !!c.inviteOnly, baseFields: c.baseFields || null,
+            minHoursBetween: c.minHoursBetween || 0, inviteOnly: !!c.inviteOnly, periodBenefit: c.periodBenefit || null, baseFields: c.baseFields || null,
       })))
     } catch (err) {
       console.error('Error refreshing cards:', err)

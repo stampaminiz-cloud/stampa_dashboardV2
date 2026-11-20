@@ -133,6 +133,11 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
       finish({ visitId: r.action?.visitId || null, title: 'Visita sumada', sub: `${m?.totalVisits ?? ''} visitas${m?.visitsToNext ? ` · ${m.visitsToNext} para ${m.nextTier?.name}` : ''}` })
     })
   }
+  function deliverBenefit() {
+    const b = view.club?.benefit
+    if (!b || !window.confirm(`${b.name}\n\n¿Le entregaste "${b.name}" a ${first}?`)) return
+    run('benefit', () => escaner.deliverBenefit(view.customer.id), () => finish({ visitId: null, title: 'Beneficio entregado', sub: `${b.name} · ${first}` }))
+  }
   function deliverBirthday() {
     const gift = view.birthdayGift
     if (!gift || !window.confirm(`Regalo de cumpleaños\n\n¿Le entregaste "${gift.gift}" a ${first}?`)) return
@@ -227,7 +232,8 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
         ))}
 
         {view.points && <PointsBody view={view} p={p} unlocked={unlocked} onRedeem={busy ? undefined : redeem} />}
-        {view.membership && <MembershipBody view={view} p={p} />}
+        {view.membership && !view.club && <MembershipBody view={view} p={p} />}
+        {view.club && <ClubBody view={view} p={p} />}
       </div>
 
       {error && <div className="esc-cli-error" style={{ background: p.fg, color: p.bg }}>{error}</div>}
@@ -256,7 +262,10 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
               : `+ ${view.points.pointsPerVisit * (view.doubleToday ? 2 : 1)} puntos${view.doubleToday ? ' (x2)' : ''}`}
           </button>
         )}
-        {view.membership && (
+        {view.club && !view.club.ended && view.club.benefit?.available && (
+          <button className="esc-btn" onClick={deliverBenefit} disabled={!!busy}>{busy === 'benefit' ? 'Guardando...' : `Entregar ${view.club.benefit.name.toLowerCase()}`}</button>
+        )}
+        {view.membership && !view.club && (
           <button className="esc-btn" onClick={addVisit} disabled={!!busy || !!limit}>
             {busy === 'visit' ? 'Sumando...' : limit ? 'No puede sumar ahora' : '+ Visita'}
           </button>
@@ -334,6 +343,24 @@ function TierBadge({ tier }: { tier: Tier }) {
   // tier.bg suele ser translúcido (como en el pase): va sobre blanco.
   return (
     <span className="esc-badge"><div style={{ background: tier.bg, color: tier.color }}>{tier.icon && <img src={tier.icon} alt="" />}{tier.name}</div></span>
+  )
+}
+
+// Club VIP: carnet. Número de socio, beneficio y el del mes; no suma visitas.
+function ClubBody({ view, p }: { view: CustomerView; p: Pal }) {
+  const club = view.club!
+  const m = view.membership
+  const perk = m?.currentTier?.perk
+  if (club.ended) return <div className="esc-club"><div className="esc-club-no">Ya no es miembro del Club</div><div className="esc-subline" style={{ color: p.label }}>Su pase dice "Membresía finalizada".</div></div>
+  return (
+    <div className="esc-club">
+      <div><TierBadge tier={m?.currentTier || { id: 'club', name: 'Club', threshold: 0 }} /></div>
+      <div className="esc-big">{club.memberNumber ? `Socio Nº ${String(club.memberNumber).padStart(3, '0')}` : 'Socio'}</div>
+      {!!perk && <div className="esc-subline" style={{ color: p.label }}>Beneficio: {perk}</div>}
+      {club.benefit && (
+        <div className="esc-subline" style={{ color: p.label }}>{club.benefit.name}: <b style={{ color: p.fg }}>{club.benefit.available ? 'Disponible' : 'Ya entregado este mes'}</b></div>
+      )}
+    </div>
   )
 }
 

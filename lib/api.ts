@@ -802,8 +802,17 @@ export async function apiScheduleNotification(businessId: string, data: {
 }
 // Membresía por invitación (club VIP): el dueño suma o saca a un cliente.
 export async function apiJoinCard(businessId: string, customerId: string, cardId: string) {
-  return request<{ customerId: string; card: { id: string; name: string; type: string } }>(`/api/businesses/${businessId}/customers/${customerId}/join-card`, { method: 'POST', body: { cardId } })
+  return request<{ customerId: string; memberNumber?: number; card: { id: string; name: string; type: string } }>(`/api/businesses/${businessId}/customers/${customerId}/join-card`, { method: 'POST', body: { cardId } })
 }
 export async function apiLeaveCard(businessId: string, customerId: string, cardId: string) {
   return request<void>(`/api/businesses/${businessId}/customers/${customerId}/join-card/${cardId}`, { method: 'DELETE' })
+}
+
+// Club VIP (1.14.0): entregar el beneficio del mes y agregar clientes a mano.
+export interface ClubInfo { memberNumber: number | null; ended: boolean; since: string | null; benefit: { name: string; available: boolean; usedAt: string | null } | null }
+export async function apiDeliverBenefit(businessId: string, customerId: string) {
+  return request<{ club: ClubInfo }>(`/api/businesses/${businessId}/customers/${customerId}/benefit`, { method: 'POST', body: {} })
+}
+export async function apiAddCustomer(businessId: string, data: { fullName: string; email: string; cardId: string }) {
+  return request<{ customerId: string; memberNumber?: number; card: { id: string; name: string; type: string } }>(`/api/businesses/${businessId}/customers`, { method: 'POST', body: data })
 }

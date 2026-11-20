@@ -14,7 +14,7 @@ export const ESCANER_CSS = `
 @keyframes esc-spin{to{transform:rotate(360deg)}}
 
 .esc-top{display:flex;align-items:center;justify-content:space-between;padding:8px 20px 0;min-height:48px}
-.esc-wm{width:120px;height:26px;background:url(/stampa-wordmark.png) -25px -72px/170px 170px no-repeat}
+.esc-wm{font-family:var(--font-display);font-weight:800;font-size:24px;letter-spacing:-.01em;line-height:1;color:var(--coral);display:inline-block}
 .esc-help{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--ink);background:var(--s-blanco);font-size:19px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0}
 .esc-body{padding:28px 24px 24px;display:flex;flex-direction:column;flex:1}
 .esc-title{font-family:var(--font-display);font-size:30px;font-weight:800;line-height:1.2;margin:0}
@@ -42,7 +42,12 @@ export const ESCANER_CSS = `
 .esc-box.is-focus{border:2px solid var(--coral)}
 .esc-box.is-error{border-color:var(--danger)}
 .esc-box i{width:14px;height:14px;border-radius:50%;background:var(--ink)}
-.esc-boxes input{position:absolute;inset:0;width:100%;height:100%;opacity:.02;font-size:16px;border:none;background:transparent;color:transparent;caret-color:transparent}
+.esc-boxes input{position:absolute;inset:0;width:100%;height:100%;opacity:.02;font-size:16px;border:none;outline:none;box-shadow:none;-webkit-appearance:none;appearance:none;background:transparent;color:transparent;caret-color:transparent}
+.esc-boxes input:focus,.esc-boxes input:focus-visible{outline:none;box-shadow:none}
+.esc-owner-line{font-size:14px;color:var(--soft);margin-top:14px;line-height:1.5}
+.esc-owner-line button{background:none;border:none;padding:0;font:inherit;font-weight:700;color:var(--ink);text-decoration:underline}
+.esc-club{display:flex;flex-direction:column;gap:14px}
+.esc-club-no{font-size:18px;font-weight:800}
 .esc-input{width:100%;height:54px;border-radius:14px;border:1.5px solid var(--faint);background:var(--s-blanco);padding:0 16px;font-size:17px;color:var(--ink);font-family:var(--font-body);outline:none}
 .esc-input:focus{border-color:var(--coral)}
 .esc-field{display:flex;flex-direction:column;gap:8px;margin-top:20px}
@@ -69,7 +74,7 @@ export const ESCANER_CSS = `
 .esc-dots i.on{width:24px;background:var(--coral)}
 .esc-skip{background:none;border:none;text-align:center;color:var(--soft);font-size:15px;font-weight:600;padding:4px;width:100%}
 .esc-circle{width:160px;height:160px;border-radius:50%;background:rgba(199,93,58,.12);display:flex;align-items:center;justify-content:center}
-.esc-circle .esc-wm{width:120px;transform:scale(1.15)}
+.esc-circle .esc-wm{transform:scale(1.15)}
 .esc-demo{width:260px;border-radius:20px;background:var(--green);padding:20px;display:flex;flex-direction:column;gap:10px;color:var(--cream)}
 .esc-demo p{margin:0;font-size:15px;font-weight:600}
 .esc-demo-big{font-size:34px!important;font-weight:800!important}
@@ -223,5 +228,4 @@ export const ESCANER_CSS = `
 .esc-cel-perk{font-size:22px;font-weight:800;margin-top:8px}
 
 :root[data-theme="dark"] .esc-root{--cream:var(--s-salvia);--ink:var(--s-tinta);--soft:var(--s-tinta-2);--faint:var(--s-linea);--green:var(--s-pino-texto);--danger:var(--s-error);--ok:var(--s-listo)}
-:root[data-theme="dark"] .esc-wm{filter:invert(1) hue-rotate(180deg)}
 `
