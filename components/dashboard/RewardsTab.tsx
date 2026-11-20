@@ -111,8 +111,8 @@ function Redemptions({ items, onOpenCustomer, empty }: { items: Redemption[]; on
 
 // Vista previa del pase con las imágenes reales (las arma el backend con lo
 // que se está editando, igual que en Diseño).
-function RulePreview({ businessId, card, override, rewardLabel, tiers, tierIndex = 0, monthly }: {
-  businessId: string; card: any; override: Record<string, any>; rewardLabel?: string; monthly?: string
+function RulePreview({ businessId, card, override, rewardLabel, tiers, tierIndex = 0 }: {
+  businessId: string; card: any; override: Record<string, any>; rewardLabel?: string
   tiers?: { name: string; threshold: number; color: string; bg: string; perk?: string }[]; tierIndex?: number
 }) {
   const [img, setImg] = useState<{ apple: { logo: string | null; strip: string | null } } | null>(null)
@@ -151,11 +151,6 @@ function RulePreview({ businessId, card, override, rewardLabel, tiers, tierIndex
           {tier && card.inviteOnly && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>MIEMBRO DESDE</div><div className="rw-pv-v">nov 2026</div></div>}
           {rewardLabel !== undefined && <div style={{ textAlign: 'right', minWidth: 0 }}><div className="rw-pv-l" style={{ color: lc }}>PREMIO</div><div className="rw-pv-v">{rewardLabel || '—'}</div></div>}
         </div>
-        {card.inviteOnly && !!monthly?.trim() && (
-          <div className="rw-pv-fields" style={{ paddingTop: 0 }}>
-            <div><div className="rw-pv-l" style={{ color: lc }}>{monthly.trim().toUpperCase()}</div><div className="rw-pv-v">Disponible</div></div>
-          </div>
-        )}
       </div>
       <div className="rw-hint" style={{ textAlign: 'center' }}>{err ? 'No pudimos actualizar la vista previa.' : 'Así la ve tu cliente en la Wallet.'}</div>
     </div>
@@ -674,7 +669,7 @@ function ClubRewards({ businessId, card, data, onChanged }: { businessId: string
               </label>
               <div className="rw-editor-foot"><div style={{ flex: 1 }} /><button className="s-btn s-btn--primary" onClick={save} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button></div>
             </div>
-            <RulePreview businessId={businessId} card={card} override={{}} tiers={previewTier} tierIndex={0} monthly={monthly} />
+            <RulePreview businessId={businessId} card={card} override={{ periodBenefit: { enabled: !!monthly.trim(), name: monthly.trim() } }} tiers={previewTier} tierIndex={0} />
           </div>
         )}
       </div>
