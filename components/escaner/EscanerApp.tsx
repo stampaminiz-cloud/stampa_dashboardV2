@@ -204,7 +204,7 @@ export function EscanerApp() {
 function Top({ onHelp }: { onHelp: () => void }) {
   return (
     <div className="esc-top">
-      <span className="esc-wm" role="img" aria-label="Stampa" />
+      <span className="esc-wm" aria-label="Stampa">STAMPA</span>
       <button className="esc-help" onClick={onHelp} aria-label="Ayuda">?</button>
     </div>
   )
@@ -217,14 +217,14 @@ function Welcome({ notice, onOwner, onEmployee, onHelp }: { notice: string | nul
       <Top onHelp={onHelp} />
       <div className="esc-body" style={{ paddingTop: 36 }}>
         <h1 className="esc-title">Bienvenido a Stampa Escáner</h1>
-        <p className="esc-sub" style={{ marginBottom: 18 }}>Sumá sellos, puntos y visitas escaneando la tarjeta de tus clientes. ¿Cómo vas a entrar?</p>
+        <p className="esc-sub" style={{ marginBottom: 18 }}>¿Cómo vas a entrar?</p>
         {notice && <p className="esc-error" style={{ marginBottom: 14 }}>{notice}</p>}
         <div className="esc-stack">
           <button className="esc-option esc-option--main" onClick={onOwner}>
-            <div><b>Soy dueño o administrador</b><span>Con el email y la contraseña del dashboard. No hace falta vincular nada.</span></div><i>›</i>
+            <div><b>Soy dueño o administrador</b><span>Con el email y la contraseña del dashboard.</span></div><i>›</i>
           </button>
           <button className="esc-option" onClick={onEmployee}>
-            <div><b>Soy empleado</b><span>Vinculá este celular al local una sola vez. Después entrás con tu PIN.</span></div><i>›</i>
+            <div><b>Soy empleado</b><span>Vinculá este celular una sola vez. Después entrás con tu PIN.</span></div><i>›</i>
           </button>
         </div>
       </div>
@@ -324,14 +324,11 @@ function Login({ device, onHelp, onOwner, onUnlink, onDone, onRemoved }: {
           <input ref={input} value={pin} onChange={e => onChange(e.target.value)} type="password" inputMode="numeric" pattern="[0-9]*" maxLength={PIN_LENGTH}
             autoFocus autoComplete="off" disabled={busy} aria-label="PIN de 4 números" />
         </div>
-        <div className="esc-hint">Los 4 números que te dio el encargado del local.</div>
+        <div className="esc-hint">Entra solo al completar los 4 números.</div>
 
         <div className="esc-status">{busy ? <div className="esc-spinner" /> : error ? <span className="esc-error">{error}</span> : null}</div>
 
-        <button className="esc-btn" onClick={() => submit(pin)} disabled={pin.length !== PIN_LENGTH || busy}>{busy ? 'Entrando...' : 'Entrar'}</button>
-
-        <div className="esc-or"><i /><span>o</span><i /></div>
-        <button className="esc-btn esc-btn--line" onClick={onOwner}>Entrar como dueño o administrador</button>
+        <div className="esc-owner-line">¿Sos dueño o administrador? <button type="button" onClick={onOwner}>Entrá con tu email</button></div>
 
         <button className="esc-link" onClick={onUnlink}>¿Es de otro local? Activar otro negocio</button>
       </div>
@@ -403,7 +400,7 @@ function Onboarding({ me, onDone }: { me: Me; onDone: () => void }) {
   const first = me.scanner.fullName.split(' ')[0]
   const [page, setPage] = useState(0)
   const pages: { kicker?: string; title: string; body: string; ill: React.ReactNode }[] = [
-    { title: `Hola${first ? `, ${first}` : ''}`, ill: <div className="esc-circle"><span className="esc-wm" role="img" aria-label="Stampa" /></div>,
+    { title: `Hola${first ? `, ${first}` : ''}`, ill: <div className="esc-circle"><span className="esc-wm" aria-label="Stampa">STAMPA</span></div>,
       body: `Ya formás parte del equipo de ${me.business.name}. Con este escáner vas a sumar sellos, puntos y visitas a los clientes escaneando su tarjeta.` },
     { kicker: 'Tarjeta de sellos', title: 'Un sello por visita',
       ill: <div className="esc-demo"><div className="esc-demo-stamps">{Array.from({ length: 8 }).map((_, i) => <i key={i} className={i < 5 ? 'on' : ''} />)}</div><p>5 de 8 sellos</p></div>,
@@ -445,7 +442,7 @@ function Buscar({ onOpen }: { onOpen: (id: string) => void }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
-    if (q.trim().length < 2) { setResults(null); return }
+    if (q.trim().length < 2 && !/^\d$/.test(q.trim())) { setResults(null); return }
     setLoading(true)
     const t = setTimeout(() => {
       escaner.search(q.trim()).then(r => { setResults(r.results); setError(null) }).catch((e: EscanerError) => setError(e.message)).finally(() => setLoading(false))
@@ -454,16 +451,16 @@ function Buscar({ onOpen }: { onOpen: (id: string) => void }) {
   }, [q])
   return (
     <div className="esc-pane">
-      <input className="esc-input" autoFocus inputMode="search" autoCorrect="off" autoCapitalize="none" placeholder="Nombre, email o teléfono" value={q} onChange={e => setQ(e.target.value)} aria-label="Buscar cliente" />
+      <input className="esc-input" autoFocus inputMode="search" autoCorrect="off" autoCapitalize="none" placeholder="Nombre, email, teléfono o Nº de socio" value={q} onChange={e => setQ(e.target.value)} aria-label="Buscar cliente" />
       {error && <div className="esc-error">{error}</div>}
       {results?.map(r => (
         <button key={r.id} className="esc-row" onClick={() => onOpen(r.id)}>
           <span className="esc-row-sw" style={{ background: r.card.color || '#1B412F', color: r.card.textColor || '#fff' }}>{r.fullName.charAt(0).toUpperCase()}</span>
-          <span className="esc-row-main"><div className="esc-row-name">{r.fullName}</div><div className="esc-row-meta">{[r.phone, r.email].filter(Boolean).join(' · ')} · {r.card.name} ({TYPE_LABEL[r.card.type]})</div></span>
+          <span className="esc-row-main"><div className="esc-row-name">{r.fullName}</div><div className="esc-row-meta">{r.club ? `Socio ${r.club.memberNumber ? `Nº ${String(r.club.memberNumber).padStart(3, '0')}` : ''}${r.club.ended ? ' · dado de baja' : ''} · ${r.card.name}` : `${[r.phone, r.email].filter(Boolean).join(' · ')} · ${r.card.name} (${TYPE_LABEL[r.card.type]})`}</div></span>
         </button>
       ))}
       <div className="esc-empty">
-        {q.trim().length < 2 ? 'Escribí al menos 2 letras, o los últimos dígitos de su teléfono.' : loading ? '' : results && results.length === 0 ? 'No encontramos clientes con eso.' : ''}
+        {q.trim().length < 2 && !/^\d$/.test(q.trim()) ? 'Escribí su nombre, los últimos dígitos de su teléfono o su número de socio.' : loading ? '' : results && results.length === 0 ? 'No encontramos clientes con eso.' : ''}
       </div>
     </div>
   )

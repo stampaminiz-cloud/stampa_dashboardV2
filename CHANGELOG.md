@@ -2,6 +2,15 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.14.0 (20/11/2026) — El Club VIP como carnet
+
+**Cambios**
+- Clientes: la ficha tiene una fila por tarjeta ("Sellos 7 de 8", "Puntos 120 pts", "Club VIP · Socio Nº 001") y se abre solo la que tocás; arranca abierta la primera con algo para hacer. Botón "Agregar cliente" (nombre, email y tarjeta).
+- Club VIP en la ficha: número de socio, beneficio del mes con "Entregar café del mes", "Sacar del Club" (da de baja) y "Volver a sumarlo".
+- Premios, Niveles: "Beneficio una vez por mes" (con nombre) cuando la tarjeta es solo por invitación, y la sugerencia "Llamarlo Club VIP" al quedar un solo nivel.
+- Diseño: la vista previa del Club no lleva QR y muestra MIEMBRO DESDE y el beneficio del mes.
+- Web app del escáner: STAMPA en texto (sin el recorte con la M estirada), sin el aro azul de Safari alrededor del PIN, el PIN entra solo al completar los 4 números y el acceso de dueño es un renglón sobre el teclado; busca por número de socio y muestra el carnet del Club con "Entregar" el beneficio del mes.
+
 ## 1.13.1 (19/11/2026) — El color de las tarjetas nuevas y de los niveles
 
 **Arreglos**

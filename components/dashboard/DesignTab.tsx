@@ -30,6 +30,8 @@ interface CardDesign {
   pointsIcon?: string | null
   flipImageUrl?: string | null
   stripImageUrl?: string | null
+  inviteOnly?: boolean
+  periodBenefit?: { enabled?: boolean; name?: string } | null
   flipMessage?: string | null
   flipSubMessage?: string | null
   pointsPerVisit?: number | null
@@ -219,10 +221,14 @@ function RealPassPreview({ design, images, rewardLabel, tiers, previewTierIndex 
   const tc = design.type === 'membership' && activeTier ? activeTier.color : (design.textColor || '#FFFFFF')
   const lc = design.type !== 'membership' && design.labelColor && /^#[0-9A-Fa-f]{6}$/.test(design.labelColor) ? design.labelColor : hexToRgba(tc, 0.65)
   const nextTier = tiers[previewTierIndex + 1]
+  const club = design.type === 'membership' && !!design.inviteOnly
   const second = design.type === 'stamp' ? { label: 'PREMIO', value: rewardLabel }
     : design.type === 'points' ? { label: 'VISITAS', value: '14' }
+    : club ? { label: 'MIEMBRO DESDE', value: 'nov 2026' }
     : design.type === 'membership' ? { label: 'NIVEL', value: activeTier?.name || '' } : null
-  const third = design.type === 'membership' && nextTier ? { label: 'SIGUIENTE', value: `${nextTier.name} · ${nextTier.threshold}` } : null
+  const third = club
+    ? (design.periodBenefit?.enabled ? { label: (design.periodBenefit.name || 'Beneficio del mes').toUpperCase(), value: 'Disponible' } : null)
+    : design.type === 'membership' && nextTier ? { label: 'SIGUIENTE', value: `${nextTier.name} · ${nextTier.threshold}` } : null
   return (
     <div className="dt-real-pass" style={{ background: solidBg(design, activeTier) }}>
       <div className="dt-real-pass-top">
@@ -243,10 +249,12 @@ function RealPassPreview({ design, images, rewardLabel, tiers, previewTierIndex 
           <div className="dt-real-pass-info-val" style={{ color: tc }}>{third.value}</div>
         </div>}
       </div>
-      <div className="dt-real-pass-qr-section">
-        <QRCode size={90} />
-        {!whiteLabel && <div className="dt-real-pass-powered">Powered by Stampa</div>}
-      </div>
+      {club
+        ? <div style={{ height: 18 }} />
+        : <div className="dt-real-pass-qr-section">
+            <QRCode size={90} />
+            {!whiteLabel && <div className="dt-real-pass-powered">Powered by Stampa</div>}
+          </div>}
     </div>
   )
 }
