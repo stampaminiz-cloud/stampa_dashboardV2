@@ -58,6 +58,8 @@ export interface CustomerView {
   stamp?: { stamps: number; required: number; remaining: number; completed: boolean; reward: string; flipMessage?: string; flipSubMessage?: string; flipImageUrl?: string | null }
   points?: { balance: number; mode: 'visit' | 'amount'; pointsPerVisit: number; rule: { perAmount: number; unit: number; currency: 'ARS' | 'EUR' } | null; catalog: CatalogItem[]; canRedeem: boolean }
   membership?: { totalVisits: number; tiers: Tier[]; currentTierIndex: number; currentTier: Tier | null; nextTier: Tier | null; visitsToNext: number | null }
+  // Club VIP: número de socio, baja y beneficio del mes.
+  club?: { memberNumber: number | null; ended: boolean; since: string | null; benefit: { name: string; available: boolean; usedAt: string | null } | null }
 }
 export interface ActionResult extends CustomerView {
   action?: { visitId: string; kind: string; amount?: number; double?: boolean; purchase?: number | null }
@@ -70,7 +72,7 @@ export interface Me {
   location: { id: string; name: string; isPrimary: boolean; status: string; multi: boolean }
   today: { mine: number; total: number }
 }
-export interface SearchResult { id: string; fullName: string; email: string; phone?: string | null; card: { name: string; type: CardType; color?: string; textColor?: string } }
+export interface SearchResult { id: string; club?: CustomerView['club']; fullName: string; email: string; phone?: string | null; card: { name: string; type: CardType; color?: string; textColor?: string } }
 export interface TodayItem { id: string; type: 'stamp' | 'points' | 'visit' | 'redeem'; customerId: string; customerName: string; delta: number | null; purchase: number | null; rewardName: string | null; overLimit: boolean; createdAt: string; canUndo: boolean }
 export interface LocationChoice { id: string; name: string; address?: string }
 
@@ -137,6 +139,7 @@ export const escaner = {
   lookup: (qrValue: string) => request<CustomerView>('POST', '/api/scanner/lookup', { qrValue }),
   addStamp: (id: string) => request<ActionResult>('POST', `/api/scanner/customers/${id}/stamp`, {}),
   deliverReward: (id: string) => request<ActionResult>('POST', `/api/scanner/customers/${id}/deliver-reward`),
+  deliverBenefit: (id: string) => request<ActionResult>('POST', `/api/scanner/customers/${id}/benefit`),
   deliverBirthday: (id: string) => request<CustomerView>('POST', `/api/scanner/customers/${id}/deliver-birthday`),
   addPoints: (id: string, purchase?: number) => request<ActionResult>('POST', `/api/scanner/customers/${id}/points`, purchase != null ? { amount: purchase } : {}),
   redeemPoints: (id: string, catalogItemId: string) => request<ActionResult>('POST', `/api/scanner/customers/${id}/redeem-points`, { catalogItemId }),

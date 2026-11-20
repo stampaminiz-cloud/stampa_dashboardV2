@@ -3,7 +3,7 @@ import { Icon, type IconName } from '@/components/ui/Icon'
 import React, { useState, useEffect } from 'react'
 import { useLang } from '@/data/i18n'
 import { PLAN_LIMITS, type Plan } from '@/data/plans'
-import { BASE_URL, apiGetPointsCatalog, apiRedeemPoints, apiJoinCard, apiLeaveCard } from '@/lib/api'
+import { BASE_URL, apiGetPointsCatalog, apiRedeemPoints, apiJoinCard, apiLeaveCard, apiDeliverBenefit, apiAddCustomer, type ClubInfo } from '@/lib/api'
 import { formatMoney } from '@/lib/money'
 
 interface CardEntry {
@@ -13,6 +13,7 @@ interface CardEntry {
   membershipTier: string | null; lastUpdate: number
   premio: string | null
   formResponses: Array<{ label: string; value: string }>
+  club?: ClubInfo | null
 }
 
 interface Customer {
@@ -91,10 +92,21 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   )
 }
 
-function CardSection({ customer, card, canDelete, onDelete, onChanged }: {
+// Resumen de una tarjeta en una línea (lo que se ve con la fila cerrada).
+function summaryOf(card: CardEntry): string {
+  if (card.club) return card.club.ended ? 'Dado de baja' : `Socio ${card.club.memberNumber ? `Nº ${String(card.club.memberNumber).padStart(3, '0')}` : ''}`.trim()
+  if (card.cardType === 'stamp') return `${card.stamps} de ${card.cardStampsRequired || 0}`
+  if (card.cardType === 'points') return `${card.pointsBalance} pts`
+  return card.membershipTier || 'Sin nivel'
+}
+// ¿Tiene algo para hacer? (premio listo, beneficio del mes disponible): arranca abierta.
+const hasAction = (card: CardEntry) => isReady(card) || !!(card.club && !card.club.ended && card.club.benefit?.available)
+
+function CardSection({ customer, card, canDelete, onDelete, onChanged, open, onToggle }: {
   customer: Customer; card: CardEntry; canDelete: boolean
   onDelete: (customerId: string) => Promise<boolean>
   onChanged: () => void
+  open: boolean; onToggle: () => void
 }) {
   const t = useLang()
   const [confirmDel, setConfirmDel] = useState(false)
@@ -156,14 +168,15 @@ function CardSection({ customer, card, canDelete, onDelete, onChanged }: {
 
   return (
     <div className="ct-panel-section ct-panel-card-section">
-      <div className="ct-panel-card-header">
+      <button type="button" className="ct-acc-head" aria-expanded={open} onClick={onToggle}>
         <span className="ct-panel-card-type"><CardTypeIcon type={card.cardType} />{card.cardName || cardTypeLabel(card.cardType)}</span>
-        {canDelete && (
-          <button className="ct-panel-delete-btn" onClick={() => setConfirmDel(true)} title="Eliminar esta tarjeta">
-            <Icon name="borrar" size={14} />
-          </button>
-        )}
-      </div>
+        <span className="ct-acc-sum">{hasAction(card) && <i className="ct-acc-dot" />}{summaryOf(card)}</span>
+        <Icon name={open ? 'flechaArriba' : 'abrir'} size={14} />
+      </button>
+      {open && <>
+      {canDelete && !card.club && (
+        <div className="ct-acc-tools"><button className="ct-panel-delete-btn" onClick={() => setConfirmDel(true)} title="Eliminar esta tarjeta"><Icon name="borrar" size={14} /></button></div>
+      )}
       {confirmDel && (
         <div className="ct-confirm-del">
           <div className="ct-confirm-del-text">¿Eliminar la tarjeta de <strong>{card.cardName || cardTypeLabel(card.cardType)}</strong> de {customer.name}? Pierde su progreso y no se puede deshacer.</div>
@@ -216,10 +229,12 @@ function CardSection({ customer, card, canDelete, onDelete, onChanged }: {
           {redeemMsg && <div className={`ct-resync-msg${redeemMsg.ok ? '' : ' ct-resync-msg--err'}`}>{redeemMsg.text}</div>}
         </>
       ) : (
-        <div className="ct-panel-progress-num" style={{ fontSize: 22 }}>{card.membershipTier ? `Nivel ${card.membershipTier}` : 'Sin nivel todavía'}</div>
+        card.club ? <ClubBlock customer={customer} card={card} canDelete={canDelete} onChanged={onChanged} /> : (
+          <div className="ct-panel-progress-num" style={{ fontSize: 22 }}>{card.membershipTier ? `Nivel ${card.membershipTier}` : 'Sin nivel todavía'}</div>
+        )
       )}
 
-      {card.formResponses.length > 0 && (
+      {!card.club && card.formResponses.length > 0 && (
         <div className="ct-panel-card-responses">
           <div className="ct-panel-section-title">{t('ct_form_responses')}</div>
           {card.formResponses.map((r, i) => (
@@ -230,6 +245,7 @@ function CardSection({ customer, card, canDelete, onDelete, onChanged }: {
           ))}
         </div>
       )}
+      </>}
     </div>
   )
 }
@@ -314,12 +330,108 @@ function History({ customer }: { customer: Customer }) {
   )
 }
 
+
+// ─── Club VIP: socio, beneficio del mes y baja ──────────────────────────────
+function ClubBlock({ customer, card, canDelete, onChanged }: { customer: Customer; card: CardEntry; canDelete: boolean; onChanged: () => void }) {
+  const club = card.club!
+  const [busy, setBusy] = useState<'benefit' | 'leave' | 'join' | null>(null)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const businessId = typeof window !== 'undefined' ? localStorage.getItem('stampa_business_id') : null
+  const since = club.since ? new Date(club.since).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' }) : ''
+  async function run(kind: 'benefit' | 'leave' | 'join') {
+    if (!businessId) return
+    setBusy(kind); setMsg(null)
+    try {
+      if (kind === 'benefit') { await apiDeliverBenefit(businessId, card.customerId); setMsg({ ok: true, text: `${club.benefit?.name || 'Beneficio'} entregado. Su pase ya lo muestra.` }) }
+      else {
+        const origin = customer.cards.find(c => !c.club)
+        if (!origin || !card.cardId) return
+        if (kind === 'leave') { await apiLeaveCard(businessId, origin.customerId, card.cardId); setMsg({ ok: true, text: 'Lo diste de baja. Su pase dice "Membresía finalizada".' }) }
+        else { await apiJoinCard(businessId, origin.customerId, card.cardId); setMsg({ ok: true, text: 'Volvió al Club. Le mandamos su pase por email.' }) }
+      }
+      onChanged()
+    } catch (err: any) { setMsg({ ok: false, text: err?.message || err?.error || 'No pudimos hacerlo. Probá de nuevo.' }) }
+    finally { setBusy(null) }
+  }
+  return (
+    <>
+      <div className="ct-panel-field-row"><span className="ct-panel-field-label">Socio</span><span className="ct-panel-field-val">{club.memberNumber ? `Nº ${String(club.memberNumber).padStart(3, '0')}` : '—'}{since ? ` · desde ${since}` : ''}</span></div>
+      {club.ended ? (
+        <>
+          <div className="ct-near-note">Dado de baja. Su pase dice "Membresía finalizada".</div>
+          {canDelete && <button className="ct-resync-btn" disabled={busy === 'join'} onClick={() => run('join')}>{busy === 'join' ? '…' : 'Volver a sumarlo'}</button>}
+        </>
+      ) : (
+        <>
+          {club.benefit && (
+            <div className="ct-benefit">
+              <div><b>{club.benefit.name}</b><span className={club.benefit.available ? 'ct-benefit-ok' : ''}>{club.benefit.available ? 'Disponible' : `Entregado ${club.benefit.usedAt ? new Date(club.benefit.usedAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : ''}`}</span></div>
+              {club.benefit.available && <button className="ct-resync-btn" disabled={busy === 'benefit'} onClick={() => run('benefit')}>{busy === 'benefit' ? '…' : `Entregar ${club.benefit.name.toLowerCase()}`}</button>}
+            </div>
+          )}
+          {canDelete && <button className="ct-redeem-cancel" disabled={busy === 'leave'} onClick={() => { if (window.confirm(`¿Sacar a ${customer.name} del Club? Su pase pasa a "Membresía finalizada".`)) run('leave') }}>{busy === 'leave' ? '…' : 'Sacar del Club'}</button>}
+        </>
+      )}
+      {msg && <div className={`ct-resync-msg${msg.ok ? '' : ' ct-resync-msg--err'}`}>{msg.text}</div>}
+    </>
+  )
+}
+
+// ─── Agregar cliente ─────────────────────────────────────────────────────────
+function AddCustomerModal({ cards, onClose, onAdded }: { cards: Array<{ id: string; name: string; type: string; inviteOnly?: boolean }>; onClose: () => void; onAdded: () => void }) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [cardId, setCardId] = useState(cards[0]?.id || '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState<string | null>(null)
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  async function submit() {
+    const businessId = localStorage.getItem('stampa_business_id')
+    if (!businessId || !emailOk || !cardId) return
+    setBusy(true); setError(null)
+    try {
+      const r = await apiAddCustomer(businessId, { fullName: name.trim(), email: email.trim(), cardId })
+      setDone(`Listo. Le mandamos su pase a ${email.trim()}${r.memberNumber ? ` (Socio Nº ${String(r.memberNumber).padStart(3, '0')})` : ''}.`)
+      onAdded()
+    } catch (err: any) { setError(err?.message || err?.error || 'No pudimos agregarlo. Probá de nuevo.') }
+    finally { setBusy(false) }
+  }
+  return (
+    <div className="ct-modal-overlay" onClick={onClose}>
+      <div className="ct-modal" role="dialog" aria-label="Agregar cliente" onClick={e => e.stopPropagation()}>
+        <div className="ct-modal-title">Agregar cliente</div>
+        {done ? (
+          <>
+            <div className="ct-resync-msg">{done}</div>
+            <div className="ct-modal-foot"><button className="s-btn s-btn--primary s-btn--sm" onClick={onClose}>Listo</button></div>
+          </>
+        ) : (
+          <>
+            <label className="ct-fld">Nombre completo<input className="ct-inp" value={name} maxLength={80} onChange={e => setName(e.target.value)} autoFocus /></label>
+            <label className="ct-fld">Email<input className="ct-inp" type="email" value={email} onChange={e => setEmail(e.target.value)} /></label>
+            <div className="ct-fld">Tarjeta
+              <div className="ct-chips">{cards.map(c => <button key={c.id} type="button" className="s-chip" aria-pressed={cardId === c.id} onClick={() => setCardId(c.id)}>{c.name}{c.inviteOnly ? ' · por invitación' : ''}</button>)}</div>
+            </div>
+            <div className="ct-hint">Le llega el pase por email. Si es del Club, se le asigna su número de socio.</div>
+            {error && <div className="ct-resync-msg ct-resync-msg--err">{error}</div>}
+            <div className="ct-modal-foot">
+              <button className="s-btn s-btn--secondary s-btn--sm" onClick={onClose}>Cancelar</button>
+              <button className="s-btn s-btn--primary s-btn--sm" disabled={busy || !emailOk || !cardId} onClick={submit}>{busy ? 'Agregando…' : 'Agregar y mandar pase'}</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Club VIP (membresía por invitación) ─────────────────────────────────────
 // Las tarjetas "solo por invitación" no salen en el QR: las suma el dueño acá.
 function VipSection({ customer, vipCards, onChanged }: { customer: Customer; vipCards: Array<{ id: string; name: string }>; onChanged: () => void }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
-  if (!vipCards.length) return null
+  if (!vipCards.filter(card => !customer.cards.some(c => c.cardId === card.id)).length) return null
   async function run(card: { id: string; name: string }, joined: boolean) {
     const businessId = localStorage.getItem('stampa_business_id')
     if (!businessId) return
@@ -342,8 +454,8 @@ function VipSection({ customer, vipCards, onChanged }: { customer: Customer; vip
   return (
     <div className="ct-panel-section">
       <div className="ct-panel-section-title">Por invitación</div>
-      {vipCards.map(card => {
-        const joined = customer.cards.some(c => c.cardId === card.id)
+      {vipCards.filter(card => !customer.cards.some(c => c.cardId === card.id)).map(card => {
+        const joined = false
         return (
           <div key={card.id} className="ct-panel-field-row" style={{ alignItems: 'center', gap: 8 }}>
             <span className="ct-panel-field-label" style={{ flex: 1 }}>{card.name}{joined && <span style={{ color: 'var(--s-listo)', marginLeft: 6 }}>· en su Wallet</span>}</span>
@@ -365,6 +477,9 @@ function CustomerPanel({ customer, canDelete, onClose, onDelete, onChanged, vipC
 }) {
   const t = useLang()
   const color = avatarColor(customer.name)
+  // Una fila por tarjeta; arranca abierta la primera con algo para hacer, o la única.
+  const [openId, setOpenId] = useState<string | null>(() => (customer.cards.find(hasAction) || (customer.cards.length === 1 ? customer.cards[0] : null))?.customerId || null)
+  useEffect(() => { setOpenId((customer.cards.find(hasAction) || (customer.cards.length === 1 ? customer.cards[0] : null))?.customerId || null) }, [customer.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -396,7 +511,7 @@ function CustomerPanel({ customer, canDelete, onClose, onDelete, onChanged, vipC
         </div>
 
         {customer.cards.map(card => (
-          <CardSection key={card.customerId} customer={customer} card={card} canDelete={canDelete} onDelete={onDelete} onChanged={onChanged} />
+          <CardSection key={card.customerId} customer={customer} card={card} canDelete={canDelete} onDelete={onDelete} onChanged={onChanged} open={openId === card.customerId} onToggle={() => setOpenId(openId === card.customerId ? null : card.customerId)} />
         ))}
 
         {canDelete && <VipSection customer={customer} vipCards={vipCards} onChanged={onChanged} />}
@@ -448,6 +563,7 @@ export function CustomersTab({
   const t = useLang()
   const [searchDraft, setSearchDraft] = useState(search)
   const [selected, setSelected]   = useState<Customer | null>(null)
+  const [showAdd, setShowAdd]     = useState(false)
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.Starter
@@ -570,6 +686,22 @@ export function CustomersTab({
         .ct-filter-pills{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
         .ct-toolbar-end{margin-left:auto;display:flex;align-items:center;gap:8px;}
         .ct-pill-sep{width:1px;align-self:stretch;background:rgb(var(--s-tinta-rgb) / .1);margin:0 2px;}
+        .ct-acc-head{width:100%;display:flex;align-items:center;gap:8px;background:none;border:none;padding:2px 0;cursor:pointer;font:inherit;color:var(--s-tinta);text-align:left;}
+        .ct-acc-head .ct-panel-card-type{flex:1;min-width:0;}
+        .ct-acc-sum{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--s-tinta-2);white-space:nowrap;}
+        .ct-acc-dot{width:8px;height:8px;border-radius:50%;background:var(--s-brasa);display:inline-block;}
+        .ct-acc-tools{display:flex;justify-content:flex-end;margin-top:6px;}
+        .ct-benefit{background:var(--s-hueco);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+        .ct-benefit>div:first-child{display:flex;justify-content:space-between;gap:8px;font-size:13px;}
+        .ct-benefit-ok{color:var(--s-listo);font-weight:600;}
+        .ct-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px;}
+        .ct-modal{background:var(--s-blanco);border-radius:14px;padding:18px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--s-sombra-alta);}
+        .ct-modal-title{font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--s-tinta);}
+        .ct-modal-foot{display:flex;justify-content:flex-end;gap:8px;}
+        .ct-fld{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--s-tinta-2);}
+        .ct-inp{background:var(--s-hueco);border:1px solid var(--s-linea);border-radius:9px;padding:9px 11px;font-size:13.5px;color:var(--s-tinta);}
+        .ct-chips{display:flex;gap:6px;flex-wrap:wrap;}
+        .ct-hint{font-size:12px;color:var(--s-tinta-3);}
         .ct-export--locked{color:var(--s-tinta-3);}
         .ct-export-err{font-size:11px;color:var(--s-error);padding:6px 24px 0;}
         .ct-limit{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 24px;border-bottom:1px solid rgb(var(--s-tinta-rgb) / .07);background:var(--s-blanco);}
@@ -733,6 +865,7 @@ export function CustomersTab({
               )}
             </div>
             <div className="ct-toolbar-end">
+              {!isManager && cards.length > 0 && <button className="s-btn s-btn--primary s-btn--sm" onClick={() => setShowAdd(true)}><Icon name="agregar" size={14} /> Agregar cliente</button>}
               {canExport
                 ? <button className="s-btn s-btn--secondary s-btn--sm" onClick={exportCsv} disabled={exporting || total === 0} title="Descargar esta lista (con los filtros aplicados) para Excel">
                     <Icon name="descargar" size={14} />
@@ -836,6 +969,7 @@ export function CustomersTab({
           )}
         </div>
 
+        {showAdd && <AddCustomerModal cards={cards} onClose={() => setShowAdd(false)} onAdded={onRefresh} />}
         {selected && <CustomerPanel customer={selected} canDelete={!isManager} onClose={() => setSelected(null)} onDelete={deleteCustomer} onChanged={onRefresh} vipCards={cards.filter(c => c.inviteOnly)} />}
       </div>
     </>

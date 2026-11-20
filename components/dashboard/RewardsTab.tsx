@@ -620,6 +620,15 @@ function MembershipRewards({ businessId, card, data, onChanged }: { businessId: 
 
   const [invite, setInvite] = useState<boolean>(!!card.inviteOnly)
   const [inviteBusy, setInviteBusy] = useState(false)
+  // Club VIP: beneficio que se entrega una vez por mes.
+  const [pbOn, setPbOn] = useState<boolean>(!!card.periodBenefit?.enabled)
+  const [pbName, setPbName] = useState<string>(card.periodBenefit?.name || '')
+  useEffect(() => { setPbOn(!!card.periodBenefit?.enabled); setPbName(card.periodBenefit?.name || '') }, [card.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  async function savePeriod(enabled: boolean, name: string) {
+    setError(null)
+    try { await apiUpdateCard(businessId, cardId, { periodBenefit: { enabled, name: name.trim() } }); setPbOn(enabled); onChanged() }
+    catch (err: any) { setError(err?.error || 'No pudimos guardar el beneficio. Probá de nuevo.') }
+  }
   useEffect(() => { setInvite(!!card.inviteOnly) }, [card.id, card.inviteOnly])
   async function toggleInvite(v: boolean) {
     setInviteBusy(true); setError(null)
@@ -687,6 +696,18 @@ function MembershipRewards({ businessId, card, data, onChanged }: { businessId: 
             <Switch checked={invite} disabled={inviteBusy} label="Solo por invitación" onChange={toggleInvite} />
             <span><b>Solo por invitación</b><small>No sale en el QR del local. La sumás vos desde Clientes.</small></span>
           </label>
+          {invite && (
+            <div className="rw-club">
+              <label className="rw-invite">
+                <Switch checked={pbOn} label="Beneficio una vez por mes" onChange={v => savePeriod(v, pbName || 'Beneficio del mes')} />
+                <span><b>Beneficio una vez por mes</b><small>Ej: &quot;Café del mes&quot;. El pase muestra Disponible o Entregado y se renueva el día 1.</small></span>
+              </label>
+              {pbOn && <input className="rw-inline-input" placeholder="Café del mes" maxLength={40} value={pbName} onChange={e => setPbName(e.target.value)} onBlur={() => savePeriod(true, pbName)} aria-label="Nombre del beneficio del mes" />}
+              {invite && draft && draft.length === 1 && /^(bronce|black|bronze)$/i.test(draft[0].name.trim()) && (
+                <button type="button" className="s-btn s-btn--text s-btn--sm" onClick={() => update(draft[0].key, { name: 'Club VIP' })}>Llamarlo &quot;Club VIP&quot;</button>
+              )}
+            </div>
+          )}
         </div>
         {error && <div className="rw-error">{error}</div>}
         {notice && <div className="rw-notice">{notice}</div>}
@@ -812,6 +833,7 @@ export function RewardsTab({ cards, businessId, onGoToDesign, onOpenCustomer, on
         .rw-card-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
         .rw-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
         .rw-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+        .rw-club{display:flex;flex-direction:column;gap:8px;align-items:flex-start;margin-top:10px;max-width:300px;width:100%;}
         .rw-invite{display:flex;align-items:flex-start;gap:10px;cursor:pointer;max-width:300px;}
         .rw-invite span{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--s-tinta);}
         .rw-invite small{font-size:11.5px;color:var(--s-tinta-2);line-height:1.4;}
