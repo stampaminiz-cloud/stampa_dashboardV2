@@ -6,6 +6,7 @@ import { apiGetTeam, apiCreateTeamMember, apiUpdateTeamMember, apiDeleteTeamMemb
 import type { Location } from '@/lib/location'
 import { usePlan } from '@/data/plans'
 import { SCANNER_IOS_URL } from '@/lib/scanner'
+import { confirmar } from '@/lib/confirmar'
 
 // Equipo, en dos bloques:
 // - Personas: el dueño, los Encargados (manejan el panel; entran con email y
@@ -517,7 +518,7 @@ export function UsersTab({ users: initUsers, businessId, owner, onChoosePlan, on
 
   async function removeDevice(d: ScannerDevice) {
     if (!businessId) return
-    if (!window.confirm(`¿Quitar ${d.label} (${d.location})?\n\nEse celular deja de poder escanear al instante. Para volver a usarlo, mandale un link nuevo.`)) return
+    if (!(await confirmar({ titulo: `¿Quitar ${d.label} (${d.location})?`, mensaje: 'Ese celular deja de poder escanear al instante. Para volver a usarlo, mandale un link nuevo.', confirmar: 'Quitar', peligro: true }))) return
     setBusyId(d.id); setNotice(null)
     try { await apiRemoveScannerDevice(businessId, d.id); setDevices(list => list.filter(x => x.id !== d.id)) }
     catch (err: any) { setNotice({ ok: false, text: err?.error || 'No pudimos quitar el celular.' }) }

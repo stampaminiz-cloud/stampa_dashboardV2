@@ -808,6 +808,12 @@ export async function apiLeaveCard(businessId: string, customerId: string, cardI
   return request<void>(`/api/businesses/${businessId}/customers/${customerId}/join-card/${cardId}`, { method: 'DELETE' })
 }
 
+// Saca a un socio del Club desde su propia ficha: sin `permanent` lo da de baja
+// (conserva su número); con `permanent` lo elimina para siempre.
+export async function apiRemoveClubMember(businessId: string, customerId: string, permanent = false) {
+  return request<void>(`/api/businesses/${businessId}/customers/${customerId}/club${permanent ? '?permanent=1' : ''}`, { method: 'DELETE' })
+}
+
 // Club VIP (1.14.0): entregar el beneficio del mes y agregar clientes a mano.
 export interface ClubInfo { memberNumber: number | null; ended: boolean; since: string | null; benefit: { name: string; available: boolean; usedAt: string | null } | null }
 export async function apiDeliverBenefit(businessId: string, customerId: string) {

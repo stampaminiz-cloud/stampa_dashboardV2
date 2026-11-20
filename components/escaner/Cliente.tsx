@@ -12,6 +12,7 @@
 //   de la tarjeta (como la app) y el Deshacer queda a mano unos segundos.
 import { useEffect, useRef, useState } from 'react'
 import { escaner, EscanerError, formatMoney, parseAmount, pointsFor, beep, type ActionResult, type CatalogItem, type CustomerView, type Tier } from '@/lib/escaner'
+import { confirmar } from '@/lib/confirmar'
 
 const DOUBLE_SCAN_WINDOW_S = 60
 const DONE_MS = 6000
@@ -69,11 +70,11 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
     timer.current = setTimeout(onClose, DONE_MS)
   }
 
-  function guardDoubleScan(what: string) {
+  async function guardDoubleScan(what: string) {
     if (!view.lastActionAt) return true
     const ago = Math.round((Date.now() - new Date(view.lastActionAt).getTime()) / 1000)
     if (!(ago >= 0 && ago < DOUBLE_SCAN_WINDOW_S)) return true
-    return window.confirm(`¿Otra vez?\n\nA ${first} ya se le registró algo hace ${ago < 5 ? 'unos segundos' : `${ago} segundos`}. ¿Querés ${what} igual?`)
+    return confirmar({ titulo: '¿Otra vez?', mensaje: `A ${first} ya se le registró algo hace ${ago < 5 ? 'unos segundos' : `${ago} segundos`}. ¿Querés ${what} igual?`, confirmar: 'Sí, igual' })
   }
   async function run(key: string, fn: () => Promise<ActionResult | CustomerView>, after?: (r: ActionResult) => void) {
     setBusy(key); setError(null)
@@ -94,9 +95,9 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
     } finally { setBusy(null) }
   }
 
-  function addStamp() {
+  async function addStamp() {
     if (limit) return
-    if (!guardDoubleScan('sumarle otro sello')) return
+    if (!(await guardDoubleScan('sumarle otro sello'))) return
     run('stamp', () => escaner.addStamp(view.customer.id), r => {
       const n = r.action?.amount ?? 1
       const s = r.stamp!
@@ -104,13 +105,13 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
       finish({ visitId: r.action?.visitId || null, title: n > 1 ? `${n} sellos sumados` : 'Sello sumado', sub: `${s.stamps} de ${s.required} · ${s.remaining === 1 ? 'le falta 1' : `le faltan ${s.remaining}`}${n > 1 ? ' (día doble)' : ''}` })
     })
   }
-  function deliver() {
-    if (!window.confirm(`Confirmar entrega\n\n¿Le entregaste el premio a ${first}? Los sellos vuelven a 0.`)) return
+  async function deliver() {
+    if (!(await confirmar({ titulo: 'Confirmar entrega', mensaje: `¿Le entregaste el premio a ${first}? Los sellos vuelven a 0.`, confirmar: 'Sí, entregado' }))) return
     run('deliver', () => escaner.deliverReward(view.customer.id), () => { setUndo(null); finish({ visitId: null, title: 'Premio entregado', sub: 'La tarjeta volvió a cero.' }) })
   }
-  function addPoints() {
+  async function addPoints() {
     if (limit) return
-    if (!guardDoubleScan('sumarle puntos otra vez')) return
+    if (!(await guardDoubleScan('sumarle puntos otra vez'))) return
     run('points', () => escaner.addPoints(view.customer.id, byAmount ? purchase : undefined), r => {
       const compra = r.action?.purchase != null && rule ? ` · compra de ${formatMoney(r.action.purchase, rule.currency)}` : ''
       const nuevos = (r.events?.newlyUnlocked || []).map(i => i.name)
@@ -119,13 +120,13 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
       finish({ visitId: r.action?.visitId || null, title: `+${r.action?.amount ?? ''} puntos${r.action?.double ? ' (día doble)' : ''}`, sub: `Tiene ${r.points?.balance ?? ''} puntos${compra}${nuevos.length ? ` · ya puede canjear ${nuevos.join(' y ')}` : ''}` })
     })
   }
-  function redeem(item: CatalogItem) {
-    if (!window.confirm(`Canjear premio\n\n¿Canjear "${item.name}" por ${item.pointsCost} puntos?`)) return
+  async function redeem(item: CatalogItem) {
+    if (!(await confirmar({ titulo: 'Canjear premio', mensaje: `¿Canjear "${item.name}" por ${item.pointsCost} puntos?`, confirmar: 'Canjear' }))) return
     run('redeem', () => escaner.redeemPoints(view.customer.id, item.id), r => { setUnlocked([]); setUndo(null); finish({ visitId: null, title: 'Premio canjeado', sub: `${item.name} · le quedan ${r.points?.balance ?? 0} puntos` }) })
   }
-  function addVisit() {
+  async function addVisit() {
     if (limit) return
-    if (!guardDoubleScan('sumarle otra visita')) return
+    if (!(await guardDoubleScan('sumarle otra visita'))) return
     run('visit', () => escaner.addVisit(view.customer.id), r => {
       const tier = r.events?.tierUp || null
       if (tier) { setCelebration({ kind: 'tier', tier }); if (r.action) showUndo(r.action.visitId, 'Visita sumada'); return }
@@ -133,14 +134,14 @@ export function Cliente({ initial, onClose, onChanged }: { initial: CustomerView
       finish({ visitId: r.action?.visitId || null, title: 'Visita sumada', sub: `${m?.totalVisits ?? ''} visitas${m?.visitsToNext ? ` · ${m.visitsToNext} para ${m.nextTier?.name}` : ''}` })
     })
   }
-  function deliverBenefit() {
+  async function deliverBenefit() {
     const b = view.club?.benefit
-    if (!b || !window.confirm(`${b.name}\n\n¿Le entregaste "${b.name}" a ${first}?`)) return
+    if (!b || !(await confirmar({ titulo: b.name, mensaje: `¿Le entregaste "${b.name}" a ${first}?`, confirmar: 'Sí, entregado' }))) return
     run('benefit', () => escaner.deliverBenefit(view.customer.id), () => finish({ visitId: null, title: 'Beneficio entregado', sub: `${b.name} · ${first}` }))
   }
-  function deliverBirthday() {
+  async function deliverBirthday() {
     const gift = view.birthdayGift
-    if (!gift || !window.confirm(`Regalo de cumpleaños\n\n¿Le entregaste "${gift.gift}" a ${first}?`)) return
+    if (!gift || !(await confirmar({ titulo: 'Regalo de cumpleaños', mensaje: `¿Le entregaste "${gift.gift}" a ${first}?`, confirmar: 'Sí, entregado' }))) return
     run('birthday', () => escaner.deliverBirthday(view.customer.id))
   }
   function doUndo() {
@@ -351,10 +352,10 @@ function ClubBody({ view, p }: { view: CustomerView; p: Pal }) {
   const club = view.club!
   const m = view.membership
   const perk = m?.currentTier?.perk
-  if (club.ended) return <div className="esc-club"><div className="esc-club-no">Ya no es miembro del Club</div><div className="esc-subline" style={{ color: p.label }}>Su pase dice "Membresía finalizada".</div></div>
+  if (club.ended) return <div className="esc-club"><div className="esc-club-no">Ya no es socio</div><div className="esc-subline" style={{ color: p.label }}>Su pase dice "Membresía finalizada".</div></div>
   return (
     <div className="esc-club">
-      <div><TierBadge tier={m?.currentTier || { id: 'club', name: 'Club', threshold: 0 }} /></div>
+      <div><TierBadge tier={m?.currentTier || { id: 'club', name: 'Socio', threshold: 0 }} /></div>
       <div className="esc-big">{club.memberNumber ? `Socio Nº ${String(club.memberNumber).padStart(3, '0')}` : 'Socio'}</div>
       {!!perk && <div className="esc-subline" style={{ color: p.label }}>Beneficio: {perk}</div>}
       {club.benefit && (

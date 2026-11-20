@@ -7,6 +7,7 @@ import { BASE_URL, apiGetTiers } from '@/lib/api'
 import { DateTimePicker } from '@/components/ui/DateTime'
 import { withLoc } from '@/lib/location'
 import { AutoNotices } from './AutoNotices'
+import { useEjemplos } from '@/lib/ejemplos'
 
 // Notificaciones: se mandan al Wallet del cliente (Apple Wallet y Google
 // Wallet; Google limita cuántos avisos muestra por tarjeta y por día). El límite del plan cuenta ENVÍOS (campañas), no
@@ -58,6 +59,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
   isManager?: boolean
   onChoosePlan: () => void
 }) {
+  const ej = useEjemplos()
   const { plan, limit, can } = usePlan()
   // Horarios fuertes (los dos tramos de 2 horas con más escaneos en 30 días),
   // para marcarlos al programar. Sale de la misma consulta que Analítica.
@@ -385,7 +387,7 @@ export function NotificationsTab({ businessId, cards = [], businessName, inactiv
           <div className="nt-card">
             <div className="nt-card-title">Redactá tu mensaje</div>
             <div className="nt-card-sub">Le llega al celular y queda en su tarjeta.</div>
-            <textarea className="nt-textarea" placeholder="Ej: ¡Hoy 2x1 en café de 16 a 18!" value={message} maxLength={MAX_CHARS}
+            <textarea className="nt-textarea" placeholder={`Ej: ${ej.mensaje}`} value={message} maxLength={MAX_CHARS}
               onChange={e => { setMessage(e.target.value); setFeedback(null) }} />
             <div className={`nt-char${message.length > MAX_CHARS * 0.8 ? ' nt-char--warn' : ''}`}>{message.length} / {MAX_CHARS}</div>
 
