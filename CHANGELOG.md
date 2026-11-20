@@ -2,6 +2,14 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.15.0 (20/11/2026) — Tarjeta del local
+
+**Cambios**
+- Diseño: la opción de Nueva tarjeta se llama "Tarjeta del local" y arranca con el nombre del negocio.
+- Clientes: en la ficha de un socio, "Dar de baja" y "Eliminar" (para siempre, con confirmación en rojo). La ficha se cierra al eliminar. "Volver a sumarlo" también anda para quien se agregó directo.
+- Diálogos propios con el estilo de Stampa en lugar de los del navegador (`lib/confirmar.tsx`): 11 lugares entre el panel y la web app del escáner.
+- Los ejemplos de los campos siguen el rubro del negocio (`lib/ejemplos.tsx`): un gimnasio ve "Clase gratis" y "Día de invitado", no café. En Premios, Diseño, Notificaciones y el onboarding.
+
 ## 1.14.1 (20/11/2026) — Pase único (Club VIP)
 
 **Cambios**
