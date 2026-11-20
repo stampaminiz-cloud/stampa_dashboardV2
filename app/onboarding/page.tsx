@@ -9,6 +9,7 @@ import { PassPreview, type PassImages } from '@/components/dashboard/PassPreview
 import { PLAN_LIMITS, type Plan } from '@/data/plans'
 import { PointsRuleEditor, pointsRuleValid, DEFAULT_UNIT, type PointsRuleValue } from '@/components/dashboard/PointsRuleEditor'
 import { currencyFor, pointsRuleText, type Currency } from '@/lib/money'
+import { ejemplosDe } from '@/lib/ejemplos'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CardType    = 'stamp' | 'points' | 'membership'
@@ -339,7 +340,7 @@ function Step4({ state, onChange, onNext, onBack, plan }: StepProps & { plan: st
       </div>
       {state.rewardMode === 'fixed' && (
         <input className="ob-input" style={{ marginTop: 12 }} maxLength={60}
-          placeholder="Ej: Café gratis, 10% de descuento..."
+          placeholder={`Ej: ${ejemplosDe(state.sector).premio}, 10% de descuento...`}
           value={state.rewardValue} onChange={e => onChange({ rewardValue: e.target.value })} />
       )}
       <Nav onBack={onBack} onNext={onNext} disabled={!valid} />

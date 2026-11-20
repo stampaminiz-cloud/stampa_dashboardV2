@@ -16,6 +16,7 @@ import {
   type CustomerView, type Device, type LocationChoice, type Me, type SearchResult, type TodayItem,
 } from '@/lib/escaner'
 import { ESCANER_CSS } from './estilos'
+import { confirmar } from '@/lib/confirmar'
 
 type Phase = 'boot' | 'welcome' | 'link' | 'login' | 'owner' | 'onboarding' | 'app'
 type Tab = 'scan' | 'search' | 'today'
@@ -61,14 +62,14 @@ export function EscanerApp() {
   function closeTip() { setTipPending(false); setTip(false) }
 
   const isStaff = !me?.scanner.role || me.scanner.role === 'scanner'
-  function logout() {
-    const msg = isStaff ? '¿Cerrar sesión? El próximo empleado entra con su PIN.' : '¿Cerrar sesión en este celular?'
-    if (!window.confirm(msg)) return
+  async function logout() {
+    const msg = isStaff ? 'El próximo empleado entra con su PIN.' : 'Vas a tener que volver a entrar.'
+    if (!(await confirmar({ titulo: '¿Cerrar sesión?', mensaje: msg, confirmar: 'Cerrar sesión' }))) return
     setToken(null); setMe(null); setView(null); setTab('scan'); setStatus({ kind: 'idle' })
     setPhase(unlinkedPhase(device))
   }
-  function unlink() {
-    if (!window.confirm('Activar otro negocio\n\nEste celular deja de estar vinculado' + (device?.businessName ? ` a ${device.businessName}` : '') + '. Después vas a abrir el link o escanear el código de activación del otro negocio.')) return
+  async function unlink() {
+    if (!(await confirmar({ titulo: 'Activar otro negocio', mensaje: 'Este celular deja de estar vinculado' + (device?.businessName ? ` a ${device.businessName}` : '') + '. Después vas a abrir el link o escanear el código de activación del otro negocio.', confirmar: 'Activar otro', peligro: true }))) return
     setToken(null); saveDevice(null); setMe(null); setPhase('welcome')
   }
 
@@ -475,7 +476,7 @@ function Hoy({ onChanged }: { onChanged: () => void }) {
   const load = useCallback(() => { escaner.todayList().then(setData).catch((e: EscanerError) => setError(e.message)) }, [])
   useEffect(() => { load() }, [load])
   async function undo(it: TodayItem) {
-    if (!window.confirm(`¿Deshacer ${KIND[it.type]} de ${it.customerName}?`)) return
+    if (!(await confirmar({ titulo: `¿Deshacer ${KIND[it.type]} de ${it.customerName}?`, confirmar: 'Deshacer', peligro: true }))) return
     setBusy(it.id)
     try { await escaner.undo(it.id); onChanged(); load() } catch (e) { setError((e as EscanerError).message) } finally { setBusy(null) }
   }

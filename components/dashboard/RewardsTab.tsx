@@ -16,6 +16,7 @@ import { PointsRuleEditor, pointsRuleValid, DEFAULT_UNIT, type PointsRuleValue }
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { withLoc } from '@/lib/location'
 import { pointsRuleText, currencyFor, formatMoney, type Currency } from '@/lib/money'
+import { useEjemplos } from '@/lib/ejemplos'
 
 // Premios, por tarjeta: qué gana el cliente y cómo. Acá se edita la regla
 // (sellos y premio, o cómo se suman los puntos), el catálogo de puntos y los
@@ -158,6 +159,7 @@ function RulePreview({ businessId, card, override, rewardLabel, tiers, tierIndex
 }
 
 function StampRules({ businessId, card, data, onSaved }: { businessId: string; card: any; data: any; onSaved: () => void }) {
+  const ej = useEjemplos()
   const { limit, plan } = usePlan()
   const maxOpts = limit('maxRewardOptions')
   const init = () => ({
@@ -182,7 +184,7 @@ function StampRules({ businessId, card, data, onSaved }: { businessId: string; c
   function discard() { setStamps(base.stamps); setMode(base.mode); setFixed(base.fixed); setOpts(base.opts); touch() }
 
   async function save(skipImpact = false) {
-    if (mode === 'fixed' && !fixed.trim()) { setError('Escribí cuál es el premio (ej: Café gratis).'); return }
+    if (mode === 'fixed' && !fixed.trim()) { setError(`Escribí cuál es el premio (ej: ${ej.premio}).`); return }
     if (mode === 'dynamic' && (clean.length < 2 || clean.length > maxOpts)) { setError(`Cargá entre 2 y ${maxOpts} opciones de premio para que el cliente elija.`); return }
     // Bajar los sellos completa la tarjeta de quienes ya los tienen: avisar antes.
     if (!skipImpact && stamps < base.stamps) {
@@ -242,7 +244,7 @@ function StampRules({ businessId, card, data, onSaved }: { businessId: string; c
             </label>
           </div>
           {mode === 'fixed' ? (
-            <input className="rw-input" style={{ width: '100%', boxSizing: 'border-box' }} value={fixed} maxLength={40} placeholder="Ej: Café gratis" onChange={e => { setFixed(e.target.value); touch() }} />
+            <input className="rw-input" style={{ width: '100%', boxSizing: 'border-box' }} value={fixed} maxLength={40} placeholder={`Ej: ${ej.premio}`} onChange={e => { setFixed(e.target.value); touch() }} />
           ) : (
             <>
               <div className="rw-label">Opciones ({clean.length}/{maxOpts})</div>
@@ -382,6 +384,7 @@ function StampRewards({ businessId, card, data, onSaved, onOpenCustomer }: { bus
 
 // ─── Puntos ───────────────────────────────────────────────────────────────────
 function PointsRewards({ businessId, card, data, currency, onSaved, onOpenCustomer, onChanged }: { businessId: string; card: any; data: any; currency: Currency; onSaved: () => void; onOpenCustomer?: (email: string) => void; onChanged: () => void }) {
+  const ej = useEjemplos()
   const cardId = card.id
   const [catalog, setCatalog] = useState<Array<{ _id: string; name: string; pointsCost: number; isActive: boolean }> | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -473,7 +476,7 @@ function PointsRewards({ businessId, card, data, currency, onSaved, onOpenCustom
         </div>
         {showAdd && (
           <div className="rw-add-form">
-            <input className="rw-input" placeholder="Nombre del premio (ej: Café gratis)" maxLength={40} value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} onKeyDown={e => e.key === 'Enter' && addItem()} autoFocus />
+            <input className="rw-input" placeholder={`Nombre del premio (ej: ${ej.premio})`} maxLength={40} value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} onKeyDown={e => e.key === 'Enter' && addItem()} autoFocus />
             <NumberStepper value={Number(newItem.points) || 50} onChange={n => setNewItem(it => ({ ...it, points: String(n) }))} min={1} max={100000} step={5} suffix="pts" size="sm" ariaLabel="Puntos del premio" />
             <button className="s-btn s-btn--primary s-btn--sm" onClick={addItem} disabled={saving}>{saving ? 'Guardando…' : 'Agregar'}</button>
             <button className="s-btn s-btn--secondary s-btn--sm" onClick={() => { setShowAdd(false); setError(null) }}>Cancelar</button>
@@ -602,6 +605,7 @@ function validateTiers(tiers: EditTier[]): string | null {
 // el nombre del pase, el beneficio y, si quieren, un beneficio que se entrega
 // una vez por mes (el pase muestra Disponible o Entregado).
 function ClubRewards({ businessId, card, data, onChanged }: { businessId: string; card: any; data: any; onChanged: () => void }) {
+  const ej = useEjemplos()
   const cardId = card.id
   const [tiers, setTiers] = useState<any[] | null>(null)
   const [name, setName] = useState('')
@@ -616,7 +620,7 @@ function ClubRewards({ businessId, card, data, onChanged }: { businessId: string
     apiGetTiers(businessId, cardId).then(list => {
       if (off) return
       setTiers(list)
-      const n = list[0]?.name || 'Club VIP', p = list[0]?.perk || ''
+      const n = list[0]?.name || card.name || 'Tarjeta del local', p = list[0]?.perk || ''
       const m = card.periodBenefit?.enabled ? (card.periodBenefit.name || '') : ''
       setName(n); setPerk(p); setMonthly(m); setSaved({ name: n, perk: p, monthly: m })
     }).catch(() => { if (!off) setTiers([]) })
@@ -624,7 +628,7 @@ function ClubRewards({ businessId, card, data, onChanged }: { businessId: string
   }, [businessId, cardId]) // eslint-disable-line react-hooks/exhaustive-deps
   const dirty = name.trim() !== saved.name || perk.trim() !== saved.perk || monthly.trim() !== saved.monthly
   const first = tiers?.[0]
-  const previewTier = first ? [{ name: name.trim() || 'Club VIP', threshold: 0, perk: perk.trim(), color: first.color, bg: first.bg }] : undefined
+  const previewTier = first ? [{ name: name.trim() || card.name || 'Tarjeta del local', threshold: 0, perk: perk.trim(), color: first.color, bg: first.bg }] : undefined
 
   async function save() {
     if (!tiers?.length) return
@@ -657,14 +661,14 @@ function ClubRewards({ businessId, card, data, onChanged }: { businessId: string
           <div className="rw-rules rw-rules--wide">
             <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <label className="rw-club-fld">Nombre del pase
-                <input className="rw-inline-input" maxLength={20} value={name} onChange={e => { setName(e.target.value); setNotice(null) }} placeholder="Club VIP" />
+                <input className="rw-inline-input" maxLength={20} value={name} onChange={e => { setName(e.target.value); setNotice(null) }} placeholder={card.name || 'Tarjeta del local'} />
               </label>
               <label className="rw-club-fld">Beneficio permanente
-                <input className="rw-inline-input" maxLength={80} value={perk} onChange={e => { setPerk(e.target.value); setNotice(null) }} placeholder="Ej: 20% en todo" />
+                <input className="rw-inline-input" maxLength={80} value={perk} onChange={e => { setPerk(e.target.value); setNotice(null) }} placeholder={`Ej: ${ej.beneficioPermanente}`} />
                 <small>Vale siempre, no hay que controlarlo. Se ve arriba en el pase, con la tarjeta cerrada.</small>
               </label>
               <label className="rw-club-fld">Beneficio mensual
-                <input className="rw-inline-input" maxLength={40} value={monthly} onChange={e => { setMonthly(e.target.value); setNotice(null) }} placeholder="Ej: Café del mes" />
+                <input className="rw-inline-input" maxLength={40} value={monthly} onChange={e => { setMonthly(e.target.value); setNotice(null) }} placeholder={`Ej: ${ej.beneficioMensual}`} />
                 <small>Se entrega una vez por mes. El pase muestra “Disponible” o “Entregado” y se renueva el día 1. Si tu club no tiene uno, dejalo vacío.</small>
               </label>
               <div className="rw-editor-foot"><div style={{ flex: 1 }} /><button className="s-btn s-btn--primary" onClick={save} disabled={!dirty || saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button></div>
@@ -678,6 +682,7 @@ function ClubRewards({ businessId, card, data, onChanged }: { businessId: string
 }
 
 function MembershipRewards({ businessId, card, data, onChanged }: { businessId: string; card: any; data: any; onChanged: () => void }) {
+  const ej = useEjemplos()
   const cardId = card.id
   const [pvTier, setPvTier] = useState(0)
   const logoColors = useLogoColors(card.logoUrl)
@@ -791,7 +796,7 @@ function MembershipRewards({ businessId, card, data, onChanged }: { businessId: 
                       ? <span>Desde el registro</span>
                       : <NumberStepper value={Number(t.threshold) || 1} onChange={n => update(t.key, { threshold: String(n) })} min={1} max={10000} suffix="visitas" size="sm" ariaLabel="Visitas necesarias" />}
                   </div>
-                  <input className="rw-inline-input" placeholder="Ej: 10% de descuento" maxLength={80} value={t.perk} onChange={e => update(t.key, { perk: e.target.value })} aria-label="Beneficio" />
+                  <input className="rw-inline-input" placeholder={`Ej: ${ej.descuento}`} maxLength={80} value={t.perk} onChange={e => update(t.key, { perk: e.target.value })} aria-label="Beneficio" />
                   <button className="rw-icon-btn rw-icon-btn--danger" onClick={() => remove(t.key)} disabled={draft.length <= 1 || i === 0} title={i === 0 ? 'El primer nivel no se puede borrar' : 'Borrar nivel'}>
                     <Icon name="borrar" size={14} />
                   </button>
