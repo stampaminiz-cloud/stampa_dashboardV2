@@ -14,6 +14,7 @@ import { WHATSAPP_SALES, WHATSAPP_ENTERPRISE, INSTAGRAM, SCANNER_IOS_URL, SHOPS 
 import { Pass } from './Pass'
 import { ThemeBtn } from './ThemeBtn'
 import { CSS } from './styles'
+import { Wordmark } from '@/components/brand/Wordmark'
 
 const PLANS = [
   { slug: 'starter', name: 'Starter', desc: 'Para arrancar con un local y una tarjeta.', news: ['WhatsApp en la tarjeta'], features: ['1 local', '1 tarjeta de fidelización', 'Hasta 200 clientes', 'Métricas clave en Inicio', '4 notificaciones por mes'] },
@@ -37,7 +38,7 @@ export default function Landing({ market = 'AR' }: { market?: Market }) {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="l2-frame">
         <nav className="l2-nav" aria-label="Principal">
-          <a href="#" className="l2-brand"><img src="/assets/wordmark.png" alt="Stampa" /></a>
+          <a href="#" className="l2-brand"><Wordmark /></a>
           <div className="l2-links"><a href="#probala">Tu tarjeta</a><a href="#pedidos">Avisos y pedidos</a><a href="#precios">Precios</a><a href="/empresas">Empresas</a></div>
           <div className="l2-nav-r"><ThemeBtn /><a className="l2-btn l2-btn-ghost l2-btn-sm l2-hide-m" href="/login">Ingresar</a><a className="l2-btn l2-btn-pino l2-btn-sm" href="/register">Probar gratis</a>
             <button className="l2-burger" aria-label="Menú" aria-expanded={menu} onClick={() => setMenu(v => !v)}><Icon name={menu ? 'cerrar' : 'menu'} size={20} /></button></div>
@@ -101,7 +102,7 @@ export default function Landing({ market = 'AR' }: { market?: Market }) {
         <footer className="l2-ft">
           <div className="l2-ft-top">
             <div>
-              <img src="/assets/wordmark.png" alt="Stampa" style={{ height: 30, width: 'auto', marginBottom: 14 }} />
+              <div style={{ fontSize: 32, marginBottom: 14 }}><Wordmark /></div>
               <p className="l2-ft-claim">Tarjetas de fidelidad en Apple y Google Wallet, para negocios que quieren que su gente vuelva.</p>
               <a className="l2-btn l2-btn-brasa" href="/register">Crear mi tarjeta gratis</a>
             </div>

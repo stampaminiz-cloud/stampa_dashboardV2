@@ -16,14 +16,14 @@ export const CSS = PASS_CSS + `
 
 /* Menú */
 .l2-nav{position:sticky;top:10px;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:16px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-radius:999px;padding:10px 10px 10px 28px;min-height:72px;box-shadow:0 1px 0 var(--l2-linea)}
-.l2-brand img{height:34px;width:auto;display:block}
+.l2-brand .wm{font-size:36px}.l2{--wm-color:var(--l2-brasa)}
 .l2-links{display:flex;gap:32px;font-size:15px;font-weight:500;color:var(--l2-t2)}
 .l2-links a:hover{color:var(--l2-tinta)}
 .l2-nav-r{display:flex;gap:6px;align-items:center}
 .l2-burger{display:none;border:none;background:transparent;width:38px;height:38px;border-radius:50%;align-items:center;justify-content:center;color:var(--l2-tinta)}
 .l2-mmenu{display:flex;flex-direction:column;gap:2px;background:var(--l2-card);border-radius:18px;padding:8px;margin:8px auto 0;max-width:820px}
 .l2-mmenu a{padding:12px 14px;border-radius:12px;font-weight:600}
-@media(max-width:860px){.l2-links,.l2-hide-m,.l2-btn.l2-hide-m{display:none}.l2-brand{flex-shrink:0}.l2-burger{display:inline-flex}.l2-nav{min-height:60px;padding-left:20px}.l2-brand img{height:28px}}
+@media(max-width:860px){.l2-links,.l2-hide-m,.l2-btn.l2-hide-m{display:none}.l2-brand{flex-shrink:0}.l2-burger{display:inline-flex}.l2-nav{min-height:60px;padding-left:20px}.l2-brand .wm{font-size:30px}}
 .l2-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:999px;padding:11px 20px;font-size:15px;font-weight:600;transition:transform .15s,background .2s;white-space:nowrap}
 .l2-btn:hover{transform:translateY(-1px)}
 .l2-btn-pino{background:var(--l2-pino);color:#fff}
