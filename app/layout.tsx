@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 
 // Antes de pintar: si hay que abrir en oscuro, se marca <html> ya, así no hay un
 // destello claro. Mismo criterio que components/ThemeSync.tsx.
-const THEME_SCRIPT = `(function(){try{if(!/^\\/(dashboard|ayuda|escaner|pantalla|login|register|forgot-password|reset-password|onboarding)(\\/|$)|^\\/$/.test(location.pathname))return;var t=localStorage.getItem('stampa_tema');if(t==='oscuro'||(t!=='claro'&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.setAttribute('data-theme','dark')}catch(e){}})()`
+const THEME_SCRIPT = `(function(){try{if(!/^\\/(dashboard|ayuda|escaner|pantalla|login|register|forgot-password|reset-password|onboarding|empresas)(\\/|$)|^\\/$/.test(location.pathname))return;var t=localStorage.getItem('stampa_tema');if(t==='oscuro'||(t!=='claro'&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.setAttribute('data-theme','dark')}catch(e){}})()`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
