@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { Pass } from './Pass'
 import { ThemeBtn } from './ThemeBtn'
-import { PROOF, whatsappLink, WHATSAPP_ENTERPRISE, INSTAGRAM } from './data'
+import { PROOF, whatsappLink, WHATSAPP_ENTERPRISE, INSTAGRAM, type Biz } from './data'
 import { CSS } from './styles'
 import { Wordmark } from '@/components/brand/Wordmark'
 
@@ -98,13 +98,27 @@ function BrandMap() {
   )
 }
 
-const RUBROS: [IconName, string, string][] = [
-  ['premios', 'Productoras de eventos', 'Puntos por asistencia y una tarjeta de socio para tu público fiel. Avisos de la próxima fecha.'],
-  ['gym', 'Gimnasios y clubes', 'Membresía con niveles, beneficios por antigüedad y clases gratis como premio.'],
-  ['ropa', 'Tiendas y marcas', 'Descuentos por compra acumulada y avisos de nuevas colecciones, en todos tus locales.'],
-  ['restaurante', 'Gastronomía', 'Sellos por visita, pedidos por WhatsApp y un beneficio del mes para tus clientes habituales.'],
-  ['spa', 'Belleza y bienestar', 'Tratamientos que suman puntos y avisos para volver.'],
-  ['negocio', '¿Otro rubro?', 'Contanos cómo funciona tu negocio y lo adaptamos.'],
+type Rubro = { label: string; title: string; desc: string; points: string[]; pass: Biz }
+const RUBROS: Rubro[] = [
+  { label: 'Eventos', title: 'Productoras de eventos', desc: 'Puntos por asistencia y una tarjeta de socio para tu público fiel.', points: ['Avisos de la próxima fecha', 'Premios para quienes vienen siempre', 'Una tarjeta para todos tus eventos'],
+    pass: { name: 'Tus eventos', color: '#3B2D5A', icon: 'puntos', model: 'puntos', head: ['PRÓXIMO PREMIO', 'Entrada gratis'], points: '840', next: 'Te faltan 160', who: 'Lucía G.', wa: 'CONSULTAS' } },
+  { label: 'Gimnasios', title: 'Gimnasios y clubes', desc: 'Membresía con niveles y beneficios por antigüedad.', points: ['Clases gratis como premio', 'Avisos de nuevas clases', 'Una tarjeta para todas las sedes'],
+    pass: { name: 'Tu gimnasio', color: '#1B412F', icon: 'membresia', model: 'membresia', head: ['NIVEL', 'Plata'], tier: ['Plata', 'Oro', 68, 'Te faltan 4 visitas para Oro'], who: 'Sofía P.', wa: 'CONSULTAS' } },
+  { label: 'Tiendas', title: 'Tiendas y marcas', desc: 'Descuentos por compra acumulada, en todos tus locales.', points: ['Puntos por monto de compra', 'Avisos de nuevas colecciones', 'Un solo saldo en todos los locales'],
+    pass: { name: 'Tu tienda', color: '#1F3A5F', icon: 'puntos', model: 'puntos', head: ['PRÓXIMO PREMIO', '10% de descuento'], points: '1.240', next: 'Te faltan 260', who: 'Martín R.', wa: 'CONSULTAS' } },
+  { label: 'Gastronomía', title: 'Gastronomía', desc: 'Sellos por visita y un beneficio para tus clientes habituales.', points: ['Pedidos por WhatsApp', 'Premio al completar la tarjeta', 'Beneficio del mes para los socios'],
+    pass: { name: 'Tu local', color: '#6B2D1F', icon: 'cafe', model: 'sellos', head: ['SELLOS', '5 de 8'], stamps: 5, who: 'Lucía G.', wa: 'PEDIDOS' } },
+  { label: 'Belleza', title: 'Belleza y bienestar', desc: 'Tratamientos que suman puntos y avisos para volver.', points: ['Puntos por tratamiento', 'Recordatorios para volver', 'Premios que elegís vos'],
+    pass: { name: 'Tu spa', color: '#4E5B3A', icon: 'puntos', model: 'puntos', head: ['PRÓXIMO PREMIO', 'Limpieza facial'], points: '620', next: 'Te faltan 380', who: 'Ana M.', wa: 'TURNOS' } },
+  { label: 'Otro rubro', title: '¿Otro rubro?', desc: 'Contanos cómo funciona tu negocio y lo adaptamos.', points: ['Sellos, puntos o membresía', 'Tarjeta de socio por invitación', 'Premios y avisos a tu medida'],
+    pass: { name: 'Tu marca', color: '#1B412F', icon: 'negocio', model: 'sellos', head: ['SELLOS', '3 de 8'], stamps: 3, who: 'Pablo R.', wa: 'CONSULTAS' } },
+]
+
+const STEPS: [string, string, string][] = [
+  ['Semana 1', 'Una llamada', 'Entendemos cómo funcionan tus locales y qué querés lograr.'],
+  ['Semana 2', 'Armamos todo con vos', 'Tarjetas, premios, locales y equipo, con tu marca.'],
+  ['Semana 3', 'Capacitamos al equipo', 'Cada local aprende a escanear y a usar el panel en una sesión corta.'],
+  ['Semana 4', 'Lanzamos y medimos', 'Te acompañamos el primer mes y revisamos los números juntos.'],
 ]
 const CAPS: [IconName, string, string][] = [
   ['negocio', 'Locales ilimitados', 'Cada local escanea con su equipo y lo ves por separado o todo junto.'],
@@ -120,6 +134,7 @@ export default function Empresas() {
   const [form, setForm] = useState({ nombre: '', empresa: '', locales: '4 a 10', pais: 'Argentina', contacto: '' })
   const [err, setErr] = useState('')
   const [menu, setMenu] = useState(false)
+  const [rub, setRub] = useState(1)
   const max = Math.max(...SEDES.map(s => s[1]))
   // El pedido de demo sale por WhatsApp, con los datos ya escritos.
   const submit = (e: React.FormEvent) => {
@@ -194,18 +209,26 @@ export default function Empresas() {
 
         <section className="l2-sec" id="rubros">
           <div className="l2-sec-head"><h2 className="l2-h2">Para cadenas, <span className="l2-gris">y para todo lo que se parece.</span></h2><p className="l2-lead" style={{ marginTop: 14 }}>Sellos, puntos, membresía o una tarjeta de socio por invitación. Armamos el programa con vos, con los premios y los avisos de tu rubro.</p></div>
-          <div className="l2-ecaps">{RUBROS.map(([ic, t, d]) => <div key={t}><Icon name={ic} size={24} /><h5>{t}</h5><p>{d}</p></div>)}</div>
-          <p className="l2-enote" style={{ marginTop: 16 }}><b>Una tarjeta, muchas formas.</b> Si tu caso no entra en una cadena de locales, escribinos igual.</p>
+          <div className="l2-chips l2-erubs" role="group" aria-label="Rubro">{RUBROS.map((r, k) => <button key={r.label} type="button" aria-pressed={rub === k} onClick={() => setRub(k)}>{r.label}</button>)}</div>
+          <div className="l2-epick">
+            <div>
+              <h3>{RUBROS[rub].title}</h3>
+              <p>{RUBROS[rub].desc}</p>
+              <ul>{RUBROS[rub].points.map(x => <li key={x}><Icon name="listo" size={16} />{x}</li>)}</ul>
+            </div>
+            <Pass key={rub} b={RUBROS[rub].pass} width={240} qr={false} />
+          </div>
+          <p className="l2-enote" style={{ marginTop: 20 }}><b>Una tarjeta, muchas formas.</b> Si tu caso no entra en una cadena de locales, escribinos igual.</p>
         </section>
         <section className="l2-sec">
           <div className="l2-sec-head"><h2 className="l2-h2">Lo que necesita una empresa, <span className="l2-gris">sin vueltas.</span></h2></div>
-          <div className="l2-ecaps">{CAPS.map(([ic, t, d]) => <div key={t}><Icon name={ic} size={24} /><h5>{t}</h5><p>{d}</p></div>)}</div>
+          <div className="l2-echk">{CAPS.map(([, t, d]) => <div key={t}><Icon name="listo" size={18} /><p><b>{t}</b>{d}</p></div>)}</div>
         </section>
 
         <section className="l2-sec">
           <div className="l2-sec-head"><h2 className="l2-h2">En marcha en semanas, <span className="l2-gris">no en meses.</span></h2></div>
-          <div className="l2-esteps">
-            {([['telefono', 'Una llamada', 'Entendemos cómo funcionan tus locales y qué querés lograr.'], ['diseno', 'Armamos todo con vos', 'Tarjetas, premios, locales y equipo, con tu marca.'], ['equipo', 'Capacitamos al equipo', 'Cada local aprende a escanear y a usar el panel en una sesión corta.'], ['analitica', 'Lanzamos y medimos', 'Te acompañamos el primer mes y revisamos los números juntos.']] as [IconName, string, string][]).map(([ic, t, d]) => <div key={t}><span><Icon name={ic} size={24} /></span><h5>{t}</h5><p>{d}</p></div>)}
+          <div className="l2-etime">
+            {STEPS.map(([w, t, d]) => <div key={t}><i /><small>{w}</small><h5>{t}</h5><p>{d}</p></div>)}
           </div>
         </section>
 
@@ -310,13 +333,6 @@ const ECSS = `
 .l2-ecaps svg{color:var(--l2-pino)}
 .l2-ecaps h5{font-family:var(--font-display);font-size:18px;font-weight:700;margin:0}
 .l2-ecaps p{font-size:14px;color:var(--l2-t2);line-height:1.5}
-.l2-esteps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-@media(max-width:900px){.l2-esteps{grid-template-columns:1fr 1fr}}
-@media(max-width:560px){.l2-esteps{grid-template-columns:1fr}}
-.l2-esteps>div{display:flex;flex-direction:column}
-.l2-esteps span{width:44px;height:44px;border-radius:12px;background:var(--l2-card);color:var(--l2-pino);display:grid;place-items:center;margin-bottom:8px}
-.l2-esteps h5{font-family:var(--font-display);font-size:19px;font-weight:700;margin:6px 0}
-.l2-esteps p{font-size:14px;color:var(--l2-t2);line-height:1.5}
 .l2-edemo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(20px,4vw,56px);background:var(--l2-pino);color:#fff;border-radius:var(--l2-r);padding:clamp(28px,5vw,60px) clamp(18px,4vw,52px);margin-top:12px}
 @media(max-width:900px){.l2-edemo{grid-template-columns:1fr}}
 .l2-edemo-l{list-style:none;margin-top:24px;display:flex;flex-direction:column;gap:10px;font-size:15px}
@@ -341,8 +357,29 @@ const ECSS = `
 :root[data-theme="dark"] .l2 .l2-ekpis small{color:#62C58C}
 :root[data-theme="dark"] .l2 .l2-ekpis small.warn{color:var(--l2-brasa)}
 :root[data-theme="dark"] .l2 .l2-eerr{color:#F0897A}
-:root[data-theme="dark"] .l2 .l2-esteps span{color:#8FD0AC}
 :root[data-theme="dark"] .l2 .l2-ebrand .l2-etag{color:var(--l2-tinta)}
 :root[data-theme="dark"] .l2 .l2-ecaps svg,:root[data-theme="dark"] .l2 .l2-efacts svg{color:#8FD0AC}
 @media(max-width:560px){.l2-ebrand .l2-etag{display:none}.l2-ehide{display:none}}
+.l2-erubs{margin-top:22px}.l2-erubs button{padding:9px 16px;font-size:15px}
+.l2-epick{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:clamp(20px,4vw,56px);align-items:center;margin-top:26px}
+@media(max-width:800px){.l2-epick{grid-template-columns:1fr}}
+.l2-epick h3{font-family:var(--font-display);font-size:clamp(24px,3vw,32px);font-weight:800;margin:0 0 10px}
+.l2-epick p{color:var(--l2-t2);font-size:16px;line-height:1.5;margin:0 0 18px;max-width:46ch}
+.l2-epick ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;font-size:15px}
+.l2-epick li{display:flex;gap:10px;align-items:center}.l2-epick li svg{color:var(--l2-pino);flex:none}
+.l2-epick .l2-pass{margin:0 auto}
+.l2-echk{display:grid;grid-template-columns:1fr 1fr;gap:0 clamp(24px,5vw,64px)}
+@media(max-width:700px){.l2-echk{grid-template-columns:1fr}}
+.l2-echk>div{display:flex;gap:12px;align-items:flex-start;padding:16px 0;border-bottom:1px solid var(--l2-linea)}
+.l2-echk svg{color:var(--l2-pino);flex:none;margin-top:3px}
+.l2-echk p{margin:0;color:var(--l2-t2);font-size:15px;line-height:1.45}.l2-echk b{display:block;color:var(--l2-tinta);font-family:var(--font-display);font-size:17px;font-weight:700;margin-bottom:2px}
+.l2-etime{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;padding-top:4px}
+.l2-etime:before{content:"";position:absolute;left:13px;right:13px;top:17px;height:2px;background:var(--l2-linea)}
+.l2-etime>div{position:relative}
+.l2-etime i{display:block;width:18px;height:18px;border-radius:50%;background:var(--l2-pino);border:4px solid var(--l2-card);box-sizing:content-box;margin-bottom:14px;position:relative}
+.l2-etime small{display:block;font-size:13px;font-weight:600;color:var(--l2-t3);margin-bottom:4px}
+.l2-etime h5{font-family:var(--font-display);font-size:19px;font-weight:700;margin:0 0 6px}.l2-etime p{margin:0;font-size:14.5px;color:var(--l2-t2);line-height:1.5}
+@media(max-width:700px){.l2-etime{grid-template-columns:1fr;gap:26px}.l2-etime:before{left:13px;right:auto;top:10px;bottom:10px;width:2px;height:auto}.l2-etime>div{padding-left:44px}.l2-etime i{position:absolute;left:0;top:0;margin:0}}
+:root[data-theme="dark"] .l2 .l2-epick li svg,:root[data-theme="dark"] .l2 .l2-echk svg{color:#8FD0AC}
+:root[data-theme="dark"] .l2 .l2-etime i{background:#8FD0AC;border-color:#1D1B18}
 `
