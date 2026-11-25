@@ -2,6 +2,14 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.15.2 (25/11/2026) — Empresas con bloques distintos
+
+**Cambios**
+- Empresas: "Para cadenas, y para todo lo que se parece" es ahora un selector. Tocás un rubro (Eventos, Gimnasios, Tiendas, Gastronomía, Belleza u otro) y cambian el título, el texto, tres puntos y una tarjeta de ejemplo. Los textos son un primer borrador.
+- Empresas: "Lo que necesita una empresa" pasa a una lista de dos columnas con tilde, sin tarjetas con íconos grandes.
+- Empresas: "En marcha en semanas" es una línea de tiempo con Semana 1 a 4 (vertical en el celular).
+- Arreglo: el logo STAMPA de la barra de Empresas heredaba el fondo gris de la etiqueta "Empresas" (un `span` dentro de `.l2-ebrand`); ahora la etiqueta tiene su propia clase.
+
 ## 1.15.1 (25/11/2026) — Empresas alineada con la landing
 
 **Cambios**
