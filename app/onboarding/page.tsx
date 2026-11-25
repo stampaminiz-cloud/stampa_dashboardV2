@@ -10,6 +10,7 @@ import { PLAN_LIMITS, type Plan } from '@/data/plans'
 import { PointsRuleEditor, pointsRuleValid, DEFAULT_UNIT, type PointsRuleValue } from '@/components/dashboard/PointsRuleEditor'
 import { currencyFor, pointsRuleText, type Currency } from '@/lib/money'
 import { ejemplosDe } from '@/lib/ejemplos'
+import { Wordmark } from '@/components/brand/Wordmark'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CardType    = 'stamp' | 'points' | 'membership'
@@ -534,7 +535,7 @@ const CSS = `
   .ob-wrap { min-height:100vh; min-height:100dvh; background:var(--ob-bg); padding:12px; }
   .ob-frame { max-width:1240px; margin:0 auto; background:var(--ob-frame); border-radius:28px; padding:14px; }
   .ob-top { display:flex; align-items:center; gap:16px; background:var(--ob-card); border-radius:999px; padding:10px 20px; margin-bottom:12px; }
-  .ob-top img { height:18px; width:auto; display:block; flex-shrink:0; }
+  .ob-top .wm { font-size:20px; flex-shrink:0; }
   .ob-prog { flex:1; height:6px; border-radius:3px; background:var(--s-salvia); overflow:hidden; }
   .ob-prog i { display:block; height:100%; background:var(--s-pino); border-radius:3px; transition:width .25s cubic-bezier(.2,.8,.2,1); }
   .ob-top span { font-size:13px; color:rgb(var(--s-tinta-rgb) / .62); white-space:nowrap; font-variant-numeric:tabular-nums; }
@@ -807,7 +808,7 @@ export default function OnboardingPage() {
       <div className="ob-wrap">
         <div className="ob-frame">
           <div className="ob-top">
-            <img src="/assets/wordmark.png" alt="Stampa" />
+            <Wordmark />
             <div className="ob-prog" role="progressbar" aria-valuemin={1} aria-valuemax={flow.length} aria-valuenow={position + 1}><i style={{ width: `${((position + 1) / flow.length) * 100}%` }} /></div>
             <span>Paso {position + 1} de {flow.length}</span>
           </div>
