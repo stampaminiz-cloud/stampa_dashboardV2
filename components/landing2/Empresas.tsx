@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { Pass } from './Pass'
+import { ThemeBtn } from './ThemeBtn'
 import { PROOF, whatsappLink, WHATSAPP_ENTERPRISE } from './data'
 import { CSS } from './styles'
 
@@ -109,6 +110,7 @@ export default function Empresas() {
   const [rubro, setRubro] = useState('Gastronomía')
   const [form, setForm] = useState({ nombre: '', empresa: '', locales: '4 a 10', pais: 'Argentina', contacto: '' })
   const [err, setErr] = useState('')
+  const [menu, setMenu] = useState(false)
   const max = Math.max(...SEDES.map(s => s[1]))
   // El pedido de demo sale por WhatsApp, con los datos ya escritos.
   const submit = (e: React.FormEvent) => {
@@ -127,8 +129,10 @@ export default function Empresas() {
         <nav className="l2-nav" aria-label="Principal">
           <a href="/" className="l2-brand l2-ebrand"><img src="/assets/wordmark.png" alt="Stampa" /><span>Empresas</span></a>
           <div className="l2-links"><a href="#enterprise">Enterprise</a><a href="#modelos">Modelos</a><a href="#panel">Panel</a><a href="#demo">Demo</a></div>
-          <div className="l2-nav-r"><a className="l2-btn l2-btn-pino l2-btn-sm" href="#demo">Agendar una demo</a></div>
+          <div className="l2-nav-r"><ThemeBtn /><a className="l2-elogin l2-hide-m" href="/login">Ingresar</a><a className="l2-btn l2-btn-pino l2-btn-sm l2-ehide" href="#demo">Agendar una demo</a>
+            <button className="l2-burger" aria-label="Menú" aria-expanded={menu} onClick={() => setMenu(v => !v)}><Icon name={menu ? 'cerrar' : 'menu'} size={20} /></button></div>
         </nav>
+        {menu && <div className="l2-mmenu" onClick={() => setMenu(false)}><a href="#enterprise">Enterprise</a><a href="#modelos">Modelos</a><a href="#panel">Panel</a><a href="#demo">Demo</a><a href="/login">Ingresar</a></div>}
 
         <header className="l2-ehero">
           <div>
@@ -187,7 +191,7 @@ export default function Empresas() {
         <section className="l2-sec">
           <div className="l2-sec-head"><h2 className="l2-h2">En marcha en semanas, <span className="l2-gris">no en meses.</span></h2></div>
           <div className="l2-esteps">
-            {[['01', 'Una llamada', 'Entendemos cómo funcionan tus locales y qué querés lograr.'], ['02', 'Armamos todo con vos', 'Tarjetas, premios, locales y equipo, con tu marca.'], ['03', 'Capacitamos al equipo', 'Cada local aprende a escanear y a usar el panel en una sesión corta.'], ['04', 'Lanzamos y medimos', 'Te acompañamos el primer mes y revisamos los números juntos.']].map(([n, t, d]) => <div key={n}><span>{n}</span><h5>{t}</h5><p>{d}</p></div>)}
+            {([['telefono', 'Una llamada', 'Entendemos cómo funcionan tus locales y qué querés lograr.'], ['diseno', 'Armamos todo con vos', 'Tarjetas, premios, locales y equipo, con tu marca.'], ['equipo', 'Capacitamos al equipo', 'Cada local aprende a escanear y a usar el panel en una sesión corta.'], ['analitica', 'Lanzamos y medimos', 'Te acompañamos el primer mes y revisamos los números juntos.']] as [IconName, string, string][]).map(([ic, t, d]) => <div key={t}><span><Icon name={ic} size={24} /></span><h5>{t}</h5><p>{d}</p></div>)}
           </div>
         </section>
 
@@ -227,11 +231,11 @@ const ECSS = `
 .l2-efacts span{display:inline-flex;gap:7px;align-items:center}.l2-efacts svg{color:var(--l2-pino)}
 .l2-emap{margin-top:0;height:clamp(440px,42vw,560px)}
 .l2-emap-tag{position:absolute;left:16px;top:16px;z-index:3;font-weight:600;color:var(--l2-tinta)}
-.l2-efeed{position:absolute;z-index:3;left:14px;right:14px;bottom:14px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-radius:16px;padding:10px;box-shadow:0 16px 34px -18px rgba(30,29,26,.35);display:flex;flex-direction:column;gap:5px}
+.l2-efeed{position:absolute;z-index:3;left:14px;right:14px;bottom:14px;background:var(--l2-card);backdrop-filter:blur(8px);border-radius:16px;padding:10px;box-shadow:0 16px 34px -18px rgba(30,29,26,.35);display:flex;flex-direction:column;gap:5px}
 .l2-efeed-h{font-size:12px;font-weight:600;color:var(--l2-t2);display:flex;align-items:center;gap:7px;padding:2px 4px 4px}
 .l2-live-dot{width:8px;height:8px;border-radius:50%;background:#2F9E5B;animation:l2pulse 2s infinite}
 @keyframes l2pulse{70%{box-shadow:0 0 0 8px rgba(47,158,91,0)}0%{box-shadow:0 0 0 0 rgba(47,158,91,.5)}}
-.l2-erow{display:flex;align-items:center;gap:10px;padding:6px;border-radius:11px;background:#fff;animation:l2drop .4s cubic-bezier(.2,.8,.2,1)}
+.l2-erow{display:flex;align-items:center;gap:10px;padding:6px;border-radius:11px;background:var(--l2-card);animation:l2drop .4s cubic-bezier(.2,.8,.2,1)}
 .l2-erow.first{box-shadow:inset 0 0 0 1.5px var(--l2-pino)}
 .l2-erow>span:nth-child(2){flex:1;min-width:0}
 .l2-erow b{display:block;font-size:13.5px}.l2-erow small{display:block;font-size:12px;color:var(--l2-t2)}
@@ -263,7 +267,7 @@ const ECSS = `
 .l2-ecard{background:var(--l2-salvia);border-radius:var(--l2-r);padding:22px}
 .l2-ecard h4{font-size:13px;color:var(--l2-t2);font-weight:600;margin:0 0 14px;display:flex;justify-content:space-between}
 .l2-esede{display:grid;grid-template-columns:130px 1fr 60px;gap:12px;align-items:center;font-size:13.5px;padding:5px 0}
-.l2-ebar{height:10px;border-radius:5px;background:#fff;overflow:hidden}.l2-ebar i{display:block;height:100%;background:var(--l2-pino);border-radius:5px}
+.l2-ebar{height:10px;border-radius:5px;background:var(--l2-card);overflow:hidden}.l2-ebar i{display:block;height:100%;background:var(--l2-pino);border-radius:5px}
 .l2-esede b{text-align:right;font-variant-numeric:tabular-nums}
 .l2-ekpis{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:12px}
 .l2-ekpis div{background:var(--l2-salvia);border-radius:var(--l2-r);padding:20px 22px;display:flex;flex-direction:column;justify-content:space-between}
@@ -274,32 +278,43 @@ const ECSS = `
 .l2-ecaps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--l2-linea);border-radius:var(--l2-r);overflow:hidden}
 @media(max-width:900px){.l2-ecaps{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.l2-ecaps{grid-template-columns:1fr}}
-.l2-ecaps>div{background:#fff;padding:24px;display:flex;flex-direction:column;gap:8px}
+.l2-ecaps>div{background:var(--l2-card);padding:24px;display:flex;flex-direction:column;gap:8px}
 .l2-ecaps svg{color:var(--l2-pino)}
 .l2-ecaps h5{font-family:var(--font-display);font-size:18px;font-weight:700;margin:0}
 .l2-ecaps p{font-size:14px;color:var(--l2-t2);line-height:1.5}
 .l2-esteps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 @media(max-width:900px){.l2-esteps{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.l2-esteps{grid-template-columns:1fr}}
-.l2-esteps>div{border-top:2px solid var(--l2-pino);padding-top:16px}
-.l2-esteps span{font-family:var(--font-display);font-weight:700;color:var(--l2-t3);font-size:14px}
+.l2-esteps>div{display:flex;flex-direction:column}
+.l2-esteps span{width:44px;height:44px;border-radius:12px;background:var(--l2-card);color:var(--l2-pino);display:grid;place-items:center;margin-bottom:8px}
 .l2-esteps h5{font-family:var(--font-display);font-size:19px;font-weight:700;margin:6px 0}
 .l2-esteps p{font-size:14px;color:var(--l2-t2);line-height:1.5}
 .l2-edemo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(20px,4vw,56px);background:var(--l2-pino);color:#fff;border-radius:var(--l2-r);padding:clamp(28px,5vw,60px) clamp(18px,4vw,52px);margin-top:12px}
 @media(max-width:900px){.l2-edemo{grid-template-columns:1fr}}
 .l2-edemo-l{list-style:none;margin-top:24px;display:flex;flex-direction:column;gap:10px;font-size:15px}
 .l2-edemo-l li{display:flex;gap:10px;align-items:center}.l2-edemo-l svg{color:var(--l2-mostaza)}
-.l2-eform{background:#fff;color:var(--l2-tinta);border-radius:18px;padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start}
+.l2-eform{background:var(--l2-card);color:var(--l2-tinta);border-radius:18px;padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start}
 @media(max-width:560px){.l2-eform{grid-template-columns:1fr}}
 .l2-eform label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--l2-t2)}
 .l2-eform .full{grid-column:1/-1}
-.l2-eform input,.l2-eform select{border:1.5px solid var(--l2-linea);border-radius:10px;padding:11px 12px;font:inherit;font-size:15px;color:var(--l2-tinta);background:#fff;width:100%}
+.l2-eform input,.l2-eform select{border:1.5px solid var(--l2-linea);border-radius:10px;padding:11px 12px;font:inherit;font-size:15px;color:var(--l2-tinta);background:var(--l2-card);width:100%}
 .l2-eform input:focus,.l2-eform select:focus{outline:none;border-color:var(--l2-pino)}
 .l2-chips{display:flex;flex-wrap:wrap;gap:6px}
-.l2-chips button{border:1.5px solid var(--l2-linea);background:#fff;border-radius:999px;padding:7px 12px;font-size:13.5px;color:var(--l2-tinta)}
+.l2-chips button{border:1.5px solid var(--l2-linea);background:var(--l2-card);border-radius:999px;padding:7px 12px;font-size:13.5px;color:var(--l2-tinta)}
 .l2-chips button[aria-pressed=true]{background:var(--l2-pino);border-color:var(--l2-pino);color:#fff}
 .l2-eerr{font-size:13px;color:#B3261E;margin:0}
 .l2-enote{font-size:12.5px;color:var(--l2-t2);margin:0}.l2-enote a{color:var(--l2-pino);font-weight:600;text-decoration:underline}
 .l2-eft{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--l2-t2)}
 .l2-eft img{height:16px;width:auto}
+.l2-elogin{font-size:14px;font-weight:600;color:var(--l2-t2);padding:8px 6px}.l2-elogin:hover{color:var(--l2-tinta)}
+:root[data-theme="dark"] .l2 .l2-erow{background:#1D1B18}
+:root[data-theme="dark"] .l2 .l2-ebar,:root[data-theme="dark"] .l2 .l2-elocs span{background:rgba(242,239,233,.1)}
+:root[data-theme="dark"] .l2 .l2-eform input,:root[data-theme="dark"] .l2 .l2-eform select{background:#161513}
+:root[data-theme="dark"] .l2 .l2-ekpis small{color:#62C58C}
+:root[data-theme="dark"] .l2 .l2-ekpis small.warn{color:var(--l2-brasa)}
+:root[data-theme="dark"] .l2 .l2-eerr{color:#F0897A}
+:root[data-theme="dark"] .l2 .l2-esteps span{color:#8FD0AC}
+:root[data-theme="dark"] .l2 .l2-ebrand span{color:var(--l2-tinta)}
+:root[data-theme="dark"] .l2 .l2-ecaps svg,:root[data-theme="dark"] .l2 .l2-efacts svg{color:#8FD0AC}
+@media(max-width:560px){.l2-ebrand span{display:none}.l2-ehide{display:none}}
 `
