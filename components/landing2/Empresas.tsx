@@ -7,8 +7,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { Pass } from './Pass'
 import { ThemeBtn } from './ThemeBtn'
-import { PROOF, whatsappLink, WHATSAPP_ENTERPRISE } from './data'
+import { PROOF, whatsappLink, WHATSAPP_ENTERPRISE, INSTAGRAM } from './data'
 import { CSS } from './styles'
+import { Wordmark } from '@/components/brand/Wordmark'
 
 // Locales de ejemplo (barrios de Córdoba capital) con sus visitas del mes
 const SEDES: [string, number][] = [['Cerro de las Rosas', 5120], ['Argüello', 4610], ['Villa Belgrano', 3980], ['Alta Córdoba', 4870], ['Centro', 3720], ['General Paz', 3550], ['Alberdi', 3210], ['Nueva Córdoba', 3890], ['Güemes', 2980], ['San Vicente', 2640], ['Jardín', 2660]]
@@ -97,6 +98,14 @@ function BrandMap() {
   )
 }
 
+const RUBROS: [IconName, string, string][] = [
+  ['premios', 'Productoras de eventos', 'Puntos por asistencia y una tarjeta de socio para tu público fiel. Avisos de la próxima fecha.'],
+  ['gym', 'Gimnasios y clubes', 'Membresía con niveles, beneficios por antigüedad y clases gratis como premio.'],
+  ['ropa', 'Tiendas y marcas', 'Descuentos por compra acumulada y avisos de nuevas colecciones, en todos tus locales.'],
+  ['restaurante', 'Gastronomía', 'Sellos por visita, pedidos por WhatsApp y un beneficio del mes para tus clientes habituales.'],
+  ['spa', 'Belleza y bienestar', 'Tratamientos que suman puntos y avisos para volver.'],
+  ['negocio', '¿Otro rubro?', 'Contanos cómo funciona tu negocio y lo adaptamos.'],
+]
 const CAPS: [IconName, string, string][] = [
   ['negocio', 'Locales ilimitados', 'Cada local escanea con su equipo y lo ves por separado o todo junto.'],
   ['diseno', 'Tu marca en todo', 'Sin la marca Stampa en la tarjeta, el formulario y los avisos.'],
@@ -127,7 +136,7 @@ export default function Empresas() {
       <style dangerouslySetInnerHTML={{ __html: CSS + ECSS }} />
       <div className="l2-frame">
         <nav className="l2-nav" aria-label="Principal">
-          <a href="/" className="l2-brand l2-ebrand"><img src="/assets/wordmark.png" alt="Stampa" /><span>Empresas</span></a>
+          <a href="/" className="l2-brand l2-ebrand"><Wordmark /><span>Empresas</span></a>
           <div className="l2-links"><a href="#enterprise">Enterprise</a><a href="#modelos">Modelos</a><a href="#panel">Panel</a><a href="#demo">Demo</a></div>
           <div className="l2-nav-r"><ThemeBtn /><a className="l2-elogin l2-hide-m" href="/login">Ingresar</a><a className="l2-btn l2-btn-pino l2-btn-sm l2-ehide" href="#demo">Agendar una demo</a>
             <button className="l2-burger" aria-label="Menú" aria-expanded={menu} onClick={() => setMenu(v => !v)}><Icon name={menu ? 'cerrar' : 'menu'} size={20} /></button></div>
@@ -183,6 +192,11 @@ export default function Empresas() {
           <p className="l2-ex">Números de ejemplo para una marca con 11 locales en Córdoba.</p>
         </section>
 
+        <section className="l2-sec" id="rubros">
+          <div className="l2-sec-head"><h2 className="l2-h2">Para cadenas, <span className="l2-gris">y para todo lo que se parece.</span></h2><p className="l2-lead" style={{ marginTop: 14 }}>Sellos, puntos, membresía o una tarjeta de socio por invitación. Armamos el programa con vos, con los premios y los avisos de tu rubro.</p></div>
+          <div className="l2-ecaps">{RUBROS.map(([ic, t, d]) => <div key={t}><Icon name={ic} size={24} /><h5>{t}</h5><p>{d}</p></div>)}</div>
+          <p className="l2-enote" style={{ marginTop: 16 }}><b>Una tarjeta, muchas formas.</b> Si tu caso no entra en una cadena de locales, escribinos igual.</p>
+        </section>
         <section className="l2-sec">
           <div className="l2-sec-head"><h2 className="l2-h2">Lo que necesita una empresa, <span className="l2-gris">sin vueltas.</span></h2></div>
           <div className="l2-ecaps">{CAPS.map(([ic, t, d]) => <div key={t}><Icon name={ic} size={24} /><h5>{t}</h5><p>{d}</p></div>)}</div>
@@ -214,7 +228,21 @@ export default function Empresas() {
           </form>
         </section>
 
-        <footer className="l2-ft l2-eft"><img src="/assets/wordmark.png" alt="Stampa" /><span><a href="mailto:hola@stampaclub.com">hola@stampaclub.com</a> · <a href="/">Stampa para negocios</a> · <a href="/terms">Términos</a> · <a href="/privacy">Privacidad</a></span></footer>
+        <footer className="l2-ft">
+          <div className="l2-ft-top">
+            <div>
+              <div style={{ fontSize: 32, marginBottom: 14 }}><Wordmark /></div>
+              <p className="l2-ft-claim">Tarjetas de fidelidad en Apple y Google Wallet, para marcas con varios locales.</p>
+              <a className="l2-btn l2-btn-pino" href="#demo">Agendar una demo</a>
+            </div>
+            <nav className="l2-ft-cols l2-eft-cols" aria-label="Pie de página">
+              <div><b>Enterprise</b><a href="#modelos">Locales y modelos</a><a href="#panel">El panel</a><a href="#rubros">Para tu rubro</a></div>
+              <div><b>Más</b><a href="/#precios">Ver planes</a><a href="/ayuda">Centro de ayuda</a><a href="mailto:hola@stampaclub.com">hola@stampaclub.com</a></div>
+              <div><b>Escribinos</b><a href={WHATSAPP_ENTERPRISE} target="_blank" rel="noopener noreferrer"><Icon name="whatsapp" size={16} /> WhatsApp de ventas</a><a href={INSTAGRAM} target="_blank" rel="noopener noreferrer"><Icon name="instagram" size={16} /> Instagram</a></div>
+            </nav>
+          </div>
+          <div className="l2-ft-bottom"><span>© {new Date().getFullYear()} Stampa</span><nav><a href="/terms">Términos</a><a href="/privacy">Privacidad</a></nav></div>
+        </footer>
       </div>
     </div>
   )
@@ -304,8 +332,8 @@ const ECSS = `
 .l2-chips button[aria-pressed=true]{background:var(--l2-pino);border-color:var(--l2-pino);color:#fff}
 .l2-eerr{font-size:13px;color:#B3261E;margin:0}
 .l2-enote{font-size:12.5px;color:var(--l2-t2);margin:0}.l2-enote a{color:var(--l2-pino);font-weight:600;text-decoration:underline}
-.l2-eft{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--l2-t2)}
-.l2-eft img{height:16px;width:auto}
+.l2-eft-cols{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:700px){.l2-eft-cols{grid-template-columns:1fr 1fr}}
 .l2-elogin{font-size:14px;font-weight:600;color:var(--l2-t2);padding:8px 6px}.l2-elogin:hover{color:var(--l2-tinta)}
 :root[data-theme="dark"] .l2 .l2-erow{background:#1D1B18}
 :root[data-theme="dark"] .l2 .l2-ebar,:root[data-theme="dark"] .l2 .l2-elocs span{background:rgba(242,239,233,.1)}

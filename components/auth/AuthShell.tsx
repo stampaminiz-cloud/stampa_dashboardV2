@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { Pass } from '@/components/landing2/Pass'
 import { SHOPS } from '@/components/landing2/data'
 import { PASS_CSS } from '@/components/landing2/passStyles'
+import { Wordmark } from '@/components/brand/Wordmark'
 
 export const AUTH_CSS = PASS_CSS + `
 *,*::before,*::after{box-sizing:border-box}
@@ -15,8 +16,8 @@ body{margin:0}
 .au-frame{max-width:1240px;margin:0 auto;background:#F7F7F4;border-radius:28px;padding:14px;min-height:calc(100vh - 24px);display:flex}
 .au-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;width:100%}
 .au-form{background:#fff;border-radius:20px;padding:clamp(24px,4vw,56px);display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0}
-.au-logo{align-self:center;margin-bottom:28px;display:block}
-.au-logo img{height:46px;width:auto;display:block}
+.au-logo{align-self:center;margin-bottom:28px;display:block;text-decoration:none}
+.au-logo .wm{font-size:50px}
 .au-in{width:100%;max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
 .au-in h1{font-family:var(--font-display);font-weight:800;font-size:clamp(32px,3.4vw,46px);letter-spacing:-.03em;line-height:1;text-align:center}
 .au-sub{color:#5E5C55;margin-top:-6px!important;font-size:15px;text-align:center}
@@ -64,7 +65,7 @@ body{margin:0}
 :root[data-theme="dark"] .au-chk input{accent-color:#E07B58}
 :root[data-theme="dark"] .au-side{background:#23402F}
 @media(max-width:860px){
-  .au-logo img{height:38px}
+  .au-logo .wm{font-size:41px}
   .au{padding:6px}
   .au-frame{border-radius:22px;padding:10px;min-height:calc(100vh - 12px)}
   .au-grid{grid-template-columns:1fr}
@@ -99,7 +100,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <div className="au-frame">
           <div className="au-grid">
             <div className="au-form">
-              <a href="/" className="au-logo" aria-label="Stampa, ir al inicio"><img src="/assets/wordmark.png" alt="Stampa" /></a>
+              <a href="/" className="au-logo" aria-label="Stampa, ir al inicio"><Wordmark /></a>
               {children}
             </div>
             <AuthSide />
