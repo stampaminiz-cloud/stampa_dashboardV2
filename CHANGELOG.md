@@ -2,6 +2,16 @@
 
 Formato: la versión más nueva arriba. El panel y el backend llevan el mismo número; cómo se numera está en `docs/versiones.md` del backend.
 
+## 1.15.1 (25/11/2026) — Empresas alineada con la landing
+
+**Cambios**
+- Empresas: la barra suma el botón de sol y luna, "Ingresar" como link discreto y el menú en el celular. En el celular se esconden el botón de demo (queda el del título) y la etiqueta "Empresas" para que no se desborde.
+- Empresas: modo oscuro. Sigue el tema que elegiste en la landing; las barras, filas, tarjetas, formulario y chips usan los colores del sistema (antes tenían el blanco fijo).
+- Empresas: "En marcha en semanas" sin los números 01 al 04; cada paso lleva un ícono.
+- Empresas: sección "Para cadenas, y para todo lo que se parece" con productoras de eventos, gimnasios y clubes, tiendas y marcas, gastronomía, belleza y bienestar, y "¿Otro rubro?". Los textos son un primer borrador.
+- Empresas: el pie tiene la estructura del de la landing (logo, frase, botón a la demo y tres columnas). "Ver planes" lleva a los precios; se fue "Stampa para negocios".
+- El logo STAMPA es texto en la letra de la marca (`components/brand/Wordmark.tsx`) en la landing, Empresas, el ingreso, el registro y el onboarding. Se terminó la imagen `wordmark.png` con la M deformada.
+
 ## 1.15.0 (20/11/2026) — Tarjeta del local
 
 **Cambios**
