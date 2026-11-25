@@ -136,7 +136,7 @@ export default function Empresas() {
       <style dangerouslySetInnerHTML={{ __html: CSS + ECSS }} />
       <div className="l2-frame">
         <nav className="l2-nav" aria-label="Principal">
-          <a href="/" className="l2-brand l2-ebrand"><Wordmark /><span>Empresas</span></a>
+          <a href="/" className="l2-brand l2-ebrand"><Wordmark /><span className="l2-etag">Empresas</span></a>
           <div className="l2-links"><a href="#enterprise">Enterprise</a><a href="#modelos">Modelos</a><a href="#panel">Panel</a><a href="#demo">Demo</a></div>
           <div className="l2-nav-r"><ThemeBtn /><a className="l2-elogin l2-hide-m" href="/login">Ingresar</a><a className="l2-btn l2-btn-pino l2-btn-sm l2-ehide" href="#demo">Agendar una demo</a>
             <button className="l2-burger" aria-label="Menú" aria-expanded={menu} onClick={() => setMenu(v => !v)}><Icon name={menu ? 'cerrar' : 'menu'} size={20} /></button></div>
@@ -250,7 +250,7 @@ export default function Empresas() {
 
 const ECSS = `
 .l2-ebrand{display:flex;align-items:center;gap:10px}
-.l2-ebrand span{font-size:12px;font-weight:600;color:var(--l2-pino);background:var(--l2-salvia);border-radius:999px;padding:3px 9px}
+.l2-ebrand .l2-etag{font-size:12px;font-weight:600;color:var(--l2-pino);background:var(--l2-salvia);border-radius:999px;padding:3px 9px}
 .l2-btn-line{background:transparent;color:var(--l2-tinta);box-shadow:inset 0 0 0 1.5px var(--l2-linea)}
 .l2-ehero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:clamp(20px,4vw,48px);align-items:center;padding:clamp(36px,6vw,72px) clamp(4px,2vw,24px) clamp(20px,3vw,32px)}
 @media(max-width:900px){.l2-ehero{grid-template-columns:1fr}}
@@ -342,7 +342,7 @@ const ECSS = `
 :root[data-theme="dark"] .l2 .l2-ekpis small.warn{color:var(--l2-brasa)}
 :root[data-theme="dark"] .l2 .l2-eerr{color:#F0897A}
 :root[data-theme="dark"] .l2 .l2-esteps span{color:#8FD0AC}
-:root[data-theme="dark"] .l2 .l2-ebrand span{color:var(--l2-tinta)}
+:root[data-theme="dark"] .l2 .l2-ebrand .l2-etag{color:var(--l2-tinta)}
 :root[data-theme="dark"] .l2 .l2-ecaps svg,:root[data-theme="dark"] .l2 .l2-efacts svg{color:#8FD0AC}
-@media(max-width:560px){.l2-ebrand span{display:none}.l2-ehide{display:none}}
+@media(max-width:560px){.l2-ebrand .l2-etag{display:none}.l2-ehide{display:none}}
 `
